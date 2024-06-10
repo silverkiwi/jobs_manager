@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "jobs-manager"
+version = "0.1.0"
+description = "Django app for managing quotes and jobs"
+authors = ["Corrin Lakeland <corrin.lakeland@cmeconnect.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+Django = "^5.0.6"
+django-encrypted-model-fields = "^0.6.5"
+#django-xero = "^0.0.3"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.4.2"
+flake8 = "^7.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
