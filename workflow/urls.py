@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from .views import create_job, job_list, job_detail, create_pricing_model, register, profile
+
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -18,4 +20,6 @@ urlpatterns = [
     path('jobs/', job_list, name='job_list'),
     path('jobs/<int:pk>/', job_detail, name='job_detail'),
     path('jobs/<int:job_id>/pricing_model/create/', create_pricing_model, name='create_pricing_model'),
+    path('register/', register, name='register'),
+    path('profile/', profile, name='profile'),
 ]

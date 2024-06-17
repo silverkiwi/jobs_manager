@@ -25,3 +25,17 @@ class ManualEntryForm(forms.ModelForm):
     class Meta:
         model = ManualEntry
         fields = ['description', 'cost', 'revenue']
+
+from django import forms
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from .models import Staff
+
+class StaffCreationForm(UserCreationForm):
+    class Meta:
+        model = Staff
+        fields = ('email', 'first_name', 'last_name', 'pay_rate', 'ims_payroll_id')
+
+class StaffChangeForm(UserChangeForm):
+    class Meta:
+        model = Staff
+        fields = ('email', 'first_name', 'last_name', 'pay_rate', 'ims_payroll_id')

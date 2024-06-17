@@ -10,6 +10,7 @@ python = "^3.12"
 Django = "^5.0.6"
 django-encrypted-model-fields = "^0.6.5"
 #django-xero = "^0.0.3"
+django-simple-history = "^3.7.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
