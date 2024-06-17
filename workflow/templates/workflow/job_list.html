@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jobs</title>
+</head>
+<body>
+    <h1>Jobs</h1>
+    <a href="{% url 'create_job' %}">Create a new Job</a>
+    {% if jobs %}
+        <ul>
+            {% for job in jobs %}
+                <li>
+                    <a href="{% url 'job_detail' job.id %}">
+                        {{ job.client_name }} - {{ job.status }} -
+                        {% if job.job_number %}
+                            {{ job.job_number }}
+                        {% else %}
+                            {{ job.order_number }}
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No jobs found.</p>
+    {% endif %}
+</body>
+</html>

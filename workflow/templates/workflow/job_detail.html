@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Job Details</title>
+</head>
+<body>
+    <h1>Job Details</h1>
+    <p>Client Name: {{ job.client_name }}</p>
+    <p>Order Number: {{ job.order_number }}</p>
+    <p>Contact Person: {{ job.contact_person }}</p>
+    <p>Contact Phone: {{ job.contact_phone }}</p>
+    <p>Job Number: {{ job.job_number }}</p>
+    <p>Description: {{ job.description }}</p>
+    <p>Status: {{ job.status }}</p>
+    <p>Paid: {{ job.paid }}</p>
+
+    <h2>Pricing Models</h2>
+    <ul>
+        {% for pricing_model in pricing_models %}
+        <li>{{ pricing_model.pricing_type }} - Cost: {{ pricing_model.cost }} - Revenue: {{ pricing_model.revenue }} - Profit: {{ pricing_model.profit }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Add Pricing Model</h2>
+    <form method="post" action="{% url 'create_pricing_model' job.id %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Add</button>
+    </form>
+</body>
+</html>
