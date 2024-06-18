@@ -1,29 +1,32 @@
 from django import forms
-from .models import Job, PricingModel, TimeEntry, MaterialEntry, ManualEntry
+from .models import Job, JobPricing, TimeEntry, MaterialEntry, AdjustmentEntry
 
 class JobForm(forms.ModelForm):
     class Meta:
         model = Job
         fields = ['client_name', 'order_number', 'contact_person', 'contact_phone', 'job_number', 'description', 'status', 'paid']
 
-class PricingModelForm(forms.ModelForm):
+class JobPricingForm(forms.ModelForm):
     class Meta:
-        model = PricingModel
+        model = JobPricing
         fields = ['pricing_type', 'cost', 'revenue']
 
 class TimeEntryForm(forms.ModelForm):
     class Meta:
         model = TimeEntry
-        fields = ['date', 'staff_name', 'hours', 'wage_rate', 'charge_out_rate']
+        fields = ['job', 'staff', 'date', 'duration', 'note', 'is_billable']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+        }
 
 class MaterialEntryForm(forms.ModelForm):
     class Meta:
         model = MaterialEntry
         fields = ['description', 'cost_price', 'sale_price', 'quantity']
 
-class ManualEntryForm(forms.ModelForm):
+class AdjustmentEntryForm(forms.ModelForm):
     class Meta:
-        model = ManualEntry
+        model = AdjustmentEntry
         fields = ['description', 'cost', 'revenue']
 
 from django import forms
@@ -33,9 +36,17 @@ from .models import Staff
 class StaffCreationForm(UserCreationForm):
     class Meta:
         model = Staff
-        fields = ('email', 'first_name', 'last_name', 'pay_rate', 'ims_payroll_id')
+        fields = ('email', 'first_name', 'last_name', 'preferred_name', 'wage_rate', 'ims_payroll_id')
 
 class StaffChangeForm(UserChangeForm):
     class Meta:
         model = Staff
-        fields = ('email', 'first_name', 'last_name', 'pay_rate', 'ims_payroll_id')
+        fields = ('email', 'first_name', 'last_name', 'preferred_name', 'wage_rate', 'ims_payroll_id')
+
+class TimeEntryForm(forms.ModelForm):
+    class Meta:
+        model = TimeEntry
+        fields = ['job', 'staff', 'date', 'duration', 'note', 'is_billable']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+        }

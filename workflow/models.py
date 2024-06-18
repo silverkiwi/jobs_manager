@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
@@ -13,6 +15,8 @@ class Job(models.Model):
         ('completed', 'Completed'),
         ('archived', 'Archived')
     ]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100)
 
     client_name = models.CharField(max_length=100)
     order_number = models.CharField(max_length=100, null=True, blank=True)
@@ -29,7 +33,7 @@ class Job(models.Model):
     def __str__(self):
         return f"{self.client_name} - {self.status} - {self.job_number or self.order_number}"
 
-class PricingModel(models.Model):
+class JobPricing(models.Model):
     PRICING_TYPE_CHOICES = [
         ('estimate', 'Estimate'),
         ('actual', 'Actual'),
@@ -37,7 +41,8 @@ class PricingModel(models.Model):
         ('invoice', 'Invoice')
     ]
 
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='pricing_models')
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='job_pricings')
     pricing_type = models.CharField(max_length=10, choices=PRICING_TYPE_CHOICES)
     cost = models.FloatField(default=0.0)
     revenue = models.FloatField(default=0.0)
@@ -49,24 +54,10 @@ class PricingModel(models.Model):
     def __str__(self):
         return f"{self.job} - {self.pricing_type}"
 
-class TimeEntry(models.Model):
-    pricing_model = models.ForeignKey(PricingModel, on_delete=models.CASCADE)
-    date = models.DateField()
-    staff_name = models.CharField(max_length=100)
-    hours = models.FloatField()
-    wage_rate = models.FloatField()
-    charge_out_rate = models.FloatField()
-
-    @property
-    def cost(self):
-        return self.hours * self.wage_rate
-
-    @property
-    def revenue(self):
-        return self.hours * self.charge_out_rate
-
 class MaterialEntry(models.Model):
-    pricing_model = models.ForeignKey(PricingModel, on_delete=models.CASCADE)
+    """Materials, e.g. sheets"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job_pricing = models.ForeignKey(JobPricing, on_delete=models.CASCADE)
     description = models.CharField(max_length=200)
     cost_price = models.FloatField()
     sale_price = models.FloatField()
@@ -80,8 +71,10 @@ class MaterialEntry(models.Model):
     def revenue(self):
         return self.sale_price * self.quantity
 
-class ManualEntry(models.Model):
-    pricing_model = models.ForeignKey(PricingModel, on_delete=models.CASCADE)
+class AdjustmentEntry(models.Model):
+    """For when costs are manually added to a job"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job_pricing = models.ForeignKey(JobPricing, on_delete=models.CASCADE)
     description = models.CharField(max_length=200, null=True, blank=True)
     cost = models.FloatField(default=0.0)
     revenue = models.FloatField(default=0.0)
@@ -99,15 +92,22 @@ class StaffManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('wage_rate', 0)
+        extra_fields.setdefault('charge_out_rate', 0)
 
         return self.create_user(email, password, **extra_fields)
 
 class Staff(AbstractBaseUser, PermissionsMixin):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
-    pay_rate = models.DecimalField(max_digits=10, decimal_places=2)
-    ims_payroll_id = models.CharField(max_length=100)
+    preferred_name = models.CharField(max_length=30, blank=True, null=True)
+    wage_rate = models.DecimalField(max_digits=10, decimal_places=2)
+    charge_out_rate = models.DecimalField(max_digits=10, decimal_places=2)
+    ims_payroll_id = models.CharField(max_length=100,unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
@@ -116,8 +116,24 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     objects = StaffManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'pay_rate', 'ims_payroll_id']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'wage_rate', 'ims_payroll_id']
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
+    def get_display_name(self):
+        return self.preferred_name or self.first_name
+
+class TimeEntry(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='time_entries')
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='time_entries')
+    date = models.DateField()
+    duration = models.DecimalField(max_digits=5, decimal_places=2)  # Duration in hours
+    note = models.TextField(blank=True, null=True)
+    is_billable = models.BooleanField(default=True)
+    wage_rate = models.FloatField()
+    charge_out_rate = models.FloatField()
+
+    def __str__(self):
+        return f"{self.staff.get_display_name()} {self.job.name} on {self.date}"

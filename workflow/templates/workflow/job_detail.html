@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Job Details</title>
 </head>
 <body>
@@ -14,18 +15,30 @@
     <p>Status: {{ job.status }}</p>
     <p>Paid: {{ job.paid }}</p>
 
-    <h2>Pricing Models</h2>
+    <h2>Job Pricings</h2>
     <ul>
-        {% for pricing_model in pricing_models %}
-        <li>{{ pricing_model.pricing_type }} - Cost: {{ pricing_model.cost }} - Revenue: {{ pricing_model.revenue }} - Profit: {{ pricing_model.profit }}</li>
+        {% for job_pricing in job_pricings %}
+        <li>{{ job_pricing.pricing_type }} - Cost: {{ job_pricing.cost }} - Revenue: {{ job_pricing.revenue }} - Profit: {{ job_pricing.profit }}</li>
         {% endfor %}
     </ul>
 
-    <h2>Add Pricing Model</h2>
-    <form method="post" action="{% url 'create_pricing_model' job.id %}">
+    <h2>Add Job Pricing</h2>
+    <form method="post" action="{% url 'create_job_pricing' job.id %}">
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit">Add</button>
     </form>
+
+    <h2>Job History</h2>
+    <ul>
+        {% for record in history %}
+        <li>
+            Changed by {{ record.history_user }} on {{ record.history_date }} - {{ record.history_type }}
+            {% if record.history_type == '+' %}(Created){% endif %}
+            {% if record.history_type == '~' %}(Modified){% endif %}
+            {% if record.history_type == '-' %}(Deleted){% endif %}
+        </li>
+        {% endfor %}
+    </ul>
 </body>
 </html>

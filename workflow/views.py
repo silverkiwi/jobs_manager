@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 import os
-from .forms import JobForm, PricingModelForm, TimeEntryForm, MaterialEntryForm, ManualEntryForm
-from .models import Job, PricingModel
+from .forms import JobForm, JobPricingForm, TimeEntryForm, MaterialEntryForm, AdjustmentEntryForm
+from .models import Job, JobPricing
 
 
 def index(request):
@@ -11,9 +12,10 @@ def about(request):
     return render(request, 'workflow/about.html')
 
 from django.shortcuts import render, redirect, get_object_or_404
-from .forms import JobForm, PricingModelForm
-from .models import Job, PricingModel
+from .forms import JobForm, JobPricingForm
+from .models import Job, JobPricing
 
+@login_required
 def create_job(request):
     if request.method == 'POST':
         form = JobForm(request.POST)
@@ -24,30 +26,34 @@ def create_job(request):
         form = JobForm()
     return render(request, 'workflow/job_form.html', {'form': form})
 
+@login_required
 def job_list(request):
     jobs = Job.objects.all()
     return render(request, 'workflow/job_list.html', {'jobs': jobs})
 
+@login_required
 def job_detail(request, pk):
     job = get_object_or_404(Job, pk=pk)
-    pricing_models = job.pricing_models.all()
-    return render(request, 'workflow/job_detail.html', {
+    history = job.history.all().order_by('-history_date')
+    context = {
         'job': job,
-        'pricing_models': pricing_models,
-    })
+        'job_pricings': job.job_pricings.all(),
+        'history': history,
+    }
+    return render(request, 'workflow/job_detail.html', context)
 
-def create_pricing_model(request, job_id):
+def create_job_pricing(request, job_id):
     job = get_object_or_404(Job, id=job_id)
     if request.method == 'POST':
-        form = PricingModelForm(request.POST)
+        form = JobPricingForm(request.POST)
         if form.is_valid():
-            pricing_model = form.save(commit=False)
-            pricing_model.job = job
-            pricing_model.save()
+            job_pricing = form.save(commit=False)
+            job_pricing.job = job
+            job_pricing.save()
             return redirect('job_detail', pk=job.id)
     else:
-        form = PricingModelForm()
-    return render(request, 'workflow/pricing_model_form.html', {'form': form, 'job': job})
+        form = JobPricingForm()
+    return render(request, 'workflow/job_pricing_form.html', {'form': form, 'job': job})
 
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
@@ -76,3 +82,22 @@ def profile(request):
     else:
         form = StaffChangeForm(instance=request.user)
     return render(request, 'workflow/profile.html', {'form': form})
+
+from django.shortcuts import render, redirect
+from .forms import TimeEntryForm
+
+@login_required
+def create_time_entry(request):
+    if request.method == 'POST':
+        form = TimeEntryForm(request.POST)
+        if form.is_valid():
+            time_entry = form.save(commit=False)
+            staff = time_entry.staff
+            time_entry.wage_rate = staff.wage_rate
+            time_entry.charge_out_rate = staff.charge_out_rate
+            time_entry.save()
+            return redirect('time_entry_success')  # Redirect to a success page or another page
+    else:
+        form = TimeEntryForm()
+
+    return render(request, 'workflow/create_time_entry.html', {'form': form})
