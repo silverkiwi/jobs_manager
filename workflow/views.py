@@ -1,9 +1,11 @@
+from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
-import os
-from .forms import JobForm, JobPricingForm, TimeEntryForm, MaterialEntryForm, AdjustmentEntryForm, StaffForm
+from .forms import StaffCreationForm, StaffChangeForm, StaffForm, JobForm, JobPricingForm
 from .models import Job, JobPricing, Staff
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +15,6 @@ def index(request):
 
 def about(request):
     return render(request, 'workflow/about.html')
-
-from django.shortcuts import render, redirect, get_object_or_404
-from .forms import JobForm, JobPricingForm
-from .models import Job, JobPricing
 
 @login_required
 def create_job(request):
@@ -37,30 +35,46 @@ def job_list(request):
 @login_required
 def job_detail(request, pk):
     job = get_object_or_404(Job, pk=pk)
-    history = job.history.all().order_by('-history_date')
+
+    pricing_models = job.job_pricings.all()
+    pricing_data = []
+
+    for model in pricing_models:
+        time_entries = model.time_entries.all()
+        material_entries = model.material_entries.all()
+        adjustment_entries = model.adjustment_entries.all()
+
+        total_time_cost = sum(entry.cost for entry in time_entries)
+        total_time_revenue = sum(entry.revenue for entry in time_entries)
+
+        total_material_cost = sum(entry.cost for entry in material_entries)
+        total_material_revenue = sum(entry.revenue for entry in material_entries)
+
+        total_adjustment_cost = sum(entry.cost for entry in adjustment_entries)
+        total_adjustment_revenue = sum(entry.revenue for entry in adjustment_entries)
+
+        total_cost = total_time_cost + total_material_cost + total_adjustment_cost
+        total_revenue = total_time_revenue + total_material_revenue + total_adjustment_revenue
+
+        pricing_data.append({
+            'model': model,
+            'total_time_cost': total_time_cost,
+            'total_time_revenue': total_time_revenue,
+            'total_material_cost': total_material_cost,
+            'total_material_revenue': total_material_revenue,
+            'total_adjustment_cost': total_adjustment_cost,
+            'total_adjustment_revenue': total_adjustment_revenue,
+            'total_cost': total_cost,
+            'total_revenue': total_revenue,
+        })
+
     context = {
         'job': job,
-        'job_pricings': job.job_pricings.all(),
-        'history': history,
+        'pricing_data': pricing_data,
     }
+
     return render(request, 'workflow/job_detail.html', context)
 
-def create_job_pricing(request, job_id):
-    job = get_object_or_404(Job, id=job_id)
-    if request.method == 'POST':
-        form = JobPricingForm(request.POST)
-        if form.is_valid():
-            job_pricing = form.save(commit=False)
-            job_pricing.job = job
-            job_pricing.save()
-            return redirect('job_detail', pk=job.id)
-    else:
-        form = JobPricingForm()
-    return render(request, 'workflow/job_pricing_form.html', {'form': form, 'job': job})
-
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate
-from .forms import StaffCreationForm, StaffChangeForm
 
 def register(request):
     if request.method == 'POST':

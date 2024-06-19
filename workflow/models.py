@@ -44,12 +44,22 @@ class JobPricing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='job_pricings')
     pricing_type = models.CharField(max_length=10, choices=PRICING_TYPE_CHOICES)
-    cost = models.FloatField(default=0.0)
-    revenue = models.FloatField(default=0.0)
 
     @property
     def profit(self):
-        return self.revenue - self.cost
+        return self.total_revenue() - self.total_cost()
+
+    @property
+    def total_cost(self):
+        return sum(entry.cost for entry in self.time_entries.all()) + \
+               sum(entry.cost for entry in self.material_entries.all()) + \
+               sum(entry.cost for entry in self.adjustment_entries.all())
+
+    @property
+    def total_revenue(self):
+        return sum(entry.revenue for entry in self.time_entries.all()) + \
+               sum(entry.revenue for entry in self.material_entries.all()) + \
+               sum(entry.revenue for entry in self.adjustment_entries.all())
 
     def __str__(self):
         return f"{self.job} - {self.pricing_type}"
@@ -57,11 +67,11 @@ class JobPricing(models.Model):
 class MaterialEntry(models.Model):
     """Materials, e.g. sheets"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    job_pricing = models.ForeignKey(JobPricing, on_delete=models.CASCADE)
+    job_pricing = models.ForeignKey(JobPricing, on_delete=models.CASCADE,related_name='material_entries')
     description = models.CharField(max_length=200)
-    cost_price = models.FloatField()
-    sale_price = models.FloatField()
-    quantity = models.FloatField()
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2)  # Changed from FloatField to DecimalField
+    sale_price = models.DecimalField(max_digits=10, decimal_places=2)  # Changed from FloatField to DecimalField
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)  # Changed from FloatField to DecimalField
 
     @property
     def cost(self):
@@ -74,10 +84,10 @@ class MaterialEntry(models.Model):
 class AdjustmentEntry(models.Model):
     """For when costs are manually added to a job"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    job_pricing = models.ForeignKey(JobPricing, on_delete=models.CASCADE)
+    job_pricing = models.ForeignKey(JobPricing, on_delete=models.CASCADE, related_name='adjustment_entries')
     description = models.CharField(max_length=200, null=True, blank=True)
-    cost = models.FloatField(default=0.0)
-    revenue = models.FloatField(default=0.0)
+    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    revenue = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
 
 class StaffManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -127,13 +137,22 @@ class Staff(AbstractBaseUser, PermissionsMixin):
 class TimeEntry(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='time_entries')
-    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='time_entries')
+    job_pricing = models.ForeignKey(JobPricing, on_delete=models.CASCADE, related_name='time_entries', null=True, blank=True)
+    staff = models.ForeignKey('Staff', on_delete=models.CASCADE, related_name='time_entries')
     date = models.DateField()
     duration = models.DecimalField(max_digits=5, decimal_places=2)  # Duration in hours
     note = models.TextField(blank=True, null=True)
     is_billable = models.BooleanField(default=True)
-    wage_rate = models.FloatField()
-    charge_out_rate = models.FloatField()
+    wage_rate = models.DecimalField(max_digits=10, decimal_places=2)
+    charge_out_rate = models.DecimalField(max_digits=10, decimal_places=2)
+
+    @property
+    def cost(self):
+        return self.duration * self.wage_rate
+
+    @property
+    def revenue(self):
+        return self.duration * self.charge_out_rate
 
     def __str__(self):
         return f"{self.staff.get_display_name()} {self.job.name} on {self.date}"

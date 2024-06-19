@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Job Details</title>
+    <title>Job Detail</title>
 </head>
 <body>
     <h1>Job Details</h1>
@@ -16,28 +16,46 @@
     <p>Status: {{ job.status }}</p>
     <p>Paid: {{ job.paid }}</p>
 
-    <h2>Job Pricings</h2>
-    {% for pricing in job.job_pricings.all %}
-        <p>{{ pricing.pricing_type }} - Cost: {{ pricing.cost }} - Revenue: {{ pricing.revenue }}</p>
+    <h2>Job Financials</h2>
+    {% for pricing in pricing_data %}
+        <h3>{{ pricing.model.pricing_type|title }} Pricing</h3>
+        <ul>
+            <li>Total Time Cost: ${{ pricing.total_time_cost }}</li>
+            <li>Total Time Revenue: ${{ pricing.total_time_revenue }}</li>
+            <li>Total Material Cost: ${{ pricing.total_material_cost }}</li>
+            <li>Total Material Revenue: ${{ pricing.total_material_revenue }}</li>
+            <li>Total Adjustment Cost: ${{ pricing.total_adjustment_cost }}</li>
+            <li>Total Adjustment Revenue: ${{ pricing.total_adjustment_revenue }}</li>
+            <li>Total Cost: ${{ pricing.total_cost }}</li>
+            <li>Total Revenue: ${{ pricing.total_revenue }}</li>
+        </ul>
     {% endfor %}
 
+    <h2>Time Entries</h2>
+    <ul>
+        {% for entry in job.time_entries.all %}
+            <li>{{ entry.date }} - {{ entry.duration }} hours - Cost: ${{ entry.cost }} - Revenue: ${{ entry.revenue }}</li>
+        {% endfor %}
+    </ul>
 
-    <h2>Add Job Pricing</h2>
-    <form method="post" action="{% url 'create_job_pricing' job.id %}">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Add</button>
-    </form>
+    <h2>Material Entries</h2>
+    <ul>
+        {% for entry in job.material_entries.all %}
+            <li>{{ entry.description }} - Quantity: {{ entry.quantity }} - Cost: ${{ entry.cost }} - Revenue: ${{ entry.revenue }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Adjustment Entries</h2>
+    <ul>
+        {% for entry in job.adjustment_entries.all %}
+            <li>{{ entry.description }} - Cost: ${{ entry.cost }} - Revenue: ${{ entry.revenue }}</li>
+        {% endfor %}
+    </ul>
 
     <h2>Job History</h2>
     <ul>
-        {% for record in history %}
-        <li>
-            Changed by {{ record.history_user }} on {{ record.history_date }} - {{ record.history_type }}
-            {% if record.history_type == '+' %}(Created){% endif %}
-            {% if record.history_type == '~' %}(Modified){% endif %}
-            {% if record.history_type == '-' %}(Deleted){% endif %}
-        </li>
+        {% for history in job.history.all %}
+            <li>{{ history.history_date }} - {{ history.history_type }}</li>
         {% endfor %}
     </ul>
 </body>

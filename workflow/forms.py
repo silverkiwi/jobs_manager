@@ -10,7 +10,7 @@ class JobForm(forms.ModelForm):
 class JobPricingForm(forms.ModelForm):
     class Meta:
         model = JobPricing
-        fields = ['pricing_type', 'cost', 'revenue']
+        fields = ['pricing_type']
 
 class TimeEntryForm(forms.ModelForm):
     class Meta:
