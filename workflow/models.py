@@ -6,6 +6,8 @@ from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
 class Job(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100)
     STATUS_CHOICES = [
         ('quoting', 'Quoting'),
         ('approved', 'Approved'),
@@ -15,8 +17,6 @@ class Job(models.Model):
         ('completed', 'Completed'),
         ('archived', 'Archived')
     ]
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=100)
 
     client_name = models.CharField(max_length=100)
     order_number = models.CharField(max_length=100, null=True, blank=True)
@@ -31,7 +31,7 @@ class Job(models.Model):
     history = HistoricalRecords()
 
     def __str__(self):
-        return f"{self.client_name} - {self.status} - {self.job_number or self.order_number}"
+        return f"{self.client_name} - {self.name} - {self.job_number or self.order_number} - ({self.status})"
 
 class JobPricing(models.Model):
     PRICING_TYPE_CHOICES = [
@@ -116,7 +116,7 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     objects = StaffManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'wage_rate', 'ims_payroll_id']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'wage_rate', 'charge_out_rate', 'ims_payroll_id']
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

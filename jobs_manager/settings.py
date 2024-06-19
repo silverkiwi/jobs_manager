@@ -56,6 +56,21 @@ MIDDLEWARE = [
 LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = '/login/'
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}
+
 ROOT_URLCONF = "jobs_manager.urls"
 
 TEMPLATES = [

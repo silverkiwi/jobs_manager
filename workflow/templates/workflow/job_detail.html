@@ -6,6 +6,7 @@
 </head>
 <body>
     <h1>Job Details</h1>
+    <p>Job Name: {{ job.name }}</p>
     <p>Client Name: {{ job.client_name }}</p>
     <p>Order Number: {{ job.order_number }}</p>
     <p>Contact Person: {{ job.contact_person }}</p>
@@ -16,11 +17,10 @@
     <p>Paid: {{ job.paid }}</p>
 
     <h2>Job Pricings</h2>
-    <ul>
-        {% for job_pricing in job_pricings %}
-        <li>{{ job_pricing.pricing_type }} - Cost: {{ job_pricing.cost }} - Revenue: {{ job_pricing.revenue }} - Profit: {{ job_pricing.profit }}</li>
-        {% endfor %}
-    </ul>
+    {% for pricing in job.job_pricings.all %}
+        <p>{{ pricing.pricing_type }} - Cost: {{ pricing.cost }} - Revenue: {{ pricing.revenue }}</p>
+    {% endfor %}
+
 
     <h2>Add Job Pricing</h2>
     <form method="post" action="{% url 'create_job_pricing' job.id %}">
