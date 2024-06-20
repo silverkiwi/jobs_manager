@@ -33,6 +33,16 @@ class Job(models.Model):
     def __str__(self):
         return f"{self.client_name} - {self.name} - {self.job_number or self.order_number} - ({self.status})"
 
+    def get_diff(self, history_instance):
+        delta = {}
+        if history_instance.prev_record:
+            prev_record = history_instance.prev_record
+            for field in self._meta.fields:
+                field_name = field.name
+                if field_name in history_instance.changed_fields:
+                    delta[field_name] = (getattr(prev_record, field_name), getattr(history_instance, field_name))
+        return delta
+
 class JobPricing(models.Model):
     PRICING_TYPE_CHOICES = [
         ('estimate', 'Estimate'),
@@ -140,7 +150,7 @@ class TimeEntry(models.Model):
     job_pricing = models.ForeignKey(JobPricing, on_delete=models.CASCADE, related_name='time_entries', null=True, blank=True)
     staff = models.ForeignKey('Staff', on_delete=models.CASCADE, related_name='time_entries')
     date = models.DateField()
-    duration = models.DecimalField(max_digits=5, decimal_places=2)  # Duration in hours
+    minutes = models.DecimalField(max_digits=5, decimal_places=2)  # Duration in minutes
     note = models.TextField(blank=True, null=True)
     is_billable = models.BooleanField(default=True)
     wage_rate = models.DecimalField(max_digits=10, decimal_places=2)
@@ -148,11 +158,15 @@ class TimeEntry(models.Model):
 
     @property
     def cost(self):
-        return self.duration * self.wage_rate
+        return self.hours * self.wage_rate
 
     @property
     def revenue(self):
-        return self.duration * self.charge_out_rate
+        return self.hours * self.charge_out_rate
+
+    @property
+    def hours(self):
+        return self.minutes / 60
 
     def __str__(self):
         return f"{self.staff.get_display_name()} {self.job.name} on {self.date}"

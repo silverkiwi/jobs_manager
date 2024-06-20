@@ -15,7 +15,7 @@ class JobPricingForm(forms.ModelForm):
 class TimeEntryForm(forms.ModelForm):
     class Meta:
         model = TimeEntry
-        fields = ['job', 'staff', 'date', 'duration', 'note', 'is_billable']
+        fields = ['job', 'staff', 'date', 'minutes', 'note', 'is_billable']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
         }
@@ -51,7 +51,7 @@ class TimeEntryForm(forms.ModelForm):
 
     class Meta:
         model = TimeEntry
-        fields = ['job', 'staff', 'date', 'duration', 'note', 'is_billable']
+        fields = ['job', 'staff', 'date', 'minutes', 'note', 'is_billable']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
         }

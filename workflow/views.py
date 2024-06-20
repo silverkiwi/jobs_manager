@@ -2,10 +2,9 @@ from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
-from .forms import StaffCreationForm, StaffChangeForm, StaffForm, JobForm, JobPricingForm
+from .forms import StaffCreationForm, StaffChangeForm, StaffForm, JobForm, JobPricingForm, TimeEntryForm
 from .models import Job, JobPricing, Staff
 import logging
-
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +12,10 @@ logger = logging.getLogger(__name__)
 def index(request):
     return render(request, 'workflow/index.html')
 
+
 def about(request):
     return render(request, 'workflow/about.html')
+
 
 @login_required
 def create_job(request):
@@ -27,10 +28,12 @@ def create_job(request):
         form = JobForm()
     return render(request, 'workflow/job_form.html', {'form': form})
 
+
 @login_required
 def job_list(request):
     jobs = Job.objects.all()
     return render(request, 'workflow/job_list.html', {'jobs': jobs})
+
 
 @login_required
 def job_detail(request, pk):
@@ -68,9 +71,20 @@ def job_detail(request, pk):
             'total_revenue': total_revenue,
         })
 
+    # Compute differences for the history entries
+    history = job.history.all()
+    history_diffs = []
+    for entry in history:
+        if entry.prev_record:
+            diff = job.get_diff(entry)
+            history_diffs.append((entry, diff))
+        else:
+            history_diffs.append((entry, {}))
+
     context = {
         'job': job,
         'pricing_data': pricing_data,
+        'history_diffs': history_diffs,  # Pass the computed differences to the context
     }
 
     return render(request, 'workflow/job_detail.html', context)
@@ -90,6 +104,7 @@ def register(request):
         form = StaffCreationForm()
     return render(request, 'workflow/register.html', {'form': form})
 
+
 def profile(request):
     if request.method == 'POST':
         form = StaffChangeForm(request.POST, instance=request.user)
@@ -100,8 +115,6 @@ def profile(request):
         form = StaffChangeForm(instance=request.user)
     return render(request, 'workflow/profile.html', {'form': form})
 
-from django.shortcuts import render, redirect
-from .forms import TimeEntryForm
 
 @login_required
 def create_time_entry(request):
@@ -118,8 +131,7 @@ def create_time_entry(request):
             job = time_entry.job
             job_pricing, created = JobPricing.objects.get_or_create(
                 job=job,
-                pricing_type='actual',
-                defaults={'cost': 0.0, 'revenue': 0.0}
+                pricing_type='actual'
             )
 
             # Save the time entry with the associated job pricing
@@ -133,21 +145,23 @@ def create_time_entry(request):
 
     return render(request, 'workflow/create_time_entry.html', {'form': form})
 
-from django.shortcuts import render
 
 @login_required
 def time_entry_success(request):
     return render(request, 'workflow/time_entry_success.html')
+
 
 @login_required
 def staff_list(request):
     staff_members = Staff.objects.all()
     return render(request, 'workflow/staff_list.html', {'staff_members': staff_members})
 
+
 @login_required
 def staff_profile(request, pk):
     staff_member = get_object_or_404(Staff, pk=pk)
     return render(request, 'workflow/staff_profile.html', {'staff_member': staff_member})
+
 
 @login_required
 def edit_job(request, pk):
@@ -161,6 +175,7 @@ def edit_job(request, pk):
         form = JobForm(instance=job)
     return render(request, 'workflow/edit_job.html', {'form': form})
 
+
 @login_required
 def edit_staff(request, pk):
     staff_member = get_object_or_404(Staff, pk=pk)
@@ -173,6 +188,7 @@ def edit_staff(request, pk):
         form = StaffForm(instance=staff_member)
     return render(request, 'workflow/edit_staff.html', {'form': form})
 
+
 @login_required
 def edit_time_entry(request, pk):
     time_entry = get_object_or_404(TimeEntry, pk=pk)
@@ -181,7 +197,7 @@ def edit_time_entry(request, pk):
         if form.is_valid():
             # Only change the fields specified in the form, not wage_rate or charge_out_rate
             time_entry = form.save(commit=False)
-            time_entry.save(update_fields=['date', 'duration', 'note', 'is_billable', 'job', 'staff'])
+            time_entry.save(update_fields=['date', 'minutes', 'note', 'is_billable', 'job', 'staff'])
             return redirect('time_entry_success')
     else:
         form = TimeEntryForm(instance=time_entry)
