@@ -34,16 +34,6 @@ class Job(models.Model):
     def __str__(self):
         return f"{self.client_name} - {self.name} - {self.job_number or self.order_number} - ({self.status})"
 
-    def get_diff(self, history_instance):
-        delta = {}
-        if history_instance.prev_record:
-            prev_record = history_instance.prev_record
-            for field in self._meta.fields:
-                field_name = field.name
-                if field_name in history_instance.changed_fields:
-                    delta[field_name] = (getattr(prev_record, field_name), getattr(history_instance, field_name))
-        return delta
-
 class JobPricing(models.Model):
     PRICING_TYPE_CHOICES = [
         ('estimate', 'Estimate'),
