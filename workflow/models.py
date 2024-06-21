@@ -25,6 +25,7 @@ class Job(models.Model):
     job_number = models.CharField(max_length=100, null=True, blank=True)
     description = models.TextField()
     date_created = models.DateTimeField(default=timezone.now)
+    last_updated = models.DateTimeField(auto_now=True)  # This field will be updated to trigger history recording
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='quoting')
     parent = models.ForeignKey('self', null=True, blank=True, related_name='revisions', on_delete=models.SET_NULL)
     paid = models.BooleanField(default=False)

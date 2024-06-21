@@ -137,6 +137,10 @@ def create_time_entry(request):
             # Save the time entry with the associated job pricing
             time_entry.job_pricing = job_pricing
             time_entry.save()
+
+            # Manually trigger history recording for the Job
+            job.save(update_fields=["last_updated"])
+
             return redirect('time_entry_success')
         else:
             logger.debug("Form errors: %s", form.errors)
@@ -144,6 +148,7 @@ def create_time_entry(request):
         form = TimeEntryForm()
 
     return render(request, 'workflow/create_time_entry.html', {'form': form})
+
 
 
 @login_required

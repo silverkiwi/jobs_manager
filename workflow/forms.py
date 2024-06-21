@@ -12,13 +12,6 @@ class JobPricingForm(forms.ModelForm):
         model = JobPricing
         fields = ['pricing_type']
 
-class TimeEntryForm(forms.ModelForm):
-    class Meta:
-        model = TimeEntry
-        fields = ['job', 'staff', 'date', 'minutes', 'note', 'is_billable']
-        widgets = {
-            'date': forms.DateInput(attrs={'type': 'date'}),
-        }
 
 class MaterialEntryForm(forms.ModelForm):
     class Meta:
