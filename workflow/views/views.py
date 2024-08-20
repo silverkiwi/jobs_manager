@@ -4,8 +4,8 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, FormView
 from django.urls import reverse_lazy
-from .forms import StaffCreationForm, StaffChangeForm, StaffForm, JobForm, JobPricingForm, TimeEntryForm
-from .models import Job, JobPricing, Staff, TimeEntry
+from workflow.forms import StaffCreationForm, StaffChangeForm, StaffForm, JobForm, JobPricingForm, TimeEntryForm
+from workflow.models import Job, JobPricing, Staff, TimeEntry
 import logging
 
 logger = logging.getLogger(__name__)
@@ -193,3 +193,4 @@ class DashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         # You can add any additional context data here if needed
         return context
+
