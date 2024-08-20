@@ -18,6 +18,16 @@ class Job(models.Model):
         ('archived', 'Archived')
     ]
 
+    STATUS_TOOLTIPS = {
+        'quoting': 'The quote is currently being prepared.',
+        'approved': 'The quote has been approved, but work hasn’t started yet.',
+        'rejected': 'The quote was declined.',
+        'in_progress': 'Work has started on this job.',
+        'on_hold': 'The job is on hold, possibly awaiting materials.',
+        'completed': 'Work has finished on this job.',
+        'archived': 'The job has been paid for and picked up.'
+    }
+
     client_name = models.CharField(max_length=100)
     order_number = models.CharField(max_length=100, null=True, blank=True)
     contact_person = models.CharField(max_length=100)

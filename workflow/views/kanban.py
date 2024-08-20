@@ -1,5 +1,6 @@
 # kanban.py
 
+import json
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -9,13 +10,11 @@ def kanban_view(request):
     jobs = Job.objects.all()
     context = {
         'jobs': jobs,
+        'status_choices': Job.STATUS_CHOICES,
+        'status_tooltips': Job.STATUS_TOOLTIPS,
     }
     return render(request, 'workflow/kanban_board.html', context)
 
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from workflow.models import Job
 
 @csrf_exempt
 def update_job_status(request, pk):
@@ -38,9 +37,6 @@ def update_job_status(request, pk):
             return JsonResponse({'success': False, 'error': 'Job not found'})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
-from django.http import JsonResponse
-from workflow.models import Job
-
 def fetch_jobs(request, status):
     max_jobs = int(request.GET.get('max_jobs', 10))  # Default to 10 if not provided
     jobs = Job.objects.filter(status=status)[:max_jobs]
@@ -48,7 +44,7 @@ def fetch_jobs(request, status):
 
     job_data = [{
         'id': job.id,
-        'title': job.title,
+        'name': job.name,
         'description': job.description
     } for job in jobs]
 

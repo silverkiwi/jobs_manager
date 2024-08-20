@@ -1,60 +1,27 @@
 {% extends 'base.html' %}
-
 {% load static %}
+{% load custom_filters %}
+
 
 {% block content %}
-<h1>Kanban Board</h1>
-
-<link rel="stylesheet" type="text/css" href="{% static 'css/kanban.css' %}">
+# Kanban Board
 
 <div class="kanban-search-container">
-    <input type="text" id="search" placeholder="Filter jobs..." onkeyup="filterJobs()">
 </div>
 
-<!-- Row 1: Normal Headers -->
-<div class="kanban-headers">
-    <div class="column-header">Quoting</div>
-    <div class="column-header">Awaiting Approval</div>
-    <div class="column-header">Awaiting Staff or Materials</div>
-    <div class="column-header">In Progress</div>
-    <div class="column-header">Completed</div>
-</div>
+   <div class="kanban-board">
+   {% for status, display_name in status_choices %}
+       <div id="{{ status }}" class="column">
+           <div class="column-header" title="{{ status_tooltips|get_item:status }}">
+               <h3>{{ display_name }}</h3>
+           </div>
+           <div class="job-container">
+           </div>
+       </div>
+   {% endfor %}
+   </div>
+   {% endblock %}
 
-<!-- Row 2: Normal Job Cards -->
-<div class="kanban-board">
-    <div class="column" id="quoting">
-        <!-- Quoting jobs will be inserted here dynamically by JS -->
-    </div>
-    <div class="column" id="awaiting_approval">
-        <!-- Awaiting Approval jobs will be inserted here dynamically by JS -->
-    </div>
-    <div class="column" id="awaiting_staff_or_materials">
-        <!-- Awaiting Staff or Materials jobs will be inserted here dynamically by JS -->
-    </div>
-    <div class="column" id="in_progress">
-        <!-- In Progress jobs will be inserted here dynamically by JS -->
-    </div>
-    <div class="column" id="completed">
-        <!-- Completed jobs will be inserted here dynamically by JS -->
-    </div>
-</div>
-
-<!-- Row 3: Special Headers -->
-<div class="kanban-headers">
-    <div class="column-header">Rejected</div>
-    <div class="column-header">Paid</div>
-</div>
-
-<!-- Row 4: Special Job Cards -->
-<div class="kanban-board">
-    <div class="column" id="rejected">
-        <!-- Rejected jobs will be inserted here dynamically by JS -->
-    </div>
-    <div class="column" id="paid">
-        <!-- Paid jobs will be inserted here dynamically by JS -->
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-<script src="{% static 'js/kanban.js' %}"></script> <!-- Link to your JS file -->
+{% block extra_js %}
+<script src="{% static 'js/kanban.js' %}"></script>
 {% endblock %}
