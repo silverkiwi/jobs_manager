@@ -5,6 +5,7 @@ from . import views
 from django.urls import path
 
 urlpatterns = [
+    path('', views.DashboardView.as_view(), name='dashboard'),
     path('jobs/create/', views.JobCreateView.as_view(), name='create_job'),
     path('jobs/', views.JobListView.as_view(), name='job_list'),
     path('jobs/<uuid:pk>/', views.JobDetailView.as_view(), name='job_detail'),

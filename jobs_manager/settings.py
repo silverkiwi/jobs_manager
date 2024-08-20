@@ -51,10 +51,12 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    'workflow.middleware.LoginRequiredMiddleware',
 ]
 
 LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = '/login/'
+LOGIN_EXEMPT_URLS = ['logout']
 
 LOGGING = {
     'version': 1,

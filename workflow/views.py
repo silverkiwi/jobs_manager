@@ -16,18 +16,18 @@ class IndexView(TemplateView):
 class AboutView(TemplateView):
     template_name = 'workflow/about.html'
 
-class JobCreateView(LoginRequiredMixin, CreateView):
+class JobCreateView(CreateView):
     model = Job
     form_class = JobForm
     template_name = 'workflow/job_form.html'
     success_url = reverse_lazy('job_list')
 
-class JobListView(LoginRequiredMixin, ListView):
+class JobListView(ListView):
     model = Job
     template_name = 'workflow/job_list.html'
     context_object_name = 'jobs'
 
-class JobDetailView(LoginRequiredMixin, DetailView):
+class JobDetailView(DetailView):
     model = Job
     template_name = 'workflow/job_detail.html'
     context_object_name = 'job'
@@ -108,7 +108,7 @@ class RegisterView(FormView):
         login(self.request, user)
         return super().form_valid(form)
 
-class ProfileView(LoginRequiredMixin, UpdateView):
+class ProfileView(UpdateView):
     model = Staff
     form_class = StaffChangeForm
     template_name = 'workflow/profile.html'
@@ -117,7 +117,7 @@ class ProfileView(LoginRequiredMixin, UpdateView):
     def get_object(self):
         return self.request.user
 
-class CreateTimeEntryView(LoginRequiredMixin, CreateView):
+class CreateTimeEntryView(CreateView):
     model = TimeEntry
     form_class = TimeEntryForm
     template_name = 'workflow/create_time_entry.html'
@@ -146,20 +146,20 @@ class CreateTimeEntryView(LoginRequiredMixin, CreateView):
         logger.debug("Form errors: %s", form.errors)
         return super().form_invalid(form)
 
-class TimeEntrySuccessView(LoginRequiredMixin, TemplateView):
+class TimeEntrySuccessView(TemplateView):
     template_name = 'workflow/time_entry_success.html'
 
-class StaffListView(LoginRequiredMixin, ListView):
+class StaffListView(ListView):
     model = Staff
     template_name = 'workflow/staff_list.html'
     context_object_name = 'staff_members'
 
-class StaffProfileView(LoginRequiredMixin, DetailView):
+class StaffProfileView(DetailView):
     model = Staff
     template_name = 'workflow/staff_profile.html'
     context_object_name = 'staff_member'
 
-class JobUpdateView(LoginRequiredMixin, UpdateView):
+class JobUpdateView(UpdateView):
     model = Job
     form_class = JobForm
     template_name = 'workflow/edit_job.html'
@@ -167,7 +167,7 @@ class JobUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('job_detail', kwargs={'pk': self.object.pk})
 
-class StaffUpdateView(LoginRequiredMixin, UpdateView):
+class StaffUpdateView(UpdateView):
     model = Staff
     form_class = StaffForm
     template_name = 'workflow/edit_staff.html'
@@ -175,7 +175,7 @@ class StaffUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('staff_profile', kwargs={'pk': self.object.pk})
 
-class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
+class TimeEntryUpdateView( UpdateView):
     model = TimeEntry
     form_class = TimeEntryForm
     template_name = 'workflow/edit_time_entry.html'
@@ -185,3 +185,11 @@ class TimeEntryUpdateView(LoginRequiredMixin, UpdateView):
         time_entry = form.save(commit=False)
         time_entry.save(update_fields=['date', 'minutes', 'note', 'is_billable', 'job', 'staff'])
         return super().form_valid(form)
+
+class DashboardView(TemplateView):
+    template_name = 'workflow/dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # You can add any additional context data here if needed
+        return context

@@ -22,6 +22,5 @@ from django.shortcuts import redirect
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('', lambda request: redirect('job_list')),  # Redirect root to job list
     path('', include('workflow.urls')),
 ]
