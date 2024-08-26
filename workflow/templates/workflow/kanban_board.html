@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/trello-like-kanban.css' %}">
+<link rel="stylesheet" href="{% static 'css/kanban.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -12,35 +12,35 @@
 
 <div class="kanban-board">
     <div class="kanban-column" id="quoting">
-        <h2 class="column-header">Quoting</h2>
+        <div class="column-header">Quoting</div>
         <div class="job-list"></div>
     </div>
     <div class="kanban-column" id="approved">
-        <h2 class="column-header">Approved</h2>
+        <div class="column-header">Approved</div>
         <div class="job-list"></div>
     </div>
     <div class="kanban-column" id="in_progress">
-        <h2 class="column-header">In Progress</h2>
+        <div class="column-header">In Progress</div>
         <div class="job-list"></div>
     </div>
     <div class="kanban-column" id="completed">
-        <h2 class="column-header">Completed</h2>
+        <div class="column-header">Completed</div>
         <div class="job-list"></div>
     </div>
     <div class="kanban-column" id="awaiting_materials">
-        <h2 class="column-header">Awaiting Materials</h2>
+        <div class="column-header">Awaiting Materials</div>
         <div class="job-list"></div>
     </div>
     <div class="kanban-column" id="on_hold">
-        <h2 class="column-header">On Hold</h2>
+        <div class="column-header">On Hold</div>
         <div class="job-list"></div>
     </div>
     <div class="kanban-column" id="rejected">
-        <h2 class="column-header">Rejected</h2>
+        <div class="column-header">Rejected</div>
         <div class="job-list"></div>
     </div>
     <div class="kanban-column" id="archived">
-        <h2 class="column-header">Archived</h2>
+        <div class="column-header">Archived</div>
         <div class="job-list"></div>
     </div>
 </div>
