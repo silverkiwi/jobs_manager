@@ -40,19 +40,13 @@ function fetchJobs(status) {
 
             container.innerHTML = ''; // Clear existing cards
 
-            if (data.jobs.length === 0) {
-                let noJobs = document.createElement('p');
-                noJobs.textContent = 'No jobs in this status';
-                noJobs.className = 'no-jobs';
-                container.appendChild(noJobs);
-            } else {
-                data.jobs.forEach(job => {
-                    let card = createJobCard(job);
-                    container.appendChild(card);
-                });
-            }
+            // Only add job cards if jobs are present
+            data.jobs.forEach(job => {
+                let card = createJobCard(job);
+                container.appendChild(card);
+            });
 
-            // Initialize SortableJS for drag-and-drop functionality, even if the container is empty
+            // Initialize SortableJS for drag-and-drop functionality
             new Sortable(container, {
                 group: 'shared',
                 animation: 150,
@@ -64,34 +58,12 @@ function fetchJobs(status) {
                     const newStatus = evt.to.closest('.kanban-column').id;
                     const jobId = itemEl.getAttribute('data-id');
                     updateJobStatus(jobId, newStatus);
-
-                    // Update "No jobs in this status" message dynamically after drag-and-drop
-                    updateColumnPlaceholder(evt.from);
-                    updateColumnPlaceholder(evt.to);
                 }
             });
         })
         .catch(error => {
             console.error(`Error fetching ${status} jobs:`, error);
         });
-}
-
-function updateColumnPlaceholder(container) {
-    const jobCards = container.querySelectorAll('.job-card');
-    const noJobsMessage = container.querySelector('.no-jobs');
-
-    if (jobCards.length === 0) {
-        if (!noJobsMessage) {
-            let noJobs = document.createElement('p');
-            noJobs.textContent = 'No jobs in this status';
-            noJobs.className = 'no-jobs';
-            container.appendChild(noJobs);
-        }
-    } else {
-        if (noJobsMessage) {
-            noJobsMessage.remove();
-        }
-    }
 }
 
 // Function to create a job card element
@@ -139,25 +111,6 @@ function filterJobs() {
             card.style.display = '';
         } else {
             card.style.display = 'none';
-        }
-    });
-
-    // Show/hide "No jobs in this status" message
-    document.querySelectorAll('.kanban-column').forEach(column => {
-        const visibleCards = column.querySelectorAll('.job-card:not([style*="display: none"])');
-        const noJobsMessage = column.querySelector('.no-jobs');
-
-        if (visibleCards.length === 0) {
-            if (!noJobsMessage) {
-                const newMessage = document.createElement('p');
-                newMessage.textContent = 'No jobs in this status';
-                newMessage.className = 'no-jobs';
-                column.querySelector('.job-list').appendChild(newMessage);
-            } else {
-                noJobsMessage.style.display = '';
-            }
-        } else if (noJobsMessage) {
-            noJobsMessage.style.display = 'none';
         }
     });
 }

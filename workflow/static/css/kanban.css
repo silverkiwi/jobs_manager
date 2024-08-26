@@ -10,15 +10,17 @@ body {
 }
 
 .kanban-column {
-    flex: 1 1 200px; /* Set a flexible width with a minimum size of 200px */
-    margin-bottom: 20px; /* Adds spacing below each column */
+    flex: 1 1 200px;  /* Maintain flexibility but keep some base width */
+    margin-bottom: 20px;  /* Adds spacing below each column */
     background-color: #f4f5f7;
     border-radius: 3px;
     display: flex;
     flex-direction: column;
     max-height: 100%;
     transition: background-color 0.3s ease;
-    min-width: 150px; /* Ensure columns do not get too narrow */
+    min-width: 150px;  /* Minimum width to maintain readability */
+    min-height: 300px; /* Set a minimum height to prevent collapsing */
+    justify-content: flex-start; /* Align items to the top */
 }
 
 /* Media query for larger screens */
@@ -93,10 +95,15 @@ body {
 }
 
 .no-jobs {
-    color: #6b778c;
-    font-style: italic;
-    padding: 10px;
-    text-align: center;
+    color: #888;  /* Light grey to resemble a placeholder */
+    font-style: italic;  /* Italic style to differentiate from job cards */
+    text-align: center;  /* Center align the text */
+    pointer-events: none;  /* Makes the element non-interactive (not draggable) */
+    user-select: none;  /* Prevents the text from being selected */
+    position: absolute;  /* Position it absolutely to overlay in the center */
+    width: 100%;  /* Take full width of the parent container */
+    top: 50%;  /* Vertically center the text */
+    transform: translateY(-50%);  /* Adjust for perfect vertical centering */
 }
 
 /* Scrollbar styling */
