@@ -2,17 +2,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize SortableJS for drag-and-drop functionality
     const columns = document.querySelectorAll('.job-list');
     columns.forEach(column => {
-        Sortable.create(column, {
-            group: 'kanban', // Allows dragging between columns
+        new Sortable(column, {
+            group: 'shared',
             animation: 150,
-            easing: "cubic-bezier(1, 0, 0, 1)", // Smooth easing function
-            dragClass: "job-card-dragging",
-            ghostClass: "job-card-ghost",
+            ghostClass: 'job-card-ghost',
+            chosenClass: 'job-card-chosen',
+            dragClass: 'job-card-drag',
             onEnd: function (evt) {
-                const itemEl = evt.item;  // dragged HTMLElement
-                const newStatus = evt.to.closest('.kanban-column').id;  // new status column ID
-
-                // Update job status in the backend
+                const itemEl = evt.item;
+                const newStatus = evt.to.closest('.kanban-column').id;
                 const jobId = itemEl.getAttribute('data-id');
                 updateJobStatus(jobId, newStatus);
             }
