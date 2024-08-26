@@ -1,7 +1,5 @@
-from decimal import Decimal
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView, FormView
 from django.urls import reverse_lazy
 from workflow.forms import StaffCreationForm, StaffChangeForm, StaffForm, JobForm, JobPricingForm, TimeEntryForm
@@ -9,6 +7,11 @@ from workflow.models import Job, JobPricing, Staff, TimeEntry
 import logging
 
 logger = logging.getLogger(__name__)
+
+def fetch_status_values(request):
+    status_choices = Job.STATUS_CHOICES
+    return JsonResponse({'status_choices': status_choices})
+
 
 class IndexView(TemplateView):
     template_name = 'workflow/index.html'

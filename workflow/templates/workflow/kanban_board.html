@@ -12,14 +12,16 @@
 
 <div class="kanban-board">
     {% for status_key, status_label in status_choices %}
-    <div class="kanban-column" id="{{ status_key  }}">
+    <div class="kanban-column" id="{{ status_key }}">
         <div class="column-header">{{ status_label }}</div>
         <div class="job-list">
             {% for job in jobs %}
-            <div class="job-card" data-id="{{ job.id }}">
-                <h3>{{ job.name }}</h3>
-                <p>{{ job.description }}</p>
-            </div>
+                {% if job.status == status_key %}
+                <div class="job-card" data-id="{{ job.id }}">
+                    <h3>{{ job.name }}</h3>
+                    <p>{{ job.description }}</p>
+                </div>
+                {% endif %}
             {% empty %}
             <p class="no-jobs">No jobs in this status</p>
             {% endfor %}
