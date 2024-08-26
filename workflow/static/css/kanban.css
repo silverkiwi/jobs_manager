@@ -4,22 +4,43 @@ body {
 
 .kanban-board {
     display: flex;
-    overflow-x: auto;
-    padding: 20px;
-    height: calc(100vh - 150px);
-    align-items: flex-start;
+    flex-wrap: wrap; /* Allows columns to wrap to the next line if needed */
+    gap: 20px; /* Adds spacing between columns */
+    justify-content: flex-start; /* Align columns to the left */
 }
 
 .kanban-column {
-    flex: 1 1 12%;  /* Adjust flex properties for flexibility */
-    margin-right: 20px;  /* Keep the margin or adjust it as needed */
+    flex: 1 1 200px; /* Set a flexible width with a minimum size of 200px */
+    margin-bottom: 20px; /* Adds spacing below each column */
     background-color: #f4f5f7;
     border-radius: 3px;
     display: flex;
     flex-direction: column;
     max-height: 100%;
     transition: background-color 0.3s ease;
-    min-width: 150px; /* Optional: Set a minimum width to prevent columns from getting too narrow */
+    min-width: 150px; /* Ensure columns do not get too narrow */
+}
+
+/* Media query for larger screens */
+@media (min-width: 1200px) {
+    .kanban-column {
+        flex: 1 1 12%; /* Adjust percentage for ultra-wide monitors */
+    }
+}
+
+/* Media query for medium screens */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .kanban-column {
+        flex: 1 1 20%; /* Allow fewer columns per row on medium screens */
+    }
+}
+
+/* Media query for small screens */
+@media (max-width: 767px) {
+    .kanban-column {
+        flex: 1 1 45%; /* Allow two columns per row on small screens */
+        min-width: 150px; /* Keep a minimum width for readability */
+    }
 }
 
 .column-header {
