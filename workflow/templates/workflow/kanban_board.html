@@ -11,38 +11,21 @@
 </div>
 
 <div class="kanban-board">
-    <div class="kanban-column" id="quoting">
-        <div class="column-header">Quoting</div>
-        <div class="job-list"></div>
+    {% for status_key, status_label in status_choices %}
+    <div class="kanban-column" id="{{ status_key  }}">
+        <div class="column-header">{{ status_label }}</div>
+        <div class="job-list">
+            {% for job in jobs %}
+            <div class="job-card" data-id="{{ job.id }}">
+                <h3>{{ job.name }}</h3>
+                <p>{{ job.description }}</p>
+            </div>
+            {% empty %}
+            <p class="no-jobs">No jobs in this status</p>
+            {% endfor %}
+        </div>
     </div>
-    <div class="kanban-column" id="approved">
-        <div class="column-header">Approved</div>
-        <div class="job-list"></div>
-    </div>
-    <div class="kanban-column" id="in_progress">
-        <div class="column-header">In Progress</div>
-        <div class="job-list"></div>
-    </div>
-    <div class="kanban-column" id="completed">
-        <div class="column-header">Completed</div>
-        <div class="job-list"></div>
-    </div>
-    <div class="kanban-column" id="awaiting_materials">
-        <div class="column-header">Awaiting Materials</div>
-        <div class="job-list"></div>
-    </div>
-    <div class="kanban-column" id="on_hold">
-        <div class="column-header">On Hold</div>
-        <div class="job-list"></div>
-    </div>
-    <div class="kanban-column" id="rejected">
-        <div class="column-header">Rejected</div>
-        <div class="job-list"></div>
-    </div>
-    <div class="kanban-column" id="archived">
-        <div class="column-header">Archived</div>
-        <div class="job-list"></div>
-    </div>
+    {% endfor %}
 </div>
 {% endblock %}
 

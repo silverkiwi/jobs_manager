@@ -1,6 +1,11 @@
+console.log('kanban.js load started');
+
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize SortableJS for drag-and-drop functionality
+    console.log('Script loaded and DOM fully loaded');
     const columns = document.querySelectorAll('.job-list');
+    console.log('Found columns:', columns.length);  // Add this line
+
     columns.forEach(column => {
         new Sortable(column, {
             group: 'shared',
@@ -86,12 +91,10 @@ function updateJobStatus(jobId, newStatus) {
             console.log('Job status updated successfully');
         } else {
             console.error('Failed to update job status:', data.error);
-            // You might want to move the item back to its original position or refresh the board
         }
     })
     .catch(error => {
         console.error('Error updating job status:', error);
-        // You might want to move the item back to its original position or refresh the board
     });
 }
 

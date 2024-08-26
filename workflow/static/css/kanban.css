@@ -18,6 +18,7 @@ body {
     display: flex;
     flex-direction: column;
     max-height: 100%;
+    transition: background-color 0.3s ease;
 }
 
 .column-header {
@@ -26,6 +27,7 @@ body {
     font-weight: bold;
     border-bottom: 1px solid #dfe1e6;
     background-color: #ebecf0;
+    text-align: center;
 }
 
 .job-list {
@@ -41,10 +43,12 @@ body {
     margin-bottom: 8px;
     box-shadow: 0 1px 0 rgba(9,30,66,.25);
     cursor: grab;
+    transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .job-card:hover {
     background-color: #f9f9f9;
+    transform: scale(1.02);
 }
 
 .search-container {
