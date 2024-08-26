@@ -1,27 +1,52 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load custom_filters %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/trello-like-kanban.css' %}">
+{% endblock %}
 
 {% block content %}
-# Kanban Board
-
-<div class="kanban-search-container">
+<div class="search-container">
+    <input type="text" id="search" placeholder="Search jobs...">
 </div>
 
-   <div class="kanban-board">
-   {% for status, display_name in status_choices %}
-       <div id="{{ status }}" class="column">
-           <div class="column-header" title="{{ status_tooltips|get_item:status }}">
-               <h3>{{ display_name }}</h3>
-           </div>
-           <div class="job-container">
-           </div>
-       </div>
-   {% endfor %}
-   </div>
-   {% endblock %}
+<div class="kanban-board">
+    <div class="kanban-column" id="quoting">
+        <h2 class="column-header">Quoting</h2>
+        <div class="job-list"></div>
+    </div>
+    <div class="kanban-column" id="approved">
+        <h2 class="column-header">Approved</h2>
+        <div class="job-list"></div>
+    </div>
+    <div class="kanban-column" id="in_progress">
+        <h2 class="column-header">In Progress</h2>
+        <div class="job-list"></div>
+    </div>
+    <div class="kanban-column" id="completed">
+        <h2 class="column-header">Completed</h2>
+        <div class="job-list"></div>
+    </div>
+    <div class="kanban-column" id="awaiting_materials">
+        <h2 class="column-header">Awaiting Materials</h2>
+        <div class="job-list"></div>
+    </div>
+    <div class="kanban-column" id="on_hold">
+        <h2 class="column-header">On Hold</h2>
+        <div class="job-list"></div>
+    </div>
+    <div class="kanban-column" id="rejected">
+        <h2 class="column-header">Rejected</h2>
+        <div class="job-list"></div>
+    </div>
+    <div class="kanban-column" id="archived">
+        <h2 class="column-header">Archived</h2>
+        <div class="job-list"></div>
+    </div>
+</div>
+{% endblock %}
 
 {% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
 <script src="{% static 'js/kanban.js' %}"></script>
 {% endblock %}

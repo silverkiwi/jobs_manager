@@ -14,6 +14,7 @@ class Job(models.Model):
         ('rejected', 'Rejected'),
         ('in_progress', 'In Progress'),
         ('on_hold', 'On Hold'),
+        ('special', 'Special'),
         ('completed', 'Completed'),
         ('archived', 'Archived')
     ]
@@ -24,6 +25,7 @@ class Job(models.Model):
         'rejected': 'The quote was declined.',
         'in_progress': 'Work has started on this job.',
         'on_hold': 'The job is on hold, possibly awaiting materials.',
+        'special': 'Shop jobs, upcoming shutdowns, etc.',
         'completed': 'Work has finished on this job.',
         'archived': 'The job has been paid for and picked up.'
     }

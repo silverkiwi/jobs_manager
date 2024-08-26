@@ -1,142 +1,80 @@
-window.addEventListener('load', function() {
-    // Estimate the height of a single job card in pixels
-    let jobHeight = 100;
+document.addEventListener('DOMContentLoaded', function () {
+    // Initialize SortableJS for drag-and-drop functionality
+    const columns = document.querySelectorAll('.job-list');
+    columns.forEach(column => {
+        Sortable.create(column, {
+            group: 'kanban', // Allows dragging between columns
+            animation: 150,
+            easing: "cubic-bezier(1, 0, 0, 1)", // Smooth easing function
+            dragClass: "job-card-dragging",
+            ghostClass: "job-card-ghost",
+            onEnd: function (evt) {
+                const itemEl = evt.item;  // dragged HTMLElement
+                const newStatus = evt.to.closest('.kanban-column').id;  // new status column ID
 
-    // Loop through all the columns and fetch jobs for each status
-    document.querySelectorAll('.column').forEach(column => {
-        let status = column.id;
-
-        // Calculate available height for the container
-        let containerHeight = column.clientHeight;
-        let maxJobs = Math.floor(containerHeight / jobHeight);
-
-        // Fetch and display jobs dynamically for each column
-        fetchJobs(status, maxJobs);
+                // Update job status in the backend
+                const jobId = itemEl.getAttribute('data-id');
+                updateJobStatus(jobId, newStatus);
+            }
+        });
     });
+
+    // Load jobs into each column
+    loadAllColumns();
+
+    // Set up search functionality
+    document.getElementById('search').addEventListener('input', filterJobs);
 });
 
-console.log("Kanban.js loaded");
-
-function fetchJobs(status, maxJobs) {
-    console.log(`fetchJobs called for status: ${status}, maxJobs: ${maxJobs}`);
-    fetch(`/kanban/fetch_jobs/${status}/?max_jobs=${maxJobs}`)
-    .then(response => {
-        console.log(`Response for ${status}:`, response);
-        return response.json();
-    })
-    .then(data => {
-        console.log(`Data for ${status}:`, data);
-        let container = document.querySelector(`#${status} .job-container`);
-        if (!container) {
-            console.error(`Container for status ${status} not found`);
-            return;
-        }
-        container.innerHTML = ''; // Clear existing cards
-
-        if (data.jobs.length === 0) {
-            console.log(`No jobs found for status: ${status}`);
-            let noJobs = document.createElement('p');
-            noJobs.textContent = 'No jobs in this status';
-            container.appendChild(noJobs);
-            return;
-        }
-
-        data.jobs.forEach(job => {
-            let card = document.createElement('div');
-            card.className = 'card';
-            card.setAttribute('data-id', job.id);
-            card.setAttribute('title', job.description);
-
-            let link = document.createElement('a');
-            link.href = `/jobs/${job.id}/`;
-            link.innerHTML = `<h4>${job.name}</h4><p>${job.description}</p>`;
-
-            card.appendChild(link);
-            container.appendChild(card);
-        });
-
-        if (data.total > maxJobs) {
-            let tooMany = document.createElement('p');
-            tooMany.textContent = 'Too many to display';
-            container.appendChild(tooMany);
-        }
-    })
-    .catch(error => {
-        console.error(`Error fetching ${status} jobs:`, error);
-    });
-}
-
-function filterJobs() {
-    let searchInput = document.getElementById('search').value.toLowerCase();
-    document.querySelectorAll('.card').forEach(card => {
-        let jobName = card.querySelector('h4').textContent.toLowerCase();
-        let jobDescription = card.querySelector('p').textContent.toLowerCase();
-        if (jobName.includes(searchInput) || jobDescription.includes(searchInput)) {
-            card.style.display = '';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
-
+// Function to fetch jobs and populate the columns
 function loadAllColumns() {
-    fetchJobs('quoting', 10);
-    fetchJobs('approved', 10);
-    fetchJobs('in_progress', 10);
-    fetchJobs('completed', 10);
-    fetchJobs('on_hold', 10);
-    fetchJobs('rejected', 10);
-    fetchJobs('archived', 10);
-}
-
-
-window.onload = function() {
-    console.log("Window loaded, initializing kanban board");
-    loadAllColumns();
-    initializeDragAndDrop();
-};
-
-function initializeDragAndDrop() {
-    console.log("Initializing drag and drop");
-    const columns = document.querySelectorAll('.column');
-
-    columns.forEach(column => {
-        column.addEventListener('dragover', dragOver);
-        column.addEventListener('drop', drop);
-    });
-
-    // Add drag listeners to job cards after they're loaded
-    document.addEventListener('DOMNodeInserted', event => {
-        if (event.target.classList && event.target.classList.contains('card')) {
-            event.target.addEventListener('dragstart', dragStart);
-            event.target.setAttribute('draggable', true);
-            console.log("Drag listeners added to new card:", event.target);
-        }
+    const statuses = ['quoting', 'approved', 'in_progress', 'completed', 'awaiting_materials', 'on_hold', 'rejected', 'archived'];
+    statuses.forEach(status => {
+        fetchJobs(status);
     });
 }
 
-function dragStart(e) {
-    console.log('Drag started:', e.target);
-    const jobId = e.target.getAttribute('data-id');
-    e.dataTransfer.setData('text/plain', jobId);
-    console.log('Set drag data:', jobId);
+// Function to fetch jobs for a specific status
+function fetchJobs(status) {
+    fetch(`/kanban/fetch_jobs/${status}/`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.querySelector(`#${status} .job-list`);
+            container.innerHTML = ''; // Clear existing cards
+
+            if (data.jobs.length === 0) {
+                let noJobs = document.createElement('p');
+                noJobs.textContent = 'No jobs in this status';
+                noJobs.className = 'no-jobs';
+                container.appendChild(noJobs);
+                return;
+            }
+
+            data.jobs.forEach(job => {
+                let card = createJobCard(job);
+                container.appendChild(card);
+            });
+        })
+        .catch(error => {
+            console.error(`Error fetching ${status} jobs:`, error);
+        });
 }
 
-function dragOver(e) {
-    e.preventDefault();
-    console.log('Drag over:', e.target);
+// Function to create a job card element
+function createJobCard(job) {
+    let card = document.createElement('div');
+    card.className = 'job-card';
+    card.setAttribute('data-id', job.id);
+    card.innerHTML = `
+        <h3>${job.name}</h3>
+        <p>${job.description}</p>
+    `;
+    return card;
 }
 
-function drop(e) {
-    e.preventDefault();
-    console.log('Drop:', e.target);
-    const jobId = e.dataTransfer.getData('text');
-    const newStatus = e.target.closest('.column').id;
-
-    console.log(`Attempting to move job ${jobId} to ${newStatus}`);
-
-    // Call your backend to update the job status
-    fetch(`/kanban/update_job_status/${jobId}/`, {
+// Function to update job status in the backend
+function updateJobStatus(jobId, newStatus) {
+    fetch(`/jobs/${jobId}/update_status/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -147,19 +85,50 @@ function drop(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            console.log(`Job ${jobId} successfully moved to ${newStatus}`);
-            // Move the card to the new column
-            const card = document.querySelector(`[data-id="${jobId}"]`);
-            e.target.closest('.column').querySelector('.job-container').appendChild(card);
+            console.log('Job status updated successfully');
         } else {
             console.error('Failed to update job status:', data.error);
+            // You might want to move the item back to its original position or refresh the board
         }
     })
     .catch(error => {
         console.error('Error updating job status:', error);
+        // You might want to move the item back to its original position or refresh the board
     });
 }
 
+// Function to filter jobs based on search input
+function filterJobs() {
+    const searchTerm = document.getElementById('search').value.toLowerCase();
+    document.querySelectorAll('.job-card').forEach(card => {
+        const jobName = card.querySelector('h3').textContent.toLowerCase();
+        const jobDescription = card.querySelector('p').textContent.toLowerCase();
+        if (jobName.includes(searchTerm) || jobDescription.includes(searchTerm)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Show/hide "No jobs in this status" message
+    document.querySelectorAll('.kanban-column').forEach(column => {
+        const visibleCards = column.querySelectorAll('.job-card:not([style*="display: none"])');
+        const noJobsMessage = column.querySelector('.no-jobs');
+
+        if (visibleCards.length === 0) {
+            if (!noJobsMessage) {
+                const newMessage = document.createElement('p');
+                newMessage.textContent = 'No jobs in this status';
+                newMessage.className = 'no-jobs';
+                column.querySelector('.job-list').appendChild(newMessage);
+            } else {
+                noJobsMessage.style.display = '';
+            }
+        } else if (noJobsMessage) {
+            noJobsMessage.style.display = 'none';
+        }
+    });
+}
 
 // Helper function to get CSRF token
 function getCookie(name) {
@@ -176,5 +145,3 @@ function getCookie(name) {
     }
     return cookieValue;
 }
-
-console.log("Kanban.js fully loaded");
