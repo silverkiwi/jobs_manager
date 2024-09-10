@@ -2,13 +2,13 @@ import sqlite3
 
 
 def export_core_data_to_sql(db_path, output_file):
-    core_tables = ['workflow_staff']
+    core_tables = ["workflow_staff"]
 
     # Connect to the SQLite database
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         # Iterate through core tables only
         for table_name in core_tables:
             f.write(f"-- Data for {table_name} --\n")
@@ -26,17 +26,19 @@ def export_core_data_to_sql(db_path, output_file):
                         value = value.replace("'", "''")
                         values.append(f"'{value}'")
                     elif value is None:
-                        values.append('NULL')
+                        values.append("NULL")
                     else:
                         values.append(str(value))
                 values_str = ", ".join(values)
-                f.write(f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({values_str});\n")
+                f.write(
+                    f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({values_str});\n"
+                )
 
     # Close the database connection
     conn.close()
 
 
-if __name__ == '__main__':
-    db_path = 'db.sqlite3'  # Path to your SQLite database file
-    output_file = 'core_data_backup.sql'  # Output file for the SQL statements
+if __name__ == "__main__":
+    db_path = "db.sqlite3"  # Path to your SQLite database file
+    output_file = "core_data_backup.sql"  # Output file for the SQL statements
     export_core_data_to_sql(db_path, output_file)

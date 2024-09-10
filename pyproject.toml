@@ -25,3 +25,26 @@ tox = "^4.18.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+# mypy configuration
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+exclude = [
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".tox",
+    ".venv",
+    "_build",
+    "buck-out",
+    "build",
+    "dist"]
+
+# pylint configuration
+[tool.pylint]
+max-line-length = 88
+ignore = ["migrations", "__pycache__", "site-packages", ".tox"]

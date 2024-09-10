@@ -25,11 +25,13 @@ logger = logging.getLogger(__name__)
 
 # Store token (simple storage in os.environ for this example)
 def store_token(token):
-    os.environ['XERO_ACCESS_TOKEN'] = token['access_token']
+    os.environ["XERO_ACCESS_TOKEN"] = token["access_token"]
+
 
 # Retrieve token
 def get_token():
-    return os.environ.get('XERO_ACCESS_TOKEN')
+    return os.environ.get("XERO_ACCESS_TOKEN")
+
 
 # Initialize Xero API client
 def get_xero_client():
@@ -37,18 +39,20 @@ def get_xero_client():
     api_client = ApiClient(configuration=config)
     return api_client
 
+
 # Xero Authentication (Step 1: Redirect user to Xero OAuth2 login)
 def xero_authenticate(request):
     # Generate UUID for the state parameter
     state = str(uuid.uuid4())
 
     # Save state in session for later verification (optional step to prevent CSRF)
-    request.session['oauth_state'] = state
+    request.session["oauth_state"] = state
 
     # Generate the callback URL (similar to Flask's url_for with _external=True)
-    redirect_url = request.build_absolute_uri(reverse('xero_oauth_callback')).replace("http://", "https://")
+    redirect_url = request.build_absolute_uri(reverse("xero_oauth_callback")).replace(
+        "http://", "https://"
+    )
     logger.info(f"Redirect URL before fix: {redirect_url}")
-
 
     # Properly encode the redirect_uri
 
@@ -60,19 +64,24 @@ def xero_authenticate(request):
 
     # Manually construct the authorization URL (aligning with the xero.authorize approach in Flask)
     query_params = {
-        'response_type': 'code',
-        'client_id': settings.XERO_CLIENT_ID,
-        'redirect_uri': redirect_url,
-        'scope': ' '.join(["openid", "profile", "email", "accounting.transactions", "offline_access"]),
-        'state': state
+        "response_type": "code",
+        "client_id": settings.XERO_CLIENT_ID,
+        "redirect_uri": redirect_url,
+        "scope": " ".join(
+            ["openid", "profile", "email", "accounting.transactions", "offline_access"]
+        ),
+        "state": state,
     }
-    authorization_url = f"https://login.xero.com/identity/connect/authorize?{urlencode(query_params)}"
+    authorization_url = (
+        f"https://login.xero.com/identity/connect/authorize?{urlencode(query_params)}"
+    )
 
     # Log the final authorization URL
     logger.info(f"Authorization URL: {authorization_url}")
 
     # Redirect the user to the Xero login page
     return redirect(authorization_url)
+
 
 # Xero OAuth Callback (Step 2: Handle callback from Xero and exchange code for token)
 def xero_oauth_callback(request):
@@ -81,32 +90,37 @@ def xero_oauth_callback(request):
     api_client = ApiClient(configuration=config)
 
     oauth2_token = OAuth2Token(
-        client_id=settings.XERO_CLIENT_ID,
-        client_secret=settings.XERO_CLIENT_SECRET
+        client_id=settings.XERO_CLIENT_ID, client_secret=settings.XERO_CLIENT_SECRET
     )
 
     # Retrieve the authorization code and state from the callback
-    code = request.GET.get('code')
-    state = request.GET.get('state')
+    code = request.GET.get("code")
+    state = request.GET.get("state")
 
     # Validate the state to prevent CSRF attacks
-    if state != request.session.get('oauth_state'):
-        return render(request, 'workflow/xero_auth_error.html', {"error_message": "State does not match."})
+    if state != request.session.get("oauth_state"):
+        return render(
+            request,
+            "workflow/xero_auth_error.html",
+            {"error_message": "State does not match."},
+        )
 
     try:
         # Get the OAuth2 token using the authorization code
         token_response = api_client.get_oauth2_token(
             client_id=settings.XERO_CLIENT_ID,
             client_secret=settings.XERO_CLIENT_SECRET,
-            grant_type='authorization_code',
+            grant_type="authorization_code",
             code=code,
-            redirect_uri=settings.XERO_REDIRECT_URI
+            redirect_uri=settings.XERO_REDIRECT_URI,
         )
 
         # Update the OAuth2 token object with the token response
         oauth2_token.update_token(**token_response)
     except Exception as e:
-        return render(request, 'workflow/xero_auth_error.html', {"error_message": str(e)})
+        return render(
+            request, "workflow/xero_auth_error.html", {"error_message": str(e)}
+        )
 
     # Store the token securely
     store_token(oauth2_token.token)
@@ -117,23 +131,28 @@ def xero_oauth_callback(request):
         tenants = identity_api.get_connections()
         # Process tenants as needed
     except Exception as e:
-        return render(request, 'workflow/xero_auth_error.html', {"error_message": str(e)})
+        return render(
+            request, "workflow/xero_auth_error.html", {"error_message": str(e)}
+        )
 
-    return redirect('xero_connection_success')
+    return redirect("xero_connection_success")
+
 
 # Xero connection success view
 def xero_connection_success(request):
-    return render(request, 'workflow/xero_connection_success.html')
+    return render(request, "workflow/xero_connection_success.html")
+
 
 # Error handling view for OAuth
 def xero_auth_error(request):
-    return render(request, 'workflow/xero_auth_error.html')
+    return render(request, "workflow/xero_auth_error.html")
+
 
 # Get Xero contacts
 def get_xero_contacts(request):
     token = get_token()
     if not token:
-        return redirect('xero_authenticate')
+        return redirect("xero_authenticate")
 
     api_client = get_xero_client()
     api_client.set_oauth2_token(token)
@@ -142,15 +161,16 @@ def get_xero_contacts(request):
     # Fetch contacts
     try:
         contacts = accounting_api.get_contacts()
-        return render(request, 'workflow/xero_contacts.html', {'contacts': contacts})
+        return render(request, "workflow/xero_contacts.html", {"contacts": contacts})
     except Exception as e:
-        return redirect('xero_auth_error')
+        return redirect("xero_auth_error")
+
 
 # Refresh Xero OAuth Token (when token expires)
 def refresh_xero_token(request):
     token = get_token()
     if not token:
-        return redirect('xero_authenticate')
+        return redirect("xero_authenticate")
 
     api_client = get_xero_client()
     token_api = TokenApi(api_client)
@@ -159,6 +179,6 @@ def refresh_xero_token(request):
     try:
         refreshed_token = token_api.refresh_token(token)
         store_token(refreshed_token.to_dict())
-        return redirect('xero_get_contacts')
+        return redirect("xero_get_contacts")
     except Exception as e:
-        return redirect('xero_auth_error')
+        return redirect("xero_auth_error")

@@ -9,8 +9,8 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
+
 import os
-import uuid
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -28,7 +28,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-AUTH_USER_MODEL = 'workflow.Staff'
+AUTH_USER_MODEL = "workflow.Staff"
 
 # Application definition
 
@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "workflow",
-    'simple_history',
+    "simple_history",
 ]
 
 MIDDLEWARE = [
@@ -52,25 +52,25 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
-    'workflow.middleware.LoginRequiredMiddleware',
+    "workflow.middleware.LoginRequiredMiddleware",
 ]
 
-LOGIN_REDIRECT_URL = '/'
-LOGIN_URL = '/login/'
-LOGIN_EXEMPT_URLS = ['logout']
+LOGIN_REDIRECT_URL = "/"
+LOGIN_URL = "/login/"
+LOGIN_EXEMPT_URLS = ["logout"]
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
     },
 }
 
@@ -79,7 +79,7 @@ ROOT_URLCONF = "jobs_manager.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        'DIRS': [os.path.join(BASE_DIR, 'workflow/templates')],
+        "DIRS": [os.path.join(BASE_DIR, "workflow/templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -129,7 +129,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -139,27 +139,33 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
-CSRF_TRUSTED_ORIGINS = ['http://' + host for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1']]
-CSRF_TRUSTED_ORIGINS += ['http://localhost', 'http://127.0.0.1']
-CSRF_TRUSTED_ORIGINS += ['https://' + host for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1']]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+CSRF_TRUSTED_ORIGINS = [
+    "http://" + host for host in ALLOWED_HOSTS if host not in ["localhost", "127.0.0.1"]
+]
+CSRF_TRUSTED_ORIGINS += ["http://localhost", "http://127.0.0.1"]
+CSRF_TRUSTED_ORIGINS += [
+    "https://" + host
+    for host in ALLOWED_HOSTS
+    if host not in ["localhost", "127.0.0.1"]
+]
 
 # Xero settings
-XERO_CLIENT_ID = os.getenv('XERO_CLIENT_ID')
-XERO_CLIENT_SECRET = os.getenv('XERO_CLIENT_SECRET')
-XERO_REDIRECT_URI = os.getenv('XERO_REDIRECT_URI')
+XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID")
+XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET")
+XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI")
