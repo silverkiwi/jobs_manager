@@ -25,6 +25,10 @@ class JobCreateView(CreateView):
     template_name = 'workflow/job_form.html'
     success_url = reverse_lazy('job_list')
 
+    def form_valid(self, form):
+        form.instance._history_user = self.request.user
+        return super().form_valid(form)
+
 class JobListView(ListView):
     model = Job
     template_name = 'workflow/job_list.html'
@@ -87,11 +91,20 @@ class JobDetailView(DetailView):
                 }
                 for change in delta.changes
             ]
-            history_diffs.append((new_record, changes))
+            history_diffs.append({
+                'record': new_record,
+                'changes': changes,
+                'changed_by': new_record.history_user_id
+            })
 
         # Add the initial record with no changes
         if history:
-            history_diffs.append((history.last(), []))
+            initial_record = history.last()
+            history_diffs.append({
+                'record': initial_record,
+                'changes': [],
+                'changed_by': new_record.history_user_id
+            })
 
         context['history_diffs'] = history_diffs
 

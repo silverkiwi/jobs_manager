@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 import os
+import uuid
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +22,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-(oi7ga3hor(y63ekxw100=+vtf^n$^q_%8192wvn%d#b$h4t&5"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -128,8 +129,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "UTC"
+TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
@@ -145,3 +145,21 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+load_dotenv(BASE_DIR / '.env')
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY')
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+CSRF_TRUSTED_ORIGINS = ['http://' + host for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1']]
+CSRF_TRUSTED_ORIGINS += ['http://localhost', 'http://127.0.0.1']
+CSRF_TRUSTED_ORIGINS += ['https://' + host for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1']]
+
+# Xero settings
+XERO_CLIENT_ID = os.getenv('XERO_CLIENT_ID')
+XERO_CLIENT_SECRET = os.getenv('XERO_CLIENT_SECRET')
+XERO_REDIRECT_URI = os.getenv('XERO_REDIRECT_URI')

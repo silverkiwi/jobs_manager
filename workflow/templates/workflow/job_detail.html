@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Job Detail</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
     <h1>Job Details</h1>
     <p>Job Name: {{ job.name }}</p>
     <p>Client Name: {{ job.client_name }}</p>
@@ -52,16 +50,18 @@
         {% endfor %}
     </ul>
 
-{% for record, changes in history_diffs %}
-    <h3>Change on {{ record.history_date }}</h3>
-    {% if changes %}
+{% for entry in history_diffs %}
+    <h4>Change on <span class="utc-time" data-utc="{{ entry.record.history_date|date:'c' }}">{{ entry.record.history_date }}</span>
+        by {{ entry.changed_by|get_user_display_name }}
+    </h4>
+    {% if entry.changes %}
         <ul>
-        {% for change in changes %}
+        {% for change in entry.changes %}
             <li>'{{ change.field }}' changed from '{{ change.old }}' to '{{ change.new }}'</li>
         {% endfor %}
         </ul>
     {% else %}
-        <p>Initial record</p>
+        <p>Job saved without changes</p>
     {% endif %}
 {% endfor %}
 
@@ -70,3 +70,8 @@
     <p>Job Data: {{ job }}</p>
 </body>
 </html>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/time-conversion.js' %}"></script>
+{% endblock %}

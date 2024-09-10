@@ -11,10 +11,16 @@ Django = "^5.0.6"
 django-encrypted-model-fields = "^0.6.5"
 #django-xero = "^0.0.3"
 django-simple-history = "^3.7.0"
+pytz = "^2024.1"
+python-dotenv = "^1.0.1"
+xero-python = "^6.2.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
 flake8 = "^7.0.0"
+mypy = "^1.11.2"
+pylint = "^3.2.7"
+tox = "^4.18.1"
 
 [build-system]
 requires = ["poetry-core"]

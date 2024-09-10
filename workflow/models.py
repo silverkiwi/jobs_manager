@@ -46,6 +46,14 @@ class Job(models.Model):
     def __str__(self):
         return f"{self.client_name} - {self.name} - {self.job_number or self.order_number} - ({self.status})"
 
+    @property
+    def _history_user(self):
+        return self.changed_by
+
+    @_history_user.setter
+    def _history_user(self, value):
+        self.changed_by = value
+
 class JobPricing(models.Model):
     PRICING_TYPE_CHOICES = [
         ('estimate', 'Estimate'),
