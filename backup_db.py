@@ -30,9 +30,12 @@ def export_core_data_to_sql(db_path, output_file):
                     else:
                         values.append(str(value))
                 values_str = ", ".join(values)
-                f.write(
-                    f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({values_str});\n"
+                insert_statement = (
+                    f"INSERT INTO {table_name} "
+                    f"({', '.join(columns)}) "
+                    f"VALUES ({values_str});\n"
                 )
+                f.write(insert_statement)
 
     # Close the database connection
     conn.close()

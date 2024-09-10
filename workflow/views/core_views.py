@@ -17,8 +17,9 @@ from workflow.forms import (
     JobPricingForm,
     TimeEntryForm,
 )
-from workflow.models import Job, JobPricing, Staff, TimeEntry
 import logging
+
+from workflow.models import Job, JobPricing, Staff, TimeEntry
 
 logger = logging.getLogger(__name__)
 

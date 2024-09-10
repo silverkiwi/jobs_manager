@@ -21,28 +21,25 @@ flake8 = "^7.0.0"
 mypy = "^1.11.2"
 pylint = "^3.2.7"
 tox = "^4.18.1"
+django-stubs = "^5.0.4"
+mypy-extensions = "^1.0.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+exclude = '\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist|migrations'
 
-# mypy configuration
 [tool.mypy]
 python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-exclude = [
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".tox",
-    ".venv",
-    "_build",
-    "buck-out",
-    "build",
-    "dist"]
+mypy_path = "./"
+exclude = "migrations|__pycache__|.tox|venv"
 
 # pylint configuration
 [tool.pylint]
