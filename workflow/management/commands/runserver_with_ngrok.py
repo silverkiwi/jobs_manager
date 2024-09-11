@@ -20,7 +20,9 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Starting ngrok with domain {ngrok_domain}...")
         )
-        ngrok_process = subprocess.Popen(shlex.split(ngrok_command))
+        # We don't bother capturing the ngrok process because it runs indefinitely
+        # ngrok_process = subprocess.Popen(shlex.split(ngrok_command))
+        subprocess.Popen(shlex.split(ngrok_command))
 
         # Run Django development server
         self.stdout.write(

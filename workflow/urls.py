@@ -3,8 +3,6 @@ from django.contrib.auth import views as auth_views
 from workflow.views import kanban, xero, core_views
 from django.views.generic import RedirectView
 
-from django.urls import path
-
 #    path('', views.DashboardView.as_view(), name='dashboard'),
 
 urlpatterns = [

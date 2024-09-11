@@ -86,7 +86,6 @@ class TimeEntryForm(forms.ModelForm):
         self.fields["staff"].queryset = Staff.objects.all()
 
 
-
 class StaffForm(forms.ModelForm):
     class Meta:
         model = Staff

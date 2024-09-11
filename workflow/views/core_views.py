@@ -14,7 +14,7 @@ from workflow.forms import (
     StaffChangeForm,
     StaffForm,
     JobForm,
-    JobPricingForm,
+    #    JobPricingForm,
     TimeEntryForm,
 )
 import logging

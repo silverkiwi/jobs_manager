@@ -4,7 +4,6 @@ from typing import Dict, Any, List, Optional
 from django.conf import settings
 from django.core.cache import cache
 from django.shortcuts import redirect, render
-from django.urls import reverse
 from django.http import HttpRequest, HttpResponse
 from urllib.parse import urlencode
 from xero_python.accounting import AccountingApi
@@ -108,6 +107,7 @@ def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
     try:
         tenants: List[Any] = identity_api.get_connections()
     except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
         return render(
             request, "workflow/xero_auth_error.html", {"error_message": str(e)}
         )

@@ -43,7 +43,6 @@ def fetch_jobs(request, status):
     max_jobs = int(request.GET.get("max_jobs", 10))  # Default to 10 if not provided
     jobs = Job.objects.filter(status=status)[:max_jobs]
     total_jobs = Job.objects.filter(status=status).count()
-    displayed_jobs_count = jobs.count()  # x
 
     job_data = [
         {"id": job.id, "name": job.name, "description": job.description} for job in jobs

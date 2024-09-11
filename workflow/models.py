@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -64,7 +64,8 @@ class Job(models.Model):
     history = HistoricalRecords()
 
     def __str__(self) -> str:
-        return f"{self.client_name} - {self.name} - {self.job_number or self.order_number} - ({self.status})"
+        job_or_order = f"{self.job_number or self.order_number}"
+        return f"{self.client_name} - {self.name} - {job_or_order} - ({self.status})"
 
     @property
     def _history_user(self) -> Any:
