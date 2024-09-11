@@ -5,7 +5,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import Job, Staff
 from .forms import StaffCreationForm, StaffChangeForm
 
-from simple_history.admin import SimpleHistoryAdmin
+from simple_history.admin import SimpleHistoryAdmin  # type: ignore
 
 
 class StaffAdmin(UserAdmin):

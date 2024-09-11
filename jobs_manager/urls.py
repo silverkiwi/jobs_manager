@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+from typing import cast, Iterable
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -27,4 +28,6 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += cast(
+        Iterable, static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    )

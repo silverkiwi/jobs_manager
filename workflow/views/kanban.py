@@ -2,12 +2,12 @@
 
 import json
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from workflow.models import Job
 
 
-def kanban_view(request):
+def kanban_view(request: HttpRequest) -> HttpResponse:
     jobs = Job.objects.all()
     context = {
         "jobs": jobs,
@@ -18,7 +18,7 @@ def kanban_view(request):
 
 
 @csrf_exempt
-def update_job_status(request, pk):
+def update_job_status(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method == "POST":
         try:
             job = Job.objects.get(pk=pk)
@@ -39,7 +39,7 @@ def update_job_status(request, pk):
     return JsonResponse({"success": False, "error": "Invalid request method"})
 
 
-def fetch_jobs(request, status):
+def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
     max_jobs = int(request.GET.get("max_jobs", 10))  # Default to 10 if not provided
     jobs = Job.objects.filter(status=status)[:max_jobs]
     total_jobs = Job.objects.filter(status=status).count()
