@@ -6,12 +6,21 @@ from django.core.cache import cache
 from django.shortcuts import redirect, render
 from django.http import HttpRequest, HttpResponse
 from urllib.parse import urlencode
-from xero_python.accounting import AccountingApi
-from xero_python.api_client.oauth2 import TokenApi
-from xero_python.api_client import ApiClient
-from xero_python.identity import IdentityApi
+from xero_python.accounting import AccountingApi  # type: ignore
+from xero_python.api_client.oauth2 import TokenApi  # type: ignore
+from xero_python.api_client import ApiClient  # type: ignore
+from xero_python.identity import IdentityApi  # type: ignore
 
 logger = logging.getLogger(__name__)
+
+XERO_SCOPES = [
+    "offline_access",
+    "openid",
+    "profile",
+    "email",
+    "accounting.transactions",
+    "accounting.reports.read",
+]
 
 
 # Store token (simple storage in os.environ for this example)
@@ -49,9 +58,7 @@ def xero_authenticate(request: HttpRequest) -> HttpResponse:
         "response_type": "code",
         "client_id": settings.XERO_CLIENT_ID,
         "redirect_uri": redirect_url,
-        "scope": " ".join(
-            ["openid", "profile", "email", "accounting.transactions", "offline_access"]
-        ),
+        "scope": " ".join(XERO_SCOPES),
         "state": state,
     }
     authorization_url: str = (
@@ -69,7 +76,7 @@ def xero_authorize(request: HttpRequest) -> HttpResponse:
     authorization_url: str = api_client.auth_code_url(
         client_id=settings.XERO_CLIENT_ID,
         redirect_uri=settings.XERO_REDIRECT_URI,
-        scope="offline_access openid profile email accounting.transactions accounting.reports.read",
+        scope=" ".join(XERO_SCOPES),
     )
     return redirect(authorization_url)
 
@@ -139,6 +146,7 @@ def get_xero_contacts(request: HttpRequest) -> HttpResponse:
         contacts: Any = accounting_api.get_contacts()
         return render(request, "workflow/xero_contacts.html", {"contacts": contacts})
     except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
         return redirect("xero_auth_error")
 
 
@@ -156,4 +164,5 @@ def refresh_xero_token(request: HttpRequest) -> HttpResponse:
         store_token(refreshed_token.to_dict())
         return redirect("xero_get_contacts")
     except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
         return redirect("xero_auth_error")

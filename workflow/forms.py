@@ -1,3 +1,5 @@
+from typing import Dict
+
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from workflow.models import (
@@ -70,8 +72,8 @@ class StaffChangeForm(UserChangeForm):
 
 
 class TimeEntryForm(forms.ModelForm):
-    job_str_to_id = {}
-    staff_str_to_id = {}
+    job_str_to_id: Dict[str, int] = {}
+    staff_str_to_id: Dict[str, int] = {}
 
     class Meta:
         model = TimeEntry
