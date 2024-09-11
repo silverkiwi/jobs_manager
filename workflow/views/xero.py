@@ -40,13 +40,8 @@ def xero_authenticate(request: HttpRequest) -> HttpResponse:
     state: str = str(uuid.uuid4())
 
     request.session["oauth_state"] = state
+    redirect_url = settings.XERO_REDIRECT_URI
 
-    redirect_url: str = request.build_absolute_uri(reverse("xero_oauth_callback")).replace(
-        "http://", "https://"
-    )
-    logger.info(f"Redirect URL before fix: {redirect_url}")
-
-    logger.info(f"Redirect URL before encoding: {redirect_url}")
     logger.info(f"State: {state}")
     logger.info(f"Client ID: {settings.XERO_CLIENT_ID}")
     logger.info(f"Redirect URI: {settings.XERO_REDIRECT_URI}")
