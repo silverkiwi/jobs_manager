@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "workflow",
-    #    "workflow.apps.WorkflowConfig",  # Random bug - changing from "workflow" to this as a hacky workaround
     "simple_history",
 ]
 

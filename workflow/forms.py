@@ -1,6 +1,14 @@
-import uuid
 from django import forms
-from .models import Job, JobPricing, TimeEntry, MaterialEntry, AdjustmentEntry, Staff
+from django import forms
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from workflow.models import (
+    Job,
+    JobPricing,
+    TimeEntry,
+    MaterialEntry,
+    AdjustmentEntry,
+    Staff,
+)
 
 
 class JobForm(forms.ModelForm):
@@ -34,11 +42,6 @@ class AdjustmentEntryForm(forms.ModelForm):
     class Meta:
         model = AdjustmentEntry
         fields = ["description", "cost", "revenue"]
-
-
-from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import Staff
 
 
 class StaffCreationForm(UserCreationForm):
