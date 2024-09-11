@@ -1,5 +1,4 @@
 from django import forms
-from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from workflow.models import (
     Job,
@@ -86,20 +85,6 @@ class TimeEntryForm(forms.ModelForm):
         self.fields["job"].queryset = Job.objects.all()
         self.fields["staff"].queryset = Staff.objects.all()
 
-
-class JobForm(forms.ModelForm):
-    class Meta:
-        model = Job
-        fields = [
-            "client_name",
-            "order_number",
-            "contact_person",
-            "contact_phone",
-            "job_number",
-            "description",
-            "status",
-            "paid",
-        ]
 
 
 class StaffForm(forms.ModelForm):

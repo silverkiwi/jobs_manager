@@ -1,4 +1,5 @@
 import uuid
+from typing import Dict, List, Optional, Any
 
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -11,9 +12,11 @@ from simple_history.models import HistoricalRecords
 
 
 class Job(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=100)
-    STATUS_CHOICES = [
+    id: models.UUIDField = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False
+    )
+    name: models.CharField = models.CharField(max_length=100)
+    STATUS_CHOICES: List[tuple[str, str]] = [
         ("quoting", "Quoting"),
         ("approved", "Approved"),
         ("rejected", "Rejected"),
@@ -24,9 +27,9 @@ class Job(models.Model):
         ("archived", "Archived"),
     ]
 
-    STATUS_TOOLTIPS = {
+    STATUS_TOOLTIPS: Dict[str, str] = {
         "quoting": "The quote is currently being prepared.",
-        "approved": "The quote has been approved, but work hasn’t started yet.",
+        "approved": "The quote has been approved, but work hasn't started yet.",
         "rejected": "The quote was declined.",
         "in_progress": "Work has started on this job.",
         "on_hold": "The job is on hold, possibly awaiting materials.",
@@ -35,36 +38,40 @@ class Job(models.Model):
         "archived": "The job has been paid for and picked up.",
     }
 
-    client_name = models.CharField(max_length=100)
-    order_number = models.CharField(max_length=100, null=True, blank=True)
-    contact_person = models.CharField(max_length=100)
-    contact_phone = models.CharField(max_length=15)
-    job_number = models.CharField(max_length=100, null=True, blank=True)
-    description = models.TextField()
-    date_created = models.DateTimeField(default=timezone.now)
-    last_updated = models.DateTimeField(
-        auto_now=True
-    )  # This field will be updated to trigger history recording
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="quoting")
-    parent = models.ForeignKey(
+    client_name: models.CharField = models.CharField(max_length=100)
+    order_number: models.CharField = models.CharField(
+        max_length=100, null=True, blank=True
+    )
+    contact_person: models.CharField = models.CharField(max_length=100)
+    contact_phone: models.CharField = models.CharField(max_length=15)
+    job_number: models.CharField = models.CharField(
+        max_length=100, null=True, blank=True
+    )
+    description: models.TextField = models.TextField()
+    date_created: models.DateTimeField = models.DateTimeField(default=timezone.now)
+    last_updated: models.DateTimeField = models.DateTimeField(auto_now=True)
+    status: models.CharField = models.CharField(
+        max_length=30, choices=STATUS_CHOICES, default="quoting"
+    )
+    parent: models.ForeignKey = models.ForeignKey(
         "self",
         null=True,
         blank=True,
         related_name="revisions",
         on_delete=models.SET_NULL,
     )
-    paid = models.BooleanField(default=False)
+    paid: models.BooleanField = models.BooleanField(default=False)
     history = HistoricalRecords()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.client_name} - {self.name} - {self.job_number or self.order_number} - ({self.status})"
 
     @property
-    def _history_user(self):
+    def _history_user(self) -> Any:
         return self.changed_by
 
     @_history_user.setter
-    def _history_user(self, value):
+    def _history_user(self, value: Any) -> None:
         self.changed_by = value
 
 

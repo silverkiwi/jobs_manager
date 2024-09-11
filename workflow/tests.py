@@ -8,5 +8,5 @@ django.setup()  # Force initialization
 
 
 class SimpleTest(TestCase):
-    def test_basic(self):
+    def test_basic(self) -> None:
         self.assertTrue(True)
