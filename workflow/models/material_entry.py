@@ -1,3 +1,6 @@
+from django.db import models
+
+
 class MaterialEntry(models.Model):
     """Materials, e.g. sheets"""
 

@@ -3,6 +3,8 @@ import uuid
 
 from django.db import models
 
+from workflow.models import JobPricing
+
 
 class AdjustmentEntry(models.Model):
     """For when costs are manually added to a job"""
