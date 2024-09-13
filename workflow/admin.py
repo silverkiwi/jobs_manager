@@ -2,10 +2,10 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Job, Staff
-from .forms import StaffCreationForm, StaffChangeForm
-
 from simple_history.admin import SimpleHistoryAdmin  # type: ignore
+
+from workflow.models import Job, Staff
+from workflow.forms import StaffCreationForm, StaffChangeForm
 
 
 class StaffAdmin(UserAdmin):

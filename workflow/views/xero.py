@@ -113,6 +113,7 @@ def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
     identity_api: IdentityApi = IdentityApi(api_client)
     try:
         tenants: List[Any] = identity_api.get_connections()
+        logger.info(f"Tenants: {tenants}")
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
         return render(

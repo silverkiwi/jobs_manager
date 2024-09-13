@@ -11,7 +11,7 @@ def kanban_view(request: HttpRequest) -> HttpResponse:
     jobs = Job.objects.all()
     context = {
         "jobs": jobs,
-        "status_choices": Job.STATUS_CHOICES,
+        "status_choices": Job.JOB_STATUS_CHOICES,
         "status_tooltips": Job.STATUS_TOOLTIPS,
     }
     return render(request, "workflow/kanban_board.html", context)

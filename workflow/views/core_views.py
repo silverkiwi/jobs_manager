@@ -1,3 +1,6 @@
+import logging
+from typing import List, Tuple, Type, Dict, Any
+
 from django.contrib.auth import login, authenticate
 from django.http import JsonResponse
 from django.views.generic import (
@@ -9,6 +12,7 @@ from django.views.generic import (
     FormView,
 )
 from django.urls import reverse_lazy
+
 from workflow.forms import (
     StaffCreationForm,
     StaffChangeForm,
@@ -17,73 +21,78 @@ from workflow.forms import (
     #    JobPricingForm,
     TimeEntryForm,
 )
-import logging
 
 from workflow.models import Job, JobPricing, Staff, TimeEntry
 
 logger = logging.getLogger(__name__)
 
 
-def fetch_status_values(request):
-    status_choices = Job.STATUS_CHOICES
+def fetch_job_status_values(request) -> JsonResponse:
+    status_choices: List[Tuple[str, str]] = Job.JOB_STATUS_CHOICES
     return JsonResponse({"status_choices": status_choices})
 
 
 class IndexView(TemplateView):
-    template_name = "workflow/index.html"
+    template_name: str = "workflow/index.html"
 
 
 class AboutView(TemplateView):
-    template_name = "workflow/about.html"
+    template_name: str = "workflow/about.html"
 
 
 class JobCreateView(CreateView):
-    model = Job
-    form_class = JobForm
-    template_name = "workflow/job_form.html"
-    success_url = reverse_lazy("job_list")
+    model: Type[Job] = Job
+    form_class: Type[JobForm] = JobForm
+    template_name: str = "workflow/job_form.html"
+    success_url: str = reverse_lazy("job_list")
 
-    def form_valid(self, form):
+    def form_valid(self, form: JobForm) -> JsonResponse:
         form.instance._history_user = self.request.user
         return super().form_valid(form)
 
 
 class JobListView(ListView):
-    model = Job
-    template_name = "workflow/job_list.html"
-    context_object_name = "jobs"
+    model: Type[Job] = Job
+    template_name: str = "workflow/job_list.html"
+    context_object_name: str = "jobs"
 
 
 class JobDetailView(DetailView):
-    model = Job
-    template_name = "workflow/job_detail.html"
-    context_object_name = "job"
+    model: Type[Job] = Job
+    template_name: str = "workflow/job_detail.html"
+    context_object_name: str = "job"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        job = self.object
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        context: Dict[str, Any] = super().get_context_data(**kwargs)
+        job: Job = self.object
 
-        pricing_models = job.job_pricings.all()
-        pricing_data = []
+        pricing_models: List[JobPricing] = job.job_pricings.all()
+        pricing_data: List[Dict[str, Any]] = []
 
         for model in pricing_models:
-            time_entries = model.time_entries.all()
-            material_entries = model.material_entries.all()
-            adjustment_entries = model.adjustment_entries.all()
+            time_entries: List[TimeEntry] = model.time_entries.all()
+            material_entries: List[Any] = model.material_entries.all()
+            adjustment_entries: List[Any] = model.adjustment_entries.all()
 
-            total_time_cost = sum(entry.cost for entry in time_entries)
-            total_time_revenue = sum(entry.revenue for entry in time_entries)
+            total_time_cost: float = sum(entry.cost for entry in time_entries)
+            total_time_revenue: float = sum(entry.revenue for entry in time_entries)
 
-            total_material_cost = sum(entry.cost for entry in material_entries)
-            total_material_revenue = sum(entry.revenue for entry in material_entries)
+            total_material_cost: float = sum(entry.cost for entry in material_entries)
+            total_material_revenue: float = sum(
+                entry.revenue for entry in material_entries
+            )
 
-            total_adjustment_cost = sum(entry.cost for entry in adjustment_entries)
-            total_adjustment_revenue = sum(
+            total_adjustment_cost: float = sum(
+                entry.cost for entry in adjustment_entries
+            )
+            total_adjustment_revenue: float = sum(
                 entry.revenue for entry in adjustment_entries
             )
 
-            total_cost = total_time_cost + total_material_cost + total_adjustment_cost
-            total_revenue = (
+            total_cost: float = (
+                total_time_cost + total_material_cost + total_adjustment_cost
+            )
+            total_revenue: float = (
                 total_time_revenue + total_material_revenue + total_adjustment_revenue
             )
 
@@ -103,8 +112,8 @@ class JobDetailView(DetailView):
 
         context["pricing_data"] = pricing_data
 
-        history = job.history.all()
-        history_diffs = []
+        history: List[Any] = job.history.all()
+        history_diffs: List[Dict[str, Any]] = []
         for i in range(len(history) - 1):
             new_record = history[i]
             old_record = history[i + 1]
@@ -138,42 +147,42 @@ class JobDetailView(DetailView):
 
 
 class RegisterView(FormView):
-    template_name = "workflow/register.html"
-    form_class = StaffCreationForm
-    success_url = reverse_lazy("job_list")
+    template_name: str = "workflow/register.html"
+    form_class: Type[StaffCreationForm] = StaffCreationForm
+    success_url: str = reverse_lazy("job_list")
 
-    def form_valid(self, form):
+    def form_valid(self, form: StaffCreationForm) -> JsonResponse:
         form.save()
-        email = form.cleaned_data.get("email")
-        raw_password = form.cleaned_data.get("password1")
+        email: str = form.cleaned_data.get("email")
+        raw_password: str = form.cleaned_data.get("password1")
         user = authenticate(email=email, password=raw_password)
         login(self.request, user)
         return super().form_valid(form)
 
 
 class ProfileView(UpdateView):
-    model = Staff
-    form_class = StaffChangeForm
-    template_name = "workflow/profile.html"
-    success_url = reverse_lazy("job_list")
+    model: Type[Staff] = Staff
+    form_class: Type[StaffChangeForm] = StaffChangeForm
+    template_name: str = "workflow/profile.html"
+    success_url: str = reverse_lazy("job_list")
 
-    def get_object(self):
+    def get_object(self) -> Staff:
         return self.request.user
 
 
 class CreateTimeEntryView(CreateView):
-    model = TimeEntry
-    form_class = TimeEntryForm
-    template_name = "workflow/create_time_entry.html"
-    success_url = reverse_lazy("time_entry_success")
+    model: Type[TimeEntry] = TimeEntry
+    form_class: Type[TimeEntryForm] = TimeEntryForm
+    template_name: str = "workflow/create_time_entry.html"
+    success_url: str = reverse_lazy("time_entry_success")
 
-    def form_valid(self, form):
-        time_entry = form.save(commit=False)
-        staff = time_entry.staff
+    def form_valid(self, form: TimeEntryForm) -> JsonResponse:
+        time_entry: TimeEntry = form.save(commit=False)
+        staff: Staff = time_entry.staff
         time_entry.wage_rate = staff.wage_rate
         time_entry.charge_out_rate = staff.charge_out_rate
 
-        job = time_entry.job
+        job: Job = time_entry.job
         job_pricing, created = JobPricing.objects.get_or_create(
             job=job, pricing_type="actual"
         )
@@ -185,53 +194,53 @@ class CreateTimeEntryView(CreateView):
 
         return super().form_valid(form)
 
-    def form_invalid(self, form):
+    def form_invalid(self, form: TimeEntryForm) -> JsonResponse:
         logger.debug("Form errors: %s", form.errors)
         return super().form_invalid(form)
 
 
 class TimeEntrySuccessView(TemplateView):
-    template_name = "workflow/time_entry_success.html"
+    template_name: str = "workflow/time_entry_success.html"
 
 
 class StaffListView(ListView):
-    model = Staff
-    template_name = "workflow/staff_list.html"
-    context_object_name = "staff_members"
+    model: Type[Staff] = Staff
+    template_name: str = "workflow/staff_list.html"
+    context_object_name: str = "staff_members"
 
 
 class StaffProfileView(DetailView):
-    model = Staff
-    template_name = "workflow/staff_profile.html"
-    context_object_name = "staff_member"
+    model: Type[Staff] = Staff
+    template_name: str = "workflow/staff_profile.html"
+    context_object_name: str = "staff_member"
 
 
 class JobUpdateView(UpdateView):
-    model = Job
-    form_class = JobForm
-    template_name = "workflow/edit_job.html"
+    model: Type[Job] = Job
+    form_class: Type[JobForm] = JobForm
+    template_name: str = "workflow/edit_job.html"
 
-    def get_success_url(self):
+    def get_success_url(self) -> str:
         return reverse_lazy("job_detail", kwargs={"pk": self.object.pk})
 
 
 class StaffUpdateView(UpdateView):
-    model = Staff
-    form_class = StaffForm
-    template_name = "workflow/edit_staff.html"
+    model: Type[Staff] = Staff
+    form_class: Type[StaffForm] = StaffForm
+    template_name: str = "workflow/edit_staff.html"
 
-    def get_success_url(self):
+    def get_success_url(self) -> str:
         return reverse_lazy("staff_profile", kwargs={"pk": self.object.pk})
 
 
 class TimeEntryUpdateView(UpdateView):
-    model = TimeEntry
-    form_class = TimeEntryForm
-    template_name = "workflow/edit_time_entry.html"
-    success_url = reverse_lazy("time_entry_success")
+    model: Type[TimeEntry] = TimeEntry
+    form_class: Type[TimeEntryForm] = TimeEntryForm
+    template_name: str = "workflow/edit_time_entry.html"
+    success_url: str = reverse_lazy("time_entry_success")
 
-    def form_valid(self, form):
-        time_entry = form.save(commit=False)
+    def form_valid(self, form: TimeEntryForm) -> JsonResponse:
+        time_entry: TimeEntry = form.save(commit=False)
         time_entry.save(
             update_fields=["date", "minutes", "note", "is_billable", "job", "staff"]
         )
@@ -239,9 +248,9 @@ class TimeEntryUpdateView(UpdateView):
 
 
 class DashboardView(TemplateView):
-    template_name = "workflow/dashboard.html"
+    template_name: str = "workflow/dashboard.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        context: Dict[str, Any] = super().get_context_data(**kwargs)
         # You can add any additional context data here if needed
         return context

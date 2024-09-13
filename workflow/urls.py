@@ -9,7 +9,7 @@ urlpatterns = [
     path("", RedirectView.as_view(url="/kanban/"), name="dashboard"),
     path(
         "api/fetch_status_values/",
-        core_views.fetch_status_values,
+        core_views.fetch_job_status_values,
         name="fetch_status_values",
     ),
     path("api/xero/authenticate/", xero.xero_authenticate, name="xero_authenticate"),
