@@ -1,9 +1,10 @@
-import decimal
 import uuid
+from decimal import Decimal
+from typing import Optional
 
 from django.db import models
 
-from workflow.models import JobPricing
+# from workflow.models import JobPricingType
 
 
 class AdjustmentEntry(models.Model):
@@ -12,15 +13,17 @@ class AdjustmentEntry(models.Model):
     id: uuid.UUID = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )  # type: ignore
-    job_pricing: models.ForeignKey = models.ForeignKey(
-        JobPricing, on_delete=models.CASCADE, related_name="adjustment_entries"
-    )
-    description: str = models.CharField(
+    job_pricing_type = models.ForeignKey(
+        "JobPricingType",
+        on_delete=models.CASCADE,
+        related_name="adjustment_entries",
+    )  # type: ignore
+    description: Optional[str] = models.CharField(
         max_length=200, null=True, blank=True
     )  # type: ignore
-    cost: decimal.Decimal = models.DecimalField(
+    cost: Decimal = models.DecimalField(
         max_digits=10, decimal_places=2, default=0.0
     )  # type: ignore
-    revenue: decimal.Decimal = models.DecimalField(
-        max_digits=10, ecimal_places=2, default=0.0
+    revenue: Decimal = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.0
     )  # type: ignore

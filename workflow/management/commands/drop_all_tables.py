@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.core.management.base import BaseCommand
 from django.db import connection
 
@@ -5,7 +7,7 @@ from django.db import connection
 class Command(BaseCommand):
     help = "Drops all tables and recreates the database"
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **kwargs: Any) -> None:
         with connection.cursor() as cursor:
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
             tables = cursor.fetchall()

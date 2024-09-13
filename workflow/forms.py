@@ -6,7 +6,7 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from workflow.models import (
     AdjustmentEntry,
     Job,
-    JobPricing,
+    JobPricingType,
     MaterialEntry,
     Staff,
     TimeEntry,
@@ -30,7 +30,7 @@ class JobForm(forms.ModelForm):
 
 class JobPricingForm(forms.ModelForm):
     class Meta:
-        model = JobPricing
+        model = JobPricingType
         fields = ["pricing_type"]
 
 

@@ -1,5 +1,6 @@
 import os
 import subprocess
+from typing import Any
 
 from django.core.management.base import BaseCommand
 
@@ -7,7 +8,7 @@ from django.core.management.base import BaseCommand
 class Command(BaseCommand):
     help = "Update __init__.py files in specified directories"
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args: Any, **kwargs: Any) -> None:
         # List of directories to update
         folders_to_update = [
             os.path.abspath(os.path.join(os.path.dirname(__file__), "../../models")),

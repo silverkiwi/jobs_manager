@@ -1,13 +1,12 @@
 import uuid
-from datetime import timezone
-from typing import List, Optional
+from datetime import datetime
+from typing import ClassVar, List, Optional
 
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
-from simple_history.models import HistoricalRecords
-
-from workflow.models.staff_manager import StaffManager
+from django.utils import timezone
+from simple_history.models import HistoricalRecords  # type: ignore
 
 
 class Staff(AbstractBaseUser, PermissionsMixin):
@@ -29,15 +28,13 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     ims_payroll_id: str = models.CharField(max_length=100, unique=True)  # type: ignore
     is_active: bool = models.BooleanField(default=True)  # type: ignore
     is_staff: bool = models.BooleanField(default=False)  # type: ignore
-    date_joined: timezone.datetime = models.DateTimeField(
-        default=timezone.now
-    )  # type: ignore
+    date_joined: datetime = models.DateTimeField(default=timezone.now)  # type: ignore
     history: HistoricalRecords = HistoricalRecords()  # type: ignore
 
-    objects: "StaffManager" = StaffManager()
+    objects: "StaffManager"
 
     USERNAME_FIELD: str = "email"
-    REQUIRED_FIELDS: List[str] = [
+    REQUIRED_FIELDS: ClassVar[List[str]] = [
         "first_name",
         "last_name",
         "wage_rate",

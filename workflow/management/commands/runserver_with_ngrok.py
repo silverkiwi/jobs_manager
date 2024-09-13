@@ -1,6 +1,7 @@
 import os
 import shlex
 import subprocess
+from typing import Any
 
 from django.core.management.base import BaseCommand
 
@@ -8,7 +9,7 @@ from django.core.management.base import BaseCommand
 class Command(BaseCommand):
     help = "Starts Django server with ngrok"
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args: Any, **kwargs: Any) -> None:
         ngrok_domain = os.environ.get(
             "NGROK_DOMAIN", "measured-enormously-man.ngrok-free.app"
         )

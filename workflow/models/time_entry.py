@@ -2,24 +2,24 @@ import uuid
 
 from django.db import models
 
-from workflow.models import Job, JobPricing, Staff
+from workflow.models import Job, JobPricingType, Staff
 
 
 class TimeEntry(models.Model):
     id: models.UUIDField = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )
-    job: models.ForeignKey = models.ForeignKey(
+    job: Job = models.ForeignKey(
         Job, on_delete=models.CASCADE, related_name="time_entries"
-    )
-    job_pricing: models.ForeignKey = models.ForeignKey(
-        JobPricing,
+    )  # type: ignore
+    job_pricing: JobPricingType = models.ForeignKey(
+        JobPricingType,
         on_delete=models.CASCADE,
         related_name="time_entries",
         null=True,
         blank=True,
-    )
-    staff: "Staff" = models.ForeignKey(
+    )  # type: ignore
+    staff: Staff = models.ForeignKey(
         "Staff", on_delete=models.CASCADE, related_name="time_entries"
     )  # type: ignore
     date: models.DateField = models.DateField()

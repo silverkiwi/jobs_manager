@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -36,7 +36,8 @@ def get_token() -> Dict[str, Any]:
     token = cache.get("xero_oauth2_token")
     if token is None:
         raise Exception("No OAuth2 token found.")
-    return token
+    token_dict = cast(Dict[str, Any], token)
+    return token_dict
 
 
 # Initialize Xero API client

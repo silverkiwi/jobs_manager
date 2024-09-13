@@ -4,7 +4,7 @@ from typing import Dict, List
 
 from django.db import models
 from django.utils import timezone
-from simple_history.models import HistoricalRecords
+from simple_history.models import HistoricalRecords  # type: ignore
 
 
 class Job(models.Model):
