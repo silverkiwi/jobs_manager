@@ -1,19 +1,29 @@
+import uuid
+from decimal import Decimal
+
 from django.db import models
+from django.db.models import CASCADE, ForeignKey
 
 
 class MaterialEntry(models.Model):
     """Materials, e.g. sheets"""
 
-    id = models.UUIDField(
+    id: uuid.UUID = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )  # type: ignore
     job_pricing: ForeignKey = models.ForeignKey(
         "JobPricing", on_delete=CASCADE, related_name="material_entries"
     )
-    description = models.CharField(max_length=200)  # type: ignore
-    cost_price = models.DecimalField(max_digits=10, decimal_places=2)  # type: ignore
-    sale_price = models.DecimalField(max_digits=10, decimal_places=2)  # type: ignore
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)  # type: ignore
+    description: str = models.CharField(max_length=200)  # type: ignore
+    cost_price: Decimal = models.DecimalField(
+        max_digits=10, decimal_places=2
+    )  # type: ignore
+    sale_price: Decimal = models.DecimalField(
+        max_digits=10, decimal_places=2
+    )  # type: ignore
+    quantity: Decimal = models.DecimalField(
+        max_digits=10, decimal_places=2
+    )  # type: ignore
 
     @property
     def cost(self) -> Decimal:

@@ -5,6 +5,7 @@ from typing import List, Optional
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
+from simple_history.models import HistoricalRecords
 
 from workflow.models.staff_manager import StaffManager
 

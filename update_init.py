@@ -1,14 +1,13 @@
 import os
-import sys
 
 
-def update_init_py(target_dir):
+def update_init_py(target_dir: str) -> int:
     init_file = os.path.join(target_dir, "__init__.py")
 
     # Check if the directory exists
     if not os.path.exists(target_dir):
         print(f"Skipping non-existent folder: {target_dir}")
-        return
+        return 2  # Error Code 2: Directory does not exist
 
     # Get all Python files in the directory (excluding __init__.py)
     py_files = [
@@ -20,7 +19,7 @@ def update_init_py(target_dir):
         print(
             f"No Python files found in {target_dir}. Skipping __init__.py generation."
         )
-        return
+        return 3  # Error Code 3: No Python files found
 
     # Prepare import statements
     import_lines = [
@@ -34,16 +33,11 @@ def update_init_py(target_dir):
         import_lines.append(f"from .{module_name} import *  # noqa: F401, F403")
 
     # Write to __init__.py
-    with open(init_file, "w") as init_f:
-        init_f.write("\n".join(import_lines) + "\n")
-
-    print(f"Successfully updated {init_file}")
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python update_init.py <folder_path>")
-        sys.exit(1)
-
-    folder = sys.argv[1]
-    update_init_py(folder)
+    try:
+        with open(init_file, "w") as init_f:
+            init_f.write("\n".join(import_lines) + "\n")
+        print(f"Successfully updated {init_file}")
+        return 0  # Success
+    except IOError as e:
+        print(f"Failed to write to {init_file}: {e}")
+        return 4  # Error Code 4: IOError during file writing

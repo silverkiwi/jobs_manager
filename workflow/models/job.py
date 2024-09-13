@@ -46,8 +46,12 @@ class Job(models.Model):
         max_length=100, null=True, blank=True
     )  # type: ignore
     description: str = models.TextField()  # type: ignore
-    date_created: datetime.datetime = models.DateTimeField(default=timezone.now)  # type: ignore
-    last_updated: datetime.datetime = models.DateTimeField(auto_now=True)  # type: ignore
+    date_created: datetime.datetime = models.DateTimeField(
+        default=timezone.now
+    )  # type: ignore
+    last_updated: datetime.datetime = models.DateTimeField(
+        auto_now=True
+    )  # type: ignore
     status: str = models.CharField(
         max_length=30, choices=JOB_STATUS_CHOICES, default="quoting"
     )  # type: ignore

@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 
-from workflow.models import Job, JobPricing
+from workflow.models import Job, JobPricing, Staff
 
 
 class TimeEntry(models.Model):
