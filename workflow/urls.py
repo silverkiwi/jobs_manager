@@ -1,7 +1,8 @@
-from django.urls import path
 from django.contrib.auth import views as auth_views
-from workflow.views import kanban, xero, core_views
+from django.urls import path
 from django.views.generic import RedirectView
+
+from workflow.views import core_views, kanban, xero
 
 #    path('', views.DashboardView.as_view(), name='dashboard'),
 

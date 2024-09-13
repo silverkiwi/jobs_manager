@@ -1,27 +1,25 @@
 import logging
-from typing import List, Tuple, Type, Dict, Any
+from typing import Any, Dict, List, Tuple, Type
 
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    TemplateView,
-    FormView,
-)
 from django.urls import reverse_lazy
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    FormView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
-from workflow.forms import (
-    StaffCreationForm,
-    StaffChangeForm,
-    StaffForm,
+from workflow.forms import (  # JobPricingForm,
     JobForm,
-    #    JobPricingForm,
+    StaffChangeForm,
+    StaffCreationForm,
+    StaffForm,
     TimeEntryForm,
 )
-
 from workflow.models import Job, JobPricing, Staff, TimeEntry
 
 logger = logging.getLogger(__name__)

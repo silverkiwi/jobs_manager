@@ -1,14 +1,15 @@
 from typing import Dict
 
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+
 from workflow.models import (
+    AdjustmentEntry,
     Job,
     JobPricing,
-    TimeEntry,
     MaterialEntry,
-    AdjustmentEntry,
     Staff,
+    TimeEntry,
 )
 
 

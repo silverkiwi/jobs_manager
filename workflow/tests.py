@@ -1,8 +1,8 @@
+import django
 from django.test import TestCase
 
 # Create your tests here.
 
-import django
 
 django.setup()  # Force initialization
 

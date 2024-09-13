@@ -1,14 +1,15 @@
 import logging
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.core.cache import cache
-from django.shortcuts import redirect, render
 from django.http import HttpRequest, HttpResponse
-from urllib.parse import urlencode
+from django.shortcuts import redirect, render
 from xero_python.accounting import AccountingApi  # type: ignore
-from xero_python.api_client.oauth2 import TokenApi  # type: ignore
 from xero_python.api_client import ApiClient  # type: ignore
+from xero_python.api_client.oauth2 import TokenApi  # type: ignore
 from xero_python.identity import IdentityApi  # type: ignore
 
 logger = logging.getLogger(__name__)

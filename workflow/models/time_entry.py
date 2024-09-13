@@ -1,3 +1,10 @@
+import uuid
+
+from django.db import models
+
+from workflow.models import Job, JobPricing
+
+
 class TimeEntry(models.Model):
     id: models.UUIDField = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False

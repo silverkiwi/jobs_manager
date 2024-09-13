@@ -801,4 +801,4 @@ urllib3 = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "90d8be1e20f9706522fb51fa046ed8c96e56f4465723ed691b22d0da5c87aa01"
+content-hash = "cf81dc00dc1cbd94ef005acaf2fcca47f79a3451e8010c9d765c09faf60d0022"

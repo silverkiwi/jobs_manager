@@ -1,6 +1,6 @@
 import uuid
 from datetime import timezone
-from typing import Optional, List
+from typing import List, Optional
 
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin

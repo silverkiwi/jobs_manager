@@ -1,9 +1,11 @@
 # kanban.py
 
 import json
+
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
-from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
+
 from workflow.models import Job
 
 

@@ -1,8 +1,10 @@
-from django import template
-from workflow.models import Staff
-from django.utils import timezone
-import pytz
 from datetime import datetime
+
+import pytz
+from django import template
+from django.utils import timezone
+
+from workflow.models import Staff
 
 register = template.Library()
 
