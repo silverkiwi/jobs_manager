@@ -1,3 +1,5 @@
+# time_entry_views.py
+
 import logging
 from typing import Type
 
@@ -6,7 +8,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, TemplateView, UpdateView
 
 from workflow.forms import TimeEntryForm
-from workflow.models import Job, JobPricingType, Staff, TimeEntry
+from workflow.models import JobPricing, Staff, TimeEntry
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +25,10 @@ class CreateTimeEntryView(CreateView):
         time_entry.wage_rate = staff.wage_rate
         time_entry.charge_out_rate = staff.charge_out_rate
 
-        job: Job = time_entry.job
-        job_pricing, created = JobPricingType.objects.get_or_create(
-            job=job, pricing_type="actual"
-        )
-
-        time_entry.job_pricing = job_pricing
         time_entry.save()
 
+        # Update the last_updated field of the associated job
+        job = time_entry.job_pricing.job
         job.save(update_fields=["last_updated"])
 
         return super().form_valid(form)
@@ -52,7 +50,5 @@ class TimeEntryUpdateView(UpdateView):
 
     def form_valid(self, form: TimeEntryForm) -> JsonResponse:
         time_entry: TimeEntry = form.save(commit=False)
-        time_entry.save(
-            update_fields=["date", "minutes", "note", "is_billable", "job", "staff"]
-        )
+        time_entry.save()
         return super().form_valid(form)

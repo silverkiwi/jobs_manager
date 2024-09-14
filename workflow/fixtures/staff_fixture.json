@@ -1,0 +1,59 @@
+[
+    {
+        "model": "workflow.staff",
+        "pk": "a9bd99fac9fb43e38b25578c35b56fa9",
+        "fields": {
+            "password": "pbkdf2_sha256$720000$MFqeZOR4S5lb6Ex7tNtTMC$7TbGLPWvgO9bXuLPUIRcm9Um3qr948vTOC73fbkO2rc=",
+            "last_login": "2024-06-17T04:08:47.885232Z",
+            "is_superuser": true,
+            "email": "corrin@morrissheetmetal.co.nz",
+            "first_name": "Corrin",
+            "last_name": "Lakeland",
+            "preferred_name": "Corrin",
+            "wage_rate": "10.00",
+            "charge_out_rate": "15.00",
+            "ims_payroll_id": "0",
+            "is_active": true,
+            "is_staff": true,
+            "date_joined": "2024-06-17T04:06:53.985842Z"
+        }
+    },
+    {
+        "model": "workflow.staff",
+        "pk": "a9bd99fac9fb43e38b25578c35b56fa7",
+        "fields": {
+            "password": "pbkdf2_sha256$720000$62xvcnpEbcWE4ihhrlDam0$13IHo6l6pHe74mKxk9wljk8ri4W+mYa33N6OnW9UdWM=",
+            "last_login": null,
+            "is_superuser": false,
+            "email": "val@morrissheetmetal.co.nz",
+            "first_name": "Val",
+            "last_name": "Kemp",
+            "preferred_name": null,
+            "wage_rate": "20.00",
+            "charge_out_rate": "25.00",
+            "ims_payroll_id": "1234",
+            "is_active": true,
+            "is_staff": true,
+            "date_joined": "2024-06-17T04:10:45.723419Z"
+        }
+    },
+    {
+        "model": "workflow.staff",
+        "pk": "a9bd99fac9fb43e38b25578c35b56fa6",
+        "fields": {
+            "password": "pbkdf2_sha256$720000$Pp0ouO9egZuSXJclnC9bHL$cP6lMaHTi3kIlanpSSDZIDuvNkYAud0OcOb6N0uZsNc=",
+            "last_login": null,
+            "is_superuser": true,
+            "email": "corrin+admin@morrissheetmetal.co.nz",
+            "first_name": "Corrin",
+            "last_name": "Admin",
+            "preferred_name": null,
+            "wage_rate": "30.00",
+            "charge_out_rate": "35.00",
+            "ims_payroll_id": "1",
+            "is_active": true,
+            "is_staff": true,
+            "date_joined": "2024-06-18T22:59:47.548186Z"
+        }
+    }
+]

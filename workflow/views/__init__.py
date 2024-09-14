@@ -4,33 +4,19 @@ from .dashboard_view import DashboardView
 from .job_detail_view import JobDetailView
 from .job_views import JobCreateView, JobListView, JobUpdateView
 from .profile_view import ProfileView
-from .staff_views import (
-    RegisterStaffView,
-    StaffListView,
-    StaffProfileView,
-    StaffUpdateView,
-)
-from .time_entry_views import (
-    CreateTimeEntryView,
-    TimeEntrySuccessView,
-    TimeEntryUpdateView,
-)
-from .trivial_views import AboutView, IndexView
+from .time_entry_views import CreateTimeEntryView, TimeEntrySuccessView, TimeEntryUpdateView
+from .trivial_views import IndexView, AboutView
 
 __all__ = [
-    "DashboardView",
-    "JobDetailView",
-    "JobCreateView",
-    "JobListView",
-    "JobUpdateView",
-    "ProfileView",
-    "RegisterStaffView",
-    "StaffListView",
-    "StaffProfileView",
-    "StaffUpdateView",
-    "CreateTimeEntryView",
-    "TimeEntrySuccessView",
-    "TimeEntryUpdateView",
-    "IndexView",
-    "AboutView",
+    'DashboardView',
+    'JobDetailView',
+    'JobCreateView',
+    'JobListView',
+    'JobUpdateView',
+    'ProfileView',
+    'CreateTimeEntryView',
+    'TimeEntrySuccessView',
+    'TimeEntryUpdateView',
+    'IndexView',
+    'AboutView',
 ]

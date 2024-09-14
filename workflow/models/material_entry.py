@@ -1,36 +1,38 @@
+# material_entry.py
+
 import uuid
 from decimal import Decimal
-
 from django.db import models
-from django.db.models import CASCADE
-
 
 class MaterialEntry(models.Model):
-    """Materials, e.g. sheets"""
+    """Materials, e.g., sheets"""
 
-    id: uuid.UUID = models.UUIDField(
+    id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
-    )  # type: ignore
-    job_pricing_type = models.ForeignKey(
-        "JobPricingType",
-        on_delete=CASCADE,
+    )
+    job_pricing = models.ForeignKey(
+        'JobPricing',
+        on_delete=models.CASCADE,
         related_name="material_entries",
-    )  # type: ignore
-    description: str = models.CharField(max_length=200)  # type: ignore
-    cost_price: Decimal = models.DecimalField(
+    )
+    description = models.CharField(max_length=200)
+    unit_cost = models.DecimalField(
         max_digits=10, decimal_places=2
-    )  # type: ignore
-    sale_price: Decimal = models.DecimalField(
+    )
+    unit_revenue = models.DecimalField(
         max_digits=10, decimal_places=2
-    )  # type: ignore
-    quantity: Decimal = models.DecimalField(
+    )
+    quantity = models.DecimalField(
         max_digits=10, decimal_places=2
-    )  # type: ignore
+    )
 
     @property
     def cost(self) -> Decimal:
-        return self.cost_price * self.quantity  # type: ignore
+        return self.unit_cost * self.quantity
 
     @property
     def revenue(self) -> Decimal:
-        return self.sale_price * self.quantity  # type: ignore
+        return self.unit_revenue * self.quantity
+
+    def __str__(self):
+        return f"Material for {self.job_pricing.job.name} - {self.description}"

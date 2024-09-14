@@ -55,13 +55,15 @@ class Job(models.Model):
     status: str = models.CharField(
         max_length=30, choices=JOB_STATUS_CHOICES, default="quoting"
     )  # type: ignore
-    parent: models.ForeignKey = models.ForeignKey(
-        "self",
-        null=True,
-        blank=True,
-        related_name="revisions",
-        on_delete=models.SET_NULL,
-    )
+    # Decided not to bother with parent for now since we don't have a hierarchy of jobs.
+    # Can be restored.  Would also provide an alternative to historical records for tracking changes.
+    # parent: models.ForeignKey = models.ForeignKey(
+    #     "self",
+    #     null=True,
+    #     blank=True,
+    #     related_name="revisions",
+    #     on_delete=models.SET_NULL,
+    # )
     paid: bool = models.BooleanField(default=False)  # type: ignore
     history: HistoricalRecords = HistoricalRecords()
 

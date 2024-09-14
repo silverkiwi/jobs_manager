@@ -6,12 +6,9 @@ from workflow.views import (
     job_detail_view,
     job_views,
     kanban_view,
-    staff_views,
     time_entry_views,
     xero_view,
 )
-
-#    path('', views.DashboardView.as_view(), name='dashboard'),
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/kanban/"), name="dashboard"),
@@ -35,7 +32,7 @@ urlpatterns = [
     ),
     path(
         "api/xero/error/", xero_view.xero_auth_error, name="xero_auth_error"
-    ),  # Add this line
+    ),
     path("api/xero/contacts/", xero_view.get_xero_contacts, name="xero_get_contacts"),
     path(
         "api/xero/refresh_token/",
@@ -55,16 +52,7 @@ urlpatterns = [
     path("kanban/fetch_jobs/<str:status>/", kanban_view.fetch_jobs, name="fetch_jobs"),
     path("login/", auth_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-    path("staff/", staff_views.StaffListView.as_view(), name="staff_list"),
-    path("staff/register/", staff_views.RegisterStaffView.as_view(), name="register"),
-    path(
-        "staff/<uuid:pk>/", staff_views.StaffProfileView.as_view(), name="staff_profile"
-    ),
-    path(
-        "staff/<uuid:pk>/edit/",
-        staff_views.StaffUpdateView.as_view(),
-        name="edit_staff",
-    ),
+    # Staff-related URLs have been removed
     path(
         "time_entries/create/",
         time_entry_views.CreateTimeEntryView.as_view(),

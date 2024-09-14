@@ -1,8 +1,17 @@
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
+from django.db.models import QuerySet
 from django.views.generic import DetailView
 
-from workflow.models import Job, JobPricingType, TimeEntry
+from workflow.models import (
+    AdjustmentEntry,
+    Job,
+    JobPricing,
+    MaterialEntry,
+    TimeEntry,
+)
+
+HistoricalJob = Job.history.model
 
 
 class JobDetailView(DetailView):
@@ -14,28 +23,22 @@ class JobDetailView(DetailView):
         context: Dict[str, Any] = super().get_context_data(**kwargs)
         job: Job = self.object
 
-        pricing_models: List[JobPricingType] = job.job_pricings.all()
+        pricing_models: QuerySet[JobPricing] = job.pricings.all()
         pricing_data: List[Dict[str, Any]] = []
 
         for model in pricing_models:
-            time_entries: List[TimeEntry] = model.time_entries.all()
-            material_entries: List[Any] = model.material_entries.all()
-            adjustment_entries: List[Any] = model.adjustment_entries.all()
+            time_entries: QuerySet[TimeEntry] = model.time_entries.all()
+            material_entries: QuerySet[MaterialEntry] = model.material_entries.all()
+            adjustment_entries: QuerySet[AdjustmentEntry] = model.adjustment_entries.all()
 
             total_time_cost: float = sum(entry.cost for entry in time_entries)
             total_time_revenue: float = sum(entry.revenue for entry in time_entries)
 
             total_material_cost: float = sum(entry.cost for entry in material_entries)
-            total_material_revenue: float = sum(
-                entry.revenue for entry in material_entries
-            )
+            total_material_revenue: float = sum(entry.revenue for entry in material_entries)
 
-            total_adjustment_cost: float = sum(
-                entry.cost for entry in adjustment_entries
-            )
-            total_adjustment_revenue: float = sum(
-                entry.revenue for entry in adjustment_entries
-            )
+            total_adjustment_cost: float = sum(entry.cost for entry in adjustment_entries)
+            total_adjustment_revenue: float = sum(entry.revenue for entry in adjustment_entries)
 
             total_cost: float = (
                 total_time_cost + total_material_cost + total_adjustment_cost
@@ -60,9 +63,11 @@ class JobDetailView(DetailView):
 
         context["pricing_data"] = pricing_data
 
-        history: List[Any] = job.history.all()
+        history: QuerySet[HistoricalJob] = job.history.all()
         history_diffs: List[Dict[str, Any]] = []
-        for i in range(len(history) - 1):
+        history_length: int = history.count()
+
+        for i in range(history_length - 1):
             new_record = history[i]
             old_record = history[i + 1]
             delta = new_record.diff_against(old_record)
@@ -79,15 +84,16 @@ class JobDetailView(DetailView):
             )
 
         # Add the initial record with no changes
-        if history:
-            initial_record = history.last()
-            history_diffs.append(
-                {
-                    "record": initial_record,
-                    "changes": [],
-                    "changed_by": new_record.history_user_id,
-                }
-            )
+        if history.exists():
+            initial_record: Optional[HistoricalJob] = history.last()
+            if initial_record:
+                history_diffs.append(
+                    {
+                        "record": initial_record,
+                        "changes": [],
+                        "changed_by": initial_record.history_user_id,
+                    }
+                )
 
         context["history_diffs"] = history_diffs
 
