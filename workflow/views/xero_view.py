@@ -1,15 +1,16 @@
 import logging
 import uuid
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, Optional, cast
 from urllib.parse import urlencode
 
+import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from xero_python.accounting import AccountingApi  # type: ignore
-from xero_python.api_client import ApiClient  # type: ignore
-from xero_python.api_client.oauth2 import TokenApi  # type: ignore
+from xero_python.api_client import ApiClient, Configuration  # type: ignore
+from xero_python.api_client.oauth2 import OAuth2Token, TokenApi  # type: ignore
 from xero_python.identity import IdentityApi  # type: ignore
 
 logger = logging.getLogger(__name__)
@@ -24,25 +25,31 @@ XERO_SCOPES = [
 ]
 
 
-# Store token (simple storage in os.environ for this example)
+# Initialize Xero API client
+api_client = ApiClient(
+    Configuration(
+        oauth2_token=OAuth2Token(
+            client_id=settings.XERO_CLIENT_ID,
+            client_secret=settings.XERO_CLIENT_SECRET,
+        ),
+    ),
+)
+
+
+@api_client.oauth2_token_saver
 def store_token(token: Dict[str, Any]) -> None:
     if not token:
         raise Exception("Invalid token: token is None or empty.")
     cache.set("xero_oauth2_token", token)
 
 
-# Retrieve token
+@api_client.oauth2_token_getter
 def get_token() -> Dict[str, Any]:
     token = cache.get("xero_oauth2_token")
     if token is None:
         raise Exception("No OAuth2 token found.")
     token_dict = cast(Dict[str, Any], token)
     return token_dict
-
-
-# Initialize Xero API client
-def get_api_client() -> ApiClient:
-    return ApiClient(oauth2_token_getter=get_token, oauth2_token_saver=store_token)
 
 
 # Xero Authentication (Step 1: Redirect user to Xero OAuth2 login)
@@ -74,7 +81,6 @@ def xero_authenticate(request: HttpRequest) -> HttpResponse:
 
 # Authorization view (redirect user to Xero's authorization URL)
 def xero_authorize(request: HttpRequest) -> HttpResponse:
-    api_client: ApiClient = get_api_client()
     authorization_url: str = api_client.auth_code_url(
         client_id=settings.XERO_CLIENT_ID,
         redirect_uri=settings.XERO_REDIRECT_URI,
@@ -85,8 +91,6 @@ def xero_authorize(request: HttpRequest) -> HttpResponse:
 
 # Callback view after user authorizes with Xero
 def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
-    api_client: ApiClient = get_api_client()
-
     code: Optional[str] = request.GET.get("code")
     state: Optional[str] = request.GET.get("state")
 
@@ -97,30 +101,23 @@ def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
             {"error_message": "State does not match."},
         )
 
-    try:
-        token_response: Dict[str, Any] = api_client.generate_token(
-            client_id=settings.XERO_CLIENT_ID,
-            client_secret=settings.XERO_CLIENT_SECRET,
-            grant_type="authorization_code",
-            code=code,
-            redirect_uri=settings.XERO_REDIRECT_URI,
-        )
+    # Exchange authorization code for access token
+    token_url = "https://identity.xero.com/connect/token"
+    token_data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": settings.XERO_REDIRECT_URI,
+        "client_id": settings.XERO_CLIENT_ID,
+        "client_secret": settings.XERO_CLIENT_SECRET,
+    }
 
-        store_token(token_response)
-    except Exception as e:
-        return render(
-            request, "workflow/xero_auth_error.html", {"error_message": str(e)}
-        )
+    # Send a POST request to Xero's token endpoint
+    token_response = requests.post(token_url, data=token_data)
+    token_response.raise_for_status()
 
-    identity_api: IdentityApi = IdentityApi(api_client)
-    try:
-        tenants: List[Any] = identity_api.get_connections()
-        logger.info(f"Tenants: {tenants}")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        return render(
-            request, "workflow/xero_auth_error.html", {"error_message": str(e)}
-        )
+    # Parse the token response
+    token_data = token_response.json()
+    store_token(token_data)
 
     return redirect("xero_connection_success")
 
@@ -141,16 +138,18 @@ def get_xero_contacts(request: HttpRequest) -> HttpResponse:
     if not token:
         return redirect("xero_authenticate")
 
-    api_client: ApiClient = get_api_client()
-    api_client.set_oauth2_token(token)
     accounting_api: AccountingApi = AccountingApi(api_client)
+    # Get Xero tenant ID
+    identity_api: IdentityApi = IdentityApi(api_client)
+    connections = identity_api.get_connections()
+    if not connections:
+        raise Exception("No Xero tenants found.")
 
-    try:
-        contacts: Any = accounting_api.get_contacts()
-        return render(request, "workflow/xero_contacts.html", {"contacts": contacts})
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        return redirect("xero_auth_error")
+    xero_tenant_id = connections[0].tenant_id
+
+    # Fetch contacts using the tenant ID
+    contacts: Any = accounting_api.get_contacts(xero_tenant_id)
+    return render(request, "workflow/xero_contacts.html", {"contacts": contacts.contacts})
 
 
 # Refresh Xero OAuth Token (when token expires)
@@ -159,7 +158,6 @@ def refresh_xero_token(request: HttpRequest) -> HttpResponse:
     if not token:
         return redirect("xero_authenticate")
 
-    api_client: ApiClient = get_api_client()
     token_api: TokenApi = TokenApi(api_client)
 
     try:
