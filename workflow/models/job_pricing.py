@@ -1,4 +1,4 @@
-# workflow/models.py
+# workflow/models/job_pricing.py
 
 from django.db import models
 from workflow.models import Job

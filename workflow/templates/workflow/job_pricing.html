@@ -1,0 +1,34 @@
+<h1>Job Pricing Details for {{ job_pricing.job.name }} - {{ job_pricing.estimate_type }}</h1>
+
+<h2>Time Entries</h2>
+<ul>
+    {% for entry in time_entries %}
+        <li>{{ entry.date }} - {{ entry.staff }} - {{ entry.minutes }} minutes - Cost: {{ entry.cost }} - Revenue: {{ entry.revenue }}</li>
+    {% empty %}
+        <li>No time entries available.</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'create_time_entry' job_pricing.id %}">Add Time Entry</a>
+
+<h2>Material Entries</h2>
+<ul>
+    {% for entry in material_entries %}
+        <li>{{ entry.description }} - Quantity: {{ entry.quantity }} - Cost: {{ entry.cost }} - Revenue: {{ entry.revenue }}</li>
+    {% empty %}
+        <li>No material entries available.</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'create_material_entry' job_pricing.id %}">Add Material Entry</a>
+
+<h2>Adjustment Entries</h2>
+<ul>
+    {% for entry in adjustment_entries %}
+        <li>{{ entry.description }} - Cost: {{ entry.cost }} - Revenue: {{ entry.revenue }}</li>
+    {% empty %}
+        <li>No adjustment entries available.</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'create_adjustment_entry' job_pricing.id %}">Add Adjustment Entry</a>
+
+<h3>Total Cost: {{ total_cost }}</h3>
+<h3>Total Revenue: {{ total_revenue }}</h3>

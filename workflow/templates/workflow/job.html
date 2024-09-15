@@ -1,0 +1,26 @@
+<h1>{{ job.name }}</h1>
+
+<h2>Latest Estimate</h2>
+{% if latest_estimate %}
+    <p>Estimate created on {{ latest_estimate.created_at }}</p>
+    <a href="{% url 'job_pricing' latest_estimate.id %}">View/Edit Estimate</a>
+{% else %}
+    <p>No estimate available. <a href="{% url 'create_job_pricing' job.id 'estimate' %}">Add Estimate</a></p>
+{% endif %}
+
+<h2>Latest Quote</h2>
+{% if latest_quote %}
+    <p>Quote created on {{ latest_quote.created_at }}</p>
+    <a href="{% url 'job_pricing' latest_quote.id %}">View/Edit Quote</a>
+{% else %}
+    <p>No quote available. <a href="{% url 'create_job_pricing' job.id 'quote' %}">Add Quote</a></p>
+{% endif %}
+
+<h2>Other Pricings</h2>
+<ul>
+    {% for pricing in other_pricings %}
+        <li><a href="{% url 'job_pricing' pricing.id %}">{{ pricing.estimate_type }} from {{ pricing.created_at }}</a></li>
+    {% empty %}
+        <p>No other pricings available.</p>
+    {% endfor %}
+</ul>
