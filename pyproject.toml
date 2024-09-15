@@ -14,6 +14,7 @@ django-simple-history = "^3.7.0"
 pytz = "^2024.1"
 python-dotenv = "^1.0.1"
 xero-python = "^6.2.0"
+requests = "^2.32.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"

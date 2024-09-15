@@ -24,7 +24,7 @@ urlpatterns = [
         "api/xero/authenticate/", xero_view.xero_authenticate, name="xero_authenticate"
     ),
     path(
-        "api/xero/oauth/callback/",
+        "api/xero/oauth/callback",
         xero_view.xero_oauth_callback,
         name="xero_oauth_callback",
     ),
