@@ -20,6 +20,7 @@ XERO_SCOPES = [
     "openid",
     "profile",
     "email",
+    "accounting.contacts",
     "accounting.transactions",
     "accounting.reports.read",
 ]

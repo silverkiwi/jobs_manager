@@ -3,27 +3,26 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from workflow.views import (
-    job_detail_view,
-    job_views,
+    job_view,
     kanban_view,
     time_entry_views,
     material_entry_view,
     adjustment_entry_view,
-    xero_view,
+    xero_view, job_pricing_view,
 )
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/kanban/"), name="dashboard"),
     path(
         "api/fetch_status_values/",
-        job_views.fetch_job_status_values,
+        job_view.fetch_job_status_values,
         name="fetch_status_values",
     ),
     path(
         "api/xero/authenticate/", xero_view.xero_authenticate, name="xero_authenticate"
     ),
     path(
-        "api/xero/oauth/callback",
+        "api/xero/oauth/callback/",
         xero_view.xero_oauth_callback,
         name="xero_oauth_callback",
     ),
@@ -41,10 +40,10 @@ urlpatterns = [
         xero_view.refresh_xero_token,
         name="xero_refresh_token",
     ),
-    path("jobs/create/", job_views.JobCreateView.as_view(), name="create_job"),
-    path("jobs/", job_views.JobListView.as_view(), name="job_list"),
+    path("jobs/create/", job_view.JobCreateView.as_view(), name="create_job"),
+    path("jobs/", job_view.JobListView.as_view(), name="job_list"),
     path("jobs/<uuid:pk>/", job_view.JobView.as_view(), name="job"),
-    path("jobs/<uuid:pk>/edit/", job_views.JobUpdateView.as_view(), name="edit_job"),
+    path("jobs/<uuid:pk>/edit/", job_view.JobUpdateView.as_view(), name="edit_job"),
     path(
         "jobs/<uuid:pk>/update_status/",
         kanban_view.update_job_status,
