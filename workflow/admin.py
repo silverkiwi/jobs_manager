@@ -68,25 +68,27 @@ class JobAdmin(SimpleHistoryAdmin):
 
 @admin.register(JobPricing)
 class JobPricingAdmin(SimpleHistoryAdmin):
-    list_display = ('job', 'estimate_type', 'created_at', 'updated_at')
-    search_fields = ('job__name', 'estimate_type')
-    list_filter = ('estimate_type', 'created_at', 'updated_at')
+    list_display = ('job', 'pricing_stage', 'pricing_type', 'created_at', 'updated_at')
+    search_fields = ('job__name', 'pricing_stage')
+    list_filter = ('pricing_stage', 'pricing_type', 'created_at', 'updated_at')
 
 @admin.register(AdjustmentEntry)
 class AdjustmentEntryAdmin(admin.ModelAdmin):
     list_display = ('job_pricing', 'description', 'cost', 'revenue', 'id')
     search_fields = ('description',)
-    list_filter = ('job_pricing__estimate_type',)
+    list_filter = ('job_pricing__pricing_stage',)
+
 
 @admin.register(TimeEntry)
 class TimeEntryAdmin(admin.ModelAdmin):
     list_display = ('job_pricing', 'staff', 'date', 'hours', 'cost', 'revenue')
     search_fields = ('staff__first_name', 'staff__last_name', 'job_pricing__job__name')
-    list_filter = ('job_pricing__estimate_type', 'date')
+    list_filter = ('job_pricing__pricing_stage', 'date')
+
 
 @admin.register(MaterialEntry)
 class MaterialEntryAdmin(admin.ModelAdmin):
     list_display = ('job_pricing', 'description', 'quantity', 'unit_cost', 'cost', 'revenue')
     search_fields = ('description',)
-    list_filter = ('job_pricing__estimate_type',)
+    list_filter = ('job_pricing__pricing_stage',)
 

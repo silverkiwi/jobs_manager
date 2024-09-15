@@ -50,19 +50,18 @@ urlpatterns = [
         name="update_job_status",
     ),
 
-    # Job Pricing Create
     path(
-        "jobs/<uuid:job_id>/create_pricing/",
+        "jobs/<uuid:job_id>/create_pricing/<str:pricing_stage>/",
         job_pricing_view.JobPricingCreateView.as_view(),
         name="create_job_pricing"
     ),
 
-    # Job Pricing Update
     path(
         "job_pricing/<uuid:pk>/edit/",
         job_pricing_view.JobPricingUpdateView.as_view(),
         name="edit_job_pricing"
     ),
+
 
     # Entry URLs
     path(

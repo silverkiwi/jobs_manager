@@ -10,7 +10,7 @@
         <ul>
             {% for job in jobs %}
                 <li>
-                    <a href="{% url 'job_detail' job.id %}">
+                    <a href="{% url 'job' job.id %}">
                         {{ job.client_name }} - {{ job.status }} -
                         {% if job.job_number %}
                             {{ job.job_number }}

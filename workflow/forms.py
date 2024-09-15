@@ -28,25 +28,25 @@ class JobForm(forms.ModelForm):
 class JobPricingForm(forms.ModelForm):
     class Meta:
         model = JobPricing
-        fields = ["job", "estimate_type"]
+        exclude = ['job', 'pricing_stage']
 
 class MaterialEntryForm(forms.ModelForm):
     class Meta:
         model = MaterialEntry
-        fields = ["job_pricing", "description", "unit_cost", "unit_revenue", "quantity"]
+        exclude = ['job_pricing']
 
 class AdjustmentEntryForm(forms.ModelForm):
     class Meta:
         model = AdjustmentEntry
-        fields = ["job_pricing", "description", "cost", "revenue"]
+        exclude = ['job_pricing']
 
 class TimeEntryForm(forms.ModelForm):
     class Meta:
         model = TimeEntry
-        fields = ["job_pricing", "staff", "date", "minutes", "note", "is_billable"]
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}),
         }
+        exclude = ['job_pricing']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
