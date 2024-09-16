@@ -1,23 +1,26 @@
-# workflow/job_view.py
-
-from django.views.generic import DetailView, CreateView, ListView, UpdateView
-from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.urls import reverse_lazy
-from typing import List, Tuple, Type
+from django.views.generic import CreateView, UpdateView, ListView
 
-from workflow.enums import JobPricingStage
-from workflow.models import Job, JobPricing
+from workflow.enums import JobPricingStage, fetch_job_status_values
 from workflow.forms import JobForm
+from workflow.models import Job
 
-import logging
 
-logger = logging.getLogger(__name__)
-
-class JobView(DetailView):
+class CreateJobView(CreateView):
     model = Job
-    template_name = "workflow/job_detail.html"
-    context_object_name = "job"
+    form_class = JobForm
+    template_name = "workflow/create_job.html"  # Ensure this template exists
+
+    def get_success_url(self):
+        # Redirect to the job update page after creation
+        return reverse_lazy('update_job', kwargs={'pk': self.object.pk})
+
+
+class UpdateJobView(UpdateView):
+    model = Job
+    form_class = JobForm
+    template_name = "workflow/update_job.html"  # Updated to match your naming convention
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -27,22 +30,18 @@ class JobView(DetailView):
         latest_estimate = self.get_latest_pricing(job, JobPricingStage.ESTIMATE)
         latest_quote = self.get_latest_pricing(job, JobPricingStage.QUOTE)
 
-        # Logging
-        logger.debug(f"Latest estimate: {latest_estimate}")
-        logger.debug(f"Latest quote: {latest_quote}")
-        logger.debug(f"All pricings: {list(job.pricings.all())}")
-
-
         context["latest_estimate"] = latest_estimate
         context["latest_quote"] = latest_quote
 
-        # Add the option to view other pricings if needed
         context["other_pricings"] = job.pricings.exclude(
             id__in=[
-                pricing.id for pricing in [latest_estimate, latest_quote] if pricing is not None
+                pricing.id
+                for pricing in [latest_estimate, latest_quote]
+                if pricing is not None
             ]
         ).order_by('-created_at')
 
+        # Add job-specific details for display
         context.update({
             "client_name": job.client_name,
             "order_number": job.order_number,
@@ -54,41 +53,17 @@ class JobView(DetailView):
             "paid": job.paid,
         })
 
-
-
         return context
 
+    def get_latest_pricing(self, job, pricing_stage):
+        return job.pricings.filter(pricing_stage=pricing_stage).order_by('-created_at').first()
 
-    def get_latest_pricing(self, job, pricing_type):
-        return job.pricings.filter(pricing_stage=pricing_type).order_by('-created_at').first()
-
-
-class JobCreateView(CreateView):
-    model: Type[Job] = Job
-    form_class: Type[JobForm] = JobForm
-    template_name: str = "workflow/job_form.html"
-    success_url: str = reverse_lazy("job_list")
-
-    def form_valid(self, form: JobForm) -> JsonResponse:
-        form.instance._history_user = self.request.user  # Set user for history tracking
-        return super().form_valid(form)
+class ListJobView(ListView):
+    model = Job
+    template_name = "workflow/list_jobs.html"
+    context_object_name = 'jobs'
 
 
-class JobListView(ListView):
-    model: Type[Job] = Job
-    template_name: str = "workflow/job_list.html"
-    context_object_name: str = "jobs"
-
-
-class JobUpdateView(UpdateView):
-    model: Type[Job] = Job
-    form_class: Type[JobForm] = JobForm
-    template_name: str = "workflow/edit_job.html"
-
-    def get_success_url(self) -> str:
-        return reverse_lazy("job", kwargs={"pk": self.object.pk})
-
-
-def fetch_job_status_values(request) -> JsonResponse:
-    status_choices: List[Tuple[str, str]] = Job.JOB_STATUS_CHOICES
-    return JsonResponse({"status_choices": status_choices})
+def api_fetch_status_values(request):
+    status_values = fetch_job_status_values()
+    return JsonResponse(status_values)

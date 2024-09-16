@@ -1,14 +1,13 @@
-# time_entry_views.py
-
 import logging
 from typing import Type
 
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, TemplateView, UpdateView
+from django.views.generic import CreateView, UpdateView
 
 from workflow.forms import TimeEntryForm
-from workflow.models import JobPricing, Staff, TimeEntry
+from workflow.models import JobPricing, TimeEntry
 
 logger = logging.getLogger(__name__)
 
@@ -17,38 +16,53 @@ class CreateTimeEntryView(CreateView):
     model: Type[TimeEntry] = TimeEntry
     form_class: Type[TimeEntryForm] = TimeEntryForm
     template_name: str = "workflow/create_time_entry.html"
-    success_url: str = reverse_lazy("time_entry_success")
 
-    def form_valid(self, form: TimeEntryForm) -> JsonResponse:
-        time_entry: TimeEntry = form.save(commit=False)
-        staff: Staff = time_entry.staff
-        time_entry.wage_rate = staff.wage_rate
-        time_entry.charge_out_rate = staff.charge_out_rate
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add job_pricing to context
+        context['job_pricing'] = JobPricing.objects.get(pk=self.kwargs['job_pricing_id'])
+        return context
 
-        time_entry.save()
+    def form_valid(self, form):
+        # Retrieve the job_pricing from the URL kwargs
+        job_pricing = JobPricing.objects.get(pk=self.kwargs['job_pricing_id'])
+        # Set the job_pricing for the time entry
+        form.instance.job_pricing = job_pricing
 
-        # Update the last_updated field of the associated job
-        job = time_entry.job_pricing.job
+        # Set the wage_rate and charge_out_rate based on the selected staff from the form
+        staff = form.instance.staff
+        form.instance.wage_rate = staff.wage_rate
+        form.instance.charge_out_rate = staff.charge_out_rate
+
+        # Save the form (calls form.save())
+        response = super().form_valid(form)
+
+        # Update the last_updated field of the associated job after saving the TimeEntry
+        job = form.instance.job_pricing.job
         job.save(update_fields=["last_updated"])
 
-        return super().form_valid(form)
+        return response
 
-    def form_invalid(self, form: TimeEntryForm) -> JsonResponse:
-        logger.debug("Form errors: %s", form.errors)
-        return super().form_invalid(form)
-
-
-class TimeEntrySuccessView(TemplateView):
-    template_name: str = "workflow/time_entry_success.html"
+    def get_success_url(self):
+        # Redirect to the job pricing update page after successful time entry creation
+        return reverse_lazy('update_job_pricing', kwargs={'pk': self.object.job_pricing.id})
 
 
-class TimeEntryUpdateView(UpdateView):
+class UpdateTimeEntryView(UpdateView):
     model: Type[TimeEntry] = TimeEntry
     form_class: Type[TimeEntryForm] = TimeEntryForm
-    template_name: str = "workflow/edit_time_entry.html"
-    success_url: str = reverse_lazy("time_entry_success")
+    template_name: str = "workflow/update_time_entry.html"
 
     def form_valid(self, form: TimeEntryForm) -> JsonResponse:
-        time_entry: TimeEntry = form.save(commit=False)
-        time_entry.save()
-        return super().form_valid(form)
+        # Update the time entry instance
+        response = super().form_valid(form)
+
+        # Update the last_updated field of the associated job
+        job = self.object.job_pricing.job
+        job.save(update_fields=["last_updated"])
+
+        return response
+
+    def get_success_url(self):
+        # Redirect to the job pricing update page after successful time entry update
+        return reverse_lazy('update_job_pricing', kwargs={'pk': self.object.job_pricing.id})

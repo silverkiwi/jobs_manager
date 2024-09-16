@@ -16,7 +16,7 @@
 <h2>Latest Estimate</h2>
 {% if latest_estimate %}
     <p>{{ latest_estimate.get_pricing_stage_display }} ({{ latest_estimate.get_pricing_type_display }}) created on <span class="utc-time" data-utc="{{ latest_estimate.created_at|date:'c' }}">{{ latest_estimate.created_at }}</span></p>
-    <a href="{% url 'edit_job_pricing' latest_estimate.id %}">View/Edit Estimate</a>
+    <a href="{% url 'update_job_pricing' latest_estimate.id %}">View/Edit Estimate</a>
 {% else %}
     <p>No estimate available. <a href="{% url 'create_job_pricing' job.id 'estimate' %}">Add Estimate</a></p>
 {% endif %}
@@ -24,7 +24,7 @@
 <h2>Latest Quote</h2>
 {% if latest_quote %}
     <p>{{ latest_quote.get_pricing_stage_display }} ({{ latest_quote.get_pricing_type_display }}) created on <span class="utc-time" data-utc="{{ latest_quote.created_at|date:'c' }}">{{ latest_quote.created_at }}</span></p>
-    <a href="{% url 'edit_job_pricing' latest_quote.id %}">View/Edit Quote</a>
+    <a href="{% url 'update_job_pricing' latest_quote.id %}">View/Edit Quote</a>
 {% else %}
     <p>No quote available. <a href="{% url 'create_job_pricing' job.id 'quote' %}">Add Quote</a></p>
 {% endif %}

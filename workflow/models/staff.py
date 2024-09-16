@@ -74,3 +74,5 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     def get_display_name(self) -> str:
         return self.preferred_name or self.first_name
 
+    def is_staff_manager(self):
+        return self.groups.filter(name='StaffManager').exists() or self.is_superuser

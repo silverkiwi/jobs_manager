@@ -1,16 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Jobs</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block content %}
     <h1>Jobs</h1>
-    <a href="{% url 'create_job' %}">Create a new Job</a>
     {% if jobs %}
         <ul>
             {% for job in jobs %}
                 <li>
-                    <a href="{% url 'job' job.id %}">
+                    <a href="{% url 'update_job' job.id %}">
                         {{ job.client_name }} - {{ job.status }} -
                         {% if job.job_number %}
                             {{ job.job_number }}
@@ -24,5 +20,4 @@
     {% else %}
         <p>No jobs found.</p>
     {% endif %}
-</body>
-</html>
+{% endblock %}

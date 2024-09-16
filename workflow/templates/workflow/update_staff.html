@@ -1,14 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Create Job</title>
-</head>
-<body>
-    <h1>Create Job</h1>
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Edit {{ staff_member.get_display_name }}'s Profile</h1>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit">Save</button>
     </form>
-</body>
-</html>
+{% endblock %}

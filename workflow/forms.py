@@ -28,7 +28,12 @@ class JobForm(forms.ModelForm):
 class JobPricingForm(forms.ModelForm):
     class Meta:
         model = JobPricing
-        exclude = ['job', 'pricing_stage']
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['job'].disabled = True  # Make job read-only
+        self.fields['pricing_stage'].disabled = True  # Make pricing_stage read-only
 
 class MaterialEntryForm(forms.ModelForm):
     class Meta:
@@ -40,18 +45,27 @@ class AdjustmentEntryForm(forms.ModelForm):
         model = AdjustmentEntry
         exclude = ['job_pricing']
 
+
 class TimeEntryForm(forms.ModelForm):
     class Meta:
         model = TimeEntry
         widgets = {
-            "date": forms.DateInput(attrs={"type": "date"}),
+            "date": forms.DateInput(attrs={"type": "date"}),  # Keeps the date picker
         }
-        exclude = ['job_pricing']
+        exclude = ['job_pricing']  # Exclude job_pricing because it's set programmatically
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["job_pricing"].queryset = JobPricing.objects.all()
-        self.fields["staff"].queryset = Staff.objects.all()
+
+        # Drop-down for staff
+        self.fields['staff'].queryset = Staff.objects.all()
+
+        # Pre-populate wage_rate and charge_out_rate based on selected staff, but make them editable
+        if 'instance' in kwargs and kwargs['instance'] and kwargs['instance'].staff:
+            staff = kwargs['instance'].staff
+            self.fields['wage_rate'].initial = staff.wage_rate
+            self.fields['charge_out_rate'].initial = staff.charge_out_rate
+
 
 class StaffCreationForm(UserCreationForm):
     class Meta:

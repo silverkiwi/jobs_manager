@@ -1,5 +1,3 @@
-# workflow/views/adjustment_entry_views.py
-
 import logging
 from typing import Type
 
@@ -31,22 +29,27 @@ class CreateAdjustmentEntryView(CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('edit_job_pricing', kwargs={'pk': self.object.job_pricing.pk})
+        return reverse_lazy('update_job_pricing', kwargs={'pk': self.object.job_pricing.pk})
 
     def form_invalid(self, form: AdjustmentEntryForm) -> JsonResponse:
         logger.debug("Form errors: %s", form.errors)
         return super().form_invalid(form)
 
 
-class AdjustmentEntryUpdateView(UpdateView):
+class UpdateAdjustmentEntryView(UpdateView):
     model: Type[AdjustmentEntry] = AdjustmentEntry
     form_class: Type[AdjustmentEntryForm] = AdjustmentEntryForm
-    template_name: str = "workflow/edit_adjustment_entry.html"
+    template_name: str = "workflow/update_adjustment_entry.html"
 
     def form_valid(self, form: AdjustmentEntryForm) -> JsonResponse:
         adjustment_entry: AdjustmentEntry = form.save(commit=False)
         adjustment_entry.save()
+
+        # Update the last_updated field of the associated job
+        job = adjustment_entry.job_pricing.job
+        job.save(update_fields=["last_updated"])
+
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('edit_job_pricing', kwargs={'pk': self.object.job_pricing.pk})
+        return reverse_lazy('update_job_pricing', kwargs={'pk': self.object.job_pricing.pk})
