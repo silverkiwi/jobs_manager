@@ -15,14 +15,14 @@ class JobForm(forms.ModelForm):
     class Meta:
         model = Job
         fields = [
-            "client_name",
-            "order_number",
-            "contact_person",
-            "contact_phone",
-            "job_number",
-            "description",
-            "status",
-            "paid",
+            'job_name',
+            'client_name',
+            'order_number',
+            'contact_person',
+            'contact_phone',
+            'description',
+            'status',
+            'paid'
         ]
 
 class JobPricingForm(forms.ModelForm):

@@ -18,18 +18,12 @@
             </div>
         {% endif %}
 
-        <!-- Render each field individually for more control -->
-        <div class="form-group">
-            <label for="id_client_name">Client Name</label>
-            {{ form.client_name|add_class:"form-control" }}
-        </div>
-
-        <div class="form-group">
-            <label for="id_job_number">Job Number</label>
-            {{ form.job_number|add_class:"form-control" }}
-        </div>
-
-        <!-- Add more fields here as needed -->
+    {% for field in form %}
+    <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+    </div>
+    {% endfor %}
 
         <button type="submit" class="btn btn-primary">Save</button>
     </form>

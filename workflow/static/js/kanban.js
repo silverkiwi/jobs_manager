@@ -10,23 +10,36 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function fetchStatusValues() {
+    console.log('Fetching status values');
     fetch('/api/fetch_status_values/')
         .then(response => response.json())
-        .then(data => {
-            const statuses = data.status_choices;  // Use the fetched statuses
-            loadAllColumns(statuses);  // Pass the statuses to the function
+        .then(statuses => {
+            console.log('Received data:', statuses);
+            if (statuses && typeof statuses === 'object') {  // No need to check if it's an array
+                console.log('Status choices:', statuses);
+                loadAllColumns(statuses);  // Pass the dictionary directly
+            } else {
+                console.error('Unexpected data structure:', statuses);
+            }
         })
         .catch(error => console.error('Error fetching status values:', error));
 }
 
-// Function to fetch jobs and populate the columns
+
 function loadAllColumns(statuses) {
-    console.log('Loading all columns');
-    statuses.forEach(status => {
-        const status_key = status[0];  // Extract the status key (e.g., 'quoting')
-        fetchJobs(status_key);  // Use the key to fetch jobs and update the DOM
-    });
+    console.log('Loading all columns with statuses:', statuses);
+    if (!statuses || typeof statuses !== 'object') {
+        console.error('Invalid statuses data:', statuses);
+        return;
+    }
+    for (const status_key in statuses) {
+        if (statuses.hasOwnProperty(status_key)) {
+            console.log('Processing status:', status_key, 'with label:', statuses[status_key]);
+            fetchJobs(status_key);
+        }
+    }
 }
+
 
 function fetchJobs(status) {
     fetch(`/kanban/fetch_jobs/${status}/`)
@@ -71,8 +84,12 @@ function createJobCard(job) {
     let card = document.createElement('div');
     card.className = 'job-card';
     card.setAttribute('data-id', job.id);
+    card.setAttribute('data-job-name', job.job_name || '');
+    card.setAttribute('data-client-name', job.client_name || '');
+    card.setAttribute('data-job-description', job.description || '');
+    card.setAttribute('data-job-number', job.job_number);
     card.innerHTML = `
-        <h3><a href="/jobs/${job.id}/">${job.name}</a></h3>
+        <h3><a href="/jobs/${job.id}/">Job ${job.job_number}: ${job.job_name}</a></h3>
         <p>${job.description}</p>
     `;
     return card;
@@ -105,9 +122,18 @@ function updateJobStatus(jobId, newStatus) {
 function filterJobs() {
     const searchTerm = document.getElementById('search').value.toLowerCase();
     document.querySelectorAll('.job-card').forEach(card => {
-        const jobName = card.querySelector('h3').textContent.toLowerCase();
-        const jobDescription = card.querySelector('p').textContent.toLowerCase();
-        if (jobName.includes(searchTerm) || jobDescription.includes(searchTerm)) {
+        const jobName = card.dataset.jobName || '';
+        const jobDescription = card.dataset.jobDescription || '';
+        const clientName = card.dataset.clientName || '';
+        const jobNumber = card.dataset.jobNumber || '';
+
+        const combinedText = [jobName, jobDescription, clientName, jobNumber].join(' ').toLowerCase();
+
+        // Log the combined text
+        console.log('Combined Text:', combinedText);
+
+        // Check if the combined text contains the search term
+        if (combinedText.includes(searchTerm)) {
             card.style.display = '';
         } else {
             card.style.display = 'none';

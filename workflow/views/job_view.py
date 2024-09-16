@@ -1,11 +1,14 @@
+import logging
+
 from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, UpdateView, ListView
 
-from workflow.enums import JobPricingStage, fetch_job_status_values
+from workflow.enums import JobPricingStage
 from workflow.forms import JobForm
 from workflow.models import Job
 
+logger = logging.getLogger(__name__)
 
 class CreateJobView(CreateView):
     model = Job
@@ -47,6 +50,7 @@ class UpdateJobView(UpdateView):
             "order_number": job.order_number,
             "contact_person": job.contact_person,
             "contact_phone": job.contact_phone,
+            "job_name": job.job_name,
             "job_number": job.job_number,
             "description": job.description,
             "status": job.get_status_display(),
@@ -58,6 +62,10 @@ class UpdateJobView(UpdateView):
     def get_latest_pricing(self, job, pricing_stage):
         return job.pricings.filter(pricing_stage=pricing_stage).order_by('-created_at').first()
 
+    def get_success_url(self):
+        return '/'
+
+
 class ListJobView(ListView):
     model = Job
     template_name = "workflow/list_jobs.html"
@@ -65,5 +73,5 @@ class ListJobView(ListView):
 
 
 def api_fetch_status_values(request):
-    status_values = fetch_job_status_values()
+    status_values = dict(Job.JOB_STATUS_CHOICES)
     return JsonResponse(status_values)

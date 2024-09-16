@@ -12,6 +12,3 @@ class JobPricingStage(models.TextChoices):
     QUOTE = 'quote', 'Quote'
     REALITY = 'reality', 'Reality'
 
-def fetch_job_status_values():
-    # Assuming Job.STATUS_CHOICES is a list of tuples like [(status_value, display_name), ...]
-    return dict(Job.JOB_STATUS_CHOICES)

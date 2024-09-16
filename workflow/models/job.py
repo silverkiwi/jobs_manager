@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import Dict, List
 
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from simple_history.models import HistoricalRecords  # type: ignore
 
@@ -36,15 +36,14 @@ class Job(models.Model):
         "archived": "The job has been paid for and picked up.",
     }
 
+    job_name: str = models.CharField(max_length=100, null=False, blank=False)  # type: ignore
     client_name: str = models.CharField(max_length=100)  # type: ignore
     order_number: str = models.CharField(
         max_length=100, null=True, blank=True
     )  # type: ignore
     contact_person: str = models.CharField(max_length=100)  # type: ignore
     contact_phone: str = models.CharField(max_length=15)  # type: ignore
-    job_number: str = models.CharField(
-        max_length=100, null=True, blank=True
-    )  # type: ignore
+    job_number = models.IntegerField(unique=True, null=False, blank=False)
     description: str = models.TextField()  # type: ignore
     date_created: datetime.datetime = models.DateTimeField(
         default=timezone.now
@@ -67,8 +66,19 @@ class Job(models.Model):
     paid: bool = models.BooleanField(default=False)  # type: ignore
     history: HistoricalRecords = HistoricalRecords()
 
+    def save(self, *args, **kwargs):
+        if not self.job_number:
+            with transaction.atomic():
+                # Select the last job for update and increment the job number
+                last_job = Job.objects.select_for_update().order_by('id').last()
+                if last_job:
+                    self.job_number = last_job.job_number + 1
+                else:
+                    self.job_number = 1  # Start from 1 if no jobs exist
+        super(Job, self).save(*args, **kwargs)
+
     def __str__(self) -> str:
         return f"{self.client_name} - {self.job_number or self.order_number}"
 
     def get_display_name(self) -> str:
-        return self.name  # type: ignore
+        return f"Job:{self.job_number}" # type: ignore

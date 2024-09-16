@@ -1,39 +1,73 @@
-<h1>{{ job.name }}</h1>
+{% extends "base.html" %}
 
+{% block content %}
 
-<h2>Job Details</h2>
-<p><strong>Client Name:</strong> {{ client_name }}</p>
-<p><strong>Order Number:</strong> {{ order_number }}</p>
-<p><strong>Contact Person:</strong> {{ contact_person }}</p>
-<p><strong>Contact Phone:</strong> {{ contact_phone }}</p>
-<p><strong>Job Number:</strong> {{ job_number }}</p>
-<p><strong>Description:</strong> {{ description }}</p>
-<p><strong>Status:</strong> {{ status }}</p>
-<p><strong>Paid:</strong> {{ paid|yesno:"Yes,No" }}</p>
+    {% if messages %}
+    <div class="alert alert-success">
+        {% for message in messages %}
+            {{ message }}
+        {% endfor %}
+    </div>
+    {% endif %}
 
+    <div class="container">
+    <h1>{{ job.name }}</h1>
+    <p><strong>Job Number:</strong> {{ job_number }}</p>
 
+    <form method="post">
+        {% csrf_token %}
 
-<h2>Latest Estimate</h2>
-{% if latest_estimate %}
-    <p>{{ latest_estimate.get_pricing_stage_display }} ({{ latest_estimate.get_pricing_type_display }}) created on <span class="utc-time" data-utc="{{ latest_estimate.created_at|date:'c' }}">{{ latest_estimate.created_at }}</span></p>
-    <a href="{% url 'update_job_pricing' latest_estimate.id %}">View/Edit Estimate</a>
-{% else %}
-    <p>No estimate available. <a href="{% url 'create_job_pricing' job.id 'estimate' %}">Add Estimate</a></p>
-{% endif %}
+        <!-- Render any form errors -->
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                <ul>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
 
-<h2>Latest Quote</h2>
-{% if latest_quote %}
-    <p>{{ latest_quote.get_pricing_stage_display }} ({{ latest_quote.get_pricing_type_display }}) created on <span class="utc-time" data-utc="{{ latest_quote.created_at|date:'c' }}">{{ latest_quote.created_at }}</span></p>
-    <a href="{% url 'update_job_pricing' latest_quote.id %}">View/Edit Quote</a>
-{% else %}
-    <p>No quote available. <a href="{% url 'create_job_pricing' job.id 'quote' %}">Add Quote</a></p>
-{% endif %}
+        <!-- Loop through all form fields -->
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+        </div>
+        {% endfor %}
 
-<h2>Superseded quotes/estimates</h2>
-<ul>
-{% for pricing in other_pricings %}
-    <li>{{ pricing.get_pricing_stage_display }} ({{ pricing.get_pricing_type_display }}) from <span class="utc-time" data-utc="{{ pricing.created_at|date:'c' }}">{{ pricing.created_at }}</span></li>
-    {% empty %}
-        <p>No superseded pricings available.</p>
-    {% endfor %}
-</ul>
+        <!-- Save Button for Editing -->
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+
+    <!-- Display children records -->
+    <h2>Financial Details</h2>
+
+    <h2>Latest Estimate</h2>
+    {% if latest_estimate %}
+        <p>{{ latest_estimate.get_pricing_stage_display }} ({{ latest_estimate.get_pricing_type_display }}) created on <span class="utc-time" data-utc="{{ latest_estimate.created_at|date:'c' }}">{{ latest_estimate.created_at }}</span></p>
+        <a href="{% url 'update_job_pricing' latest_estimate.id %}">View/Edit Estimate</a>
+    {% else %}
+        <p>No estimate available. <a href="{% url 'create_job_pricing' job.id 'estimate' %}">Add Estimate</a></p>
+    {% endif %}
+
+    <h2>Latest Quote</h2>
+    {% if latest_quote %}
+        <p>{{ latest_quote.get_pricing_stage_display }} ({{ latest_quote.get_pricing_type_display }}) created on <span class="utc-time" data-utc="{{ latest_quote.created_at|date:'c' }}">{{ latest_quote.created_at }}</span></p>
+        <a href="{% url 'update_job_pricing' latest_quote.id %}">View/Edit Quote</a>
+    {% else %}
+        <p>No quote available. <a href="{% url 'create_job_pricing' job.id 'quote' %}">Add Quote</a></p>
+    {% endif %}
+
+    <h2>Superseded Quotes/Estimates</h2>
+    <ul>
+        {% for pricing in other_pricings %}
+            <li>{{ pricing.get_pricing_stage_display }} ({{ pricing.get_pricing_type_display }}) from <span class="utc-time" data-utc="{{ pricing.created_at|date:'c' }}">{{ pricing.created_at }}</span></li>
+        {% empty %}
+            <p>No superseded pricings available.</p>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
