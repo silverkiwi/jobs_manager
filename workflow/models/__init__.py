@@ -4,15 +4,15 @@ from .adjustment_entry import AdjustmentEntry
 from .job import Job
 from .job_pricing import JobPricing
 from .material_entry import MaterialEntry
-from .staff import StaffManager, Staff
+from .staff import Staff, StaffManager
 from .time_entry import TimeEntry
 
 __all__ = [
-    'AdjustmentEntry',
-    'Job',
-    'JobPricing',
-    'MaterialEntry',
-    'StaffManager',
-    'Staff',
-    'TimeEntry',
+    "AdjustmentEntry",
+    "Job",
+    "JobPricing",
+    "MaterialEntry",
+    "StaffManager",
+    "Staff",
+    "TimeEntry",
 ]

@@ -2,7 +2,6 @@ import logging
 from typing import Type
 
 from django.http import JsonResponse
-from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, UpdateView
 
@@ -20,12 +19,14 @@ class CreateTimeEntryView(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Add job_pricing to context
-        context['job_pricing'] = JobPricing.objects.get(pk=self.kwargs['job_pricing_id'])
+        context["job_pricing"] = JobPricing.objects.get(
+            pk=self.kwargs["job_pricing_id"]
+        )
         return context
 
     def form_valid(self, form):
         # Retrieve the job_pricing from the URL kwargs
-        job_pricing = JobPricing.objects.get(pk=self.kwargs['job_pricing_id'])
+        job_pricing = JobPricing.objects.get(pk=self.kwargs["job_pricing_id"])
         # Set the job_pricing for the time entry
         form.instance.job_pricing = job_pricing
 
@@ -45,7 +46,9 @@ class CreateTimeEntryView(CreateView):
 
     def get_success_url(self):
         # Redirect to the job pricing update page after successful time entry creation
-        return reverse_lazy('update_job_pricing', kwargs={'pk': self.object.job_pricing.id})
+        return reverse_lazy(
+            "update_job_pricing", kwargs={"pk": self.object.job_pricing.id}
+        )
 
 
 class UpdateTimeEntryView(UpdateView):
@@ -65,4 +68,6 @@ class UpdateTimeEntryView(UpdateView):
 
     def get_success_url(self):
         # Redirect to the job pricing update page after successful time entry update
-        return reverse_lazy('update_job_pricing', kwargs={'pk': self.object.job_pricing.id})
+        return reverse_lazy(
+            "update_job_pricing", kwargs={"pk": self.object.job_pricing.id}
+        )

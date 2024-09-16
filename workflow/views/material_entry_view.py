@@ -21,7 +21,9 @@ class CreateMaterialEntryView(CreateView):
 
     def form_valid(self, form: MaterialEntryForm) -> JsonResponse:
         material_entry: MaterialEntry = form.save(commit=False)
-        material_entry.job_pricing = get_object_or_404(JobPricing, pk=self.kwargs['job_pricing_id'])
+        material_entry.job_pricing = get_object_or_404(
+            JobPricing, pk=self.kwargs["job_pricing_id"]
+        )
         material_entry.save()
 
         # Update the last_updated field of the associated job
@@ -31,7 +33,9 @@ class CreateMaterialEntryView(CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('edit_job_pricing', kwargs={'pk': self.object.job_pricing.pk})
+        return reverse_lazy(
+            "edit_job_pricing", kwargs={"pk": self.object.job_pricing.pk}
+        )
 
     def form_invalid(self, form: MaterialEntryForm) -> JsonResponse:
         logger.debug("Form errors: %s", form.errors)
@@ -49,4 +53,6 @@ class MaterialEntryUpdateView(UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('edit_job_pricing', kwargs={'pk': self.object.job_pricing.pk})
+        return reverse_lazy(
+            "edit_job_pricing", kwargs={"pk": self.object.job_pricing.pk}
+        )

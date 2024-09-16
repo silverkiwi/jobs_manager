@@ -70,7 +70,7 @@ class Job(models.Model):
         if not self.job_number:
             with transaction.atomic():
                 # Select the last job for update and increment the job number
-                last_job = Job.objects.select_for_update().order_by('id').last()
+                last_job = Job.objects.select_for_update().order_by("id").last()
                 if last_job:
                     self.job_number = last_job.job_number + 1
                 else:
@@ -81,4 +81,4 @@ class Job(models.Model):
         return f"{self.client_name} - {self.job_number or self.order_number}"
 
     def get_display_name(self) -> str:
-        return f"Job:{self.job_number}" # type: ignore
+        return f"Job:{self.job_number}"  # type: ignore

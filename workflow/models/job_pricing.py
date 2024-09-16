@@ -2,13 +2,14 @@
 import uuid
 
 from django.db import models
+
+from workflow.enums import JobPricingStage, JobPricingType
 from workflow.models import Job
-from workflow.enums import JobPricingType, JobPricingStage
 
 
 class JobPricing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='pricings')
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="pricings")
     pricing_stage = models.CharField(
         max_length=20,
         choices=JobPricingStage.choices,
@@ -28,14 +29,22 @@ class JobPricing(models.Model):
     def total_cost(self):
         total_time_cost = sum(entry.cost for entry in self.time_entries.all())
         total_material_cost = sum(entry.cost for entry in self.material_entries.all())
-        total_adjustment_cost = sum(entry.cost for entry in self.adjustment_entries.all())
+        total_adjustment_cost = sum(
+            entry.cost for entry in self.adjustment_entries.all()
+        )
         return total_time_cost + total_material_cost + total_adjustment_cost
 
     @property
     def total_revenue(self):
-        total_time_revenue = sum(entry.revenue or 0 for entry in self.time_entries.all())
-        total_material_revenue = sum(entry.revenue or 0 for entry in self.material_entries.all())
-        total_adjustment_revenue = sum(entry.revenue or 0 for entry in self.adjustment_entries.all())
+        total_time_revenue = sum(
+            entry.revenue or 0 for entry in self.time_entries.all()
+        )
+        total_material_revenue = sum(
+            entry.revenue or 0 for entry in self.material_entries.all()
+        )
+        total_adjustment_revenue = sum(
+            entry.revenue or 0 for entry in self.adjustment_entries.all()
+        )
         return total_time_revenue + total_material_revenue + total_adjustment_revenue
 
     def __str__(self):

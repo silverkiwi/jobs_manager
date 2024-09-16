@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, UpdateView
 
 from workflow.forms import AdjustmentEntryForm
-from workflow.models import JobPricing, AdjustmentEntry
+from workflow.models import AdjustmentEntry, JobPricing
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,9 @@ class CreateAdjustmentEntryView(CreateView):
 
     def form_valid(self, form: AdjustmentEntryForm) -> JsonResponse:
         adjustment_entry: AdjustmentEntry = form.save(commit=False)
-        adjustment_entry.job_pricing = get_object_or_404(JobPricing, pk=self.kwargs['job_pricing_id'])
+        adjustment_entry.job_pricing = get_object_or_404(
+            JobPricing, pk=self.kwargs["job_pricing_id"]
+        )
         adjustment_entry.save()
 
         # Update the last_updated field of the associated job
@@ -29,7 +31,9 @@ class CreateAdjustmentEntryView(CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('update_job_pricing', kwargs={'pk': self.object.job_pricing.pk})
+        return reverse_lazy(
+            "update_job_pricing", kwargs={"pk": self.object.job_pricing.pk}
+        )
 
     def form_invalid(self, form: AdjustmentEntryForm) -> JsonResponse:
         logger.debug("Form errors: %s", form.errors)
@@ -52,4 +56,6 @@ class UpdateAdjustmentEntryView(UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('update_job_pricing', kwargs={'pk': self.object.job_pricing.pk})
+        return reverse_lazy(
+            "update_job_pricing", kwargs={"pk": self.object.job_pricing.pk}
+        )

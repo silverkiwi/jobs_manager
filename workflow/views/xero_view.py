@@ -150,7 +150,9 @@ def get_xero_contacts(request: HttpRequest) -> HttpResponse:
 
     # Fetch contacts using the tenant ID
     contacts: Any = accounting_api.get_contacts(xero_tenant_id)
-    return render(request, "workflow/xero_contacts.html", {"contacts": contacts.contacts})
+    return render(
+        request, "workflow/xero_contacts.html", {"contacts": contacts.contacts}
+    )
 
 
 # Refresh Xero OAuth Token (when token expires)
@@ -168,3 +170,4 @@ def refresh_xero_token(request: HttpRequest) -> HttpResponse:
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
         return redirect("xero_auth_error")
+

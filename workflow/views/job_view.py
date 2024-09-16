@@ -2,13 +2,14 @@ import logging
 
 from django.http import JsonResponse
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, UpdateView, ListView
+from django.views.generic import CreateView, ListView, UpdateView
 
 from workflow.enums import JobPricingStage
 from workflow.forms import JobForm
 from workflow.models import Job
 
 logger = logging.getLogger(__name__)
+
 
 class CreateJobView(CreateView):
     model = Job
@@ -17,13 +18,15 @@ class CreateJobView(CreateView):
 
     def get_success_url(self):
         # Redirect to the job update page after creation
-        return reverse_lazy('update_job', kwargs={'pk': self.object.pk})
+        return reverse_lazy("update_job", kwargs={"pk": self.object.pk})
 
 
 class UpdateJobView(UpdateView):
     model = Job
     form_class = JobForm
-    template_name = "workflow/update_job.html"  # Updated to match your naming convention
+    template_name = (
+        "workflow/update_job.html"  # Updated to match your naming convention
+    )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -42,34 +45,40 @@ class UpdateJobView(UpdateView):
                 for pricing in [latest_estimate, latest_quote]
                 if pricing is not None
             ]
-        ).order_by('-created_at')
+        ).order_by("-created_at")
 
         # Add job-specific details for display
-        context.update({
-            "client_name": job.client_name,
-            "order_number": job.order_number,
-            "contact_person": job.contact_person,
-            "contact_phone": job.contact_phone,
-            "job_name": job.job_name,
-            "job_number": job.job_number,
-            "description": job.description,
-            "status": job.get_status_display(),
-            "paid": job.paid,
-        })
+        context.update(
+            {
+                "client_name": job.client_name,
+                "order_number": job.order_number,
+                "contact_person": job.contact_person,
+                "contact_phone": job.contact_phone,
+                "job_name": job.job_name,
+                "job_number": job.job_number,
+                "description": job.description,
+                "status": job.get_status_display(),
+                "paid": job.paid,
+            }
+        )
 
         return context
 
     def get_latest_pricing(self, job, pricing_stage):
-        return job.pricings.filter(pricing_stage=pricing_stage).order_by('-created_at').first()
+        return (
+            job.pricings.filter(pricing_stage=pricing_stage)
+            .order_by("-created_at")
+            .first()
+        )
 
     def get_success_url(self):
-        return '/'
+        return "/"
 
 
 class ListJobView(ListView):
     model = Job
     template_name = "workflow/list_jobs.html"
-    context_object_name = 'jobs'
+    context_object_name = "jobs"
 
 
 def api_fetch_status_values(request):

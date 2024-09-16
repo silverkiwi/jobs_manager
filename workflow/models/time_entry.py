@@ -2,15 +2,16 @@
 
 import uuid
 from decimal import Decimal
+
 from django.db import models
+
 from workflow.models import Staff  # Import the necessary models
 
+
 class TimeEntry(models.Model):
-    id = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False
-    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job_pricing = models.ForeignKey(
-        'JobPricing',
+        "JobPricing",
         on_delete=models.CASCADE,
         related_name="time_entries",
         null=True,
@@ -20,17 +21,11 @@ class TimeEntry(models.Model):
         Staff, on_delete=models.CASCADE, related_name="time_entries"
     )
     date = models.DateField()
-    minutes = models.DecimalField(
-        max_digits=5, decimal_places=2
-    )  # Duration in minutes
+    minutes = models.DecimalField(max_digits=5, decimal_places=2)  # Duration in minutes
     note = models.TextField(blank=True, null=True)
     is_billable = models.BooleanField(default=True)
-    wage_rate = models.DecimalField(
-        max_digits=10, decimal_places=2
-    )
-    charge_out_rate = models.DecimalField(
-        max_digits=10, decimal_places=2
-    )
+    wage_rate = models.DecimalField(max_digits=10, decimal_places=2)
+    charge_out_rate = models.DecimalField(max_digits=10, decimal_places=2)
 
     @property
     def cost(self) -> Decimal:

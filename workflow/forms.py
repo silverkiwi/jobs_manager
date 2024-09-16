@@ -1,7 +1,8 @@
 # workflow/forms.py
 
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+
 from workflow.models import (
     AdjustmentEntry,
     Job,
@@ -11,39 +12,43 @@ from workflow.models import (
     TimeEntry,
 )
 
+
 class JobForm(forms.ModelForm):
     class Meta:
         model = Job
         fields = [
-            'job_name',
-            'client_name',
-            'order_number',
-            'contact_person',
-            'contact_phone',
-            'description',
-            'status',
-            'paid'
+            "job_name",
+            "client_name",
+            "order_number",
+            "contact_person",
+            "contact_phone",
+            "description",
+            "status",
+            "paid",
         ]
+
 
 class JobPricingForm(forms.ModelForm):
     class Meta:
         model = JobPricing
-        fields = '__all__'
+        fields = "__all__"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['job'].disabled = True  # Make job read-only
-        self.fields['pricing_stage'].disabled = True  # Make pricing_stage read-only
+        self.fields["job"].disabled = True  # Make job read-only
+        self.fields["pricing_stage"].disabled = True  # Make pricing_stage read-only
+
 
 class MaterialEntryForm(forms.ModelForm):
     class Meta:
         model = MaterialEntry
-        exclude = ['job_pricing']
+        exclude = ["job_pricing"]
+
 
 class AdjustmentEntryForm(forms.ModelForm):
     class Meta:
         model = AdjustmentEntry
-        exclude = ['job_pricing']
+        exclude = ["job_pricing"]
 
 
 class TimeEntryForm(forms.ModelForm):
@@ -52,19 +57,21 @@ class TimeEntryForm(forms.ModelForm):
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}),  # Keeps the date picker
         }
-        exclude = ['job_pricing']  # Exclude job_pricing because it's set programmatically
+        exclude = [
+            "job_pricing"
+        ]  # Exclude job_pricing because it's set programmatically
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Drop-down for staff
-        self.fields['staff'].queryset = Staff.objects.all()
+        self.fields["staff"].queryset = Staff.objects.all()
 
-        # Pre-populate wage_rate and charge_out_rate based on selected staff, but make them editable
-        if 'instance' in kwargs and kwargs['instance'] and kwargs['instance'].staff:
-            staff = kwargs['instance'].staff
-            self.fields['wage_rate'].initial = staff.wage_rate
-            self.fields['charge_out_rate'].initial = staff.charge_out_rate
+        # Pre-populate wage_rate and charge_out_rate based on selected staff
+        if "instance" in kwargs and kwargs["instance"] and kwargs["instance"].staff:
+            staff = kwargs["instance"].staff
+            self.fields["wage_rate"].initial = staff.wage_rate
+            self.fields["charge_out_rate"].initial = staff.charge_out_rate
 
 
 class StaffCreationForm(UserCreationForm):
@@ -81,6 +88,7 @@ class StaffCreationForm(UserCreationForm):
             "is_staff",
             "is_active",
         )
+
 
 class StaffChangeForm(UserChangeForm):
     class Meta:

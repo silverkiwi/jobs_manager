@@ -1,14 +1,14 @@
 from __future__ import annotations
+
 import uuid
 from datetime import datetime
-from typing import ClassVar, List, Optional, Any, cast
+from typing import Any, ClassVar, List, Optional, cast
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 from django.utils import timezone
 from simple_history.models import HistoricalRecords  # type: ignore
-
 
 
 class StaffManager(BaseUserManager):
@@ -75,4 +75,4 @@ class Staff(AbstractBaseUser, PermissionsMixin):
         return self.preferred_name or self.first_name
 
     def is_staff_manager(self):
-        return self.groups.filter(name='StaffManager').exists() or self.is_superuser
+        return self.groups.filter(name="StaffManager").exists() or self.is_superuser

@@ -2,29 +2,23 @@
 
 import uuid
 from decimal import Decimal
+
 from django.db import models
+
 
 class MaterialEntry(models.Model):
     """Materials, e.g., sheets"""
 
-    id = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False
-    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job_pricing = models.ForeignKey(
-        'JobPricing',
+        "JobPricing",
         on_delete=models.CASCADE,
         related_name="material_entries",
     )
     description = models.CharField(max_length=200)
-    unit_cost = models.DecimalField(
-        max_digits=10, decimal_places=2
-    )
-    unit_revenue = models.DecimalField(
-        max_digits=10, decimal_places=2
-    )
-    quantity = models.DecimalField(
-        max_digits=10, decimal_places=2
-    )
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    unit_revenue = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
 
     @property
     def cost(self) -> Decimal:

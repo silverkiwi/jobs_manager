@@ -56,7 +56,7 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
             "client_name": job.client_name,  # Add client name
             "contact_person": job.contact_person,  # Add contact person
             "status": job.get_status_display(),  # Human-readable status
-            "paid": job.paid  # Paid status
+            "paid": job.paid,  # Paid status
         }
         for job in jobs
     ]

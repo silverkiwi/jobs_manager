@@ -1,14 +1,12 @@
 from django.db import models
 
-from workflow.models import Job
-
 
 class JobPricingType(models.TextChoices):
-    FIXED_PRICE = 'fixed_price', 'Fixed Price'
-    TIME_AND_MATERIALS = 'time_materials', 'Time & Materials'
+    FIXED_PRICE = "fixed_price", "Fixed Price"
+    TIME_AND_MATERIALS = "time_materials", "Time & Materials"
+
 
 class JobPricingStage(models.TextChoices):
-    ESTIMATE = 'estimate', 'Estimate'
-    QUOTE = 'quote', 'Quote'
-    REALITY = 'reality', 'Reality'
-
+    ESTIMATE = "estimate", "Estimate"
+    QUOTE = "quote", "Quote"
+    REALITY = "reality", "Reality"
