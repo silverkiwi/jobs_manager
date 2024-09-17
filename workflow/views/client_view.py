@@ -1,28 +1,25 @@
-import django_filters
-from django.shortcuts import render, get_object_or_404
+import logging
+
+from django import forms
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView
-from django_filters.views import FilterView
+from django_tables2 import SingleTableView
+
+from workflow.forms import ClientForm
 from workflow.models import Client
+from workflow.tables import ClientTable
 
-class ClientFilter(django_filters.FilterSet):
-    class Meta:
-        model = Client
-        fields = {
-            'name': ['icontains'],  # Search by name (case-insensitive)
-            'email': ['icontains'],  # Search by email (case-insensitive)
-            'is_account_customer': ['exact'],  # Filter by whether they are account customers
-        }
+logger = logging.getLogger(__name__)
 
-class ClientListView(FilterView):
+class ClientListView(SingleTableView):
     model = Client
+    table_class = ClientTable
     template_name = "workflow/list_clients.html"
-    filterset_class = ClientFilter
-    context_object_name = 'clients'
-    paginate_by = 20  # To handle large datasets, use pagination
+
 
 class ClientUpdateView(UpdateView):
     model = Client
-    template_name = "workflow/update_client.html"
-    fields = ['name', 'email', 'phone']  # Adjust fields as needed
-    success_url = reverse_lazy('list_clients')  # Redirect after successful edit
+    form_class = ClientForm
+    template_name = 'workflow/update_client.html'
+    success_url = reverse_lazy('list_clients')
+

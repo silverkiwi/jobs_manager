@@ -111,12 +111,12 @@ class StaffChangeForm(UserChangeForm):
 class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
-        fields = ['xero_contact_id', 'name', 'email', 'phone', 'address', 'is_account_customer']
+        fields = ['name', 'email', 'phone', 'address', 'is_account_customer', 'raw_json']
         widgets = {
-            'xero_contact_id': forms.TextInput(attrs={'readonly': 'readonly'}),
+            'raw_json': forms.Textarea(attrs={'rows': 10}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Optionally hide 'id' from being shown in the form
-        self.fields['id'].widget = forms.HiddenInput()
+        self.fields['raw_json'].widget.attrs['readonly'] = True
+        self.fields['raw_json'].help_text = "This field is read-only and displays the raw JSON data."

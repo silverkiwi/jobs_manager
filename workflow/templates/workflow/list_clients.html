@@ -1,57 +1,49 @@
 {% extends "base.html" %}
+{% load django_tables2 %}
+{% load static %}
 
 {% block content %}
-  <h2>Client List</h2>
+<h2>Client List</h2>
 
-  <!-- Filter Form -->
-  <form method="get">
-    {{ filter.form.as_p }}
-    <button type="submit">Filter</button>
-  </form>
+<div class="mb-3">
+    <input type="text" id="search" class="form-control" placeholder="Search clients...">
+</div>
 
-  <!-- Client List -->
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Account Customer</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for client in clients %}
-        <tr>
-          <td>{{ client.name }}</td>
-          <td>{{ client.email }}</td>
-          <td>{{ client.is_account_customer }}</td>
-          <td><a href="{% url 'update_client' client.pk %}">Edit</a></td>
-        </tr>
-      {% empty %}
-        <tr>
-          <td colspan="4">No clients found.</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div id="client-table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Account Customer</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in table.data %}
+            <tr class="client-row"
+                data-name="{{ client.name }}"
+                data-email="{{ client.email }}"
+                data-phone="{{ client.phone }}"
+                data-address="{{ client.address }}"
+                data-account-customer="{{ client.is_account_customer }}">
+                <td>{{ client.name }}</td>
+                <td>{{ client.email }}</td>
+                <td>{{ client.phone }}</td>
+                <td>{{ client.address }}</td>
+                <td>{{ client.is_account_customer|yesno:"Yes,No" }}</td>
+                <td>
+                    <a href="{% url 'update_client' client.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
 
-  <!-- Pagination -->
-  <div>
-    <span>Page {{ clients.paginator.num_pages }} of {{ clients.paginator.num_pages }}</span>
-    <div class="pagination">
-      <span class="step-links">
-        {% if clients.has_previous %}
-          <a href="?page=1">&laquo; first</a>
-          <a href="?page={{ clients.previous_page_number }}">previous</a>
-        {% endif %}
-        <span class="current">
-          Page {{ clients.number }} of {{ clients.paginator.num_pages }}.
-        </span>
-        {% if clients.has_next %}
-          <a href="?page={{ clients.next_page_number }}">next</a>
-          <a href="?page={{ clients.paginator.num_pages }}">last &raquo;</a>
-        {% endif %}
-      </span>
-    </div>
-  </div>
+{% block extra_js %}
+<script src="{% static 'js/filter_clients.js' %}"></script>
 {% endblock %}
