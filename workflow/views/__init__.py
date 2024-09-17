@@ -3,26 +3,30 @@
 from .adjustment_entry_view import CreateAdjustmentEntryView, UpdateAdjustmentEntryView
 from .dashboard_view import DashboardView
 from .job_pricing_view import CreateJobPricingView, UpdateJobPricingView
-from .job_view import CreateJobView, ListJobView, UpdateJobView
+from .job_view import CreateJobView, UpdateJobView, ListJobView
 from .material_entry_view import CreateMaterialEntryView, MaterialEntryUpdateView
 from .profile_view import ProfileView
+from .staff_view import StaffListView, StaffCreateView, StaffUpdateView
 from .time_entry_views import CreateTimeEntryView, UpdateTimeEntryView
-from .trivial_views import AboutView, IndexView
+from .trivial_views import IndexView, AboutView
 
 __all__ = [
-    "CreateAdjustmentEntryView",
-    "UpdateAdjustmentEntryView",
-    "DashboardView",
-    "CreateJobPricingView",
-    "UpdateJobPricingView",
-    "CreateJobView",
-    "UpdateJobView",
-    "ListJobView",
-    "CreateMaterialEntryView",
-    "MaterialEntryUpdateView",
-    "ProfileView",
-    "CreateTimeEntryView",
-    "UpdateTimeEntryView",
-    "IndexView",
-    "AboutView",
+    'CreateAdjustmentEntryView',
+    'UpdateAdjustmentEntryView',
+    'DashboardView',
+    'CreateJobPricingView',
+    'UpdateJobPricingView',
+    'CreateJobView',
+    'UpdateJobView',
+    'ListJobView',
+    'CreateMaterialEntryView',
+    'MaterialEntryUpdateView',
+    'ProfileView',
+    'StaffListView',
+    'StaffCreateView',
+    'StaffUpdateView',
+    'CreateTimeEntryView',
+    'UpdateTimeEntryView',
+    'IndexView',
+    'AboutView',
 ]

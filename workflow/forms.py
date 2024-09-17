@@ -9,7 +9,7 @@ from workflow.models import (
     JobPricing,
     MaterialEntry,
     Staff,
-    TimeEntry,
+    TimeEntry, Client,
 )
 
 
@@ -107,3 +107,16 @@ class StaffChangeForm(UserChangeForm):
             "groups",
             "user_permissions",
         )
+
+class ClientForm(forms.ModelForm):
+    class Meta:
+        model = Client
+        fields = ['xero_contact_id', 'name', 'email', 'phone', 'address', 'is_account_customer']
+        widgets = {
+            'xero_contact_id': forms.TextInput(attrs={'readonly': 'readonly'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Optionally hide 'id' from being shown in the form
+        self.fields['id'].widget = forms.HiddenInput()

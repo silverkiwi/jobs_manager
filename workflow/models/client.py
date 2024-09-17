@@ -10,6 +10,7 @@ class Client(models.Model):
     phone = models.CharField(max_length=50, null=True, blank=True)
     address = models.TextField(null=True, blank=True)
     is_account_customer = models.BooleanField(default=False)  # Account vs cash customer flag
+    last_modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name

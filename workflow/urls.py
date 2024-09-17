@@ -10,12 +10,12 @@ from workflow.views import (
     material_entry_view,
     staff_view,
     time_entry_views,
-    xero_view,
+    xero_view, client_view,
 )
 
 urlpatterns = [
     # Redirect to Kanban board
-    path("", RedirectView.as_view(url="/kanban/"), name="view_kanban"),
+    path("", RedirectView.as_view(url="/kanban/"), name="home"),
     # API URLs
     path(
         "api/fetch_status_values/",
@@ -34,14 +34,15 @@ urlpatterns = [
     ),
     path(
         "api/xero/success/",
-        xero_view.xero_connection_success,
+        xero_view.success_xero_connection,
         name="success_xero_connection",
     ),
     path(
-        "api/xero/error/",
-        xero_view.xero_auth_error,
-        name="error_xero_auth",
+        "api/xero/refresh/",
+        xero_view.refresh_xero_data,
+        name="refresh_xero_data",
     ),
+
     path(
         "api/xero/contacts/",
         xero_view.get_xero_contacts,
@@ -52,6 +53,10 @@ urlpatterns = [
         xero_view.refresh_xero_token,
         name="refresh_token_xero",
     ),
+    # Other URL patterns
+    path('clients/', client_view.ClientListView.as_view(), name='list_clients'),
+    path('client/<uuid:pk>/', client_view.ClientUpdateView.as_view(), name='update_client'),
+
     # Job URLs
     path("jobs/create/", job_view.CreateJobView.as_view(), name="create_job"),
     path("jobs/", job_view.ListJobView.as_view(), name="list_jobs"),

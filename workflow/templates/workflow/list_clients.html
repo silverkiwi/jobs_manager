@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Client List</h2>
+
+  <!-- Filter Form -->
+  <form method="get">
+    {{ filter.form.as_p }}
+    <button type="submit">Filter</button>
+  </form>
+
+  <!-- Client List -->
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Account Customer</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for client in clients %}
+        <tr>
+          <td>{{ client.name }}</td>
+          <td>{{ client.email }}</td>
+          <td>{{ client.is_account_customer }}</td>
+          <td><a href="{% url 'update_client' client.pk %}">Edit</a></td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4">No clients found.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <div>
+    <span>Page {{ clients.paginator.num_pages }} of {{ clients.paginator.num_pages }}</span>
+    <div class="pagination">
+      <span class="step-links">
+        {% if clients.has_previous %}
+          <a href="?page=1">&laquo; first</a>
+          <a href="?page={{ clients.previous_page_number }}">previous</a>
+        {% endif %}
+        <span class="current">
+          Page {{ clients.number }} of {{ clients.paginator.num_pages }}.
+        </span>
+        {% if clients.has_next %}
+          <a href="?page={{ clients.next_page_number }}">next</a>
+          <a href="?page={{ clients.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+      </span>
+    </div>
+  </div>
+{% endblock %}

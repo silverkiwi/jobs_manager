@@ -10,13 +10,13 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function fetchStatusValues() {
-    console.log('Fetching status values');
+    // console.log('Fetching status values');
     fetch('/api/fetch_status_values/')
         .then(response => response.json())
         .then(statuses => {
-            console.log('Received data:', statuses);
+            // console.log('Received data:', statuses);
             if (statuses && typeof statuses === 'object') {  // No need to check if it's an array
-                console.log('Status choices:', statuses);
+                // console.log('Status choices:', statuses);
                 loadAllColumns(statuses);  // Pass the dictionary directly
             } else {
                 console.error('Unexpected data structure:', statuses);
@@ -27,14 +27,14 @@ function fetchStatusValues() {
 
 
 function loadAllColumns(statuses) {
-    console.log('Loading all columns with statuses:', statuses);
+    // console.log('Loading all columns with statuses:', statuses);
     if (!statuses || typeof statuses !== 'object') {
         console.error('Invalid statuses data:', statuses);
         return;
     }
     for (const status_key in statuses) {
         if (statuses.hasOwnProperty(status_key)) {
-            console.log('Processing status:', status_key, 'with label:', statuses[status_key]);
+            // console.log('Processing status:', status_key, 'with label:', statuses[status_key]);
             fetchJobs(status_key);
         }
     }
@@ -107,9 +107,7 @@ function updateJobStatus(jobId, newStatus) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            console.log('Job status updated successfully');
-        } else {
+        if (!data.success) {
             console.error('Failed to update job status:', data.error);
         }
     })
@@ -130,7 +128,7 @@ function filterJobs() {
         const combinedText = [jobName, jobDescription, clientName, jobNumber].join(' ').toLowerCase();
 
         // Log the combined text
-        console.log('Combined Text:', combinedText);
+        // console.log('Combined Text:', combinedText);
 
         // Check if the combined text contains the search term
         if (combinedText.includes(searchTerm)) {
