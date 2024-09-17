@@ -58,7 +58,8 @@ def sync_clients(xero_contacts):
     for contact_data in xero_contacts:
         xero_contact_id = getattr(contact_data, 'contact_id', None),  # Safe access to contact_id
         contact_groups = getattr(contact_data, 'contact_groups', [])
-        is_account_customer = any(group['Name'] == 'Account Customers' for group in contact_groups)
+        payment_terms = getattr(contact_data, 'payment_terms', None)
+        is_account_customer = payment_terms is not None and getattr(payment_terms, 'sales', None) is not None
 
         raw_json = serialise_xero_object(contact_data)
 

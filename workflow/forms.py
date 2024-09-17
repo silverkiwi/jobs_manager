@@ -124,10 +124,14 @@ class ClientForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['raw_json'].widget.attrs['readonly'] = True
 
-        # Log the initial data
-        logger.debug(f"ClientForm initialized with data: {self.initial}")
+        # logger.debug(f"ClientForm initialized with args: {args}")
+        # logger.debug(f"ClientForm initialized with kwargs: {kwargs}")
+        # logger.debug(f"ClientForm instance: {self.instance.__dict__}")
+        #
+        # for field_name, field in self.fields.items():
+        #     logger.debug(f"Field {field_name}: initial={field.initial}, value={self.initial.get(field_name)}")
 
     def clean(self):
         cleaned_data = super().clean()
-        logger.debug(f"ClientForm cleaned data: {cleaned_data}")
+        # logger.debug(f"ClientForm cleaned data: {cleaned_data}")
         return cleaned_data
