@@ -11,21 +11,27 @@
 
 <form method="post">
     {% csrf_token %}
-    {% for field in form %}
-        {% if field.name != 'raw_json' %}
-            {{ field|crispy }}
-        {% endif %}
-    {% endfor %}
-    <div class="form-group">
-        <label for="json-editor">Raw JSON (Read-only)</label>
-        <div id="json-editor" style="height: 400px;"></div>
-        {{ form.raw_json }}
+    <div class="row">
+        <div class="col-md-6">
+            {{ form.name|crispy }}
+            {{ form.email|crispy }}
+            {{ form.phone|crispy }}
+            {{ form.address|crispy }}
+            {{ form.is_account_customer|crispy }}
+            <!-- Add any other editable fields here -->
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label for="json-editor">Raw JSON (Read-only)</label>
+            <div id="json-editor" style="height: 400px;"></div>
+            {{ form.raw_json.as_hidden }}
+        </div>
     </div>
     <button type="submit" class="btn btn-primary">Save changes</button>
     <a href="{% url 'list_clients' %}" class="btn btn-secondary">Cancel</a>
 </form>
 {% endblock %}
-
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.9.2/jsoneditor.min.js"></script>
 <script src="{% static 'js/edit_json.js' %}"></script>

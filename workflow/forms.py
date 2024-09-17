@@ -1,7 +1,10 @@
 # workflow/forms.py
+import logging
 
 from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+
+logger = logging.getLogger(__name__)
 
 from workflow.models import (
     AdjustmentEntry,
@@ -108,15 +111,23 @@ class StaffChangeForm(UserChangeForm):
             "user_permissions",
         )
 
+
 class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
         fields = ['name', 'email', 'phone', 'address', 'is_account_customer', 'raw_json']
         widgets = {
-            'raw_json': forms.Textarea(attrs={'rows': 10}),
+            'raw_json': forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['raw_json'].widget.attrs['readonly'] = True
-        self.fields['raw_json'].help_text = "This field is read-only and displays the raw JSON data."
+
+        # Log the initial data
+        logger.debug(f"ClientForm initialized with data: {self.initial}")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        logger.debug(f"ClientForm cleaned data: {cleaned_data}")
+        return cleaned_data
