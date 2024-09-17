@@ -11,6 +11,7 @@ from workflow.tables import ClientTable
 
 logger = logging.getLogger(__name__)
 
+
 class ClientListView(SingleTableView):
     model = Client
     table_class = ClientTable
@@ -20,6 +21,5 @@ class ClientListView(SingleTableView):
 class ClientUpdateView(UpdateView):
     model = Client
     form_class = ClientForm
-    template_name = 'workflow/update_client.html'
-    success_url = reverse_lazy('list_clients')
-
+    template_name = "workflow/update_client.html"
+    success_url = reverse_lazy("list_clients")

@@ -1,15 +1,12 @@
 # workflow/xero/xero.py
 import logging
-import requests
-
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional, cast
 from urllib.parse import urlencode
 
-from typing import Dict, Any, cast, Optional
-from datetime import datetime, timezone
-
-from django.core.cache import cache
+import requests
 from django.conf import settings
-
+from django.core.cache import cache
 from xero_python.api_client import ApiClient, Configuration
 from xero_python.api_client.oauth2 import OAuth2Token, TokenApi
 
@@ -25,11 +22,13 @@ api_client = ApiClient(
     ),
 )
 
+
 @api_client.oauth2_token_saver
 def store_token(token: Dict[str, Any]) -> None:
     if not token:
         raise Exception("Invalid token: token is None or empty.")
     cache.set("xero_oauth2_token", token)
+
 
 @api_client.oauth2_token_getter
 def get_token_internal() -> Optional[Dict[str, Any]]:
@@ -41,13 +40,14 @@ def get_token_internal() -> Optional[Dict[str, Any]]:
     logger.info(f"Token retrieved: {token_dict}")
     return token_dict
 
+
 def get_token() -> Dict[str, Any]:
     """Auto-refresh expired tokens"""
     token = get_token_internal()
     if token is None:
         return None
 
-    expires_at = token.get('expires_at')
+    expires_at = token.get("expires_at")
     if expires_at:
         expires_at_datetime = datetime.fromtimestamp(expires_at, tz=timezone.utc)
 
@@ -56,6 +56,7 @@ def get_token() -> Dict[str, Any]:
             store_token(token)
 
     return token
+
 
 # OAuth Scopes
 XERO_SCOPES = [
@@ -68,6 +69,7 @@ XERO_SCOPES = [
     "accounting.reports.read",
 ]
 
+
 # Xero Authentication URL builder (returns the URL)
 def get_authentication_url(state: str) -> str:
     query_params: Dict[str, str] = {
@@ -77,11 +79,16 @@ def get_authentication_url(state: str) -> str:
         "scope": " ".join(XERO_SCOPES),
         "state": state,
     }
-    authorization_url = f"https://login.xero.com/identity/connect/authorize?{urlencode(query_params)}"
+    authorization_url = (
+        f"https://login.xero.com/identity/connect/authorize?{urlencode(query_params)}"
+    )
     return authorization_url
 
+
 # OAuth callback: exchange code for token and return result
-def exchange_code_for_token(code: str, state: Optional[str], session_state: str) -> Dict[str, Any]:
+def exchange_code_for_token(
+    code: str, state: Optional[str], session_state: str
+) -> Dict[str, Any]:
     if state != session_state:
         return {"error": "State mismatch"}
 
@@ -100,12 +107,13 @@ def exchange_code_for_token(code: str, state: Optional[str], session_state: str)
     # Parse and store token
     token_data = response.json()
 
-    if not token_data or 'access_token' not in token_data:
+    if not token_data or "access_token" not in token_data:
         logger.error("Token exchange failed: No valid token data received.")
         return {"error": "Token exchange failed. No valid token received."}
 
     store_token(token_data)
     return {"success": True}
+
 
 def refresh_token() -> Optional[Dict[str, Any]]:
     token = get_token_internal()
@@ -116,4 +124,3 @@ def refresh_token() -> Optional[Dict[str, Any]]:
     refreshed_token = token_api.refresh_token(token)
     store_token(refreshed_token.to_dict())
     return refreshed_token.to_dict()
-

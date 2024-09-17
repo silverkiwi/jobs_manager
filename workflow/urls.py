@@ -4,13 +4,14 @@ from django.views.generic import RedirectView
 
 from workflow.views import (
     adjustment_entry_view,
+    client_view,
     job_pricing_view,
     job_view,
     kanban_view,
     material_entry_view,
     staff_view,
     time_entry_views,
-    xero_view, client_view,
+    xero_view,
 )
 
 urlpatterns = [
@@ -42,7 +43,6 @@ urlpatterns = [
         xero_view.refresh_xero_data,
         name="refresh_xero_data",
     ),
-
     path(
         "api/xero/contacts/",
         xero_view.get_xero_contacts,
@@ -54,9 +54,12 @@ urlpatterns = [
         name="refresh_token_xero",
     ),
     # Other URL patterns
-    path('clients/', client_view.ClientListView.as_view(), name='list_clients'),
-    path('client/<uuid:pk>/', client_view.ClientUpdateView.as_view(), name='update_client'),
-
+    path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
+    path(
+        "client/<uuid:pk>/",
+        client_view.ClientUpdateView.as_view(),
+        name="update_client",
+    ),
     # Job URLs
     path("jobs/create/", job_view.CreateJobView.as_view(), name="create_job"),
     path("jobs/", job_view.ListJobView.as_view(), name="list_jobs"),

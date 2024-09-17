@@ -4,16 +4,18 @@ import logging
 from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
-logger = logging.getLogger(__name__)
 
 from workflow.models import (
     AdjustmentEntry,
+    Client,
     Job,
     JobPricing,
     MaterialEntry,
     Staff,
-    TimeEntry, Client,
+    TimeEntry,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class JobForm(forms.ModelForm):
@@ -115,14 +117,21 @@ class StaffChangeForm(UserChangeForm):
 class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
-        fields = ['name', 'email', 'phone', 'address', 'is_account_customer', 'raw_json']
+        fields = [
+            "name",
+            "email",
+            "phone",
+            "address",
+            "is_account_customer",
+            "raw_json",
+        ]
         widgets = {
-            'raw_json': forms.HiddenInput(),
+            "raw_json": forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['raw_json'].widget.attrs['readonly'] = True
+        self.fields["raw_json"].widget.attrs["readonly"] = True
 
         # logger.debug(f"ClientForm initialized with args: {args}")
         # logger.debug(f"ClientForm initialized with kwargs: {kwargs}")
