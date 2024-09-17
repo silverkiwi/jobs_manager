@@ -2,7 +2,6 @@ import ast
 import os
 import sys
 
-
 def update_init_py(target_dir: str) -> int:
     init_file = os.path.join(target_dir, "__init__.py")
 
@@ -35,7 +34,8 @@ def update_init_py(target_dir: str) -> int:
             tree = ast.parse(file.read())
 
         classes = [
-            node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef) and node.name != "Meta"  # Exclude Meta class
         ]
 
         if classes:
@@ -58,7 +58,6 @@ def update_init_py(target_dir: str) -> int:
         print(f"Failed to write to {init_file}: {e}")
         return 4  # Error Code 4: IOError during file writing
 
-
 def main() -> None:
     if len(sys.argv) != 2:
         print("Usage: python update_init.py <target_directory>")
@@ -67,7 +66,6 @@ def main() -> None:
     target_dir = sys.argv[1]
     result = update_init_py(target_dir)
     sys.exit(result)
-
 
 if __name__ == "__main__":
     main()

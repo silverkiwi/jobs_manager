@@ -4,32 +4,29 @@ from .adjustment_entry_view import CreateAdjustmentEntryView, UpdateAdjustmentEn
 from .client_view import ClientListView, ClientUpdateView
 from .dashboard_view import DashboardView
 from .job_pricing_view import CreateJobPricingView, UpdateJobPricingView
-from .job_view import CreateJobView, ListJobView, UpdateJobView
+from .job_view import CreateJobView, UpdateJobView, ListJobView
 from .material_entry_view import CreateMaterialEntryView, MaterialEntryUpdateView
 from .profile_view import ProfileView
-from .staff_view import StaffCreateView, StaffListView, StaffUpdateView
+from .staff_view import StaffListView, StaffCreateView, StaffUpdateView
 from .time_entry_views import CreateTimeEntryView, UpdateTimeEntryView
-from .trivial_views import AboutView, IndexView
 
 __all__ = [
-    "CreateAdjustmentEntryView",
-    "UpdateAdjustmentEntryView",
-    "ClientListView",
-    "ClientUpdateView",
-    "DashboardView",
-    "CreateJobPricingView",
-    "UpdateJobPricingView",
-    "CreateJobView",
-    "UpdateJobView",
-    "ListJobView",
-    "CreateMaterialEntryView",
-    "MaterialEntryUpdateView",
-    "ProfileView",
-    "StaffListView",
-    "StaffCreateView",
-    "StaffUpdateView",
-    "CreateTimeEntryView",
-    "UpdateTimeEntryView",
-    "IndexView",
-    "AboutView",
+    'CreateAdjustmentEntryView',
+    'UpdateAdjustmentEntryView',
+    'ClientListView',
+    'ClientUpdateView',
+    'DashboardView',
+    'CreateJobPricingView',
+    'UpdateJobPricingView',
+    'CreateJobView',
+    'UpdateJobView',
+    'ListJobView',
+    'CreateMaterialEntryView',
+    'MaterialEntryUpdateView',
+    'ProfileView',
+    'StaffListView',
+    'StaffCreateView',
+    'StaffUpdateView',
+    'CreateTimeEntryView',
+    'UpdateTimeEntryView',
 ]
