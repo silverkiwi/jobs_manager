@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 def sync_xero_data(
-    entity_type,
-    api_function,
+    xero_entity_type,
+    xero_api_function,
     sync_function,
-    get_last_modified_time,
+    last_modified_time,
     additional_params=None,
 ):
-    last_modified_time = get_last_modified_time()
 
+    logger.info(f"Syncing Xero data... Entity: {xero_entity_type}, since {last_modified_time}")
     identity_api = IdentityApi(api_client)
     connections = identity_api.get_connections()
 
@@ -33,7 +33,7 @@ def sync_xero_data(
     xero_tenant_id = connections[0].tenant_id
 
     page = 1
-    page_size = 100
+    page_size = 500
     while True:
         params = {
             "xero_tenant_id": xero_tenant_id,
@@ -46,19 +46,19 @@ def sync_xero_data(
         if additional_params:
             params.update(additional_params)
 
-        entities = api_function(**params)
+        entities = xero_api_function(**params)
 
-        if not getattr(entities, entity_type):
+        if not getattr(entities, xero_entity_type):
             break  # No more entities to process
 
-        sync_function(getattr(entities, entity_type))
+        sync_function(getattr(entities, xero_entity_type))
 
         # Check if we've processed all pages
         if page >= entities.pagination.page_count:
             break
 
         page += 1
-        time.sleep(1)  # Respect Xero's rate limits
+        time.sleep(5)  # Respect Xero's rate limits
 
 
 def get_last_modified_time(model):
@@ -158,6 +158,7 @@ def sync_invoices(invoices):
         except Exception as e:
             logger.error(f"Error processing invoice {invoice.invoice_number}: {str(e)}")
             logger.error(f"Invoice data: {defaults['raw_json']}")
+            raise
 
 
 def sync_bills(bills):
@@ -188,7 +189,7 @@ def sync_bills(bills):
         except Exception as e:
             logger.error(f"Error processing bill {bill.invoice_number}: {str(e)}")
             logger.error(f"Bill data: {defaults['raw_json']}")
-
+            raise
 
 def sync_clients(xero_contacts):
     for contact_data in xero_contacts:
@@ -229,28 +230,34 @@ def sync_clients(xero_contacts):
         except Exception as e:
             logger.error(f"Error processing client {contact_data.name}: {str(e)}")
             logger.error(f"Client data: {raw_json}")
+            raise
 
 
 def sync_all_xero_data():
     accounting_api = AccountingApi(api_client)
 
+    our_latest_contact = get_last_modified_time(Client)
+    our_latest_invoice = get_last_modified_time(Invoice)
+    our_latest_bill = get_last_modified_time(Bill)
+
     sync_xero_data(
-        "contacts",
-        accounting_api.get_contacts,
-        sync_clients,
-        lambda: get_last_modified_time(Client),
+        xero_entity_type = "contacts",
+        xero_api_function = accounting_api.get_contacts,
+        sync_function = sync_clients,
+        last_modified_time = our_latest_contact,
     )
+
     sync_xero_data(
-        "invoices",
-        accounting_api.get_invoices,
-        sync_invoices,
-        lambda: get_last_modified_time(Invoice),
+        xero_entity_type = "invoices",
+        xero_api_function = accounting_api.get_invoices,
+        sync_function = sync_invoices,
+        last_modified_time = our_latest_invoice,
         additional_params={"where": 'Type=="ACCREC"'},
     )
     sync_xero_data(
-        "bills",
-        accounting_api.get_invoices,
-        sync_bills,
-        lambda: get_last_modified_time(Bill),
+        xero_entity_type = "invoices",
+        xero_api_function = accounting_api.get_invoices,
+        sync_function = sync_bills,
+        last_modified_time = our_latest_bill,
         additional_params={"where": 'Type=="ACCPAY"'},
     )

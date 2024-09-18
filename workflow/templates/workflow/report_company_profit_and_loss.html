@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Company Profit and Loss Report</h1>
+
+  <!-- Table container -->
+  <div id="report-table"></div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="{% static 'js/report_company_profit_and_loss.js' %}"></script>
+{% endblock %}
