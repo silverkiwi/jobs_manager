@@ -50,9 +50,9 @@ class InvoiceLineItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Internal UUID
     invoice = models.ForeignKey("Invoice", on_delete=models.CASCADE, related_name="line_items")  # Link to Invoice
     description = models.TextField()  # Description of the line item
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("1.00"))  # Quantity
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # Unit price
-    line_amount = models.DecimalField(max_digits=10, decimal_places=2)  # Total line amount (quantity * unit price)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=Decimal("1.00"))  # Nullable quantity, default to 1
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Nullable unit price
+    line_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Nullable total line amount (quantity * unit price)
     account = models.ForeignKey("XeroAccount", on_delete=models.SET_NULL, null=True, blank=True)  # Link to XeroAccount
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Tax amount for the line item
     tax_type = models.CharField(max_length=50, null=True, blank=True)  # Optional, in case tax types vary in the future
@@ -69,9 +69,9 @@ class BillLineItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Internal UUID
     bill = models.ForeignKey("Bill", on_delete=models.CASCADE, related_name="line_items")  # Link to Bill
     description = models.TextField()  # Description of the line item
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("1.00"))  # Quantity
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # Unit price
-    line_amount = models.DecimalField(max_digits=10, decimal_places=2)  # Total line amount (quantity * unit price)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=Decimal("1.00"))  # Nullable quantity, default to 1
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Nullable unit price
+    line_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Nullable total line amount (quantity * unit price)
     account = models.ForeignKey("XeroAccount", on_delete=models.SET_NULL, null=True, blank=True)  # Link to XeroAccount
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Tax amount for the line item
     tax_type = models.CharField(max_length=50, null=True, blank=True)  # Optional, in case tax types vary in the future

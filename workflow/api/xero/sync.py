@@ -154,32 +154,34 @@ def sync_invoices(invoices):
                 invoice, created = Invoice.objects.update_or_create(
                     xero_id=xero_id, defaults=defaults
                 )
-                # Now sync the line items
-                line_items_data = getattr(inv,'line_items', [])
+                invoice_status = getattr(inv, "status", None)
+                if invoice_status not in ("DELETED", "VOIDED"):
+                    # Now sync the line items
+                    line_items_data = getattr(inv,'line_items', [])
 
-                for line_item_data in line_items_data:
-                    description = getattr(line_item_data, "description",None)
-                    quantity = getattr(line_item_data, "quantity", 1)
-                    unit_price = getattr(line_item_data, "unit_amount", None)
-                    account_code = getattr(line_item_data, "account_code", None)
-                    tax_amount = getattr(line_item_data, "tax_amount", None)
-                    line_amount = getattr(line_item_data, "line_amount", None)
+                    for line_item_data in line_items_data:
+                        description = getattr(line_item_data, "description",None)
+                        quantity = getattr(line_item_data, "quantity", 1)
+                        unit_price = getattr(line_item_data, "unit_amount", None)
+                        account_code = getattr(line_item_data, "account_code", None)
+                        tax_amount = getattr(line_item_data, "tax_amount", None)
+                        line_amount = getattr(line_item_data, "line_amount", None)
 
-                    # Find the related XeroAccount
-                    account = XeroAccount.objects.filter(account_code=account_code).first()
+                        # Find the related XeroAccount
+                        account = XeroAccount.objects.filter(account_code=account_code).first()
 
-                    # Sync the line item
-                    InvoiceLineItem.objects.update_or_create(
-                        invoice=invoice,
-                        description=description,
-                        defaults={
-                            "quantity": quantity,
-                            "unit_price": unit_price,
-                            "account": account,
-                            "tax_amount": tax_amount,
-                            "line_amount": line_amount,
-                        },
-                    )
+                        # Sync the line item
+                        InvoiceLineItem.objects.update_or_create(
+                            invoice=invoice,
+                            description=description,
+                            defaults={
+                                "quantity": quantity,
+                                "unit_price": unit_price,
+                                "account": account,
+                                "tax_amount": tax_amount,
+                                "line_amount": line_amount,
+                            },
+                        )
 
                 if created:
                     logger.info(f"New invoice added: {defaults['number']}")
@@ -214,12 +216,12 @@ def sync_bills(bills):
                 line_items_data = defaults['raw_json'].get('line_items', [])
 
                 for line_item_data in line_items_data:
-                    description = line_item_data.get("description")
-                    quantity = line_item_data.get("quantity", 1)
-                    unit_price = line_item_data.get("unit_amount")
-                    account_code = line_item_data.get("account_code")
-                    tax_amount = line_item_data.get("tax_amount")
-                    line_amount = line_item_data.get("line_amount")
+                    description = getattr(line_item_data, "description",None)
+                    quantity = getattr(line_item_data, "quantity", 1)
+                    unit_price = getattr(line_item_data, "unit_amount", None)
+                    account_code = getattr(line_item_data, "account_code", None)
+                    tax_amount = getattr(line_item_data, "tax_amount", None)
+                    line_amount = getattr(line_item_data, "line_amount", None)
 
 
                     # Find the related XeroAccount
