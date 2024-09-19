@@ -51,6 +51,6 @@ def export_core_data_to_sql(db_path: str, output_file: str) -> None:
 
 
 if __name__ == "__main__":
-    DB_PATH: str = "db.sqlite3"  # Path to your SQLite database file
-    OUTPUT_FILE: str = "core_data_backup.sql"  # Output file for the SQL statements
+    DB_PATH: str = "../db.sqlite3"  # Path to your SQLite database file
+    OUTPUT_FILE: str = "../core_data_backup.sql"  # Output file for the SQL statements
     export_core_data_to_sql(DB_PATH, OUTPUT_FILE)

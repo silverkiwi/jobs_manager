@@ -12,7 +12,7 @@ from workflow.models import (
     JobPricing,
     MaterialEntry,
     Staff,
-    TimeEntry,
+    TimeEntry, Invoice,
 )
 
 logger = logging.getLogger(__name__)
@@ -144,3 +144,22 @@ class ClientForm(forms.ModelForm):
         cleaned_data = super().clean()
         # logger.debug(f"ClientForm cleaned data: {cleaned_data}")
         return cleaned_data
+
+class InvoiceForm(forms.ModelForm):
+    class Meta:
+        model = Invoice
+        fields = [
+            "number",
+            "client",
+            "date",
+            "total",
+            "status",
+            "raw_json",
+        ]
+        widgets = {
+            "raw_json": forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["raw_json"].widget.attrs["readonly"] = True

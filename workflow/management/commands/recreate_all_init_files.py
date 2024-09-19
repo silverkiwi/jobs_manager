@@ -17,7 +17,7 @@ class Command(BaseCommand):
 
         # Path to the standalone Python script
         update_script = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "../../../update_init.py")
+            os.path.join(os.path.dirname(__file__), "../../../adhoc/update_init.py")
         )
 
         # Loop through each folder and call the standalone script

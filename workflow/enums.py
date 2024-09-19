@@ -10,3 +10,11 @@ class JobPricingStage(models.TextChoices):
     ESTIMATE = "estimate", "Estimate"
     QUOTE = "quote", "Quote"
     REALITY = "reality", "Reality"
+
+class InvoiceStatus(models.TextChoices):
+    DRAFT = "DRAFT", "Draft"
+    SUBMITTED = "SUBMITTED", "Submitted"
+    AUTHORISED = "AUTHORISED", "Authorised"
+    DELETED = "DELETED", "Deleted"
+    VOIDED = "VOIDED", "Voided"
+    PAID = "PAID", "Paid"

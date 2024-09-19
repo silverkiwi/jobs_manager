@@ -8,8 +8,8 @@ from django.shortcuts import redirect, render
 from xero_python.accounting import AccountingApi
 from xero_python.identity import IdentityApi
 
-from workflow.xero.sync import sync_all_xero_data
-from workflow.xero.xero import (
+from workflow.api.xero.sync import sync_all_xero_data
+from workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
     get_authentication_url,

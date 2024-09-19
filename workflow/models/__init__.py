@@ -2,12 +2,13 @@
 
 from .adjustment_entry import AdjustmentEntry
 from .client import Client
-from .invoice import XeroInvoiceOrBill, Invoice, Bill
+from .invoice import XeroInvoiceOrBill, Invoice, Bill, InvoiceLineItem, BillLineItem
 from .job import Job
 from .job_pricing import JobPricing
 from .material_entry import MaterialEntry
 from .staff import StaffManager, Staff
 from .time_entry import TimeEntry
+from .xero_account import XeroAccount
 
 __all__ = [
     'AdjustmentEntry',
@@ -15,10 +16,13 @@ __all__ = [
     'XeroInvoiceOrBill',
     'Invoice',
     'Bill',
+    'InvoiceLineItem',
+    'BillLineItem',
     'Job',
     'JobPricing',
     'MaterialEntry',
     'StaffManager',
     'Staff',
     'TimeEntry',
+    'XeroAccount',
 ]
