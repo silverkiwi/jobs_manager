@@ -1,0 +1,76 @@
+/* Static/css/job_edit.css */
+.container {
+    margin-top: 20px;
+}
+
+form label {
+    font-weight: bold;
+}
+
+form .btn-link {
+    margin-top: 10px;
+}
+
+/* Table container: dynamic grid layout */
+.table-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Dynamic column layout */
+    gap: 20px; /* Space between the columns */
+    margin-bottom: 20px;
+}
+
+/* Style the Handsontable tables */
+.htCore {
+    border: 1px solid #ddd;
+}
+
+.ht_master table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ht_master th, .ht_master td {
+    padding: 10px; /* More spacing for cleaner look */
+    border: 1px solid #ccc;
+    text-align: left;
+}
+
+/* Header styling */
+.ht_master thead th {
+    background-color: #f0f0f0; /* Subtle background for header */
+    font-weight: bold;
+    font-size: 14px; /* Larger font size */
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+/* Delete icon styling */
+.delete-icon {
+    font-size: 18px;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 5px;
+    margin-left: auto; /* Align to the right */
+    transition: color 0.3s;
+}
+
+.delete-icon:hover {
+    color: #c82333;
+}
+
+/* Subtle row striping */
+.ht_master tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Adjust borders to be lighter */
+.ht_master td, .ht_master th {
+    border: 1px solid #ddd;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .table-container {
+        grid-template-columns: 1fr; /* Switch to one column on small screens */
+    }
+}

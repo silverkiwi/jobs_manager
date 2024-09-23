@@ -3,6 +3,7 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from workflow.views import (
+    edit_job_view_ajax,
     adjustment_entry_view,
     client_view,
     debug_view,
@@ -109,6 +110,9 @@ urlpatterns = [
         adjustment_entry_view.CreateAdjustmentEntryView.as_view(),
         name="create_adjustment_entry",
     ),
+    path('job-financials/', edit_job_view_ajax.edit_job_view_ajax, name='edit_job'),
+    path('job-financials/', edit_job_view_ajax.edit_job_view_ajax, name='edit_job'),
+    path('job-financials/<uuid:job_id>/', edit_job_view_ajax.edit_job_view_ajax, name='edit_job'),
     path(
         "time_entries/<uuid:pk>/",
         time_entry_views.UpdateTimeEntryView.as_view(),

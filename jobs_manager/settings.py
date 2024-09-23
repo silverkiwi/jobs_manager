@@ -73,12 +73,27 @@ LOGGING = {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
         },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "debug_sql.log",   # Path to store SQL logs
+            "maxBytes": 1024*1024*5,       # 5 MB log size before rotating
+            "backupCount": 5,              # Keep up to 5 backup logs
+        },
     },
     "root": {
-        "handlers": ["console"],
+        "handlers": ["console"],  # Keep general logging to the console
         "level": "DEBUG",
     },
+    "loggers": {
+        "django.db.backends": {
+            "handlers": ["file"],  # Only log SQL to file
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
 }
+
 
 ROOT_URLCONF = "jobs_manager.urls"
 
@@ -105,12 +120,23 @@ WSGI_APPLICATION = "jobs_manager.wsgi.application"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'msm_workflow',
+        'USER': 'django_user',
+        'PASSWORD': '7m2UFwcqfHHgeKXv',
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
+#
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

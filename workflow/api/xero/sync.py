@@ -155,7 +155,7 @@ def sync_invoices(invoices):
                     xero_id=xero_id, defaults=defaults
                 )
                 invoice_status = getattr(inv, "status", None)
-                if invoice_status not in ("DELETED", "VOIDED"):
+                if invoice_status not in ("DELETED", "VOIDED", "DRAFT"):
                     # Now sync the line items
                     line_items_data = getattr(inv,'line_items', [])
 

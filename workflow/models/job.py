@@ -43,7 +43,7 @@ class Job(models.Model):
     )  # type: ignore
     contact_person: str = models.CharField(max_length=100)  # type: ignore
     contact_phone: str = models.CharField(max_length=15)  # type: ignore
-    job_number = models.IntegerField(unique=True, null=False, blank=False)
+    job_number = models.IntegerField(null=False, blank=False, unique=True)  # Job 1234
     description: str = models.TextField()  # type: ignore
     date_created: datetime.datetime = models.DateTimeField(
         default=timezone.now
@@ -82,3 +82,17 @@ class Job(models.Model):
 
     def get_display_name(self) -> str:
         return f"Job:{self.job_number}"  # type: ignore
+
+    def save(self, *args, **kwargs):
+        if not self.job_number:
+            self.job_number = self.generate_unique_job_number()
+        super(Job, self).save(*args, **kwargs)
+
+
+    @staticmethod
+    def generate_unique_job_number():
+        with transaction.atomic():
+            last_job = Job.objects.select_for_update().order_by('-job_number').first()
+            if last_job and last_job.job_number:
+                return last_job.job_number + 1
+            return 1  # Start numbering from 1 if there are no existing records
