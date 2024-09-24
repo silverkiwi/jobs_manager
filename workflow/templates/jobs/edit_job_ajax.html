@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
+<link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/ag-grid-community/styles/ag-grid.css">
+<link rel="stylesheet" href="https://unpkg.com/ag-grid-community/styles/ag-theme-alpine.css">
+{% endblock %}
+
+{% block content %}
+    <!-- Job Details Section -->
+    {% include "edit_job_detail_section.html" %}
+
+    <hr />
+
+    <!-- Estimate Section (Inline) -->
+    <div class="job-grid-section">
+        <h2>Estimates</h2>
+        <div id="estimateTable" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
+    </div>
+
+    <hr />
+
+    <!-- Quote Section (Inline) -->
+    <div class="job-grid-section">
+        <h2>Quote</h2>
+        <div id="quoteTable" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
+    </div>
+
+    <hr />
+
+    <!-- Reality Section (Inline) -->
+    <div class="job-grid-section">
+        <h2>Reality</h2>
+        <div id="realityTable" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
+    </div>
+
+    <hr />
+
+    <!-- Workflow Section -->
+    {% include "edit_workflow_section.html" %}
+
+    <hr />
+
+    <!-- Save/Cancel Buttons -->
+    <div class="action-buttons">
+        <button class="btn btn-primary" id="saveButton">Save</button>
+        <button class="btn btn-secondary" id="cancelButton" onclick="window.location.href='/'">Cancel</button>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://unpkg.com/ag-grid-community/dist/ag-grid-community.noStyle.js"></script>
+    <script src="{% static 'js/client_lookup.js' %}"></script>
+    <script src="{% static 'js/edit_job.js' %}"></script>
+{% endblock %}

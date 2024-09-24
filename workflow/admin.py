@@ -12,8 +12,27 @@ from workflow.models import (
     MaterialEntry,
     Staff,
     TimeEntry,
+    CompanyDefaults,
 )
 
+
+@admin.register(CompanyDefaults)
+class CompanyDefaultsAdmin(admin.ModelAdmin):
+    list_display = ['charge_out_rate', 'cost_rate_without_staff', 'time_markup', 'materials_markup']
+    fieldsets = (
+        (None, {
+            'fields': ('time_markup', 'materials_markup', 'charge_out_rate', 'cost_rate_without_staff')
+        }),
+        ('Working Hours', {
+            'fields': (
+                ('mon_start', 'mon_end'),
+                ('tue_start', 'tue_end'),
+                ('wed_start', 'wed_end'),
+                ('thu_start', 'thu_end'),
+                ('fri_start', 'fri_end'),
+            )
+        }),
+    )
 
 # Remove the duplicate StaffAdmin class and ensure only one exists
 @admin.register(Staff)
