@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class CreateJobView(CreateView):
     model = Job
     form_class = JobForm
-    template_name = "workflow/create_job.html"  # Ensure this template exists
+    template_name = "jobs/create_job.html"  # Ensure this template exists
 
     def get_success_url(self):
         # Redirect to the job update page after creation
@@ -24,9 +24,7 @@ class CreateJobView(CreateView):
 class UpdateJobView(UpdateView):
     model = Job
     form_class = JobForm
-    template_name = (
-        "workflow/update_job.html"  # Updated to match your naming convention
-    )
+    template_name = ("jobs/update_job.html")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -77,7 +75,7 @@ class UpdateJobView(UpdateView):
 
 class ListJobView(ListView):
     model = Job
-    template_name = "workflow/list_jobs.html"
+    template_name = "jobs/list_jobs.html"
     context_object_name = "jobs"
 
 

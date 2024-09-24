@@ -101,4 +101,4 @@ def edit_job_view_ajax(request, job_id=None):
         'adjustment_entry_forms': adjustment_entry_forms,
     }
 
-    return render(request, 'workflow/edit_job_ajax.html', context)
+    return render(request, 'jobs/edit_job_ajax.html', context)

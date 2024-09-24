@@ -16,7 +16,7 @@ def kanban_view(request: HttpRequest) -> HttpResponse:
         "status_choices": Job.JOB_STATUS_CHOICES,
         "status_tooltips": Job.STATUS_TOOLTIPS,
     }
-    return render(request, "workflow/kanban_board.html", context)
+    return render(request, "jobs/kanban_board.html", context)
 
 
 @csrf_exempt

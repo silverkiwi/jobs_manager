@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class CreateTimeEntryView(CreateView):
     model: Type[TimeEntry] = TimeEntry
     form_class: Type[TimeEntryForm] = TimeEntryForm
-    template_name: str = "workflow/create_time_entry.html"
+    template_name: str = "time_entries/create_time_entry.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -54,7 +54,7 @@ class CreateTimeEntryView(CreateView):
 class UpdateTimeEntryView(UpdateView):
     model: Type[TimeEntry] = TimeEntry
     form_class: Type[TimeEntryForm] = TimeEntryForm
-    template_name: str = "workflow/update_time_entry.html" # noqa
+    template_name: str = "workflow/time_entries/update_time_entry.html" # noqa
 
     def form_valid(self, form: TimeEntryForm) -> JsonResponse:
         # Update the time entry instance

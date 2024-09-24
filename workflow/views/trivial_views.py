@@ -2,8 +2,8 @@
 
 #
 # class IndexView(TemplateView):
-#     template_name: str = "workflow/index.html"
+#     template_name: str = "general/index.html"
 #
 #
 # class AboutView(TemplateView):
-#     template_name: str = "workflow/about.html"
+#     template_name: str = "general/about.html"

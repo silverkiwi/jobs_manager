@@ -25,4 +25,4 @@ def debug_sync_invoice_form(request):
         # Redirect to the correct view with the invoice number
         return redirect(f'{reverse("list_invoices")}?invoice_number={invoice_number}')
 
-    return render(request, "workflow/debug_sync_invoice_form.html")
+    return render(request, "xero/debug_sync_invoice_form.html")

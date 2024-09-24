@@ -56,7 +56,7 @@ def refresh_xero_token(request: HttpRequest) -> HttpResponse:
 
 # Xero connection success view
 def success_xero_connection(request: HttpRequest) -> HttpResponse:
-    return render(request, "workflow/success_xero_connection.html")
+    return render(request, "xero/success_xero_connection.html")
 
 
 # Get Xero contacts
@@ -96,7 +96,7 @@ def refresh_xero_data(request):
 
     except Exception as e:
         logger.error(f"Error while refreshing Xero data: {str(e)}")
-        return render(request, "workflow/error_xero_sync.html", {"message": str(e)})
+        return render(request, "xero/error_xero_sync.html", {"message": str(e)})
 
     # After successful sync, redirect to the home page or wherever appropriate
     return redirect("/")

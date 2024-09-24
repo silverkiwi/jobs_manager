@@ -1,0 +1,31 @@
+<div class="workflow-section">
+    <h3>Workflow Settings</h3>
+
+    <!-- Job Status Selection -->
+    <div class="form-group">
+        <label for="jobStatus">Job Status:</label>
+        <select id="jobStatus" class="form-control">
+            <option value="quoting" {% if job.status == 'quoting' %}selected{% endif %}>Quoting</option>
+            <option value="approved" {% if job.status == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="in_progress" {% if job.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+            <option value="on_hold" {% if job.status == 'on_hold' %}selected{% endif %}>On Hold</option>
+            <option value="rejected" {% if job.status == 'rejected' %}selected{% endif %}>Rejected</option>
+            <option value="completed" {% if job.status == 'completed' %}selected{% endif %}>Completed</option>
+            <option value="archived" {% if job.status == 'archived' %}selected{% endif %}>Archived</option>
+        </select>
+    </div>
+
+    <!-- Job Paid Checkbox -->
+    <div class="form-group">
+        <label for="paidCheckbox">
+            <input type="checkbox" id="paidCheckbox" {% if job.paid %}checked{% endif %}>
+            Job Paid
+        </label>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="workflow-actions mt-3">
+        <button type="button" class="btn btn-warning" id="invoiceJobButton">Invoice Job</button>
+        <button type="button" class="btn btn-info" id="contactClientButton">Contact Client about Job</button>
+    </div>
+</div>

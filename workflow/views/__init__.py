@@ -7,7 +7,6 @@ from .invoice_view import InvoiceListView, InvoiceUpdateView
 from .job_pricing_view import CreateJobPricingView, UpdateJobPricingView
 from .job_view import CreateJobView, UpdateJobView, ListJobView
 from .material_entry_view import CreateMaterialEntryView, MaterialEntryUpdateView
-from .profile_view import ProfileView
 from .report_view import ReportCompanyProfitAndLoss, CompanyProfitAndLossView
 from .staff_view import StaffListView, StaffCreateView, StaffUpdateView
 from .time_entry_views import CreateTimeEntryView, UpdateTimeEntryView
@@ -27,7 +26,6 @@ __all__ = [
     'ListJobView',
     'CreateMaterialEntryView',
     'MaterialEntryUpdateView',
-    'ProfileView',
     'ReportCompanyProfitAndLoss',
     'CompanyProfitAndLossView',
     'StaffListView',

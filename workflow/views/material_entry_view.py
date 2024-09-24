@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class CreateMaterialEntryView(CreateView):
     model: Type[MaterialEntry] = MaterialEntry
     form_class: Type[MaterialEntryForm] = MaterialEntryForm
-    template_name: str = "workflow/create_material_entry.html"
+    template_name: str = "jobs/create_material_entry.html"
 
     def form_valid(self, form: MaterialEntryForm) -> JsonResponse:
         material_entry: MaterialEntry = form.save(commit=False)
@@ -45,7 +45,7 @@ class CreateMaterialEntryView(CreateView):
 class MaterialEntryUpdateView(UpdateView):
     model: Type[MaterialEntry] = MaterialEntry
     form_class: Type[MaterialEntryForm] = MaterialEntryForm
-    template_name: str = "workflow/edit_material_entry.html"
+    template_name: str = "jobs/edit_material_entry.html"
 
     def form_valid(self, form: MaterialEntryForm) -> JsonResponse:
         material_entry: MaterialEntry = form.save(commit=False)

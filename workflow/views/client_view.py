@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 class ClientListView(SingleTableView):
     model = Client
     # table_class = ClientTable
-    template_name = "workflow/list_clients.html"
+    template_name = "clients/list_clients.html"
 
 
 class ClientUpdateView(UpdateView):
     model = Client
     form_class = ClientForm
-    template_name = "workflow/update_client.html"
+    template_name = "clients/update_client.html"
     success_url = reverse_lazy("list_clients")

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class CreateJobPricingView(CreateView):
     model = JobPricing
-    template_name = "workflow/create_job_pricing.html"
+    template_name = "job_pricing/create_job_pricing.html"
     form_class = JobPricingForm
 
     def get_form(self, form_class=None):
@@ -34,7 +34,7 @@ class CreateJobPricingView(CreateView):
 
 class UpdateJobPricingView(UpdateView):
     model = JobPricing
-    template_name = "workflow/update_job_pricing.html"
+    template_name = "job_pricing/update_job_pricing.html"
     form_class = JobPricingForm
     context_object_name = "job_pricing"
 

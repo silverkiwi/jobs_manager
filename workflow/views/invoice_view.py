@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class InvoiceListView(SingleTableView):
     model = Invoice
     table_class = InvoiceTable
-    template_name = "workflow/list_invoices.html"
+    template_name = "workflow/invoices/list_invoices.html"
     filterset_class = InvoiceFilter
 
     def get_queryset(self):
@@ -33,7 +33,7 @@ class InvoiceListView(SingleTableView):
 class InvoiceUpdateView(UpdateView):
     model = Invoice
     form_class = InvoiceForm
-    template_name = "workflow/update_invoice.html"
+    template_name = "invoices/update_invoice.html"
     success_url = reverse_lazy("list_invoices")
 
     def get_context_data(self, **kwargs):

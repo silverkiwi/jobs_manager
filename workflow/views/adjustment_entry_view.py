@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class CreateAdjustmentEntryView(CreateView):
     model: Type[AdjustmentEntry] = AdjustmentEntry
     form_class: Type[AdjustmentEntryForm] = AdjustmentEntryForm
-    template_name: str = "workflow/create_adjustment_entry.html"
+    template_name: str = "jobs/create_adjustment_entry.html"
 
     def form_valid(self, form: AdjustmentEntryForm) -> JsonResponse:
         adjustment_entry: AdjustmentEntry = form.save(commit=False)
