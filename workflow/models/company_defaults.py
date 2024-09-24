@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 
 class CompanyDefaults(models.Model):
+    company_name = models.CharField(max_length=255, primary_key=True)  # Unique company name
     time_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.3)
     materials_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.2)
     charge_out_rate = models.DecimalField(max_digits=6, decimal_places=2, default=105.00)

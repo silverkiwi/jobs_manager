@@ -2,25 +2,36 @@ document.addEventListener('DOMContentLoaded', function () {
     const clientInput = document.getElementById('clientName');
     const suggestionsContainer = document.getElementById('clientSuggestionsContainer');
 
+    if (!clientInput || !suggestionsContainer) {
+        console.error('Client input field or suggestions container not found.');
+        return;  // Exit early if these elements are missing
+    }
+
     clientInput.addEventListener('input', function () {
         const query = clientInput.value;
-        console.log("Client query event triggered: ", query);  //
+        console.log("Client query event triggered: ", query);
 
         // Only search when there's a query longer than 2 characters
         if (query.length > 2) {
-            fetch(`/api/client-search/?q=${query}`, {
+            fetch(`/api/client-search/?q=${encodeURIComponent(query)}`, {
                 method: 'GET',
                 headers: {
                     'X-CSRFToken': getCsrfToken(),
                     'Content-Type': 'application/json'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.statusText);
+                }
+                return response.json();
+            })
             .then(data => {
-                displayClientSuggestions(data, query);
+                displayClientSuggestions(data.results, query);
             })
             .catch(error => {
                 console.error('Error fetching client data:', error);
+                suggestionsContainer.innerHTML = ''; // Clear suggestions in case of an error
             });
         } else {
             suggestionsContainer.innerHTML = ''; // Clear suggestions if the query is too short
@@ -30,30 +41,43 @@ document.addEventListener('DOMContentLoaded', function () {
     function displayClientSuggestions(clients, query) {
         suggestionsContainer.innerHTML = ''; // Clear previous suggestions
 
-        clients.forEach(client => {
-            const suggestionItem = document.createElement('div');
-            suggestionItem.classList.add('suggestion-item');
-            suggestionItem.textContent = client.name;
-            suggestionItem.dataset.clientId = client.id;
-            suggestionItem.addEventListener('click', function () {
-                clientInput.value = client.name;
-                suggestionsContainer.innerHTML = ''; // Clear suggestions after selecting
+        if (clients.length === 0) {
+            const noResultsItem = document.createElement('div');
+            noResultsItem.classList.add('suggestion-item');
+            noResultsItem.textContent = 'No clients found';
+            suggestionsContainer.appendChild(noResultsItem);
+        } else {
+            clients.forEach(client => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.classList.add('suggestion-item');
+                suggestionItem.textContent = client.name;
+                suggestionItem.dataset.clientId = client.id;
+                suggestionItem.addEventListener('click', function () {
+                    clientInput.value = client.name;
+                    suggestionsContainer.innerHTML = ''; // Clear suggestions after selecting
+                });
+                suggestionsContainer.appendChild(suggestionItem);
             });
-            suggestionsContainer.appendChild(suggestionItem);
-        });
+        }
 
         // Add 'Add new client' option at the end of the list
         const addNewOption = document.createElement('div');
         addNewOption.classList.add('suggestion-item', 'add-new-client');
         addNewOption.textContent = `Add new client "${query}"`;
         addNewOption.addEventListener('click', function () {
-            // Redirect or trigger modal to add a new client
-            window.location.href = `/clients/add/?name=${query}`;
+            // Open the Add New Client form in a new tab
+            const newWindow = window.open(`/client/add/?name=${encodeURIComponent(query)}`, '_blank');
+
+            // Focus on the new tab
+            if (newWindow) {
+                newWindow.focus();
+            }
         });
         suggestionsContainer.appendChild(addNewOption);
     }
 
     function getCsrfToken() {
-        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        return csrfToken ? csrfToken.value : '';
     }
 });

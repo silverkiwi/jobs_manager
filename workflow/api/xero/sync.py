@@ -3,6 +3,7 @@ import time
 from datetime import date, datetime
 from uuid import UUID
 
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Max
 from xero_python.accounting import AccountingApi
@@ -328,19 +329,163 @@ def sync_accounts(xero_accounts):
             raise
 
 
+def sync_client_to_xero(client):
+    """
+    Sync a client from the local database to Xero - either a new one, or after a change
+    """
 
-def debug_sync_invoice(invoice_number):
+    # Step 1: Validate client data before attempting to sync
+    if not client.validate_for_xero():
+        logger.error(f"Client {client.id} failed validation and will not be synced to Xero.")
+        return False  # Exit early if validation fails
+
+    xero_tenant_id = get_tenant_id()  # Fetch Xero tenant ID
+    accounting_api = AccountingApi(api_client)  # Initialize the Accounting API for Xero
+
+    # Step 2: Log sync attempt
+    logger.info(f"Attempting to sync client {client.name} with Xero.")
+
+    # Step 3: Prepare client data for Xero using the model method
+    contact_data = client.get_client_for_xero()
+    if not contact_data:
+        logger.error(f"Client {client.id} failed validation and will not be synced to Xero.")
+        return False  # Exit early if validation fails
+
+    # Step 4: Create or update the client in Xero
+    try:
+        response = accounting_api.create_contacts(
+            xero_tenant_id,
+            contacts={"contacts": [contact_data]}
+        )
+        contacts = response.contacts if response.contacts else []
+        logger.info(f"Successfully synced client {client.name} to Xero.")
+        return contacts  # Return the synced contacts for further processing
+    except Exception as e:
+        logger.error(f"Failed to sync client {client.name} to Xero: {str(e)}")
+        raise
+
+def single_sync_client(client_identifier=None, xero_contact_id=None, client_name=None, delete_local=False):
+    """
+    Sync a single client from Xero to the app. Supports lookup by internal ID, Xero ID, or client name.
+    Optionally deletes the local client before syncing from Xero if `delete_local` is set to True.
+    """
     # Step 1: Initialize APIs
     xero_tenant_id = get_tenant_id()
     accounting_api = AccountingApi(api_client)
 
-    # Step 2: Get Xero tenant ID
+    # Step 2: Get the client
+    try:
+        # Fetch by internal ID if provided
+        if client_identifier:
+            client = Client.objects.get(id=client_identifier)
+
+        # Fetch by Xero contact ID if provided
+        elif xero_contact_id:
+            client = Client.objects.get(xero_contact_id=xero_contact_id)
+
+        # Fetch by client name if provided
+        elif client_name:
+            clients = Client.objects.filter(name=client_name)
+
+            if clients.count() > 1:
+                raise MultipleObjectsReturned(
+                    f"Multiple clients found for name {client_name}. Please refine the search.")
+            elif clients.count() == 1:
+                client = clients.first()
+            else:
+                raise ObjectDoesNotExist(f"No client found for name {client_name}.")
+
+        if not client:
+            raise ObjectDoesNotExist("No valid client found with the given identifiers.")
+
+        logger.info(f"Attempting to sync client {client.name} with Xero.")
+
+    except ObjectDoesNotExist as e:
+        logger.error(str(e))
+        raise
+    except MultipleObjectsReturned as e:
+        logger.error(str(e))
+        raise
+
+    # Step 3: Optionally delete the client from the local database if delete_local is True
+    if delete_local:
+        try:
+            with transaction.atomic():
+                client.delete()
+                logger.info(f"Client {client_name or client_identifier} deleted from the database.")
+        except Client.DoesNotExist:
+            logger.info(f"Client {client_name or client_identifier} does not exist in the database.")
+
+    # Step 4: Fetch the client from Xero
+    try:
+        response = accounting_api.get_contacts(
+            xero_tenant_id,
+            i_ds=[xero_contact_id] if xero_contact_id else None,
+            where=f"Name==\"{client_name}\"" if client_name and not xero_contact_id else None
+        )
+
+        contacts = response.contacts if response.contacts else []
+        logger.info(contacts)
+
+        if not contacts:
+            logger.error(f"Client {client_name or client_identifier} not found in Xero.")
+            raise
+
+        xero_client = contacts[0]  # Assuming the first match
+    except Exception as e:
+        logger.error(f"Failed to fetch client {client_name or client_identifier} from Xero: {str(e)}")
+        raise
+
+    # Step 5: Sync the client back into the database
+    try:
+        sync_clients([xero_client])  # Call your existing sync function for clients
+        logger.info(f"Successfully synced client {client_name or client_identifier} back into the database.")
+    except Exception as e:
+        logger.error(f"Failed to sync client {client_name or client_identifier} into the database: {str(e)}")
+        raise
+
+def single_sync_invoice(invoice_identifier=None, xero_invoice_id=None, invoice_number=None):
+    # Step 1: Initialize APIs
+    xero_tenant_id = get_tenant_id()
+    accounting_api = AccountingApi(api_client)
+
+    # Step 2: Get the invoice
+    try:
+        # Fetch by internal ID if provided
+        if invoice_identifier:
+            invoice = Invoice.objects.get(id=invoice_identifier)
+
+        # Fetch by Xero invoice ID if provided
+        elif xero_invoice_id:
+            invoice = Invoice.objects.get(xero_invoice_id=xero_invoice_id)
+
+        # Fetch by invoice number if provided
+        elif invoice_number:
+            invoices = Invoice.objects.filter(number=invoice_number)
+
+            if invoices.count() > 1:
+                raise MultipleObjectsReturned(
+                    f"Multiple invoices found for number {invoice_number}. Please refine the search.")
+            elif invoices.count() == 1:
+                invoice = invoices.first()
+            else:
+                raise ObjectDoesNotExist(f"No invoice found for number {invoice_number}.")
+
+        if not invoice:
+            raise ObjectDoesNotExist("No valid invoice found with the given identifiers.")
+
+        logger.info(f"Attempting to sync invoice {invoice.number} with Xero.")
+
+    except ObjectDoesNotExist as e:
+        logger.error(str(e))
+        raise
+    except MultipleObjectsReturned as e:
+        logger.error(str(e))
+        raise
 
     # Step 3: Delete the invoice from the local database
     try:
         with transaction.atomic():
-            invoice = Invoice.objects.get(number=invoice_number)
-            invoice_id = invoice.id
             invoice.delete()
             logger.info(f"Invoice {invoice_number} deleted from the database.")
     except Invoice.DoesNotExist:
@@ -351,13 +496,8 @@ def debug_sync_invoice(invoice_number):
         response = accounting_api.get_invoices(
             xero_tenant_id,
             invoice_numbers=[invoice_number],
-#            summary_only=False
+#            summary_only=False  # I found I didn't need this.  If we have < 100 invoices then it syncs enough detail
         )
-        # response2 = accounting_api.get_invoices(
-        #     xero_tenant_id,
-        #     invoice_numbers=[invoice_number],
-        #     summary_only=False
-        # )
 
         invoices = response.invoices if response.invoices else []
         logging.info(invoices)

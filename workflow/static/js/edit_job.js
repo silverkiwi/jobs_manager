@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Helper functions for currency formatting and total calculation
+    // Helper functions for currency formatting
     function currencyFormatter(params) {
         return '$' + params.value.toFixed(2);
     }
@@ -16,8 +16,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return params.data.items * params.data.minsPerItem;
     }
 
-    // Grid options for Time, Materials, and Adjustments tables
-    const gridOptions = {
+    // Grid options for Time table
+    const timeGridOptions = {
         columnDefs: [
             { headerName: 'Description', field: 'description', editable: true },
             { headerName: 'Items', field: 'items', editable: true, valueParser: numberParser },
@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    // Grid options for Materials table
     const materialsGridOptions = {
         columnDefs: [
             { headerName: 'Item Code', field: 'itemCode', editable: true },
@@ -68,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    // Grid options for Adjustments table
     const adjustmentsGridOptions = {
         columnDefs: [
             { headerName: 'Description', field: 'description', editable: true },
@@ -89,15 +91,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    // Initialize AG Grid for each section: estimate, quote, reality
+    // Define sections for the tables (estimate, quote, reality)
     const sections = ['estimate', 'quote', 'reality'];
+
+    // Initialize AG Grid for each section
     sections.forEach(section => {
-        new agGrid.Grid(document.getElementById(`${section}TimeTable`), gridOptions);
-        new agGrid.Grid(document.getElementById(`${section}MaterialsTable`), materialsGridOptions);
-        new agGrid.Grid(document.getElementById(`${section}AdjustmentsTable`), adjustmentsGridOptions);
+        const timeTableEl = document.querySelector(`#${section}TimeTable`);
+        const materialsTableEl = document.querySelector(`#${section}MaterialsTable`);
+        const adjustmentsTableEl = document.querySelector(`#${section}AdjustmentsTable`);
+
+        if (timeTableEl) agGrid.createGrid(timeTableEl, timeGridOptions);
+        if (materialsTableEl) agGrid.createGrid(materialsTableEl, materialsGridOptions);
+        if (adjustmentsTableEl) agGrid.createGrid(adjustmentsTableEl, adjustmentsGridOptions);
     });
 
-    // Totals Table initialization
+    // Totals Table initialization with valueGetters for dynamic totals calculation
     const totalsGridOptions = {
         columnDefs: [
             { headerName: 'Category', field: 'category', editable: false },
@@ -118,27 +126,8 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Initialize Totals Table
-    new agGrid.Grid(document.getElementById('totalsTable'), totalsGridOptions);
-
-    // Recalculate project totals based on data in each section
-    function calculateProjectTotals() {
-        let totalLabour = 0, totalMaterials = 0, totalAdjustments = 0;
-
-        // Calculate total for each table and section (estimate, quote, reality)
-        sections.forEach(section => {
-            const timeTable = agGrid.Grid.getInstance(document.getElementById(`${section}TimeTable`));
-            const materialsTable = agGrid.Grid.getInstance(document.getElementById(`${section}MaterialsTable`));
-            const adjustmentsTable = agGrid.Grid.getInstance(document.getElementById(`${section}AdjustmentsTable`));
-
-            timeTable.forEachNode(node => totalLabour += node.data.total);
-            materialsTable.forEachNode(node => totalMaterials += node.data.total);
-            adjustmentsTable.forEachNode(node => totalAdjustments += node.data.total);
-        });
-
-        // Update totals in Totals Table
-        const totalsTable = agGrid.Grid.getInstance(document.getElementById('totalsTable'));
-        totalsTable.getRowNode(0).setDataValue('estimate', totalLabour);
-        totalsTable.getRowNode(1).setDataValue('estimate', totalMaterials);
-        totalsTable.getRowNode(2).setDataValue('estimate', totalAdjustments);
+    const totalsTableEl = document.querySelector('#totalsTable');
+    if (totalsTableEl) {
+        agGrid.createGrid(totalsTableEl, totalsGridOptions);
     }
 });

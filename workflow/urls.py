@@ -22,7 +22,8 @@ from workflow.views.report_view import ReportCompanyProfitAndLoss, CompanyProfit
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
-    # API URLs
+    path('api/client-search/', client_view.ClientSearch, name='client_search'),
+# API URLs
     path('api/report/company-profit-and-loss/', ReportCompanyProfitAndLoss.as_view(), name='report_company_profit_and_loss'),
 
     path(
@@ -67,6 +68,8 @@ urlpatterns = [
         client_view.ClientUpdateView.as_view(),
         name="update_client",
     ),
+
+    path("client/add/", client_view.AddClient, name="add_client"),
 
     path('debug/sync-invoice/', debug_view.debug_sync_invoice_form, name='debug_sync_invoice_form'),  # Form for input
     path('debug/sync-invoice/<str:invoice_number>/', debug_view.debug_sync_invoice_view, name='debug_sync_invoice_view'),  # Process the sync

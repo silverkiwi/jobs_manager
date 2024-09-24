@@ -20,20 +20,23 @@
         <div id="estimateTable" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
     </div>
 
-    <hr />
-
     <!-- Quote Section (Inline) -->
     <div class="job-grid-section">
         <h2>Quote</h2>
         <div id="quoteTable" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
     </div>
 
-    <hr />
-
     <!-- Reality Section (Inline) -->
     <div class="job-grid-section">
         <h2>Reality</h2>
         <div id="realityTable" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
+    </div>
+
+
+    <!-- Totals Section (Inline) -->
+    <div class="job-grid-section">
+        <h2>Totals</h2>
+        <div id="totalsTable" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
     </div>
 
     <hr />
@@ -51,7 +54,7 @@
 {% endblock %}
 
 {% block extra_js %}
-    <script src="https://unpkg.com/ag-grid-community/dist/ag-grid-community.noStyle.js"></script>
+    <script src="https://unpkg.com/ag-grid-community@32.2.0/dist/ag-grid-community.min.js"></script>
     <script src="{% static 'js/client_lookup.js' %}"></script>
     <script src="{% static 'js/edit_job.js' %}"></script>
 {% endblock %}
