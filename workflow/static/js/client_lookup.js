@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     clientInput.addEventListener('input', function () {
         const query = clientInput.value;
+        console.log("Client query event triggered: ", query);  //
 
         // Only search when there's a query longer than 2 characters
         if (query.length > 2) {
