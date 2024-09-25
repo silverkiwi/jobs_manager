@@ -86,9 +86,7 @@ def refresh_xero_data(request):
             logger.info(
                 "User is not authenticated with Xero, redirecting to authentication"
             )
-            return redirect(
-                "authenticate_xero"
-            )  # Redirect to the Xero authentication path
+            return redirect("authenticate_xero")  # Redirect to the Xero authentication path
 
         # If authenticated, proceed with syncing data
         sync_all_xero_data()
@@ -96,7 +94,8 @@ def refresh_xero_data(request):
 
     except Exception as e:
         logger.error(f"Error while refreshing Xero data: {str(e)}")
-        return render(request, "xero/error_xero_sync.html", {"message": str(e)})
+        return redirect("authenticate_xero")
+#        return render(request, "xero/error_xero_sync.html", {"message": str(e)})
 
     # After successful sync, redirect to the home page or wherever appropriate
     return redirect("/")

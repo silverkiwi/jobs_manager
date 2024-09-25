@@ -39,3 +39,40 @@ form .btn-link {
         grid-template-columns: 1fr; /* Switch to one column on small screens */
     }
 }
+.ag-theme-alpine {
+    --ag-row-height: 28px;
+    --ag-header-height: 32px;
+    --ag-cell-horizontal-padding: 5px;
+    --ag-border-color: #dde2eb;
+}
+
+.ag-theme-alpine .ag-root-wrapper {
+    border: 1px solid var(--ag-border-color);
+}
+
+.ag-theme-alpine .ag-cell {
+    line-height: 26px;
+}
+
+.job-grid-section {
+    margin-bottom: 20px;
+}
+
+.job-grid-section h2 {
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+/* Remove fixed heights */
+.ag-theme-alpine {
+    width: 100%;
+}
+
+/* Style for empty state */
+.ag-theme-alpine .ag-overlay-loading-center {
+    background: white;
+    padding: 10px;
+    border: 1px solid #dde2eb;
+    font-size: 14px;
+    color: #666;
+}
