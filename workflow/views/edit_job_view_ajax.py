@@ -1,108 +1,125 @@
-# views/ajax_edit_job_view.py
+import json
 import logging
 
-# This is the prettier view which combines all the forms into one view
-
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from django.views.decorators.csrf import csrf_exempt
+
 from workflow.forms import JobPricingForm, JobForm, TimeEntryForm, MaterialEntryForm, AdjustmentEntryForm
-from workflow.models import TimeEntry, MaterialEntry, AdjustmentEntry, Job, JobPricing
+from workflow.models import Job, JobPricing
 
 logger = logging.getLogger(__name__)
 
 
 def edit_job_view_ajax(request, job_id=None):
-    # Fetch the job if updating, or create a new one if job_id is None
+    logger.info(f"Entering edit_job_view_ajax with job_id: {job_id}")
+
     if job_id:
         job = get_object_or_404(Job, id=job_id)
-        logger.debug(f"Editing job {job.job_number}")
+        logger.info(f"Editing existing job {job.job_number}")
     else:
-        job = Job.objects.create()  # Create a new job
-        active_estimate = JobPricing.objects.create(job=job, pricing_stage='estimate')
-        active_quote = JobPricing.objects.create(job=job, pricing_stage='quote')
-        active_reality = JobPricing.objects.create(job=job, pricing_stage='reality')
-        logger.debug(f"New job created: {job.job_number}")
+        job = Job.objects.create()
+        logger.info(f"Created new job with id: {job.id}")
 
-    # For existing jobs, get the latest active entries
-    if job_id:
-        active_estimate = job.pricings.filter(pricing_stage='estimate').order_by('-created_at').first()
-        active_quote = job.pricings.filter(pricing_stage='quote').order_by('-created_at').first()
-        active_reality = job.pricings.filter(pricing_stage='reality').order_by('-created_at').first()
+    # Get or create JobPricing instances for each section
+    estimate, est_created = JobPricing.objects.get_or_create(job=job, pricing_stage='estimate')
+    quote, quote_created = JobPricing.objects.get_or_create(job=job, pricing_stage='quote')
+    reality, real_created = JobPricing.objects.get_or_create(job=job, pricing_stage='reality')
+    logger.info(f"JobPricing instances: estimate {'created' if est_created else 'retrieved'}, "
+                f"quote {'created' if quote_created else 'retrieved'}, "
+                f"reality {'created' if real_created else 'retrieved'}")
 
-    # Initialize the forms for job, estimate, quote, and reality
+    # Create forms
     job_form = JobForm(request.POST or None, instance=job)
-    estimate_form = JobPricingForm(request.POST or None, instance=active_estimate, prefix="estimate")
-    quote_form = JobPricingForm(request.POST or None, instance=active_quote, prefix="quote")
-    reality_form = JobPricingForm(request.POST or None, instance=active_reality, prefix="reality")
+    estimate_form = JobPricingForm(request.POST or None, instance=estimate, prefix="estimate")
+    quote_form = JobPricingForm(request.POST or None, instance=quote, prefix="quote")
+    reality_form = JobPricingForm(request.POST or None, instance=reality, prefix="reality")
 
-    # Time, materials, and adjustments (related to the active estimate)
-    time_entry_forms = [TimeEntryForm(request.POST or None, prefix=str(i), instance=entry) for i, entry in
-                        enumerate(active_estimate.time_entries.all())] if active_estimate else []
-    material_entry_forms = [MaterialEntryForm(request.POST or None, prefix=str(i), instance=entry) for i, entry in
-                            enumerate(active_estimate.material_entries.all())] if active_estimate else []
-    adjustment_entry_forms = [AdjustmentEntryForm(request.POST or None, prefix=str(i), instance=entry) for i, entry in
-                              enumerate(active_estimate.adjustment_entries.all())] if active_estimate else []
+    # Create entry forms for each section
+    sections = [
+        ('estimate', estimate),
+        ('quote', quote),
+        ('reality', reality)
+    ]
+
+    entry_forms = {}
+    for section_name, job_pricing in sections:
+        entry_forms[section_name] = {
+            'time': [TimeEntryForm(request.POST or None, prefix=f"{section_name}_time_{i}", instance=entry)
+                     for i, entry in enumerate(job_pricing.time_entries.all())],
+            'material': [MaterialEntryForm(request.POST or None, prefix=f"{section_name}_material_{i}", instance=entry)
+                         for i, entry in enumerate(job_pricing.material_entries.all())],
+            'adjustment': [
+                AdjustmentEntryForm(request.POST or None, prefix=f"{section_name}_adjustment_{i}", instance=entry)
+                for i, entry in enumerate(job_pricing.adjustment_entries.all())]
+        }
+        logger.info(f"{section_name.capitalize()} section: {len(entry_forms[section_name]['time'])} time entries, "
+                    f"{len(entry_forms[section_name]['material'])} material entries, "
+                    f"{len(entry_forms[section_name]['adjustment'])} adjustment entries")
 
     if request.method == 'POST':
-        all_forms_valid = True
+        logger.info(f"Processing POST request for job {job.id}")
+        all_valid = all([job_form.is_valid(), estimate_form.is_valid(), quote_form.is_valid(), reality_form.is_valid()])
+        logger.info(f"Main forms valid: {all_valid}")
 
-        # Validate the job, estimate, quote, and reality forms
-        if not job_form.is_valid() or not estimate_form.is_valid() or not quote_form.is_valid() or not reality_form.is_valid():
-            all_forms_valid = False
-
-        # Validate time entry forms
-        for time_form in time_entry_forms:
-            if not time_form.is_valid():
-                all_forms_valid = False
-
-        # Validate material entry forms
-        for material_form in material_entry_forms:
-            if not material_form.is_valid():
-                all_forms_valid = False
-
-        # Validate adjustment entry forms
-        for adjustment_form in adjustment_entry_forms:
-            if not adjustment_form.is_valid():
-                all_forms_valid = False
-
-        # If all forms are valid, save everything
-        if all_forms_valid:
+        if all_valid:
             job = job_form.save()
+            estimate = estimate_form.save()
+            quote = quote_form.save()
+            reality = reality_form.save()
+            logger.info(f"Saved main forms for job {job.id}")
 
-            # Save the estimate, quote, and reality
-            estimate = estimate_form.save(commit=False)
-            estimate.job = job
-            estimate.save()
+            for section_name, job_pricing in sections:
+                for entry_type in ['time', 'material', 'adjustment']:
+                    for i, form in enumerate(entry_forms[section_name][entry_type]):
+                        if form.is_valid():
+                            entry = form.save(commit=False)
+                            entry.job_pricing = job_pricing
+                            entry.save()
+                            logger.info(f"Saved {entry_type} entry {i} for {section_name} section")
+                        else:
+                            logger.error(
+                                f"Invalid {entry_type} entry form {i} in {section_name} section: {form.errors}")
 
-            quote = quote_form.save(commit=False)
-            quote.job = job
-            quote.save()
-
-            reality = reality_form.save(commit=False)
-            reality.job = job
-            reality.save()
-
-            # Save time, materials, adjustments related to the estimate
-            for time_form in time_entry_forms:
-                time_form.save()
-
-            for material_form in material_entry_forms:
-                material_form.save()
-
-            for adjustment_form in adjustment_entry_forms:
-                adjustment_form.save()
-
-            return redirect('/')
+            logger.info(f"Successfully saved job {job.id} and all related data")
+            return redirect('job_list')  # or wherever you want to redirect after saving
         else:
-            logger.error("One or more forms were invalid. Not saving data.")
+            logger.error("Form validation failed")
+            if not job_form.is_valid():
+                logger.error(f"Job form errors: {job_form.errors}")
+            if not estimate_form.is_valid():
+                logger.error(f"Estimate form errors: {estimate_form.errors}")
+            if not quote_form.is_valid():
+                logger.error(f"Quote form errors: {quote_form.errors}")
+            if not reality_form.is_valid():
+                logger.error(f"Reality form errors: {reality_form.errors}")
 
     context = {
         'job_form': job_form,
         'estimate_form': estimate_form,
         'quote_form': quote_form,
         'reality_form': reality_form,
-        'time_entry_forms': time_entry_forms,
-        'material_entry_forms': material_entry_forms,
-        'adjustment_entry_forms': adjustment_entry_forms,
+        'entry_forms': entry_forms,
     }
 
+    logger.info(f"Rendering template for job {job.id}")
     return render(request, 'jobs/edit_job_ajax.html', context)
+
+
+@csrf_exempt
+def autosave_job_view(request):
+    if request.method == 'POST':
+        try:
+            # Parse the incoming JSON data
+            data = json.loads(request.body)
+
+            # Process the data (save to database, update models, etc.)
+            # For example, update job entries based on the data
+            # job = Job.objects.get(id=data['job_id'])
+            # job.update(...)
+
+            return JsonResponse({'status': 'success'}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    else:
+        return JsonResponse({'error': 'Invalid method'}, status=405)

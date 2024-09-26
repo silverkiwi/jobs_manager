@@ -54,7 +54,7 @@
 
     <!-- Save/Cancel Buttons -->
     <div class="action-buttons">
-        <button class="btn btn-primary" id="saveButton">Save</button>
+        <!-- <button class="btn btn-primary" id="saveButton">Save</button> -->
         <button class="btn btn-secondary" id="cancelButton" onclick="window.location.href='/'">Cancel</button>
     </div>
 {% endblock %}
@@ -62,5 +62,6 @@
 {% block extra_js %}
     <script src="https://unpkg.com/ag-grid-community@32.2.0/dist/ag-grid-community.min.js"></script>
     <script src="{% static 'js/client_lookup.js' %}"></script>
-    <script src="{% static 'js/edit_job.js' %}"></script>
+    <script src="{% static 'js/edit_job_grid_logic.js' %}"></script>
+    <script src="{% static 'js/edit_job_form_autosave.js' %}"></script>
 {% endblock %}

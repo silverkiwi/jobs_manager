@@ -22,6 +22,8 @@ from workflow.views.report_view import ReportCompanyProfitAndLoss, CompanyProfit
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
+    path('api/autosave-job/', edit_job_view_ajax.autosave_job_view, name='autosave_job'),
+
     path('api/client-search/', client_view.ClientSearch, name='client_search'),
 # API URLs
     path('api/report/company-profit-and-loss/', ReportCompanyProfitAndLoss.as_view(), name='report_company_profit_and_loss'),
