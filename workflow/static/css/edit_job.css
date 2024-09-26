@@ -14,8 +14,8 @@ form .btn-link {
 /* Table container: dynamic grid layout */
 .table-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Dynamic column layout */
-    gap: 20px; /* Space between the columns */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
     margin-bottom: 20px;
 }
 
@@ -25,25 +25,36 @@ form .btn-link {
     color: #dc3545;
     cursor: pointer;
     padding: 5px;
-    margin-left: auto; /* Align to the right */
     transition: color 0.3s;
+    display: inline-block;
 }
 
 .delete-icon:hover {
     color: #c82333;
 }
 
+.delete-icon.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.delete-icon.disabled:hover {
+    color: #ccc;
+}
+
 /* Responsive design for smaller screens */
 @media (max-width: 768px) {
     .table-container {
-        grid-template-columns: 1fr; /* Switch to one column on small screens */
+        grid-template-columns: 1fr;
     }
 }
+
 .ag-theme-alpine {
     --ag-row-height: 28px;
     --ag-header-height: 32px;
     --ag-cell-horizontal-padding: 5px;
     --ag-border-color: #dde2eb;
+    width: 100%;
 }
 
 .ag-theme-alpine .ag-root-wrapper {
@@ -54,25 +65,24 @@ form .btn-link {
     line-height: 26px;
 }
 
-.job-grid-section {
-    margin-bottom: 20px;
+/* Ensure the grid only shows one row by default */
+.ag-theme-alpine .ag-root-wrapper {
+    min-height: calc(var(--ag-row-height) + var(--ag-header-height)) !important;
+    height: auto !important;
 }
 
-.job-grid-section h2 {
-    margin-bottom: 10px;
-    font-size: 1.2em;
-}
-
-/* Remove fixed heights */
+/* Remove any default max-height */
 .ag-theme-alpine {
-    width: 100%;
+    max-height: none !important;
 }
 
-/* Style for empty state */
-.ag-theme-alpine .ag-overlay-loading-center {
-    background: white;
-    padding: 10px;
-    border: 1px solid #dde2eb;
-    font-size: 14px;
-    color: #666;
+/* Ensure grid body doesn't have a minimum height */
+.ag-theme-alpine .ag-body-viewport {
+    min-height: var(--ag-row-height) !important;
+}
+
+/* Adjust the height of the center container to fit content */
+.ag-theme-alpine .ag-center-cols-container {
+    min-height: var(--ag-row-height) !important;
+    height: auto !important;
 }

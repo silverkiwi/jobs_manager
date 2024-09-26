@@ -9,6 +9,7 @@ from workflow.models import TimeEntry, MaterialEntry, AdjustmentEntry, Job, JobP
 
 logger = logging.getLogger(__name__)
 
+
 def edit_job_view_ajax(request, job_id=None):
     # Fetch the job if updating, or create a new one if job_id is None
     if job_id:
@@ -34,9 +35,12 @@ def edit_job_view_ajax(request, job_id=None):
     reality_form = JobPricingForm(request.POST or None, instance=active_reality, prefix="reality")
 
     # Time, materials, and adjustments (related to the active estimate)
-    time_entry_forms = [TimeEntryForm(request.POST or None, prefix=str(i), instance=entry) for i, entry in enumerate(active_estimate.time_entries.all())] if active_estimate else []
-    material_entry_forms = [MaterialEntryForm(request.POST or None, prefix=str(i), instance=entry) for i, entry in enumerate(active_estimate.material_entries.all())] if active_estimate else []
-    adjustment_entry_forms = [AdjustmentEntryForm(request.POST or None, prefix=str(i), instance=entry) for i, entry in enumerate(active_estimate.adjustment_entries.all())] if active_estimate else []
+    time_entry_forms = [TimeEntryForm(request.POST or None, prefix=str(i), instance=entry) for i, entry in
+                        enumerate(active_estimate.time_entries.all())] if active_estimate else []
+    material_entry_forms = [MaterialEntryForm(request.POST or None, prefix=str(i), instance=entry) for i, entry in
+                            enumerate(active_estimate.material_entries.all())] if active_estimate else []
+    adjustment_entry_forms = [AdjustmentEntryForm(request.POST or None, prefix=str(i), instance=entry) for i, entry in
+                              enumerate(active_estimate.adjustment_entries.all())] if active_estimate else []
 
     if request.method == 'POST':
         all_forms_valid = True
