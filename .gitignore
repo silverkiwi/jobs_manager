@@ -92,3 +92,4 @@ dmypy.json
 *.swp
 *.swo
 *~
+/workflow/fixtures/
