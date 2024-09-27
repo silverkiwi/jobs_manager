@@ -3,32 +3,55 @@
 
     <div class="row mb-3">
         <div class="col-md-6 position-relative">
-            <label for="clientName" class="form-label">Client</label>
-            <input type="text" id="clientName" class="form-control" autocomplete="off">
+            <div class="form-group">
+                <label for="clientName" class="form-label">Client</label>
+                <input type="text" id="clientName" class="form-control" value="{% if job_form.client %}{{ job_form.client.name }}{% else %}No Client{% endif %}" autocomplete="off" readonly>
+                <input type="hidden" name="client_id" id="client_id" value="{{ job_form.client.value }}">
+            </div>
             <div id="clientSuggestionsContainer" class="suggestions-container"></div>
         </div>
         <div class="col-md-6">
             <label for="contact" class="form-label">Contact</label>
-            <input type="text" id="contact" class="form-control" value="{{ job.contract }}">
+            <input type="text" id="contact" class="form-control" value="{{ job_form.contact_person.value }}">
         </div>
     </div>
+
 
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="phoneContact" class="form-label">Phone Contact</label>
-            <input type="text" id="phoneContact" class="form-control" value="{{ job.phone_contact }}">
+            <input type="text" id="phoneContact" class="form-control" value="{{ job_form.contact_phone.value }}">
         </div>
         <div class="col-md-6">
-            <label for="quoteNumber" class="form-label">Quote Number</label>
-            <input type="text" id="quoteNumber" class="form-control" value="{{ job.quote_number }}" disabled>
+            <label for="job_number" class="form-label">Job Number</label>
+            <input type="text" id="job_number" class="form-control" value="{{ job_form.job_number.value }}" readonly>
         </div>
     </div>
 
     <div class="row mb-3">
         <div class="col-md-6">
-            <label for="date" class="form-label">Date</label>
-            <input type="date" id="date" class="form-control" value="{{ job.date }}">
+            <label for="order_number" class="form-label">Order Number</label>
+            <input type="text" id="order_number" class="form-control" value="{{ job_form.order_number.value }}">
+        </div>
+        <div class="col-md-6">
+            <label for="date_created" class="form-label">Job Creation Date</label>
+            <input type="text" id="date_created" class="form-control" value="{{ job_form.date_created.value }}" disabled>
         </div>
     </div>
+
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <label for="materialGaugeQuantity" class="form-label">Material / Gauge / Quantity</label>
+            <textarea id="materialGaugeQuantity" class="form-control">{{ job_form.material_gauge_quantity.value  }}</textarea>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <label for="description" class="form-label">Job Description</label>
+            <textarea id="description" class="form-control">{{ job_form.description.value }}</textarea>
+        </div>
+    </div>
+
 
 </div>

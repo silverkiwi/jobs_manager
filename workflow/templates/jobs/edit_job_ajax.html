@@ -10,6 +10,8 @@
 
 {% block content %}
     <!-- Job Details Section -->
+    {% include "jobs/edit_job_debug_section.html" %}
+
     {% include "jobs/edit_job_detail_section.html" %}
 
     <hr />
@@ -28,6 +30,7 @@
         <div id="quoteTimeTable" class="ag-theme-alpine"></div>
         <div id="quoteMaterialsTable" class="ag-theme-alpine"></div>
         <div id="quoteAdjustmentsTable" class="ag-theme-alpine"></div>
+        <button id="reviseQuote" class="btn btn-primary mt-3">Revise Quote</button>
         <button id="submitQuoteToClient" class="btn btn-primary mt-3">Submit Quote to Client</button>
       </div>
 
@@ -62,6 +65,6 @@
 {% block extra_js %}
     <script src="https://unpkg.com/ag-grid-community@32.2.0/dist/ag-grid-community.min.js"></script>
     <script src="{% static 'js/client_lookup.js' %}"></script>
-    <script src="{% static 'js/edit_job_grid_logic.js' %}"></script>
     <script src="{% static 'js/edit_job_form_autosave.js' %}"></script>
+    <script src="{% static 'js/edit_job_grid_logic.js' %}"></script>
 {% endblock %}

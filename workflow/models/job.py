@@ -37,7 +37,12 @@ class Job(models.Model):
     }
 
     job_name: str = models.CharField(max_length=100, null=False, blank=False)  # type: ignore
-    client_name: str = models.CharField(max_length=100)  # type: ignore
+    client = models.ForeignKey(
+        'Client',
+        on_delete=models.SET_NULL,  # Option to handle if a client is deleted
+        null=True,
+        related_name='jobs'  # Allows reverse lookup of jobs for a client
+    )
     order_number: str = models.CharField(
         max_length=100, null=True, blank=True
     )  # type: ignore
@@ -78,10 +83,11 @@ class Job(models.Model):
         super(Job, self).save(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f"{self.client_name} - {self.job_number or self.order_number}"
+        client_name = self.client.name if self.client else "No Client"
+        return f"{client_name} - {self.job_number}"
 
     def get_display_name(self) -> str:
-        return f"Job:{self.job_number}"  # type: ignore
+        return f"Job: {self.job_number}"  # type: ignore
 
     def save(self, *args, **kwargs):
         if not self.job_number:

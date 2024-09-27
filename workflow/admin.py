@@ -107,22 +107,26 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
 
 @admin.register(Job)
 class JobAdmin(SimpleHistoryAdmin):
-    list_display = (
-        "name",
-        "client_name",
-        "job_number",
-        "status",
-        "paid",
-        "date_created",
-    )
-    search_fields = (
-        "name",
-        "client_name",
-        "job_number",
-        "order_number",
-        "contact_person",
-    )
-    list_filter = ("status", "paid", "date_created")
+    class JobAdmin(SimpleHistoryAdmin):
+        # Updated list_display to reference client via ForeignKey
+        list_display = (
+            "name",
+            "client",
+            "job_number",
+            "status",
+            "paid",
+            "date_created",
+        )
+
+        search_fields = (
+            "name",
+            "client__name",
+            "job_number",
+            "order_number",
+            "contact_person",
+        )
+
+        list_filter = ("status", "paid", "date_created")
 
 
 @admin.register(JobPricing)

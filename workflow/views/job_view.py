@@ -48,7 +48,7 @@ class UpdateJobView(UpdateView):
         # Add job-specific details for display
         context.update(
             {
-                "client_name": job.client_name,
+                "client_name": job.client.name,
                 "order_number": job.order_number,
                 "contact_person": job.contact_person,
                 "contact_phone": job.contact_phone,

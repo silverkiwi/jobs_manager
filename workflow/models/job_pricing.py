@@ -9,7 +9,6 @@ from workflow.models import Job
 
 class JobPricing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    job_pricing_number = models.IntegerField(unique=True, null=False, blank=False)
 
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="pricings")
     pricing_stage = models.CharField(
@@ -24,18 +23,10 @@ class JobPricing(models.Model):
         default=JobPricingType.TIME_AND_MATERIALS,
         help_text="Type of pricing for the job (fixed price or time and materials).",
     )
-    job_pricing_number = models.IntegerField(null=False, blank=False, unique=True)  # For Quote #123
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    @staticmethod
-    def generate_unique_job_pricing_number():
-        with transaction.atomic():
-            last_pricing = JobPricing.objects.select_for_update().order_by('-job_pricing_number').first()
-            if last_pricing and last_pricing.job_pricing_number:
-                return last_pricing.job_pricing_number + 1
-            return 1  # Start numbering from 1 if there are no existing records
 
     @property
     def total_cost(self):
@@ -62,11 +53,6 @@ class JobPricing(models.Model):
     def __str__(self):
         return f"{self.job.name} - {self.get_pricing_stage_display()} ({self.get_pricing_type_display()})"
 
-
-    def save(self, *args, **kwargs):
-        if not self.job_pricing_number:
-            self.job_pricing_number = self.generate_unique_job_pricing_number()
-        super(JobPricing, self).save(*args, **kwargs)
 
 # Not implemented yet - just putting this here to add in future design thinking
 def snapshot_and_add_time_entry(job_pricing, hours_worked):
@@ -96,3 +82,17 @@ def snapshot_and_add_time_entry(job_pricing, hours_worked):
     TimeEntry.objects.create(job_pricing=job_pricing, hours_worked=hours_worked)
 
     return snapshot_pricing  # Return the snapshot to track it if needed
+
+
+class QuotePricing(JobPricing):
+    quote_is_finished = models.BooleanField(default=False)  # Locks the quote when true
+    date_quote_submitted = models.DateField(null=True, blank=True)  # Date the quote was submitted to client
+    quote_number = models.IntegerField(null=False, blank=False, unique=True)  # For Quote #123
+
+    @staticmethod
+    def generate_unique_quote_number():
+        with transaction.atomic():
+            last_pricing = JobPricing.objects.select_for_update().order_by('-quote_number').first()
+            if last_pricing and last_pricing.quote_number:
+                return last_pricing.quote_number + 1
+            return 1  # Start numbering from 1 if there are no existing records

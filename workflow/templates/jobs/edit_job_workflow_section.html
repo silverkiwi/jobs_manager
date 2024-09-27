@@ -5,20 +5,37 @@
     <div class="form-group">
         <label for="jobStatus">Job Status:</label>
         <select id="jobStatus" class="form-control">
-            <option value="quoting" {% if job.status == 'quoting' %}selected{% endif %}>Quoting</option>
-            <option value="approved" {% if job.status == 'approved' %}selected{% endif %}>Approved</option>
-            <option value="in_progress" {% if job.status == 'in_progress' %}selected{% endif %}>In Progress</option>
-            <option value="on_hold" {% if job.status == 'on_hold' %}selected{% endif %}>On Hold</option>
-            <option value="rejected" {% if job.status == 'rejected' %}selected{% endif %}>Rejected</option>
-            <option value="completed" {% if job.status == 'completed' %}selected{% endif %}>Completed</option>
-            <option value="archived" {% if job.status == 'archived' %}selected{% endif %}>Archived</option>
+            <option value="quoting" {% if job_form.status.value == 'quoting' %}selected{% endif %}>Quoting</option>
+            <option value="approved" {% if job_form.status.value == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="in_progress" {% if job_form.status.value == 'in_progress' %}selected{% endif %}>In Progress</option>
+            <option value="on_hold" {% if job_form.status.value == 'on_hold' %}selected{% endif %}>On Hold</option>
+            <option value="rejected" {% if job_form.status.value == 'rejected' %}selected{% endif %}>Rejected</option>
+            <option value="completed" {% if job_form.status.value == 'completed' %}selected{% endif %}>Completed</option>
+            <option value="archived" {% if job_form.status.value == 'archived' %}selected{% endif %}>Archived</option>
         </select>
+    </div>
+
+    <!-- Quote Acceptance Date -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="quoteAcceptanceDate" class="form-label">Quote Acceptance Date</label>
+            <input type="date" id="quoteAcceptanceDate" class="form-control" value="{{ job_form.quote_acceptance_date.value }}" readonly>
+            <!-- Workflow logic to be added later -->
+        </div>
+    </div>
+
+    <!-- Delivery Date -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="deliveryDate" class="form-label">Delivery Date</label>
+            <input type="date" id="deliveryDate" class="form-control" value="{{ job_form.delivery_date.value }}" readonly>
+        </div>
     </div>
 
     <!-- Job Paid Checkbox -->
     <div class="form-group">
         <label for="paidCheckbox">
-            <input type="checkbox" id="paidCheckbox" {% if job.paid %}checked{% endif %}>
+            <input type="checkbox" id="paidCheckbox" {% if job_form.paid.value %}checked{% endif %}>
             Job Paid
         </label>
     </div>

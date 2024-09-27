@@ -21,16 +21,12 @@ logger = logging.getLogger(__name__)
 class JobForm(forms.ModelForm):
     class Meta:
         model = Job
-        fields = [
-            "job_name",
-            "client_name",
-            "order_number",
-            "contact_person",
-            "contact_phone",
-            "description",
-            "status",
-            "paid",
-        ]
+        fields = "__all__"
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.fields['date_created'].disabled = True
+            self.fields['last_updated'].disabled = True
 
 
 class JobPricingForm(forms.ModelForm):

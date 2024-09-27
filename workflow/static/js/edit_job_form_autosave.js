@@ -7,24 +7,37 @@ function debounce(func, wait) {
     };
 }
 
-// Function to collect data from grids and form fields
 function collectAllData() {
     const sections = ['estimate', 'quote', 'reality'];
     const grids = ['TimeTable', 'MaterialsTable', 'AdjustmentsTable'];
     const data = {};
 
-    // Collect grid data from all sections
+    // Initialize AG Grids for Time, Materials, and Adjustments tables
     sections.forEach(section => {
         data[section] = {};
         grids.forEach(gridName => {
-            const gridElement = document.querySelector(`#${section}${gridName}`);
-            if (gridElement) {
-                const gridOptions = gridElement.__agGridOptions__;
-                if (gridOptions && gridOptions.api) {
-                    data[section][gridName.toLowerCase().replace('table', '')] = gridOptions.api.getAllRows();
-                } else {
-                    console.error(`Grid API not found for ${section}${gridName}`);
-                }
+            const gridInstance = window.grids[`${section}${gridName}`];
+
+            if (gridInstance) {
+                console.log(`Grid instance is defined for ${section}${gridName}`);
+            } else {
+                console.error(`Grid instance NOT found for ${section}${gridName}`);
+                return;  // If the grid instance is not found, skip this grid
+            }
+
+            if (gridInstance.gridApi) {
+                console.log(`Collecting data for ${section}${gridName}`);
+
+                // Use the forEachNode method to collect row data
+                const rowData = [];
+                gridInstance.gridApi.forEachNode(node => rowData.push(node.data));
+
+                // Store the row data in the data object
+                data[section][gridName.toLowerCase().replace('table', '')] = rowData;
+
+                console.log(`Collected ${rowData.length} rows for ${section}${gridName}`);
+            } else {
+                console.error(`Grid API not found for ${section}${gridName}`);
             }
         });
     });
@@ -34,11 +47,14 @@ function collectAllData() {
     formElements.forEach(element => {
         if (element.name || element.id) {
             data[element.name || element.id] = element.value;
+            console.log(`Collected form element data: ${element.name || element.id} = ${element.value}`);
         }
     });
 
+    console.log('All data collected:', data);
     return data;
 }
+
 
 // Autosave function to send data to the server
 function autosaveData() {
