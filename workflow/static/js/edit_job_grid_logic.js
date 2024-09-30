@@ -3,13 +3,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const materialField = document.getElementById('materialGaugeQuantity');
     const descriptionField = document.getElementById('description');
 
-    console.log("Material field:", materialField);  // Check if field is selected
-    console.log("Description field:", descriptionField);
-
     function autoExpand(field) {
         field.style.height = 'auto';  // Reset the height
-        field.style.height = field.scrollHeight + 'px';  // Set the height to fit content
-        console.log("Auto expanding:", field);
+        const newHeight = field.scrollHeight + 'px';  // Calculate the correct height based on content
+        console.log('Auto expanding:', field.id, 'Setting height to:', newHeight);  // Debug: Log the new height
+        field.style.height = newHeight;  // Apply the calculated height
     }
 
     materialField.addEventListener('input', function () {
@@ -19,7 +17,13 @@ document.addEventListener('DOMContentLoaded', function () {
     descriptionField.addEventListener('input', function () {
         autoExpand(descriptionField);
     });
+
+    // Initial expansion for preloaded content
+    autoExpand(materialField);
+    autoExpand(descriptionField);
 });
+
+
 
 
 
@@ -119,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ...commonGridOptions,
         onGridReady: function (params) {
             const section = params.context.section;
-            console.log(`Time grid API ready for ${section}`);
+//            console.log(`Time grid API ready for ${section}`);
             window.grids[`${section}TimeTable`].gridApi = params.api;
         },
         columnDefs: [
@@ -158,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ...commonGridOptions,
         onGridReady: function (params) {
             const section = params.context.section;
-            console.log(`Materials grid API ready for ${section}`);
+//            console.log(`Materials grid API ready for ${section}`);
             window.grids[`${section}MaterialsTable`].gridApi = params.api;
         },
 
@@ -198,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ...commonGridOptions,
         onGridReady: function (params) {
             const section = params.context.section;
-            console.log(`Adjustments grid API ready for ${section}`);
+//            console.log(`Adjustments grid API ready for ${section}`);
             window.grids[`${section}AdjustmentsTable`].gridApi = params.api;
         },
         columnDefs: [

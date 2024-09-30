@@ -18,6 +18,8 @@ form .btn-link {
     min-height: 60px;  /* Set a reasonable minimum height */
     padding: 8px;
     box-sizing: border-box;
+    border: 2px solid red;  /* Visual border to see the textarea's size */
+    background-color: rgba(255, 0, 0, 0.1);  /* Light background to help see size */
 }
 
 /* Table container: dynamic grid layout */

@@ -19,14 +19,14 @@ function collectAllData() {
             const gridInstance = window.grids[`${section}${gridName}`];
 
             if (gridInstance) {
-                console.log(`Grid instance is defined for ${section}${gridName}`);
+//                console.log(`Grid instance is defined for ${section}${gridName}`);
             } else {
                 console.error(`Grid instance NOT found for ${section}${gridName}`);
                 return;  // If the grid instance is not found, skip this grid
             }
 
             if (gridInstance.gridApi) {
-                console.log(`Collecting data for ${section}${gridName}`);
+//                console.log(`Collecting data for ${section}${gridName}`);
 
                 // Use the forEachNode method to collect row data
                 const rowData = [];
@@ -35,7 +35,7 @@ function collectAllData() {
                 // Store the row data in the data object
                 data[section][gridName.toLowerCase().replace('table', '')] = rowData;
 
-                console.log(`Collected ${rowData.length} rows for ${section}${gridName}`);
+//                console.log(`Collected ${rowData.length} rows for ${section}${gridName}`);
             } else {
                 console.error(`Grid API not found for ${section}${gridName}`);
             }
@@ -47,7 +47,7 @@ function collectAllData() {
     formElements.forEach(element => {
         if (element.name || element.id) {
             data[element.name || element.id] = element.value;
-            console.log(`Collected form element data: ${element.name || element.id} = ${element.value}`);
+//            console.log(`Collected form element data: ${element.name || element.id} = ${element.value}`);
         }
     });
 
