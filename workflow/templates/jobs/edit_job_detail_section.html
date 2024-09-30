@@ -5,8 +5,11 @@
         <div class="col-md-6 position-relative">
             <div class="form-group">
                 <label for="clientName" class="form-label">Client</label>
-                <input type="text" id="clientName" class="form-control" value="{% if job_form.client %}{{ job_form.client.name }}{% else %}No Client{% endif %}" autocomplete="off" readonly>
-                <input type="hidden" name="client_id" id="client_id" value="{{ job_form.client.value }}">
+                    <label for="clientName" class="form-label">Client</label>
+                    <input type="text" id="clientName" class="form-control"
+                           value="{% if job_form.client and job_form.client.value %}{{ job_form.client.name }}{% else %}{{ '' }}{% endif %}"
+                           autocomplete="off">
+                    <input type="hidden" name="client_id" id="client_id" value="{% if job_form.client and job_form.client.value %}{{ job_form.client.value }}{% else %}{{ '' }}{% endif %}">
             </div>
             <div id="clientSuggestionsContainer" class="suggestions-container"></div>
         </div>
@@ -31,27 +34,30 @@
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="order_number" class="form-label">Order Number</label>
-            <input type="text" id="order_number" class="form-control" value="{{ job_form.order_number.value }}">
+            <input type="text" id="order_number" class="form-control"
+               value="{% if job_form.order_number and job_form.order_number.value %}{{ job_form.order_number.value }}{% else %}{{ '' }}{% endif %}">
         </div>
         <div class="col-md-6">
             <label for="date_created" class="form-label">Job Creation Date</label>
-            <input type="text" id="date_created" class="form-control" value="{{ job_form.date_created.value }}" disabled>
+            <input type="text" id="date_created" class="form-control" value="{{ job_form.date_created.value }}"
+                   disabled>
         </div>
     </div>
 
     <div class="row mb-3">
         <div class="col-md-12">
             <label for="materialGaugeQuantity" class="form-label">Material / Gauge / Quantity</label>
-            <textarea id="materialGaugeQuantity" class="form-control">{{ job_form.material_gauge_quantity.value  }}</textarea>
+            <textarea id="materialGaugeQuantity" class="form-control autoresizeTextarea">{{ job_form.material_gauge_quantity.value }}</textarea>
         </div>
     </div>
 
     <div class="row mb-3">
         <div class="col-md-12">
             <label for="description" class="form-label">Job Description</label>
-            <textarea id="description" class="form-control">{{ job_form.description.value }}</textarea>
+            <textarea id="description" class="form-control autoresizeTextarea">{{ job_form.description.value }}</textarea>
         </div>
     </div>
+
 
 
 </div>

@@ -11,9 +11,13 @@ form .btn-link {
     margin-top: 10px;
 }
 
-textarea {
-    resize: vertical;  /* Allows the user to resize the textarea vertically */
-    min-height: 100px; /* Minimum height */
+.autoresizeTextarea {
+    resize: none;  /* Prevent manual resizing */
+    overflow: hidden;  /* Hide the scrollbar */
+    height: auto !important;  /* Ensure the height is flexible */
+    min-height: 60px;  /* Set a reasonable minimum height */
+    padding: 8px;
+    box-sizing: border-box;
 }
 
 /* Table container: dynamic grid layout */

@@ -68,19 +68,10 @@ class Job(models.Model):
     #     related_name="revisions",
     #     on_delete=models.SET_NULL,
     # )
+    job_is_valid = models.BooleanField(default=False)  # type: ignore
     paid: bool = models.BooleanField(default=False)  # type: ignore
     history: HistoricalRecords = HistoricalRecords()
 
-    def save(self, *args, **kwargs):
-        if not self.job_number:
-            with transaction.atomic():
-                # Select the last job for update and increment the job number
-                last_job = Job.objects.select_for_update().order_by("id").last()
-                if last_job:
-                    self.job_number = last_job.job_number + 1
-                else:
-                    self.job_number = 1  # Start from 1 if no jobs exist
-        super(Job, self).save(*args, **kwargs)
 
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"

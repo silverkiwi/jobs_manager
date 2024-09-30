@@ -1,3 +1,29 @@
+// This listner is for the entries towards the top.  The material and description fields, etc.
+document.addEventListener('DOMContentLoaded', function () {
+    const materialField = document.getElementById('materialGaugeQuantity');
+    const descriptionField = document.getElementById('description');
+
+    console.log("Material field:", materialField);  // Check if field is selected
+    console.log("Description field:", descriptionField);
+
+    function autoExpand(field) {
+        field.style.height = 'auto';  // Reset the height
+        field.style.height = field.scrollHeight + 'px';  // Set the height to fit content
+        console.log("Auto expanding:", field);
+    }
+
+    materialField.addEventListener('input', function () {
+        autoExpand(materialField);
+    });
+
+    descriptionField.addEventListener('input', function () {
+        autoExpand(descriptionField);
+    });
+});
+
+
+
+// This listner is for the job pricing grid
 document.addEventListener('DOMContentLoaded', function () {
     // Helper functions for grid calculations
     function currencyFormatter(params) {
