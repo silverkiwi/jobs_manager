@@ -8,7 +8,7 @@ from simple_history.models import HistoricalRecords  # type: ignore
 
 
 class Job(models.Model):
-    name = models.CharField(max_length=100)  # type: ignore
+    name = models.CharField(max_length=100, null=False, blank=False)  # type: ignore
 
     id: uuid.UUID = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
@@ -36,7 +36,6 @@ class Job(models.Model):
         "archived": "The job has been paid for and picked up.",
     }
 
-    job_name: str = models.CharField(max_length=100, null=False, blank=False)  # type: ignore
     client = models.ForeignKey(
         'Client',
         on_delete=models.SET_NULL,  # Option to handle if a client is deleted
@@ -50,6 +49,8 @@ class Job(models.Model):
     contact_phone: str = models.CharField(max_length=15)  # type: ignore
     job_number = models.IntegerField(null=False, blank=False, unique=True)  # Job 1234
     description: str = models.TextField()  # type: ignore
+    quote_acceptance_date: datetime.datetime = models.DateTimeField(null=True, blank=True)  # type: ignore
+    delivery_date: datetime.datetime = models.DateTimeField(null=True, blank=True)  # type: ignore
     date_created: datetime.datetime = models.DateTimeField(
         default=timezone.now
     )  # type: ignore

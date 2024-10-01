@@ -18,10 +18,10 @@ from workflow.models import (
 
 @admin.register(CompanyDefaults)
 class CompanyDefaultsAdmin(admin.ModelAdmin):
-    list_display = ['charge_out_rate', 'cost_rate_without_staff', 'time_markup', 'materials_markup']
+    list_display = ['charge_out_rate', 'wage_rate', 'time_markup', 'materials_markup']
     fieldsets = (
         (None, {
-            'fields': ('time_markup', 'materials_markup', 'charge_out_rate', 'cost_rate_without_staff')
+            'fields': ('time_markup', 'materials_markup', 'charge_out_rate', 'wage_rate')
         }),
         ('Working Hours', {
             'fields': (

@@ -10,8 +10,6 @@
 
 {% block content %}
     <!-- Job Details Section -->
-    {% include "jobs/edit_job_debug_section.html" %}
-
     {% include "jobs/edit_job_detail_section.html" %}
 
     <hr />
@@ -52,6 +50,17 @@
 
     <!-- Workflow Section -->
     {% include "jobs/edit_job_workflow_section.html" %}
+
+    <hr />
+    {% if job_form.errors %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for field, errors in job_form.errors.items %}
+                    <li>{{ field }}: {{ errors }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
 
     <hr />
 

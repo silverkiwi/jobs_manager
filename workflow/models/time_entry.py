@@ -18,14 +18,29 @@ class TimeEntry(models.Model):
         blank=True,
     )
     staff = models.ForeignKey(
-        Staff, on_delete=models.CASCADE, related_name="time_entries"
+        Staff, on_delete=models.CASCADE, related_name="time_entries", null=True, blank=True  # Allow null and blank for estimates and quotes
     )
-    date = models.DateField()
-    minutes = models.DecimalField(max_digits=5, decimal_places=2)  # Duration in minutes
+    date = models.DateField(null=True, blank=True) # Allow null and blank for estimates and quotes
     note = models.TextField(blank=True, null=True)
     is_billable = models.BooleanField(default=True)
     wage_rate = models.DecimalField(max_digits=10, decimal_places=2)
     charge_out_rate = models.DecimalField(max_digits=10, decimal_places=2)
+
+    description = models.TextField(blank=True, null=True)  # Description is for quotes/estimates not real entries.  They tend to use 'note' instead
+    items = models.IntegerField(default=1)  # New field, defaulting to 1
+    mins_per_item = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)  # items * mins_per_item = minutes
+
+    @property
+    def minutes(self) -> Decimal:
+        # Calculate minutes dynamically
+        if self.items and self.mins_per_item:
+            return self.items * self.mins_per_item
+        return Decimal(0)
+
+    @property
+    def hours(self) -> Decimal:
+        # Use computed minutes to calculate hours
+        return self.minutes / Decimal(60)
 
     @property
     def cost(self) -> Decimal:

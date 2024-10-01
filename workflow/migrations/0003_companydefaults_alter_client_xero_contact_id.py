@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                     models.DecimalField(decimal_places=2, default=105.0, max_digits=6),
                 ),
                 (
-                    "cost_rate_without_staff",
+                    "wage_rate",
                     models.DecimalField(decimal_places=2, default=32.0, max_digits=6),
                 ),
                 ("mon_start", models.TimeField(default="07:00")),

@@ -18,8 +18,9 @@
     <!-- Quote Acceptance Date -->
     <div class="row mb-3">
         <div class="col-md-6">
-            <label for="quoteAcceptanceDate" class="form-label">Quote Acceptance Date</label>
-            <input type="date" id="quoteAcceptanceDate" class="form-control" value="{{ job_form.quote_acceptance_date.value }}" readonly>
+            <input type="date" id="quoteAcceptanceDate" class="form-control"
+                   value="{% if job_form.quote_acceptance_date.value %}{{ job_form.quote_acceptance_date.value|date:'Y-m-d' }}{% else %}""{% endif %}"
+                       readonly>
             <!-- Workflow logic to be added later -->
         </div>
     </div>
@@ -28,7 +29,9 @@
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="deliveryDate" class="form-label">Delivery Date</label>
-            <input type="date" id="deliveryDate" class="form-control" value="{{ job_form.delivery_date.value }}" readonly>
+            <input type="date" id="deliveryDate" class="form-control"
+                   value="{% if job_form.delivery_date.value %}{{ job_form.delivery_date.value|date:'Y-m-d' }}{% else %}""{% endif %}"
+                   readonly>
         </div>
     </div>
 

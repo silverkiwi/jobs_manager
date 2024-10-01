@@ -6,7 +6,7 @@ class CompanyDefaults(models.Model):
     time_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.3)
     materials_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.2)
     charge_out_rate = models.DecimalField(max_digits=6, decimal_places=2, default=105.00)
-    cost_rate_without_staff = models.DecimalField(max_digits=6, decimal_places=2, default=32.00)
+    wage_rate = models.DecimalField(max_digits=6, decimal_places=2, default=32.00)
 
     # Default working hours (Mon-Fri, 7am - 3pm)
     mon_start = models.TimeField(default='07:00')

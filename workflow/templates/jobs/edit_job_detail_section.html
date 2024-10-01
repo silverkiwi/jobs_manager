@@ -1,6 +1,16 @@
 <div class="job-details">
     <h2>Job Details</h2>
 
+        <input type="hidden" id="job_id" name="job_id" value="{{ job_form.instance.id }}">
+        <p>Job ID: {{ job_form.instance.id }}</p>
+
+    <div class="row mb-12">
+        <div class="col-md-12">
+            <label for="jobName" class="form-label">Job Name</label>
+            <input type="text" id="job_name" value="{{ job_form.name.value }}">
+        </div>
+    </div>
+
     <div class="row mb-3">
         <div class="col-md-6 position-relative">
             <div class="form-group">
@@ -15,7 +25,7 @@
         </div>
         <div class="col-md-6">
             <label for="contact" class="form-label">Contact</label>
-            <input type="text" id="contact" class="form-control" value="{{ job_form.contact_person.value }}">
+            <input type="text" id="contact_person" name="contact_person"  class="form-control" value="{{ job_form.contact_person.value }}">
         </div>
     </div>
 
@@ -34,7 +44,7 @@
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="order_number" class="form-label">Order Number</label>
-            <input type="text" id="order_number" class="form-control"
+            <input type="text" id="order_number" name="order_number" class="form-control"
                value="{% if job_form.order_number and job_form.order_number.value %}{{ job_form.order_number.value }}{% else %}{{ '' }}{% endif %}">
         </div>
         <div class="col-md-6">

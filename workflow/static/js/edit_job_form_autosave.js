@@ -7,52 +7,59 @@ function debounce(func, wait) {
     };
 }
 
+
 function collectAllData() {
-    const sections = ['estimate', 'quote', 'reality'];
-    const grids = ['TimeTable', 'MaterialsTable', 'AdjustmentsTable'];
-    const data = {};
+    const data = {
+        id: document.getElementById('job_id').value,
+        name: document.getElementById('job_name').value,
+        client: document.getElementById('client_id').value,
+        order_number: document.getElementById('order_number').value,
+        contact_person: document.getElementById('contact_person').value,
+        contact_phone: document.getElementById('phoneContact').value,
+        job_number: parseInt(document.getElementById('job_number').value, 10),
+        description: document.getElementById('description').value,
+        date_created: document.getElementById('date_created').value,
+        status: document.getElementById('jobStatus').value,
+        paid: document.getElementById('paidCheckbox').checked,
+        job_is_valid: checkJobValidity(), // We are responsible for calculating this
 
-    // Initialize AG Grids for Time, Materials, and Adjustments tables
-    sections.forEach(section => {
-        data[section] = {};
-        grids.forEach(gridName => {
-            const gridInstance = window.grids[`${section}${gridName}`];
+        estimate: collectGridData('estimate'),
+        quote: collectGridData('quote'),
+        reality: collectGridData('reality')
+    };
 
-            if (gridInstance) {
-//                console.log(`Grid instance is defined for ${section}${gridName}`);
-            } else {
-                console.error(`Grid instance NOT found for ${section}${gridName}`);
-                return;  // If the grid instance is not found, skip this grid
-            }
+    return data;
+}
 
-            if (gridInstance.gridApi) {
-//                console.log(`Collecting data for ${section}${gridName}`);
-
-                // Use the forEachNode method to collect row data
-                const rowData = [];
-                gridInstance.gridApi.forEachNode(node => rowData.push(node.data));
-
-                // Store the row data in the data object
-                data[section][gridName.toLowerCase().replace('table', '')] = rowData;
-
-//                console.log(`Collected ${rowData.length} rows for ${section}${gridName}`);
-            } else {
-                console.error(`Grid API not found for ${section}${gridName}`);
-            }
-        });
+function checkJobValidity() {
+    // Check if all required fields are populated
+    const requiredFields = ['job_name', 'client_id', 'contact_person', 'phoneContact', 'job_number'];
+    const isValid = requiredFields.every(field => {
+        const value = document.getElementById(field).value;
+        return value !== null && value !== undefined && value.trim() !== '';
     });
 
-    // Collect data from all form fields (inputs, selects, textareas)
-    const formElements = document.querySelectorAll('input, select, textarea');
-    formElements.forEach(element => {
-        if (element.name || element.id) {
-            data[element.name || element.id] = element.value;
-//            console.log(`Collected form element data: ${element.name || element.id} = ${element.value}`);
+    return isValid;
+}
+
+function collectGridData(section) {
+    const grids = ['TimeTable', 'MaterialsTable', 'AdjustmentsTable'];
+    const sectionData = {};
+
+    grids.forEach(gridName => {
+        const gridKey = `${section}${gridName}`;
+        const gridData = window.grids[gridKey];
+
+        if (gridData && gridData.api) {
+            const rowData = [];
+            gridData.api.forEachNode(node => rowData.push(node.data));
+            sectionData[gridName.toLowerCase().replace('table', '')] = rowData;
+        } else {
+            console.error(`Grid or API not found for ${gridKey}`);
         }
     });
 
-    console.log('All data collected:', data);
-    return data;
+    return sectionData;
 }
 
 
@@ -102,3 +109,4 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+

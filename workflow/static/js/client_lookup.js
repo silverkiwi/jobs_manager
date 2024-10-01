@@ -52,10 +52,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 suggestionItem.classList.add('suggestion-item');
                 suggestionItem.textContent = client.name;
                 suggestionItem.dataset.clientId = client.id;
+
+                // Add the event listener within this block to avoid 'undefined' error
                 suggestionItem.addEventListener('click', function () {
                     clientInput.value = client.name;
+                    document.getElementById('client_id').value = client.id;
+                    console.log("Client ID set to:", client.id);  // Log the client_id
                     suggestionsContainer.innerHTML = ''; // Clear suggestions after selecting
                 });
+
                 suggestionsContainer.appendChild(suggestionItem);
             });
         }

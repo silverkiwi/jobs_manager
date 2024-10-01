@@ -6,7 +6,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.csrf import csrf_exempt
 
 from workflow.forms import JobPricingForm, JobForm, TimeEntryForm, MaterialEntryForm, AdjustmentEntryForm
-from workflow.models import Job, JobPricing, TimeEntry
+from workflow.models import Job, JobPricing, TimeEntry, CompanyDefaults, MaterialEntry, AdjustmentEntry
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +69,7 @@ def edit_job_view_ajax(request, job_id=None):
     # Render the job context to the template
     context = {
         'job_form': job_form,
+        'job_id': job.id,
         'estimate_form': estimate_form,
         'quote_form': quote_form,
         'reality_form': reality_form,
@@ -83,44 +84,6 @@ def edit_job_view_ajax(request, job_id=None):
 def autosave_job_view(request):
     if request.method == 'POST':
         try:
-            # Old logic follows
-            #     if request.method == 'POST':
-            #         logger.info(f"Processing POST request for job {job.id}")
-            #         all_valid = all([job_form.is_valid(), estimate_form.is_valid(), quote_form.is_valid(), reality_form.is_valid()])
-            #         logger.info(f"Main forms valid: {all_valid}")
-            #
-            #         if all_valid:
-            #             job = job_form.save()
-            #             estimate = estimate_form.save()
-            #             quote = quote_form.save()
-            #             reality = reality_form.save()
-            #             logger.info(f"Saved main forms for job {job.id}")
-            #
-            #             for section_name, job_pricing in sections:
-            #                 for entry_type in ['time', 'material', 'adjustment']:
-            #                     for i, form in enumerate(entry_forms[section_name][entry_type]):
-            #                         if form.is_valid():
-            #                             entry = form.save(commit=False)
-            #                             entry.job_pricing = job_pricing
-            #                             entry.save()
-            #                             logger.info(f"Saved {entry_type} entry {i} for {section_name} section")
-            #                         else:
-            #                             logger.error(
-            #                                 f"Invalid {entry_type} entry form {i} in {section_name} section: {form.errors}")
-            #
-            #             logger.info(f"Successfully saved job {job.id} and all related data")
-            #             return redirect('job_list')  # or wherever you want to redirect after saving
-            #         else:
-            #             logger.error("Form validation failed")
-            #             if not job_form.is_valid():
-            #                 logger.error(f"Job form errors: {job_form.errors}")
-            #             if not estimate_form.is_valid():
-            #                 logger.error(f"Estimate form errors: {estimate_form.errors}")
-            #             if not quote_form.is_valid():
-            #                 logger.error(f"Quote form errors: {quote_form.errors}")
-            #             if not reality_form.is_valid():
-            #                 logger.error(f"Reality form errors: {reality_form.errors}")
-            # Log incoming request
             logger.debug("Autosave request received")
 
             # Parse the incoming JSON data
@@ -128,7 +91,7 @@ def autosave_job_view(request):
             logger.debug(f"Parsed data: {data}")
 
             # Retrieve the job by ID
-            job_id = data.get('job_id')
+            job_id = data.get('id')
             if not job_id:
                 logger.error("Job ID missing in data")
                 return JsonResponse({'error': 'Job ID missing'}, status=400)
@@ -136,38 +99,99 @@ def autosave_job_view(request):
             job = Job.objects.get(id=job_id)
             logger.debug(f"Job found: {job}")
 
-            # Update or create related entries like pricing, time entries, etc.
-            estimate_data = data.get('estimate', {})
-            logger.debug(f"Estimate data: {estimate_data}")
+            # Update job-level fields (Job fields shown on screen)
+            job.name = data.get('name', job.name)
+            job.client_id = data.get('client', job.client_id)  # Handle client_id separately
+            job.order_number = data.get('order_number', job.order_number)
+            job.contact_person = data.get('contact_person', job.contact_person)
+            job.contact_phone = data.get('contact_phone', job.contact_phone)
+            job.job_number = data.get('job_number', job.job_number)
+            job.description = data.get('description', job.description)
+            job.paid = data.get('paid', job.paid)  # Handle paid
+            job.status = data.get('status', job.status)  # Handle status
+            job.quote_acceptance_date = data.get('quote_acceptance_date', job.quote_acceptance_date)  # Workflow Settings
+            job.delivery_date = data.get('delivery_date', job.delivery_date)  # Workflow Settings
 
-            # Fetch the estimate pricing stage for the job
-            estimate = job.pricings.filter(pricing_stage='estimate').order_by('-created_at').first()
-            if not estimate:
-                logger.error("Estimate pricing stage not found")
-                return JsonResponse({'error': 'Estimate pricing stage not found'}, status=400)
+            # Save the job instance after updating the fields
+            job.save()
+            logger.debug(f"Job {job.id} updated and saved successfully")
 
-            # Update time entries
-            time_entries_data = estimate_data.get('time', [])
-            logger.debug(f"Time entries to update: {time_entries_data}")
+            # Now handle the Job Pricing sections: Estimate, Quote, Reality
+            sections = ['estimate', 'quote', 'reality']
+            for section in sections:
+                section_data = data.get(section, {})
+                logger.debug(f"{section.capitalize()} section data: {section_data}")
 
-            for time_entry_data in time_entries_data:
-                TimeEntry.objects.update_or_create(
-                    job_pricing=estimate,
-                    defaults={
-                        'description': time_entry_data.get('description', ''),
-                        'items': time_entry_data.get('items', 0),
-                        'mins_per_item': time_entry_data.get('minsPerItem', 0),
-                        'rate': time_entry_data.get('rate', 0),
-                        'total': time_entry_data.get('total', 0),
-                    }
-                )
-                logger.debug(f"Updated/created time entry: {time_entry_data}")
+                # Fetch the pricing stage for the current section
+                pricing_stage = job.pricings.filter(pricing_stage=section).order_by('-created_at').first()
+                if not pricing_stage:
+                    logger.error(f"{section.capitalize()} pricing stage not found")
+                    return JsonResponse({'error': f'{section.capitalize()} pricing stage not found'}, status=400)
 
-            logger.debug(f"Successfully saved job {job.id} and all related data")
+                # Process the time entries for the current section
+                time_entries_data = section_data.get('time', [])
+                logger.debug(f"{section.capitalize()} time entries: {time_entries_data}")
+                for time_entry_data in time_entries_data:
+                    if time_entry_data.get('total', 0) == 0:  # Skip dummy time entries
+                        logger.debug(f"Skipping dummy time entry: {time_entry_data}")
+                        continue
+                    TimeEntry.objects.update_or_create(
+                        job_pricing=pricing_stage,
+                        defaults={
+                            'description': time_entry_data.get('description', ''),
+                            'staff': time_entry_data.get('staff', None),
+                            'items': time_entry_data.get('items', 0),
+                            'mins_per_item': time_entry_data.get('minsPerItem', 0),
+                            'charge_out_rate': time_entry_data.get('rate', 0),
+                            'wage_rate': time_entry_data.get('wage_rate', 0),  # Handle wage rate here
+                            'date': time_entry_data.get('date', None),  # Allow date to be nullable
+                        }
+                    )
+
+                # Process the material entries for the current section
+                material_entries_data = section_data.get('materials', [])
+                logger.debug(f"{section.capitalize()} material entries: {material_entries_data}")
+                for material_entry_data in material_entries_data:
+                    if material_entry_data.get('total', 0) == 0:  # Skip dummy material entries
+                        logger.debug(f"Skipping dummy material entry: {material_entry_data}")
+                        continue
+                    MaterialEntry.objects.update_or_create(
+                        job_pricing=pricing_stage,
+                        defaults={
+                            'item_code': material_entry_data.get('itemCode', ''),
+                            'description': material_entry_data.get('description', ''),
+                            'markup': material_entry_data.get('markup', 0),
+                            'quantity': material_entry_data.get('quantity', 0),
+                            'rate': material_entry_data.get('rate', 0),
+                            'total': material_entry_data.get('total', 0),
+                            'comments': material_entry_data.get('comments', ''),
+                        }
+                    )
+
+                # Process the adjustment entries for the current section
+                adjustment_entries_data = section_data.get('adjustments', [])
+                logger.debug(f"{section.capitalize()} adjustment entries: {adjustment_entries_data}")
+                for adjustment_entry_data in adjustment_entries_data:
+                    if adjustment_entry_data.get('total', 0) == 0:  # Skip dummy adjustment entries
+                        logger.debug(f"Skipping dummy adjustment entry: {adjustment_entry_data}")
+                        continue
+                    AdjustmentEntry.objects.update_or_create(
+                        job_pricing=pricing_stage,
+                        defaults={
+                            'description': adjustment_entry_data.get('description', ''),
+                            'quantity': adjustment_entry_data.get('quantity', 0),
+                            'amount': adjustment_entry_data.get('amount', 0),
+                            'total': adjustment_entry_data.get('total', 0),
+                            'comments': adjustment_entry_data.get('comments', ''),
+                        }
+                    )
+
+            logger.debug(f"Successfully saved job {job.id} and all related data (Estimate, Quote, Reality)")
             return JsonResponse({'status': 'success'}, status=200)
 
         except Exception as e:
             logger.error(f"Error occurred: {str(e)}")
+            logger.exception(e)  # Log the stack trace for better debugging
             return JsonResponse({'error': str(e)}, status=400)
     else:
         logger.error("Invalid request method")

@@ -52,7 +52,7 @@ class UpdateJobView(UpdateView):
                 "order_number": job.order_number,
                 "contact_person": job.contact_person,
                 "contact_phone": job.contact_phone,
-                "job_name": job.job_name,
+                "job_name": job.name,
                 "job_number": job.job_number,
                 "description": job.description,
                 "status": job.get_status_display(),

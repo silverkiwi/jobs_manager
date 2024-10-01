@@ -7,7 +7,7 @@ def get_company_defaults():
             'time_markup': 0.0,
             'materials_markup': 0.0,
             'charge_out_rate': 105.00,
-            'cost_rate_without_staff': 32.00
+            'wage_rate': 32.00
         }
     )
     return defaults
