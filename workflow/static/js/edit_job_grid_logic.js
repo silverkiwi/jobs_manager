@@ -4,27 +4,33 @@ document.addEventListener('DOMContentLoaded', function () {
     const descriptionField = document.getElementById('description');
 
     function autoExpand(field) {
-        field.style.height = 'auto';  // Reset the height
-        const newHeight = field.scrollHeight + 'px';  // Calculate the correct height based on content
-        console.log('Auto expanding:', field.id, 'Setting height to:', newHeight);  // Debug: Log the new height
-        field.style.height = newHeight;  // Apply the calculated height
+        // Reset field height
+        field.style.height = 'inherit';
+
+        // Get the computed styles for the element
+        const computed = window.getComputedStyle(field);
+
+        // Calculate the height
+        const height = parseInt(computed.getPropertyValue('border-top-width'), 10)
+            + parseInt(computed.getPropertyValue('padding-top'), 10)
+            + field.scrollHeight
+            + parseInt(computed.getPropertyValue('padding-bottom'), 10)
+            + parseInt(computed.getPropertyValue('border-bottom-width'), 10);
+
+        field.style.height = `${height}px`;
     }
 
-    materialField.addEventListener('input', function () {
-        autoExpand(materialField);
-    });
+    function addAutoExpand(field) {
+        field.addEventListener('input', function () {
+            autoExpand(field);
+        });
+        // Expand on initial load
+        autoExpand(field);
+    }
 
-    descriptionField.addEventListener('input', function () {
-        autoExpand(descriptionField);
-    });
-
-    // Initial expansion for preloaded content
-    autoExpand(materialField);
-    autoExpand(descriptionField);
+    if (materialField) addAutoExpand(materialField);
+    if (descriptionField) addAutoExpand(descriptionField);
 });
-
-
-
 
 
 // This listner is for the job pricing grid
@@ -39,8 +45,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function calculateTotal(params) {
-        return params.data.items * params.data.rate;
+        const gridType = params.context.gridType;
+        if (gridType === 'TimeTable') {
+            return (params.data.items || 0) * (params.data.rate || 0);
+        } else if (gridType === 'MaterialsTable') {
+            return (params.data.quantity || 0) * (params.data.rate || 0);
+        } else if (gridType === 'AdjustmentsTable') {
+            return (params.data.quantity || 0) * (params.data.amount || 0);
+        }
+        console.log("calculate total not time, material or adjustment");
+        return 0;
     }
+
 
     function calculateTotalMinutes(params) {
         return params.data.items * params.data.minsPerItem;
@@ -89,48 +105,158 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function createDefaultRowData(gridType) {
+        if (gridType === 'Time') {
+            return [{description: '', items: 0, minsPerItem: 0, totalMinutes: 0, rate: 0, total: 0}];
+        } else if (gridType === 'Materials') {
+            return [{itemCode: '', description: '', markup: 0, quantity: 0, rate: 0, total: 0, comments: ''}];
+        } else if (gridType === 'Adjustments') {
+            return [{description: '', quantity: 0, amount: 0, total: 0, comments: ''}];
+        }
+        return [];
+    }
+
+    // Function to calculate totals
+    function calculateTotals() {
+        console.log('Calculating totals...');
+        console.log('Available grids:', Object.keys(window.grids));
+
+        const totals = {
+            time: {estimate: 0, quote: 0, reality: 0},
+            materials: {estimate: 0, quote: 0, reality: 0},
+            adjustments: {estimate: 0, quote: 0, reality: 0}
+        };
+        const sections = ['estimate', 'quote', 'reality'];
+        const workTypes = ['Time', 'Materials', 'Adjustments'];
+
+        sections.forEach(section => {
+            console.log(`Calculating totals for ${section}...`);
+
+            workTypes.forEach(gridType => {
+                const gridKey = `${section}${gridType}Table`;
+                const gridData = window.grids[gridKey];
+                console.log(`Checking grid for ${gridKey}:`, gridData);
+
+                if (gridData && gridData.api) {
+                    gridData.api.forEachNode(node => {
+                        const total = parseFloat(node.data.total) || 0;
+                        const totalType = gridType.toLowerCase();
+                        if (totals[totalType] && totals[totalType][section] !== undefined) {
+                            totals[totalType][section] += total;
+                            console.log(`${gridKey}: Row data:`, node.data, `Total:`, total, `Added to:`, totalType, section);
+                        } else {
+                            console.warn(`Invalid total type or section: ${totalType}, ${section}`);
+                        }
+                    });
+                } else {
+                    console.warn(`Grid or API not found for ${gridKey}. Grid data:`, gridData);
+                }
+            });
+
+            console.log(`${section} totals:`, {
+                time: totals.time[section],
+                materials: totals.materials[section],
+                adjustments: totals.adjustments[section]
+            });
+        });
+
+        console.log('Final totals:', totals);
+
+        // Update the totals table
+        const totalsGrid = window.grids['totalsTable'];
+        if (totalsGrid) {
+            if (totalsGrid.api) {
+                totalsGrid.api.forEachNode((node, index) => {
+                    const data = node.data;
+                    switch (index) {
+                        case 0: // Total Time
+                            data.estimate = totals.time.estimate;
+                            data.quote = totals.time.quote;
+                            data.reality = totals.time.reality;
+                            break;
+                        case 1: // Total Materials
+                            data.estimate = totals.materials.estimate;
+                            data.quote = totals.materials.quote;
+                            data.reality = totals.materials.reality;
+                            break;
+                        case 2: // Total Adjustments
+                            data.estimate = totals.adjustments.estimate;
+                            data.quote = totals.adjustments.quote;
+                            data.reality = totals.adjustments.reality;
+                            break;
+                        case 3: // Total Project Cost
+                            data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
+                            data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
+                            data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
+                            break;
+                    }
+                    console.log(`Updating totals row ${index}:`, data);
+                });
+                totalsGrid.api.refreshCells();
+                console.log('Totals table updated');
+            } else {
+                console.warn('Totals grid API not found');
+            }
+        } else {
+            console.warn('Totals grid not found');
+        }
+    }
+
     // Grid options for Time, Materials, and Adjustments tables (default 1 row, fixed height)
     const commonGridOptions = {
-        rowHeight: 28,  // Consistent row height
-        headerHeight: 32,  // Consistent header height
+        rowHeight: 28,
+        headerHeight: 32,
         suppressPaginationPanel: true,
         suppressHorizontalScroll: true,
         defaultColDef: {
             sortable: true,
-            resizable: true  // Allow columns to be resized
+            resizable: true
         },
-        // Removed `domLayout: 'autoHeight'` for these tables
-        onGridReady: params => {
-            params.api.sizeColumnsToFit();  // Resize columns to fit the grid width
+        onGridReady: function (params) {
+            params.api.sizeColumnsToFit();
             setTimeout(() => {
-                params.api.resetRowHeights();  // Ensure row heights are consistent
+                params.api.resetRowHeights();
             }, 0);
+
+            const gridKey = params.context.gridKey;
+            window.grids[gridKey] = {gridInstance: params.api, api: params.api};
+            console.log(`Grid API ready for ${gridKey}:`, params.api);
         },
         onGridSizeChanged: params => {
-            params.api.sizeColumnsToFit();  // Adjust column sizes when the grid size changes
+            params.api.sizeColumnsToFit();
         },
         enterNavigatesVertically: true,
         enterNavigatesVerticallyAfterEdit: true,
         stopEditingWhenCellsLoseFocus: true,
-        onCellKeyDown: onCellKeyDown,  // Handle Enter key for row creation
+        onCellKeyDown: onCellKeyDown,
         onCellValueChanged: function (event) {
-            debouncedAutosaveData(event);  // Autosave on cell value change
+            console.log('Cell value changed:', event);
+            const gridType = event.context.gridType;
+            const data = event.data;
+            if (gridType === 'TimeTable') {
+                data.totalMinutes = (data.items || 0) * (data.minsPerItem || 0);
+                data.total = (data.items || 0) * (data.rate || 0);
+            } else if (gridType === 'MaterialsTable') {
+                data.total = (data.quantity || 0) * (data.rate || 0);
+            } else if (gridType === 'AdjustmentsTable') {
+                data.total = (data.quantity || 0) * (data.amount || 0);
+            }
+            // Refresh the cells that depend on the data
+            event.api.refreshCells({rowNodes: [event.node], columns: ['total', 'totalMinutes'], force: true});
+            debouncedAutosaveData(event);
+            calculateTotals();
         }
     };
+
 
     // Grid definitions for Time, Materials, and Adjustments
     const timeGridOptions = {
         ...commonGridOptions,
-        onGridReady: function (params) {
-            const section = params.context.section;
-//            console.log(`Time grid API ready for ${section}`);
-            window.grids[`${section}TimeTable`].gridApi = params.api;
-        },
         columnDefs: [
             {headerName: 'Description', field: 'description', editable: true},
             {headerName: 'Items', field: 'items', editable: true, valueParser: numberParser},
             {headerName: 'Mins/Item', field: 'minsPerItem', editable: true, valueParser: numberParser},
-            {headerName: 'Total Minutes', field: 'totalMinutes', valueGetter: calculateTotalMinutes, editable: false},
+            {headerName: 'Total Minutes', field: 'totalMinutes', editable: false},
             {
                 headerName: 'Rate',
                 field: 'rate',
@@ -141,7 +267,6 @@ document.addEventListener('DOMContentLoaded', function () {
             {
                 headerName: 'Total',
                 field: 'total',
-                valueGetter: calculateTotal,
                 editable: false,
                 valueFormatter: currencyFormatter
             },
@@ -160,12 +285,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const materialsGridOptions = {
         ...commonGridOptions,
-        onGridReady: function (params) {
-            const section = params.context.section;
-//            console.log(`Materials grid API ready for ${section}`);
-            window.grids[`${section}MaterialsTable`].gridApi = params.api;
-        },
-
         columnDefs: [
             {headerName: 'Item Code', field: 'itemCode', editable: true},
             {headerName: 'Description', field: 'description', editable: true},
@@ -181,7 +300,6 @@ document.addEventListener('DOMContentLoaded', function () {
             {
                 headerName: 'Total',
                 field: 'total',
-                valueGetter: calculateTotal,
                 editable: false,
                 valueFormatter: currencyFormatter
             },
@@ -200,11 +318,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const adjustmentsGridOptions = {
         ...commonGridOptions,
-        onGridReady: function (params) {
-            const section = params.context.section;
-//            console.log(`Adjustments grid API ready for ${section}`);
-            window.grids[`${section}AdjustmentsTable`].gridApi = params.api;
-        },
         columnDefs: [
             {headerName: 'Description', field: 'description', editable: true},
             {headerName: 'Quantity', field: 'quantity', editable: true, valueParser: numberParser},
@@ -218,7 +331,6 @@ document.addEventListener('DOMContentLoaded', function () {
             {
                 headerName: 'Total',
                 field: 'total',
-                valueGetter: calculateTotal,
                 editable: false,
                 valueFormatter: currencyFormatter
             },
@@ -237,45 +349,60 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize AG Grids for Time, Materials, and Adjustments tables
     const sections = ['estimate', 'quote', 'reality'];
+    const workType = ['Time', 'Materials', 'Adjustments'];
     window.grids = {}; // Initialize the grids object
 
     sections.forEach(section => {
-        const timeGridElement = document.querySelector(`#${section}TimeTable`);
-        const materialsGridElement = document.querySelector(`#${section}MaterialsTable`);
-        const adjustmentsGridElement = document.querySelector(`#${section}AdjustmentsTable`);
+        workType.forEach(gridType => {
+            const gridKey = `${section}${gridType}Table`;
+            const gridElement = document.querySelector(`#${gridKey}`);
 
-        if (!timeGridElement || !materialsGridElement || !adjustmentsGridElement) {
-            console.error(`Missing grid elements for section: ${section}`);
-            return; // Skip this iteration if any element is missing
-        }
+            if (!gridElement) {
+                console.error(`Grid element not found for ${gridKey}`);
+                return;
+            }
 
-        window.grids[`${section}TimeTable`] = {};  // Pre-initialize TimeTable entry
-        window.grids[`${section}MaterialsTable`] = {};  // Pre-initialize MaterialsTable entry
-        window.grids[`${section}AdjustmentsTable`] = {};  // Pre-initialize AdjustmentsTable entry
+            let specificGridOptions;
 
-        // Create the grids
-        agGrid.createGrid(timeGridElement, {
-            ...timeGridOptions,
-            context: {section, gridType: 'TimeTable'}
+            switch (gridType) {
+                case 'Time':
+                    specificGridOptions = timeGridOptions;
+                    break;
+                case 'Materials':
+                    specificGridOptions = materialsGridOptions;
+                    break;
+                case 'Adjustments':
+                    specificGridOptions = adjustmentsGridOptions;
+                    break;
+            }
+
+            // Create default row data based on grid type
+            const rowData = createDefaultRowData(gridType);
+
+            // Build grid options for each grid instance
+            const gridOptions = {
+                ...commonGridOptions,
+                ...specificGridOptions,
+                context: {section, gridType: `${gridType}Table`, gridKey: gridKey},
+                rowData: rowData,
+            };
+
+            try {
+                const gridInstance = agGrid.createGrid(gridElement, gridOptions);
+                console.log(`Grid initialized for ${gridKey}:`, gridInstance);
+            } catch (error) {
+                console.error(`Error initializing grid for ${gridKey}:`, error);
+            }
         });
-
-        agGrid.createGrid(materialsGridElement, {
-            ...materialsGridOptions,
-            context: {section, gridType: 'MaterialsTable'}
-        });
-
-        agGrid.createGrid(adjustmentsGridElement, {
-            ...adjustmentsGridOptions,
-            context: {section, gridType: 'AdjustmentsTable'}
-        });
-
     });
 
-// Add a check after initialization to ensure all grids are created
+    // Add a check after initialization to ensure all grids are created
     const expectedGridCount = sections.length * 3; // 3 grids per section
-    if (Object.keys(window.grids).length !== expectedGridCount) {
-        console.error('Not all grids were initialized. Application may not function correctly.');
-        // You might want to add more robust error handling here, such as displaying an error message to the user
+    const actualGridCount = Object.keys(window.grids).length;
+    console.log(`Expected grid count: ${expectedGridCount}, Actual grid count: ${actualGridCount}`);
+    if (actualGridCount !== expectedGridCount) {
+        console.error(`Not all grids were initialized. Expected: ${expectedGridCount}, Actual: ${actualGridCount}`);
+        console.error('Initialized grids:', Object.keys(window.grids));
     }
     // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
     const totalsGridOptions = {
@@ -286,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function () {
             {headerName: 'Reality', field: 'reality', editable: false, valueFormatter: currencyFormatter},
         ],
         rowData: [
-            {category: 'Total Labour', estimate: 0, quote: 0, reality: 0},
+            {category: 'Total Time', estimate: 0, quote: 0, reality: 0},
             {category: 'Total Materials', estimate: 0, quote: 0, reality: 0},
             {category: 'Total Adjustments', estimate: 0, quote: 0, reality: 0},
             {category: 'Total Project Cost', estimate: 0, quote: 0, reality: 0}
@@ -297,7 +424,9 @@ document.addEventListener('DOMContentLoaded', function () {
         suppressPaginationPanel: true,
         suppressHorizontalScroll: true,
         onGridReady: params => {
-            params.api.sizeColumnsToFit();  // Resize columns to fit the table
+            window.grids['totalsTable'] = {gridInstance: params.api, api: params.api};
+            console.log('Totals grid ready:', window.grids['totalsTable']);
+            params.api.sizeColumnsToFit();
         },
         onGridSizeChanged: params => {
             params.api.sizeColumnsToFit();
@@ -307,7 +436,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize Totals Table
     const totalsTableEl = document.querySelector('#totalsTable');
     if (totalsTableEl) {
-        agGrid.createGrid(totalsTableEl, totalsGridOptions);
+        try {
+            const totalsGrid = agGrid.createGrid(totalsTableEl, totalsGridOptions);
+            console.log('Totals table initialized:', totalsGrid);
+        } catch (error) {
+            console.error('Error initializing totals table:', error);
+        }
+    } else {
+        console.error('Totals table element not found');
     }
 
     // Copy Estimate to Quote (stub)
@@ -357,6 +493,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    setTimeout(() => {
+        console.log('Calling initial calculateTotals');
+        calculateTotals();
+    }, 1000);
 
 
 });
+

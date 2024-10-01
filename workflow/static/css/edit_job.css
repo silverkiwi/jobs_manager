@@ -14,13 +14,16 @@ form .btn-link {
 .autoresizeTextarea {
     resize: none;  /* Prevent manual resizing */
     overflow: hidden;  /* Hide the scrollbar */
-    height: auto !important;  /* Ensure the height is flexible */
     min-height: 60px;  /* Set a reasonable minimum height */
     padding: 8px;
     box-sizing: border-box;
-    border: 2px solid red;  /* Visual border to see the textarea's size */
-    background-color: rgba(255, 0, 0, 0.1);  /* Light background to help see size */
+    width: 100%;  /* Ensure the textarea takes full width of its container */
+    font-size: 16px;  /* Set a consistent font size */
+    line-height: 1.5;  /* Set a consistent line height */
+    transition: height 0.1s ease-out;  /* Smooth height transition */
 }
+
+
 
 /* Table container: dynamic grid layout */
 .table-container {
