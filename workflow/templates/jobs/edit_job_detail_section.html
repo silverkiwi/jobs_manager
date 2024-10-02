@@ -2,6 +2,7 @@
     <h2>Job Details</h2>
 
         <input type="hidden" id="job_id" name="job_id" value="{{ job_form.instance.id }}">
+        <input type="hidden" id="companyDefaults" data-wage-rate="{{ company_defaults.wage_rate }}" data-charge-out-rate="{{ company_defaults.charge_out_rate }}">
         <p>Job ID: {{ job_form.instance.id }}</p>
 
     <div class="row mb-12">

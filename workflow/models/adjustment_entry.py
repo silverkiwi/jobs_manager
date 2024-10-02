@@ -15,8 +15,9 @@ class AdjustmentEntry(models.Model):
         related_name="adjustment_entries",
     )
     description = models.CharField(max_length=200, null=True, blank=True)
-    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    revenue = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    cost_adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    price_adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    comments = models.CharField(max_length=200, null=True, blank=True) # Freetext internal note
 
     def __str__(self):
         return f"Adjustment for {self.job_pricing.job.name} - {self.description or 'No Description'}"

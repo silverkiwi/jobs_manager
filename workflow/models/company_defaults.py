@@ -5,8 +5,8 @@ class CompanyDefaults(models.Model):
     company_name = models.CharField(max_length=255, primary_key=True)  # Unique company name
     time_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.3)
     materials_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.2)
-    charge_out_rate = models.DecimalField(max_digits=6, decimal_places=2, default=105.00)
-    wage_rate = models.DecimalField(max_digits=6, decimal_places=2, default=32.00)
+    charge_out_rate = models.DecimalField(max_digits=6, decimal_places=2, default=105.00) # rate per hour
+    wage_rate = models.DecimalField(max_digits=6, decimal_places=2, default=32.00)  # rate per hour
 
     # Default working hours (Mon-Fri, 7am - 3pm)
     mon_start = models.TimeField(default='07:00')
@@ -31,3 +31,5 @@ class CompanyDefaults(models.Model):
 
     def __str__(self):
         return f"Charge-out Rate: {self.charge_out_rate}/hr"
+
+

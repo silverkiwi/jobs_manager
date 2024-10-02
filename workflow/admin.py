@@ -138,14 +138,14 @@ class JobPricingAdmin(SimpleHistoryAdmin):
 
 @admin.register(AdjustmentEntry)
 class AdjustmentEntryAdmin(admin.ModelAdmin):
-    list_display = ("job_pricing", "description", "cost", "revenue", "id")
+    list_display = ("job_pricing", "description", "cost_adjustment", "price_adjustment", "comments", "id")
     search_fields = ("description",)
     list_filter = ("job_pricing__pricing_stage",)
 
 
 @admin.register(TimeEntry)
 class TimeEntryAdmin(admin.ModelAdmin):
-    list_display = ("job_pricing", "staff", "date", "hours", "cost", "revenue")
+    list_display = ("job_pricing", "staff", "date", "note", "is_billable", "wage_rate", "charge_out_rate", "description", "items", "mins_per_item")
     search_fields = ("staff__first_name", "staff__last_name", "job_pricing__job__name")
     list_filter = ("job_pricing__pricing_stage", "date")
 
@@ -153,11 +153,13 @@ class TimeEntryAdmin(admin.ModelAdmin):
 @admin.register(MaterialEntry)
 class MaterialEntryAdmin(admin.ModelAdmin):
     list_display = (
-        "job_pricing",
+        "item_code",
         "description",
+        "job_pricing",
+        "comments",
         "quantity",
         "unit_cost",
-        "cost",
+        "unit_revenue",
         "revenue",
     )
     search_fields = ("description",)

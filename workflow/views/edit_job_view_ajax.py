@@ -6,10 +6,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.csrf import csrf_exempt
 
 from workflow.forms import JobPricingForm, JobForm, TimeEntryForm, MaterialEntryForm, AdjustmentEntryForm
+from workflow.helpers import get_company_defaults
 from workflow.models import Job, JobPricing, TimeEntry, CompanyDefaults, MaterialEntry, AdjustmentEntry
 
 logger = logging.getLogger(__name__)
-
 
 def edit_job_view_ajax(request, job_id=None):
     # Log the job ID and request method for context
@@ -59,6 +59,8 @@ def edit_job_view_ajax(request, job_id=None):
     sections = {'estimate': estimate, 'quote': quote, 'reality': reality}
     entry_forms = {section_name: create_entry_forms(section_name, job_pricing) for section_name, job_pricing in sections.items()}
 
+    company_defaults = get_company_defaults()
+
     # Log the entry form counts for each section
     for section_name, forms in entry_forms.items():
         logger.debug(f"{section_name.capitalize()} section: "
@@ -70,6 +72,7 @@ def edit_job_view_ajax(request, job_id=None):
     context = {
         'job_form': job_form,
         'job_id': job.id,
+        'company_defaults': company_defaults,
         'estimate_form': estimate_form,
         'quote_form': quote_form,
         'reality_form': reality_form,
@@ -139,12 +142,12 @@ def autosave_job_view(request):
                         job_pricing=pricing_stage,
                         defaults={
                             'description': time_entry_data.get('description', ''),
-                            'staff': time_entry_data.get('staff', None),
                             'items': time_entry_data.get('items', 0),
-                            'mins_per_item': time_entry_data.get('minsPerItem', 0),
-                            'charge_out_rate': time_entry_data.get('rate', 0),
-                            'wage_rate': time_entry_data.get('wage_rate', 0),  # Handle wage rate here
-                            'date': time_entry_data.get('date', None),  # Allow date to be nullable
+                            'mins_per_item': time_entry_data.get('mins_per_item', 0),
+                            'charge_out_rate': time_entry_data.get('charge_out_rate', 0),
+                            'wage_rate': time_entry_data.get('wage_rate', 0),  # Should look up defaults
+                            'staff': time_entry_data.get('staff', None), # Only applies to reality so can be None
+                            'date': time_entry_data.get('date', None),  # Only applies to reality so can be None
                         }
                     )
 
@@ -158,12 +161,12 @@ def autosave_job_view(request):
                     MaterialEntry.objects.update_or_create(
                         job_pricing=pricing_stage,
                         defaults={
-                            'item_code': material_entry_data.get('itemCode', ''),
+                            'item_code': material_entry_data.get('item_code', ''),
                             'description': material_entry_data.get('description', ''),
-                            'markup': material_entry_data.get('markup', 0),
                             'quantity': material_entry_data.get('quantity', 0),
-                            'rate': material_entry_data.get('rate', 0),
-                            'total': material_entry_data.get('total', 0),
+                            'unit_cost': material_entry_data.get('cost_rate', 0),
+                            'unit_revenue': material_entry_data.get('retail_rate', 0),
+#                            'total': material_entry_data.get('total', 0),
                             'comments': material_entry_data.get('comments', ''),
                         }
                     )
@@ -179,9 +182,8 @@ def autosave_job_view(request):
                         job_pricing=pricing_stage,
                         defaults={
                             'description': adjustment_entry_data.get('description', ''),
-                            'quantity': adjustment_entry_data.get('quantity', 0),
-                            'amount': adjustment_entry_data.get('amount', 0),
-                            'total': adjustment_entry_data.get('total', 0),
+                            'cost_adjustmnet': adjustment_entry_data.get('cost_adjustmnet', 0),
+                            'price_adjustment': adjustment_entry_data.get('total', 0),
                             'comments': adjustment_entry_data.get('comments', ''),
                         }
                     )

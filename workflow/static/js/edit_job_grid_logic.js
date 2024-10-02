@@ -28,27 +28,15 @@ document.addEventListener('DOMContentLoaded', function () {
 // This listener is for the job pricing grid
 document.addEventListener('DOMContentLoaded', function () {
     function currencyFormatter(params) {
-        return '$' + params.value.toFixed(2);
+        if (params.value === undefined) {
+            // console.error("currencyFormatter error: value is undefined for the following params:", params);
+            return '$0.00';  // Return a fallback value so the grid doesn't break
+        }
+    return '$' + params.value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
     function numberParser(params) {
         return Number(params.newValue);
-    }
-
-    function calculateTotal(params) {
-        const gridType = params.context.gridType;
-        if (gridType === 'TimeTable') {
-            return (params.data.items || 0) * (params.data.rate || 0);
-        } else if (gridType === 'MaterialsTable') {
-            return (params.data.quantity || 0) * (params.data.rate || 0);
-        } else if (gridType === 'AdjustmentsTable') {
-            return (params.data.quantity || 0) * (params.data.amount || 0);
-        }
-        return 0;
-    }
-
-    function calculateTotalMinutes(params) {
-        return params.data.items * params.data.minsPerItem;
     }
 
     function deleteIconCellRenderer(params) {
@@ -63,16 +51,39 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function createNewRow(gridType) {
-        if (gridType === 'TimeTable') {
-            return {description: '', items: 0, minsPerItem: 0, totalMinutes: 0, rate: 0, total: 0};
-        } else if (gridType === 'MaterialsTable') {
-            return {itemCode: '', description: '', markup: 0, quantity: 0, rate: 0, total: 0, comments: ''};
-        } else if (gridType === 'AdjustmentsTable') {
-            return {description: '', quantity: 0, amount: 0, total: 0, comments: ''};
-        }
-        return null;
+function createNewRow(gridType) {
+    const companyDefaults = document.getElementById('companyDefaults');
+    const defaultWageRate = parseFloat(companyDefaults.dataset.wageRate);
+    const defaultChargeOutRate = parseFloat(companyDefaults.dataset.chargeOutRate);
+
+    console.log('defaultWageRate:', defaultWageRate);
+    console.log('defaultChargeOutRate:', defaultChargeOutRate);
+
+    if (gridType === 'TimeTable') {
+        return {
+            description: '',
+            items: 0,
+            mins_per_item: 0,
+            total_minutes: 0,
+            wage_rate: defaultWageRate,
+            charge_out_rate: defaultChargeOutRate,
+            total: 0
+        };
+    } else if (gridType === 'MaterialsTable') {
+        return {
+            item_code: '',
+            description: '',
+            quantity: 0,
+            cost_price: 0,
+            retail_price: 0,
+            total: 0,
+            comments: ''
+        };
+    } else if (gridType === 'AdjustmentsTable') {
+        return {description: '', quantity: 0, amount: 0, total: 0, comments: ''};
     }
+    return {};
+}
 
     function onCellKeyDown(params) {
         if (params.event.key === 'Enter') {
@@ -94,12 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function createDefaultRowData(gridType) {
-        const defaultData = {
-            Time: {description: '', items: 0, minsPerItem: 0, totalMinutes: 0, rate: 0, total: 0},
-            Materials: {itemCode: '', description: '', markup: 0, quantity: 0, rate: 0, total: 0, comments: ''},
-            Adjustments: {description: '', quantity: 0, amount: 0, total: 0, comments: ''}
-        };
-        return [defaultData[gridType] || {}];
+        return [createNewRow(gridType) || {}];  // Return the result of createNewRow as an array
     }
 
     function calculateTotals() {
@@ -187,14 +193,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const gridType = event.context.gridType;
             const data = event.data;
             if (gridType === 'TimeTable') {
-                data.totalMinutes = (data.items || 0) * (data.minsPerItem || 0);
-                data.total = (data.items || 0) * (data.rate || 0);
+                data.total_minutes = (data.items || 0) * (data.mins_per_item || 0);
+                data.total = (data.items || 0) * (data.charge_out_rate / 60.0 || 0);
             } else if (gridType === 'MaterialsTable') {
-                data.total = (data.quantity || 0) * (data.rate || 0);
-            } else if (gridType === 'AdjustmentsTable') {
-                data.total = (data.quantity || 0) * (data.amount || 0);
+                data.total = (data.quantity || 0) * (data.retail_rate || 0);
             }
-            event.api.refreshCells({rowNodes: [event.node], columns: ['total', 'totalMinutes'], force: true});
+            event.api.refreshCells({rowNodes: [event.node], columns: ['total', 'total_minutes'], force: true});
             debouncedAutosaveData(event);
             calculateTotals();
         }
@@ -205,11 +209,18 @@ document.addEventListener('DOMContentLoaded', function () {
         columnDefs: [
             {headerName: 'Description', field: 'description', editable: true},
             {headerName: 'Items', field: 'items', editable: true, valueParser: numberParser},
-            {headerName: 'Mins/Item', field: 'minsPerItem', editable: true, valueParser: numberParser},
-            {headerName: 'Total Minutes', field: 'totalMinutes', editable: false},
+            {headerName: 'Mins/Item', field: 'mins_per_item', editable: true, valueParser: numberParser},
+            {headerName: 'Total Minutes', field: 'total_minutes', editable: false},
             {
-                headerName: 'Rate',
-                field: 'rate',
+                headerName: 'Wage Rate',
+                field: 'wage_rate',
+                editable: true,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter
+            },
+            {
+                headerName: 'Charge Rate',
+                field: 'charge_out_rate',
                 editable: true,
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
@@ -223,20 +234,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 onCellClicked: onDeleteIconClicked
             }
         ],
-        rowData: [{description: '', items: 0, minsPerItem: 0, totalMinutes: 0, rate: 0, total: 0}],
+        rowData:  [createNewRow('TimeTable')],
         context: {gridType: 'TimeTable'},
     };
+
 
     const materialsGridOptions = {
         ...commonGridOptions,
         columnDefs: [
-            {headerName: 'Item Code', field: 'itemCode', editable: true},
+            {headerName: 'Item Code', field: 'item_code', editable: true},
             {headerName: 'Description', field: 'description', editable: true},
-            {headerName: 'Markup %', field: 'markup', editable: true, valueParser: numberParser},
             {headerName: 'Quantity', field: 'quantity', editable: true, valueParser: numberParser},
             {
-                headerName: 'Rate',
-                field: 'rate',
+                headerName: 'Cost Rate',
+                field: 'cost_rate',
+                editable: true,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter
+            },
+            {
+                headerName: 'Retail Rate',
+                field: 'retail_rate',
                 editable: true,
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
@@ -251,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 onCellClicked: onDeleteIconClicked
             }
         ],
-        rowData: [{itemCode: '', description: '', markup: 0, quantity: 0, rate: 0, total: 0, comments: ''}],
+        rowData:  [createNewRow('MaterialsTable')],
         context: {gridType: 'MaterialsTable'}
     };
 
@@ -259,15 +277,20 @@ document.addEventListener('DOMContentLoaded', function () {
         ...commonGridOptions,
         columnDefs: [
             {headerName: 'Description', field: 'description', editable: true},
-            {headerName: 'Quantity', field: 'quantity', editable: true, valueParser: numberParser},
             {
-                headerName: 'Amount',
-                field: 'amount',
+                headerName: 'Cost Adjustment',
+                field: 'cost_adjustment',
                 editable: true,
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
             },
-            {headerName: 'Total', field: 'total', editable: false, valueFormatter: currencyFormatter},
+            {
+                headerName: 'Price Adjustment',
+                field: 'total',
+                editable: true,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter
+            },
             {headerName: 'Comments', field: 'comments', editable: true},
             {
                 headerName: '',
@@ -277,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 onCellClicked: onDeleteIconClicked
             }
         ],
-        rowData: [{description: '', quantity: 0, amount: 0, total: 0, comments: ''}],
+        rowData:  [createNewRow('AdjustmentsTable')],
         context: {gridType: 'AdjustmentsTable'}
     };
 
@@ -318,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             try {
                 const gridInstance = agGrid.createGrid(gridElement, gridOptions);
-                window.grids[gridKey] = { api: gridInstance.api };
+                window.grids[gridKey] = {api: gridInstance.api};
             } catch (error) {
                 console.error(`Error initializing grid for ${gridKey}:`, error);
             }
