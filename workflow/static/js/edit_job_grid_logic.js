@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // console.error("currencyFormatter error: value is undefined for the following params:", params);
             return '$0.00';  // Return a fallback value so the grid doesn't break
         }
-    return '$' + params.value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        return '$' + params.value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
     function numberParser(params) {
@@ -51,39 +51,39 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-function createNewRow(gridType) {
-    const companyDefaults = document.getElementById('companyDefaults');
-    const defaultWageRate = parseFloat(companyDefaults.dataset.wageRate);
-    const defaultChargeOutRate = parseFloat(companyDefaults.dataset.chargeOutRate);
+    function createNewRow(gridType) {
+        const companyDefaults = document.getElementById('companyDefaults');
+        const defaultWageRate = parseFloat(companyDefaults.dataset.wageRate);
+        const defaultChargeOutRate = parseFloat(companyDefaults.dataset.chargeOutRate);
 
-    console.log('defaultWageRate:', defaultWageRate);
-    console.log('defaultChargeOutRate:', defaultChargeOutRate);
+        // console.log('defaultWageRate:', defaultWageRate);
+        // console.log('defaultChargeOutRate:', defaultChargeOutRate);
 
-    if (gridType === 'TimeTable') {
-        return {
-            description: '',
-            items: 0,
-            mins_per_item: 0,
-            total_minutes: 0,
-            wage_rate: defaultWageRate,
-            charge_out_rate: defaultChargeOutRate,
-            total: 0
-        };
-    } else if (gridType === 'MaterialsTable') {
-        return {
-            item_code: '',
-            description: '',
-            quantity: 0,
-            cost_price: 0,
-            retail_price: 0,
-            total: 0,
-            comments: ''
-        };
-    } else if (gridType === 'AdjustmentsTable') {
-        return {description: '', quantity: 0, amount: 0, total: 0, comments: ''};
+        if (gridType === 'TimeTable') {
+            return {
+                description: '',
+                items: 0,
+                mins_per_item: 0,
+                total_minutes: 0,
+                wage_rate: defaultWageRate,
+                charge_out_rate: defaultChargeOutRate,
+                total: 0
+            };
+        } else if (gridType === 'MaterialsTable') {
+            return {
+                item_code: '',
+                description: '',
+                quantity: 0,
+                cost_price: 0,
+                retail_price: 0,
+                total: 0,
+                comments: ''
+            };
+        } else if (gridType === 'AdjustmentsTable') {
+            return {description: '', quantity: 0, amount: 0, total: 0, comments: ''};
+        }
+        return {};
     }
-    return {};
-}
 
     function onCellKeyDown(params) {
         if (params.event.key === 'Enter') {
@@ -105,7 +105,8 @@ function createNewRow(gridType) {
     }
 
     function createDefaultRowData(gridType) {
-        return [createNewRow(gridType) || {}];  // Return the result of createNewRow as an array
+        const correctedGridType = `${gridType}Table`;  // Append 'Table' to the gridType
+        return [createNewRow(correctedGridType) || {}];  // Return the result of createNewRow as an array
     }
 
     function calculateTotals() {
@@ -234,7 +235,7 @@ function createNewRow(gridType) {
                 onCellClicked: onDeleteIconClicked
             }
         ],
-        rowData:  [createNewRow('TimeTable')],
+        rowData: [createNewRow('TimeTable')],
         context: {gridType: 'TimeTable'},
     };
 
@@ -269,7 +270,7 @@ function createNewRow(gridType) {
                 onCellClicked: onDeleteIconClicked
             }
         ],
-        rowData:  [createNewRow('MaterialsTable')],
+        rowData: [createNewRow('MaterialsTable')],
         context: {gridType: 'MaterialsTable'}
     };
 
@@ -300,7 +301,7 @@ function createNewRow(gridType) {
                 onCellClicked: onDeleteIconClicked
             }
         ],
-        rowData:  [createNewRow('AdjustmentsTable')],
+        rowData: [createNewRow('AdjustmentsTable')],
         context: {gridType: 'AdjustmentsTable'}
     };
 
@@ -332,6 +333,9 @@ function createNewRow(gridType) {
             }
 
             const rowData = createDefaultRowData(gridType);
+            // console.log("Grid type: ", gridType, ", Section: ", section, ", Grid Key: ", gridKey);
+            // console.log("First row of rowData during grid initialization:", rowData[0]);
+
             const gridOptions = {
                 ...commonGridOptions,
                 ...specificGridOptions,
@@ -375,7 +379,7 @@ function createNewRow(gridType) {
         suppressHorizontalScroll: true,
         onGridReady: params => {
             window.grids['totalsTable'] = {gridInstance: params.api, api: params.api};
-            console.log('Totals grid ready:', window.grids['totalsTable']);
+            // console.log('Totals grid ready:', window.grids['totalsTable']);
             params.api.sizeColumnsToFit();
         },
         onGridSizeChanged: params => {
