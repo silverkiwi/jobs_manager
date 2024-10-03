@@ -1,5 +1,8 @@
+console.log('Grid logic script is running');
+
 // This listener is for the entries towards the top.  The material and description fields, etc.
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('Listener added');
     const materialField = document.getElementById('materialGaugeQuantity');
     const descriptionField = document.getElementById('description');
 
@@ -37,6 +40,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function numberParser(params) {
         return Number(params.newValue);
+    }
+
+    function calculateGridHeight(gridApi, numRows) {
+        const rowHeight = gridApi.getSizesForCurrentTheme().rowHeight || 28;  // Get row height from theme, fallback to 28
+        const headerElement = document.querySelector('.ag-header');  // Get the header DOM element
+        const headerHeight = headerElement ? headerElement.offsetHeight : 32;  // Fallback to 32 if not found
+
+        return numRows * rowHeight + headerHeight;
     }
 
 
@@ -170,18 +181,37 @@ document.addEventListener('DOMContentLoaded', function () {
     const commonGridOptions = {
         rowHeight: 28,
         headerHeight: 32,
+        domLayout: 'autoHeight',
         suppressPaginationPanel: true,
         suppressHorizontalScroll: true,
         defaultColDef: {
             sortable: true,
-            resizable: true
+            resizable: true,
         },
         onGridReady: function (params) {
             const gridKey = params.context.gridKey;
-            window.grids[gridKey] = {gridInstance: params.api, api: params.api};
-
-            // Use setTimeout to ensure the grid has finished initial rendering
+            const gridElement = document.querySelector(`#${gridKey}`);
+            const initialNumRows = 1; // Default initial number of rows
+            const initialGridHeight = calculateGridHeight(params.api, initialNumRows);
+            console.log(`Grid Key: ${gridKey}, Initial Grid Height: ${initialGridHeight}`);
+            gridElement.style.height = `${initialGridHeight}px`;
             params.api.sizeColumnsToFit();
+        },
+        onRowDataChanged: function (params) {
+            const gridKey = params.context.gridKey;
+            const gridElement = document.querySelector(`#${gridKey}`);
+            const rowCount = params.api.getDisplayedRowCount();
+            const newHeight = calculateGridHeight(params.api, rowCount);
+            console.log(`Grid Key: ${gridKey}, Updated Grid Height: ${newHeight}`);
+            gridElement.style.height = `${newHeight}px`;
+        },
+        onRowDataUpdated: function (params) {
+            const gridKey = params.context.gridKey;
+            const gridElement = document.querySelector(`#${gridKey}`);
+            const rowCount = params.api.getDisplayedRowCount();
+            const newHeight = calculateGridHeight(params.api, rowCount);
+            console.log(`Grid Key: ${gridKey}, Updated Grid Height: ${newHeight}`);
+            gridElement.style.height = `${newHeight}px`;
         },
         domLayout: 'autoHeight',
         autoSizeStrategy: {
@@ -206,6 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
             calculateTotals();
         }
     };
+
 
     const timeGridOptions = {
         ...commonGridOptions,

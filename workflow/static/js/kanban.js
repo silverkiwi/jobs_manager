@@ -85,11 +85,11 @@ function createJobCard(job) {
     card.className = 'job-card';
     card.setAttribute('data-id', job.id);
     card.setAttribute('data-job-name', job.name || '');
-    card.setAttribute('data-client-name', job.client.name || '');
+    card.setAttribute('data-client-name', job.client ? job.client.name : '');
     card.setAttribute('data-job-description', job.description || '');
     card.setAttribute('data-job-number', job.job_number);
     card.innerHTML = `
-        <h3><a href="/job-financials/${job.id}/">Job ${job.job_number}: ${job.name}</a></h3>
+        <h3><a href="/job/${job.id}/">Job ${job.job_number}: ${job.name}</a></h3>
         <p>${job.description}</p>
     `;
     return card;

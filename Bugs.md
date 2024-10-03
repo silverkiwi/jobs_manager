@@ -16,6 +16,7 @@
 - **Need to handle timesheet entry**.
 - **Reporting: start with P&L**.
 - **Need to export timesheets for IMS**.
+- **Kanban should say job x of y**.
 
 ## 🚀 Future Enhancements (Nice-to-Have Ideas)
 

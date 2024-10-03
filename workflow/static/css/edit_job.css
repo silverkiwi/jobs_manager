@@ -100,3 +100,9 @@ form .btn-link {
     min-height: var(--ag-row-height) !important;
     height: auto !important;
 }
+
+.ag-theme-alpine {
+    display: block;
+    height: auto;
+    overflow: visible;
+}
