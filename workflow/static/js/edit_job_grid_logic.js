@@ -1,8 +1,10 @@
-console.log('Grid logic script is running');
+// This script is for AG Grid 32.2.1
+// Do not use code for older versions of AG Grid - it will not work
+
+// console.log('Grid logic script is running');
 
 // This listener is for the entries towards the top.  The material and description fields, etc.
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('Listener added');
     const materialField = document.getElementById('materialGaugeQuantity');
     const descriptionField = document.getElementById('description');
 
@@ -189,31 +191,19 @@ document.addEventListener('DOMContentLoaded', function () {
             resizable: true,
         },
         onGridReady: function (params) {
-            const gridKey = params.context.gridKey;
+            // Store the grid API in the global window.grids object for easy access
+            const gridKey = params.context.gridKey;  // Using the context to uniquely identify the grid
             const gridElement = document.querySelector(`#${gridKey}`);
             const initialNumRows = 1; // Default initial number of rows
             const initialGridHeight = calculateGridHeight(params.api, initialNumRows);
-            console.log(`Grid Key: ${gridKey}, Initial Grid Height: ${initialGridHeight}`);
+//            console.log(`Grid Key: ${gridKey}, Initial Grid Height: ${initialGridHeight}`);
             gridElement.style.height = `${initialGridHeight}px`;
+
+            window.grids[gridKey] = {api: params.api};
+            // console.log(`Grid ${gridKey} initialized with API:`, window.grids[gridKey]);
+
             params.api.sizeColumnsToFit();
         },
-        onRowDataChanged: function (params) {
-            const gridKey = params.context.gridKey;
-            const gridElement = document.querySelector(`#${gridKey}`);
-            const rowCount = params.api.getDisplayedRowCount();
-            const newHeight = calculateGridHeight(params.api, rowCount);
-            console.log(`Grid Key: ${gridKey}, Updated Grid Height: ${newHeight}`);
-            gridElement.style.height = `${newHeight}px`;
-        },
-        onRowDataUpdated: function (params) {
-            const gridKey = params.context.gridKey;
-            const gridElement = document.querySelector(`#${gridKey}`);
-            const rowCount = params.api.getDisplayedRowCount();
-            const newHeight = calculateGridHeight(params.api, rowCount);
-            console.log(`Grid Key: ${gridKey}, Updated Grid Height: ${newHeight}`);
-            gridElement.style.height = `${newHeight}px`;
-        },
-        domLayout: 'autoHeight',
         autoSizeStrategy: {
             type: 'fitCellContents'
         },
@@ -221,6 +211,14 @@ document.addEventListener('DOMContentLoaded', function () {
         enterNavigatesVerticallyAfterEdit: true,
         stopEditingWhenCellsLoseFocus: true,
         onCellKeyDown: onCellKeyDown,
+        onRowDataUpdated: function (params) {  // Handles row updates
+            const gridKey = params.context.gridKey;
+            const gridElement = document.querySelector(`#${gridKey}`);
+            const rowCount = params.api.getDisplayedRowCount();
+            const newHeight = calculateGridHeight(params.api, rowCount);
+            // console.log(`Grid Key: ${gridKey}, Updated Grid Height: ${newHeight}`);
+            gridElement.style.height = `${newHeight}px`;
+        },
         onCellValueChanged: function (event) {
             const gridType = event.context.gridType;
             const data = event.data;
@@ -378,18 +376,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
             try {
                 const gridInstance = agGrid.createGrid(gridElement, gridOptions);
-                window.grids[gridKey] = {api: gridInstance.api};
+                // console.log(`Grid options for ${gridKey}:`, gridOptions);
+                // console.log(`Grid instance for ${gridKey}:`, gridInstance);
             } catch (error) {
                 console.error(`Error initializing grid for ${gridKey}:`, error);
             }
         });
     });
 
-    const expectedGridCount = sections.length * 3;
-    const actualGridCount = Object.keys(window.grids).length;
-    if (actualGridCount !== expectedGridCount) {
-        console.error(`Not all grids were initialized. Expected: ${expectedGridCount}, Actual: ${actualGridCount}`);
-    }
+    setTimeout(() => {
+        const expectedGridCount = sections.length * workType.length + 1; // 3 secionds of 3 grids, plus totals
+        const actualGridCount = Object.keys(window.grids).length;
+
+        if (actualGridCount !== expectedGridCount) {
+            console.error(`Not all grids were initialized. Expected: ${expectedGridCount}, Actual: ${actualGridCount}`);
+        } else {
+            console.log('All grids successfully initialized.');
+        }
+    }, 3000); // 3-second delay to allow all grids to finish initializing
 
     // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
     const totalsGridOptions = {
