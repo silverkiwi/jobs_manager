@@ -5,7 +5,7 @@ from .client import Client
 from .company_defaults import CompanyDefaults
 from .invoice import XeroInvoiceOrBill, Invoice, Bill, InvoiceLineItem, BillLineItem
 from .job import Job
-from .job_pricing import JobPricing
+from .job_pricing import JobPricing, QuotePricing
 from .material_entry import MaterialEntry
 from .staff import StaffManager, Staff
 from .time_entry import TimeEntry
@@ -23,6 +23,7 @@ __all__ = [
     'BillLineItem',
     'Job',
     'JobPricing',
+    'QuotePricing',
     'MaterialEntry',
     'StaffManager',
     'Staff',

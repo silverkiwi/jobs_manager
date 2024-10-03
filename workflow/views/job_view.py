@@ -11,7 +11,7 @@ from workflow.models import Job
 logger = logging.getLogger(__name__)
 
 
-class CreateJobView(CreateView):
+class CreateJobViewOriginal(CreateView):
     model = Job
     form_class = JobForm
     template_name = "jobs/create_job.html"  # Ensure this template exists

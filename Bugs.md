@@ -1,7 +1,6 @@
 ## 🐛 Bugs
 
 - **Add client crashes during the sync to Xero**.
-- **MaterialEntry creation**: Invalid field name(s) for model `MaterialEntry`: `'comments', 'item_code', 'markup', 'rate', 'total'`.
 - **Kanban board bug**: Error fetching quoting jobs – `TypeError: Cannot read properties of undefined (reading 'name')`.
 - **Markup not working**: Jobs currently don't have markup functioning properly.  This means the link doesn't come up, or the client name
 - **JobPricing not expanding**: It used to, but now we have scrollbars again.
@@ -22,6 +21,7 @@
 
 - **Jobs don't support attachments**: Suggested fix – integrate with Dropbox or Google Drive for attachment support.
 - **Look up contacts on a client**: Not implemented. Do we care enough to prioritize this feature?
+- **Save job doesn't change URL**: On new 
 
 ## ❓ Uncertainties/Decisions
 

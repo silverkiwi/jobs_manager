@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <script>
+        // Function to get the CSRF token from the cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Check if this cookie string starts with the name we want
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken'); // Get the CSRF token from cookies
+
+        // Function to create a job and redirect
+        function createJobAndRedirect() {
+            fetch('/api/create-job/', {  // Call the correct API endpoint
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken // Include the CSRF token in the request headers
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json(); // Parse the response as JSON
+            })
+            .then(data => {
+                if (data.job_id) {
+                    // Redirect to the job edit page with the job_id
+                    window.location.replace('/job/' + data.job_id + '/');
+                } else {
+                    console.error('Error: job_id not found');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating job:', error);
+            });
+        }
+
+        // Call the function as soon as the page loads
+        window.onload = createJobAndRedirect;
+    </script>
+</head>
+<body>
+    <p>Redirecting to your job...</p>
+</body>
+</html>

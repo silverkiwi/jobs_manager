@@ -22,10 +22,12 @@ from workflow.views.report_view import ReportCompanyProfitAndLoss, CompanyProfit
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
-    path('api/autosave-job/', edit_job_view_ajax.autosave_job_view, name='autosave_job'),
+    path('api/autosave-job/', edit_job_view_ajax.autosave_job_view, name='autosave_job_api'),
 
-    path('api/client-search/', client_view.ClientSearch, name='client_search'),
-# API URLs
+    path('api/client-search/', client_view.ClientSearch, name='client_search_api'),
+    path('api/create-job/', edit_job_view_ajax.create_job_api, name='create_job_api'),
+
+    # API URLs
     path('api/report/company-profit-and-loss/', ReportCompanyProfitAndLoss.as_view(), name='report_company_profit_and_loss'),
 
     path(
@@ -80,44 +82,43 @@ urlpatterns = [
 
     path('invoices/<uuid:pk>', invoice_view.InvoiceUpdateView.as_view(), name='update_invoice'),
     # Job URLs
-    path("jobs/create/", job_view.CreateJobView.as_view(), name="create_job"),
-    path("jobs/", job_view.ListJobView.as_view(), name="list_jobs"),
-    path("jobs/<uuid:pk>/", job_view.UpdateJobView.as_view(), name="update_job"),
+    path("old_jobs/create/", job_view.CreateJobViewOriginal.as_view(), name="create_job"),
+    path("old_jobs/", job_view.ListJobView.as_view(), name="list_jobs"),
+    path("old_jobs/<uuid:pk>/", job_view.UpdateJobView.as_view(), name="update_job"),
     path(
-        "jobs/<uuid:pk>/update_status/",
+        "old_jobs/<uuid:pk>/update_status/",
         kanban_view.update_job_status,
         name="update_job_status",
     ),
     # Job Pricing URLs
     path(
-        "jobs/<uuid:job_id>/create_pricing/<str:pricing_stage>/",
+        "old_jobs/<uuid:job_id>/create_pricing/<str:pricing_stage>/",
         job_pricing_view.CreateJobPricingView.as_view(),
         name="create_job_pricing",
     ),
     path(
-        "job_pricing/<uuid:pk>/",
+        "old_job_pricing/<uuid:pk>/",
         job_pricing_view.UpdateJobPricingView.as_view(),
         name="update_job_pricing",
     ),
     # Entry URLs
     path(
-        "job_pricing/<uuid:job_pricing_id>/time_entry/create/",
+        "old_job_pricing/<uuid:job_pricing_id>/time_entry/create/",
         time_entry_views.CreateTimeEntryView.as_view(),
         name="create_time_entry",
     ),
     path(
-        "job_pricing/<uuid:job_pricing_id>/material_entry/create/",
+        "old_job_pricing/<uuid:job_pricing_id>/material_entry/create/",
         material_entry_view.CreateMaterialEntryView.as_view(),
         name="create_material_entry",
     ),
     path(
-        "job_pricing/<uuid:job_pricing_id>/adjustment_entry/create/",
+        "old_job_pricing/<uuid:job_pricing_id>/adjustment_entry/create/",
         adjustment_entry_view.CreateAdjustmentEntryView.as_view(),
         name="create_adjustment_entry",
     ),
-    path('job-financials/', edit_job_view_ajax.edit_job_view_ajax, name='edit_job'),
-    path('job-financials/', edit_job_view_ajax.edit_job_view_ajax, name='edit_job'),
-    path('job-financials/<uuid:job_id>/', edit_job_view_ajax.edit_job_view_ajax, name='edit_job'),
+    path('job/', edit_job_view_ajax.create_job_view, name='create_job'),
+    path('job/<uuid:job_id>/', edit_job_view_ajax.edit_job_view_ajax, name='edit_job'),
     path(
         "time_entries/<uuid:pk>/",
         time_entry_views.UpdateTimeEntryView.as_view(),

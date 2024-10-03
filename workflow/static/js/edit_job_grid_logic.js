@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return Number(params.newValue);
     }
 
+
     function deleteIconCellRenderer(params) {
         const isLastRow = params.api.getDisplayedRowCount() === 1;
         const iconClass = isLastRow ? 'delete-icon disabled' : 'delete-icon';
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function onDeleteIconClicked(params) {
         if (params.api.getDisplayedRowCount() > 1) {
             params.api.applyTransaction({remove: [params.node.data]});
+            calculateTotals(); // Recalculate totals after row deletion
         }
     }
 
@@ -175,16 +177,15 @@ document.addEventListener('DOMContentLoaded', function () {
             resizable: true
         },
         onGridReady: function (params) {
-            params.api.sizeColumnsToFit();
-            setTimeout(() => {
-                params.api.resetRowHeights();
-            }, 0);
-
             const gridKey = params.context.gridKey;
             window.grids[gridKey] = {gridInstance: params.api, api: params.api};
-        },
-        onGridSizeChanged: params => {
+
+            // Use setTimeout to ensure the grid has finished initial rendering
             params.api.sizeColumnsToFit();
+        },
+        domLayout: 'autoHeight',
+        autoSizeStrategy: {
+            type: 'fitCellContents'
         },
         enterNavigatesVertically: true,
         enterNavigatesVerticallyAfterEdit: true,
@@ -195,11 +196,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = event.data;
             if (gridType === 'TimeTable') {
                 data.total_minutes = (data.items || 0) * (data.mins_per_item || 0);
-                data.total = (data.items || 0) * (data.charge_out_rate / 60.0 || 0);
+                data.total = (data.total_minutes || 0) * (data.charge_out_rate / 60.0 || 0);
             } else if (gridType === 'MaterialsTable') {
                 data.total = (data.quantity || 0) * (data.retail_rate || 0);
             }
             event.api.refreshCells({rowNodes: [event.node], columns: ['total', 'total_minutes'], force: true});
+
             debouncedAutosaveData(event);
             calculateTotals();
         }
@@ -372,18 +374,20 @@ document.addEventListener('DOMContentLoaded', function () {
             {category: 'Total Adjustments', estimate: 0, quote: 0, reality: 0},
             {category: 'Total Project Cost', estimate: 0, quote: 0, reality: 0}
         ],  // Default 4 rows
-        domLayout: 'autoHeight',  // Ensure table height adjusts automatically
+        domLayout: 'autoHeight',
         rowHeight: 28,
         headerHeight: 32,
         suppressPaginationPanel: true,
         suppressHorizontalScroll: true,
         onGridReady: params => {
             window.grids['totalsTable'] = {gridInstance: params.api, api: params.api};
-            // console.log('Totals grid ready:', window.grids['totalsTable']);
             params.api.sizeColumnsToFit();
         },
         onGridSizeChanged: params => {
             params.api.sizeColumnsToFit();
+        },
+        autoSizeStrategy: {
+            type: 'fitCellContents'
         }
     };
 

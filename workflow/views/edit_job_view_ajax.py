@@ -4,12 +4,31 @@ import logging
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 from workflow.forms import JobPricingForm, JobForm, TimeEntryForm, MaterialEntryForm, AdjustmentEntryForm
 from workflow.helpers import get_company_defaults
 from workflow.models import Job, JobPricing, TimeEntry, CompanyDefaults, MaterialEntry, AdjustmentEntry
 
 logger = logging.getLogger(__name__)
+
+def create_job_view(request):
+    return render(request, 'jobs/create_job_and_redirect.html')
+
+
+@require_http_methods(["POST"])
+def create_job_api(request):
+    try:
+        # Create the job with default values
+        new_job = Job.objects.create()
+
+        # Return the job_id as a JSON response
+        return JsonResponse({'job_id': str(new_job.id)}, status=201)
+
+    except Exception as e:
+        # Return a JSON error response in case of unexpected failures
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 def edit_job_view_ajax(request, job_id=None):
     # Log the job ID and request method for context
