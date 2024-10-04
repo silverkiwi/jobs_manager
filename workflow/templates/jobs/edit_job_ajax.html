@@ -2,56 +2,56 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
-<link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
-<link rel="stylesheet" href="https://unpkg.com/ag-grid-community/styles/ag-grid.css">
-<link rel="stylesheet" href="https://unpkg.com/ag-grid-community/styles/ag-theme-alpine.css">
+    <link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
+    <link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
+    <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/styles/ag-theme-alpine.css">
 {% endblock %}
 
 {% block content %}
     <!-- Job Details Section -->
     {% include "jobs/edit_job_detail_section.html" %}
 
-    <hr />
+    <hr/>
 
     <div class="job-pricing-sections">
-      <div class="job-grid-section">
-        <h2>Estimate</h2>
-        <div id="estimateTimeTable" class="ag-theme-alpine"></div>
-        <div id="estimateMaterialsTable" class="ag-theme-alpine"></div>
-        <div id="estimateAdjustmentsTable" class="ag-theme-alpine"></div>
-     <button id="copyEstimateToQuote" class="btn btn-primary mt-3">Copy Estimate to Quote</button>
-      </div>
+        <div class="job-grid-section">
+            <h2>Estimate</h2>
+            <div id="estimateTimeTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="estimateMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="estimateAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+            <button id="copyEstimateToQuote" class="btn btn-primary mt-3">Copy Estimate to Quote</button>
+        </div>
 
-      <div class="job-grid-section">
-        <h2>Quote</h2>
-        <div id="quoteTimeTable" class="ag-theme-alpine"></div>
-        <div id="quoteMaterialsTable" class="ag-theme-alpine"></div>
-        <div id="quoteAdjustmentsTable" class="ag-theme-alpine"></div>
-        <button id="reviseQuote" class="btn btn-primary mt-3">Revise Quote</button>
-        <button id="submitQuoteToClient" class="btn btn-primary mt-3">Submit Quote to Client</button>
-      </div>
+        <div class="job-grid-section">
+            <h2>Quote</h2>
+            <div id="quoteTimeTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="quoteMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="quoteAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+            <button id="reviseQuote" class="btn btn-primary mt-3">Revise Quote</button>
+            <button id="submitQuoteToClient" class="btn btn-primary mt-3">Submit Quote to Client</button>
+        </div>
 
-      <div class="job-grid-section">
-        <h2>Reality</h2>
-        <div id="realityTimeTable" class="ag-theme-alpine"></div>
-        <div id="realityMaterialsTable" class="ag-theme-alpine"></div>
-        <div id="realityAdjustmentsTable" class="ag-theme-alpine"></div>
-      </div>
+        <div class="job-grid-section">
+            <h2>Reality</h2>
+            <div id="realityTimeTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="realityMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="realityAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+        </div>
 
-      <div class="job-grid-section">
-        <h2>Totals</h2>
-        <div id="totalsTable" class="ag-theme-alpine"></div>
-      </div>
+        <div class="job-grid-section">
+            <h2>Totals</h2>
+            <div id="totalsTable" class="ag-theme-alpine"></div>
+        </div>
     </div>
 
 
-    <hr />
+    <hr/>
 
     <!-- Workflow Section -->
     {% include "jobs/edit_job_workflow_section.html" %}
 
-    <hr />
+    <hr/>
     {% if job_form.errors %}
         <div class="alert alert-danger">
             <ul>
@@ -62,7 +62,7 @@
         </div>
     {% endif %}
 
-    <hr />
+    <hr/>
 
     <!-- Save/Cancel Buttons -->
     <div class="action-buttons">

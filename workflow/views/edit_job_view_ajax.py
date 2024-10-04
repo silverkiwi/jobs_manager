@@ -201,7 +201,7 @@ def autosave_job_view(request):
                         job_pricing=pricing_stage,
                         defaults={
                             'description': adjustment_entry_data.get('description', ''),
-                            'cost_adjustmnet': adjustment_entry_data.get('cost_adjustmnet', 0),
+                            'cost_adjustment': adjustment_entry_data.get('cost_adjustment', 0),
                             'price_adjustment': adjustment_entry_data.get('total', 0),
                             'comments': adjustment_entry_data.get('comments', ''),
                         }

@@ -5,6 +5,7 @@
 - **Markup not working**: Jobs currently don't have markup functioning properly.  This means the link doesn't come up, or the client name
 - **JobPricing not expanding**: It used to, but now we have scrollbars again.
 - **Autosave successful on failure**: You should only say successful if it passes
+- **Delete icon size**: The delete icon is being cropped at the bottom.  There's a bit too much whitespace above.
 
 ## 🛤️ Roadmap (Must-Have Features)
 

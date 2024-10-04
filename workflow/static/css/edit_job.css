@@ -12,17 +12,16 @@ form .btn-link {
 }
 
 .autoresizeTextarea {
-    resize: none;  /* Prevent manual resizing */
-    overflow: hidden;  /* Hide the scrollbar */
-    min-height: 60px;  /* Set a reasonable minimum height */
+    resize: none; /* Prevent manual resizing */
+    overflow: hidden; /* Hide the scrollbar */
+    min-height: 60px; /* Set a reasonable minimum height */
     padding: 8px;
     box-sizing: border-box;
-    width: 100%;  /* Ensure the textarea takes full width of its container */
-    font-size: 16px;  /* Set a consistent font size */
-    line-height: 1.5;  /* Set a consistent line height */
-    transition: height 0.1s ease-out;  /* Smooth height transition */
+    width: 100%; /* Ensure the textarea takes full width of its container */
+    font-size: 16px; /* Set a consistent font size */
+    line-height: 1.5; /* Set a consistent line height */
+    transition: height 0.1s ease-out; /* Smooth height transition */
 }
-
 
 
 /* Table container: dynamic grid layout */
@@ -63,13 +62,27 @@ form .btn-link {
     }
 }
 
+.job-grid-section button {
+    position: relative; /* Ensure the button's position is within its container context, not affected by collapsing or float issues */
+}
+
+.price-entry-table {
+        /* No entries.  Empty placeholder so it's easy to find again */
+}
+
 .ag-theme-alpine {
     --ag-row-height: 28px;
     --ag-header-height: 32px;
     --ag-cell-horizontal-padding: 5px;
     --ag-border-color: #dde2eb;
+
     width: 100%;
+    max-height: none !important;  /* Remove maximum height restriction */
+    display: block;                /* Ensure block-level display */
+    height: auto;                  /* Allow height to adjust based on content */
+    overflow: visible;             /* Ensure no clipping of overflowing content */
 }
+
 
 .ag-theme-alpine .ag-root-wrapper {
     border: 1px solid var(--ag-border-color);
@@ -85,10 +98,6 @@ form .btn-link {
     height: auto !important;
 }
 
-/* Remove any default max-height */
-.ag-theme-alpine {
-    max-height: none !important;
-}
 
 /* Ensure grid body doesn't have a minimum height */
 .ag-theme-alpine .ag-body-viewport {
@@ -99,10 +108,4 @@ form .btn-link {
 .ag-theme-alpine .ag-center-cols-container {
     min-height: var(--ag-row-height) !important;
     height: auto !important;
-}
-
-.ag-theme-alpine {
-    display: block;
-    height: auto;
-    overflow: visible;
 }

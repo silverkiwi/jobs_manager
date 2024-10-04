@@ -1,5 +1,34 @@
-// This script is for AG Grid 32.2.1
-// Do not use code for older versions of AG Grid - it will not work
+/*
+ * File Overview:
+ * ----------------
+ * This file manages the creation and interaction of grids using AG Grid. It includes
+ * functionality for dynamically initializing multiple grids (time, materials, adjustments)
+ * across various sections (e.g., estimate, quote, reality), and includes a special totals grid.
+ *
+ * Key Interactions:
+ * - Autosave Integration:
+ *   The autosave functionality depends on grid changes triggering an event that captures
+ *   the data across all relevant grids. It is crucial that the APIs for each grid are correctly
+ *   initialized and stored in `window.grids` to ensure autosave has access to the necessary data.
+ *
+ * - AG Grid API Storage:
+ *   Each grid API is stored in `window.grids` once the grid is initialized. This is critical
+ *   for autosave, `calculateTotals()`, and other inter-grid operations. The totals grid is
+ *   also included here, as it is required for proper calculation and data refresh.
+ *
+ * - AG Grid Version Compatibility:
+ *   Ensure that changes align with AG Grid version 32.2.1. Be aware of deprecated properties
+ *   and avoid using older APIs that may not be compatible with this version.
+ *
+ * Important Notes:
+ * - The `onGridReady` function, inherited from `commonGridOptions`, is responsible for storing
+ *   each grid's API in `window.grids`. Do not modify the initialization logic to exclude this step.
+ * - Each grid API is crucial for the autosave mechanism. Breaking or missing the correct API
+ *   initialization may lead to unexpected errors or the autosave failing silently.
+ * - Maintain a consistent approach to API storage and avoid changes that bypass or duplicate
+ *   API handling in `onGridReady`.
+ */
+
 
 // console.log('Grid logic script is running');
 
@@ -95,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 comments: ''
             };
         } else if (gridType === 'AdjustmentsTable') {
-            return {description: '', quantity: 0, amount: 0, total: 0, comments: ''};
+            return {description: '', cost_adjustment: 0, price_adjustment: 0,  comments: ''};
         }
         return {};
     }
@@ -204,6 +233,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             params.api.sizeColumnsToFit();
         },
+        onGridSizeChanged: params => {
+            params.api.sizeColumnsToFit();
+        },
         autoSizeStrategy: {
             type: 'fitCellContents'
         },
@@ -235,11 +267,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    const trashCanColumn = {
+        headerName: '',
+        field: '',
+        width: 40,
+        cellRenderer: deleteIconCellRenderer,
+        onCellClicked: onDeleteIconClicked,
+        cellStyle: {
+            display: 'flex',           // Use Flexbox for easier alignment
+            alignItems: 'center',      // Vertically center the icon
+            justifyContent: 'center',  // Horizontally center the icon
+            padding: 0                 // Remove any extra padding
+        }
+    };
 
     const timeGridOptions = {
         ...commonGridOptions,
         columnDefs: [
-            {headerName: 'Description', field: 'description', editable: true},
+            {headerName: 'Description', field: 'description', editable: true, flex: 2},
             {headerName: 'Items', field: 'items', editable: true, valueParser: numberParser},
             {headerName: 'Mins/Item', field: 'mins_per_item', editable: true, valueParser: numberParser},
             {headerName: 'Total Minutes', field: 'total_minutes', editable: false},
@@ -258,13 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 valueFormatter: currencyFormatter
             },
             {headerName: 'Total', field: 'total', editable: false, valueFormatter: currencyFormatter},
-            {
-                headerName: '',
-                field: '',
-                width: 40,
-                cellRenderer: deleteIconCellRenderer,
-                onCellClicked: onDeleteIconClicked
-            }
+            trashCanColumn,
         ],
         rowData: [createNewRow('TimeTable')],
         context: {gridType: 'TimeTable'},
@@ -275,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ...commonGridOptions,
         columnDefs: [
             {headerName: 'Item Code', field: 'item_code', editable: true},
-            {headerName: 'Description', field: 'description', editable: true},
+            {headerName: 'Description', field: 'description', editable: true, flex: 2},
             {headerName: 'Quantity', field: 'quantity', editable: true, valueParser: numberParser},
             {
                 headerName: 'Cost Rate',
@@ -292,14 +331,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 valueFormatter: currencyFormatter
             },
             {headerName: 'Total', field: 'total', editable: false, valueFormatter: currencyFormatter},
-            {headerName: 'Comments', field: 'comments', editable: true},
-            {
-                headerName: '',
-                field: '',
-                width: 40,
-                cellRenderer: deleteIconCellRenderer,
-                onCellClicked: onDeleteIconClicked
-            }
+            {headerName: 'Comments', field: 'comments', editable: true, flex: 2},
+            trashCanColumn,
         ],
         rowData: [createNewRow('MaterialsTable')],
         context: {gridType: 'MaterialsTable'}
@@ -308,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const adjustmentsGridOptions = {
         ...commonGridOptions,
         columnDefs: [
-            {headerName: 'Description', field: 'description', editable: true},
+            {headerName: 'Description', field: 'description', editable: true, flex: 2},
             {
                 headerName: 'Cost Adjustment',
                 field: 'cost_adjustment',
@@ -323,14 +356,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
             },
-            {headerName: 'Comments', field: 'comments', editable: true},
-            {
-                headerName: '',
-                field: '',
-                width: 40,
-                cellRenderer: deleteIconCellRenderer,
-                onCellClicked: onDeleteIconClicked
-            }
+            {headerName: 'Comments', field: 'comments', editable: true, flex: 2},
+            trashCanColumn,
         ],
         rowData: [createNewRow('AdjustmentsTable')],
         context: {gridType: 'AdjustmentsTable'}
