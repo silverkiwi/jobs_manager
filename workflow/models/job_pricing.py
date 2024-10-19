@@ -1,10 +1,15 @@
 # workflow/models/job_pricing.py
 import uuid
+from decimal import Decimal
 
 from django.db import models, transaction
 
 from workflow.enums import JobPricingStage, JobPricingType
 from workflow.models import Job
+
+
+def decimal_to_float(value):
+    return float(value) if isinstance(value, Decimal) else value
 
 
 class JobPricing(models.Model):
@@ -27,28 +32,99 @@ class JobPricing(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def material_entries(self):
+        """Returns all MaterialEntries related to this JobPricing"""
+        return self.materialentries_set.all()
+
+    @property
+    def time_entries(self):
+        """Returns all TimeEntries related to this JobPricing"""
+        return self.timeentries_set.all()
+
+    @property
+    def adjustment_entries(self):
+        """Returns all AdjustmentEntries related to this JobPricing"""
+        return self.adjustmententries_set.all()
+
+    @property
+    def total_time_cost(self):
+        """Calculate the total cost for all time entries."""
+        return sum(entry.cost for entry in self.time_entries.all())
+
+    @property
+    def total_time_revenue(self):
+        """Calculate the total revenue for all time entries."""
+        return sum(entry.revenue for entry in self.time_entries.all())  # Assuming 'revenue' field exists
+
+    @property
+    def total_material_cost(self):
+        """Calculate the total cost for all material entries."""
+        return sum(entry.unit_cost * entry.quantity for entry in self.material_entries.all())
+
+    @property
+    def total_material_revenue(self):
+        """Calculate the total revenue for all material entries."""
+        return sum(entry.unit_revenue * entry.quantity for entry in self.material_entries.all())
+
+    @property
+    def total_adjustment_cost(self):
+        """Calculate the total cost for all adjustment entries."""
+        return sum(entry.cost_adjustment for entry in self.adjustment_entries.all())
+
+    @property
+    def total_adjustment_revenuet(self):
+        """Calculate the total cost for all adjustment entries."""
+        return sum(entry.price_adjustment for entry in self.adjustment_entries.all())
 
     @property
     def total_cost(self):
-        total_time_cost = sum(entry.cost for entry in self.time_entries.all())
-        total_material_cost = sum(entry.cost for entry in self.material_entries.all())
-        total_adjustment_cost = sum(
-            entry.cost for entry in self.adjustment_entries.all()
-        )
-        return total_time_cost + total_material_cost + total_adjustment_cost
+        """Calculate the total cost including time, materials, and adjustments."""
+        return self.total_time_cost + self.total_material_cost + self.total_adjustment_cost
 
     @property
     def total_revenue(self):
-        total_time_revenue = sum(
-            entry.revenue or 0 for entry in self.time_entries.all()
-        )
-        total_material_revenue = sum(
-            entry.revenue or 0 for entry in self.material_entries.all()
-        )
-        total_adjustment_revenue = sum(
-            entry.revenue or 0 for entry in self.adjustment_entries.all()
-        )
-        return total_time_revenue + total_material_revenue + total_adjustment_revenue
+        """Calculate the total cost including time, materials, and adjustments."""
+        return self.total_time_revenue + self.total_material_revenue + self.total_adjustment_revenue
+
+    def extract_pricing_data(self):
+        """Used for passing pricing data into HTML templates."""
+        time_entries = [
+                {
+                    'description': entry.description,
+                    'items': decimal_to_float(entry.items),
+                    'mins_per_item': decimal_to_float(entry.mins_per_item),
+                    'wage_rate': decimal_to_float(entry.wage_rate),
+                    'charge_out_rate': decimal_to_float(entry.charge_out_rate)
+                }
+                for entry in self.time_entries.all()  # Reverse lookup assuming related_name='time_entries'
+            ]
+        material_entries = [
+                {
+                    'item_code': entry.item_code,
+                    'description': entry.description,
+                    'quantity': decimal_to_float(entry.quantity),
+                    'cost_price': decimal_to_float(entry.unit_cost),
+                    'retail_price': decimal_to_float(entry.unit_revenue),
+                    'comments': entry.comments
+                }
+                for entry in self.material_entries.all()  # Reverse lookup assuming related_name='material_entries'
+            ]
+        adjustment_entries = [
+                {
+                    'description': entry.description,
+                    'cost_adjustment': decimal_to_float(entry.cost_adjustment),
+                    'price_adjustment': decimal_to_float(entry.price_adjustment),
+                    'comments': entry.comments
+                }
+                for entry in self.adjustment_entries.all()  # Reverse lookup assuming related_name='adjustment_entries'
+            ]
+        pricing_entries = {
+            'time': time_entries,
+            'material': material_entries,
+            'adjustment': adjustment_entries
+        }
+        return pricing_entries
 
     def __str__(self):
         return f"{self.job.name} - {self.get_pricing_stage_display()} ({self.get_pricing_type_display()})"

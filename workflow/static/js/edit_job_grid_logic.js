@@ -95,39 +95,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function createNewRow(gridType) {
-        const companyDefaults = document.getElementById('companyDefaults');
-        const defaultWageRate = parseFloat(companyDefaults.dataset.wageRate);
-        const defaultChargeOutRate = parseFloat(companyDefaults.dataset.chargeOutRate);
-
-        // console.log('defaultWageRate:', defaultWageRate);
-        // console.log('defaultChargeOutRate:', defaultChargeOutRate);
-
-        if (gridType === 'TimeTable') {
-            return {
-                description: '',
-                items: 0,
-                mins_per_item: 0,
-                total_minutes: 0,
-                wage_rate: defaultWageRate,
-                charge_out_rate: defaultChargeOutRate,
-                total: 0
-            };
-        } else if (gridType === 'MaterialsTable') {
-            return {
-                item_code: '',
-                description: '',
-                quantity: 0,
-                cost_price: 0,
-                retail_price: 0,
-                total: 0,
-                comments: ''
-            };
-        } else if (gridType === 'AdjustmentsTable') {
-            return {description: '', cost_adjustment: 0, price_adjustment: 0,  comments: ''};
-        }
-        return {};
-    }
 
     function onCellKeyDown(params) {
         if (params.event.key === 'Enter') {
@@ -152,6 +119,100 @@ document.addEventListener('DOMContentLoaded', function () {
         const correctedGridType = `${gridType}Table`;  // Append 'Table' to the gridType
         return [createNewRow(correctedGridType) || {}];  // Return the result of createNewRow as an array
     }
+
+    function loadExistingJobEntries(section_name, entry_type) {
+        // Check if entry_forms is available and valid
+        if (!entry_forms) {
+            console.error('Debug: entry_forms data is not available.');
+            return [createNewRow(entry_type)];
+        }
+
+        if (!entry_forms[section_name]) {
+            console.error(`Debug: entry_forms does not contain section "${section_name}".`);
+            return [createNewRow(entry_type)];
+        }
+
+        // Call the specific loader function based on the entry type
+        if (entry_type === 'time') {
+            return loadExistingJobTimeEntries(entry_forms[section_name]);
+        } else if (entry_type === 'material') {
+            return loadExistingJobMaterialEntries(entry_forms[section_name]);
+        } else if (entry_type === 'adjustment') {
+            return loadExistingJobAdjustmentEntries(entry_forms[section_name]);
+        }
+
+        console.error(`Debug: Unknown entry type "${entry_type}".`);
+        return [createNewRow(entry_type)];
+    }
+
+    function loadExistingJobTimeEntries(section) {
+        if (!section.time || section.time.length === 0) {
+            console.log('Debug: No time entries found.');
+            return [createNewRow('time')];
+        }
+
+        console.log(`Debug: Found ${section.time.length} time entries.`);
+        return section.time.map(entry => ({
+            description: entry.description,
+            items: entry.items,
+            mins_per_item: entry.mins_per_item,
+            wage_rate: entry.wage_rate,
+            charge_out_rate: entry.charge_out_rate,
+            total_minutes: entry.total_minutes,
+            total: entry.total,
+        }));
+    }
+
+    function loadExistingJobMaterialEntries(section) {
+        if (!section.material || section.material.length === 0) {
+            console.log('Debug: No material entries found.');
+            return [createNewRow('material')];
+        }
+
+        console.log(`Debug: Found ${section.material.length} material entries.`);
+        return section.material.map(entry => ({
+            item_code: entry.item_code,
+            description: entry.description,
+            quantity: entry.quantity,
+            cost_price: entry.cost_price,
+            retail_price: entry.retail_price,
+            total: entry.total,
+            comments: entry.comments,
+        }));
+    }
+
+    function loadExistingJobAdjustmentEntries(section) {
+        if (!section.adjustment || section.adjustment.length === 0) {
+            console.log('Debug: No adjustment entries found.');
+            return [createNewRow('adjustment')];
+        }
+
+        console.log(`Debug: Found ${section.adjustment.length} adjustment entries.`);
+        return section.adjustment.map(entry => ({
+            description: entry.description,
+            cost_adjustment: entry.cost_adjustment,
+            price_adjustment: entry.price_adjustment,
+            comments: entry.comments,
+            total: entry.total,
+        }));
+    }
+
+    function loadExistingJobAdjustmentEntries(section) {
+        if (!section.adjustment_entries || section.adjustment_entries.length === 0) {
+            console.log('Debug: No adjustment entries found.');
+            return [createNewRow('AdjustmentsTable')];
+        }
+
+        console.log(`Debug: Found ${section.adjustment_entries.length} adjustment entries.`);
+        return section.adjustment_entries.map(entry => ({
+            description: entry.description,
+            cost_adjustment: entry.cost_adjustment,
+            price_adjustment: entry.price_adjustment,
+            comments: entry.comments,
+            total: entry.total,
+        }));
+    }
+
 
     function calculateTotals() {
         const totals = {
@@ -305,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
             {headerName: 'Total', field: 'total', editable: false, valueFormatter: currencyFormatter},
             trashCanColumn,
         ],
-        rowData: [createNewRow('TimeTable')],
+        rowData: [],
         context: {gridType: 'TimeTable'},
     };
 
@@ -334,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function () {
             {headerName: 'Comments', field: 'comments', editable: true, flex: 2},
             trashCanColumn,
         ],
-        rowData: [createNewRow('MaterialsTable')],
+        rowData: [],
         context: {gridType: 'MaterialsTable'}
     };
 
@@ -359,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function () {
             {headerName: 'Comments', field: 'comments', editable: true, flex: 2},
             trashCanColumn,
         ],
-        rowData: [createNewRow('AdjustmentsTable')],
+        rowData: [],
         context: {gridType: 'AdjustmentsTable'}
     };
 
@@ -398,11 +459,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 ...commonGridOptions,
                 ...specificGridOptions,
                 context: {section, gridType: `${gridType}Table`, gridKey: gridKey},
-                rowData: rowData,
             };
 
             try {
                 const gridInstance = agGrid.createGrid(gridElement, gridOptions);
+                let rowData = getGridData(sectionData, gridType);
+
+                // Set row data after initializing the grid
+                gridOptions.api.setRowData(rowData);
+
+                // Optional console log for debugging purposes
                 // console.log(`Grid options for ${gridKey}:`, gridOptions);
                 // console.log(`Grid instance for ${gridKey}:`, gridInstance);
             } catch (error) {

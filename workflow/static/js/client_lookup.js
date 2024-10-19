@@ -1,5 +1,7 @@
+
+
 document.addEventListener('DOMContentLoaded', function () {
-    const clientInput = document.getElementById('clientName');
+    const clientInput = document.getElementById('client_name');
     const suggestionsContainer = document.getElementById('clientSuggestionsContainer');
 
     if (!clientInput || !suggestionsContainer) {
@@ -57,7 +59,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 suggestionItem.addEventListener('click', function () {
                     clientInput.value = client.name;
                     document.getElementById('client_id').value = client.id;
-                    console.log("Client ID set to:", client.id);  // Log the client_id
+                    document.getElementById('client_name').value = client.name;
+                    console.log('Client updated: ID:', client.id, ' Name:', client.name);
+                    autosaveData();
                     suggestionsContainer.innerHTML = ''; // Clear suggestions after selecting
                 });
 

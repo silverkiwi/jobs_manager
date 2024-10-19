@@ -12,15 +12,20 @@
         </div>
     </div>
 
+
     <div class="row mb-3">
         <div class="col-md-6 position-relative">
             <div class="form-group">
-                <label for="clientName" class="form-label">Client</label>
-                    <label for="clientName" class="form-label">Client</label>
-                    <input type="text" id="clientName" class="form-control"
-                           value="{% if job_form.client and job_form.client.value %}{{ job_form.client.name }}{% else %}{{ '' }}{% endif %}"
-                           autocomplete="off">
-                    <input type="hidden" name="client_id" id="client_id" value="{% if job_form.client and job_form.client.value %}{{ job_form.client.value }}{% else %}{{ '' }}{% endif %}">
+                <label for="client_name" class="form-label">Client</label>
+                <input type="text" id="client_name" class="form-control" value="{{ job.client.name|default:'' }}">
+                <input type="hidden" name="client_id" id="client_id" value="{{ job.client.id|default:'' }}">
+                <!-- Debug statements -->
+                <!-- Debug: Client ID from job_form - {{ job_form.client.value }} -->
+                <!-- Debug: Job Object Client ID - {{ job.client.id|default:'No Client ID' }} -->
+                <!-- Debug: Job Object Client ID - {{ job_form.client.id|default:'No Client ID' }} -->
+                <!-- Debug: Job Client Name - {{ job.client.name|default:'No Client Name' }} -->
+                <!-- Debug: Job Object Client Name - {{ job.client.name|default:'No Client Name' }} -->
+
             </div>
             <div id="clientSuggestionsContainer" class="suggestions-container"></div>
         </div>

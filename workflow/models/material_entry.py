@@ -18,9 +18,9 @@ class MaterialEntry(models.Model):
     item_code = models.CharField(max_length=20,null=True, blank=True) # Later a FK probably
     description = models.CharField(max_length=200)
     comments = models.CharField(max_length=200, null=True, blank=True) # Freetext internal note
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
     unit_revenue = models.DecimalField(max_digits=10, decimal_places=2)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
 
     @property
     def cost(self) -> Decimal:

@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -75,7 +76,7 @@ LOGGING = {
         },
         "file": {
             "level": "DEBUG",
-            "class": "logging.handlers.RotatingFileHandler",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
             "filename": "debug_sql.log",   # Path to store SQL logs
             "maxBytes": 1024*1024*5,       # 5 MB log size before rotating
             "backupCount": 5,              # Keep up to 5 backup logs
@@ -114,6 +115,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "jobs_manager.wsgi.application"
+load_dotenv(BASE_DIR / ".env")
 
 
 # Database
@@ -124,10 +126,14 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'msm_workflow',
         'USER': 'django_user',
-        'PASSWORD': '7m2UFwcqfHHgeKXv',
+        'PASSWORD': os.getenv('DB_PASSWORD', 'abcde'),
         'HOST': 'localhost',
         'PORT': '3306',
-    }
+    },
+    'TEST': {
+        'NAME': 'test_msm_workflow',  # Optional, Django will create 'test_' + NAME by default
+    },
+
 }
 
 # DATABASES = {
@@ -180,8 +186,6 @@ STATIC_URL = "/static/"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-load_dotenv(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")

@@ -25,7 +25,9 @@ urlpatterns = [
     path('api/autosave-job/', edit_job_view_ajax.autosave_job_view, name='autosave_job_api'),
 
     path('api/client-search/', client_view.ClientSearch, name='client_search_api'),
+    path('api/get-job/', edit_job_view_ajax.get_job_api, name='get_job_api'),
     path('api/create-job/', edit_job_view_ajax.create_job_api, name='create_job_api'),
+    path('api/fetch_job_pricing/', edit_job_view_ajax.fetch_job_pricing_api, name='fetch_job_pricing_api'),
 
     # API URLs
     path('api/report/company-profit-and-loss/', ReportCompanyProfitAndLoss.as_view(), name='report_company_profit_and_loss'),

@@ -122,10 +122,10 @@ function filterJobs() {
     document.querySelectorAll('.job-card').forEach(card => {
         const jobName = card.dataset.jobName || '';
         const jobDescription = card.dataset.jobDescription || '';
-        const clientName = card.dataset.clientName || '';
+        const client_name = card.dataset.client_name || '';
         const jobNumber = card.dataset.jobNumber || '';
 
-        const combinedText = [jobName, jobDescription, clientName, jobNumber].join(' ').toLowerCase();
+        const combinedText = [jobName, jobDescription, client_name, jobNumber].join(' ').toLowerCase();
 
         // Log the combined text
         // console.log('Combined Text:', combinedText);

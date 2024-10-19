@@ -86,6 +86,21 @@ class Job(models.Model):
             self.job_number = self.generate_unique_job_number()
         super(Job, self).save(*args, **kwargs)
 
+    @property
+    def estimate_pricing(self):
+        """Returns the estimate JobPricing related to this job."""
+        return self.pricings.filter(pricing_stage='estimate').first()
+
+    @property
+    def quote_pricing(self):
+        """Returns the quote JobPricing related to this job."""
+        return self.pricings.filter(pricing_stage='quote').first()
+
+    @property
+    def reality_pricing(self):
+        """Returns the reality JobPricing related to this job."""
+        return self.pricings.filter(pricing_stage='reality').first()
+
 
     @staticmethod
     def generate_unique_job_number():
