@@ -34,11 +34,11 @@ function getGridData(section, gridType) {
 
 function loadExistingJobEntries(entries, gridType) {
     switch (gridType) {
-        case 'time':
+        case 'TimeTable':
             return loadExistingJobTimeEntries(entries);
-        case 'material':
+        case 'MaterialsTable':
             return loadExistingJobMaterialEntries(entries);
-        case 'adjustment':
+        case 'AdjustmentsTable':
             return loadExistingJobAdjustmentEntries(entries);
         default:
             console.error(`Unknown grid type: "${gridType}"`);
@@ -89,11 +89,11 @@ function createNewRow(gridType) {
     const defaultChargeOutRate = parseFloat(companyDefaults.dataset.chargeOutRate);
 
     switch (gridType) {
-        case 'time':
+        case 'TimeTable':
             return { description: '', items: 0, mins_per_item: 0, wage_rate: defaultWageRate, charge_out_rate: defaultChargeOutRate, total_minutes: 0, total: 0 };
-        case 'material':
+        case 'MaterialsTable':
             return { item_code: '', description: '', quantity: 0, cost_price: 0, retail_price: 0, total: 0, comments: '' };
-        case 'adjustment':
+        case 'AdjustmentsTable':
             return { description: '', cost_adjustment: 0, price_adjustment: 0, comments: '', total: 0 };
         default:
             console.error(`Unknown grid type for new row creation: "${gridType}"`);

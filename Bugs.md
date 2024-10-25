@@ -24,6 +24,7 @@
 - **Jobs don't support attachments**: Suggested fix – integrate with Dropbox or Google Drive for attachment support.
 - **Look up contacts on a client**: Not implemented. Do we care enough to prioritize this feature?
 - **Save job doesn't change URL**: On new 
+- **Tie in Google Maps** Improve the client data.  Add place_id for dedupe, and look up industry 
 
 ## ❓ Uncertainties/Decisions
 

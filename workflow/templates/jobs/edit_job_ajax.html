@@ -73,7 +73,7 @@
 
 {% block extra_js %}
     <script src="https://unpkg.com/ag-grid-community@32.2.0/dist/ag-grid-community.min.js"></script>
-    <script type="application/json" id="entryFormsData" style="display:none;">{{ entry_forms_json }}</script>
+    <script type="application/json" id="entryFormsData" style="display:none;">{{ entry_forms_json|safe }}</script>
     <script src="{% static 'js/deseralise_job_pricing.js' %}"></script>"
     <script src="{% static 'js/edit_job_form_autosave.js' %}"></script>
     <script src="{% static 'js/client_lookup.js' %}"></script>

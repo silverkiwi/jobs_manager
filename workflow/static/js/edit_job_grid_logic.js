@@ -116,8 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function createDefaultRowData(gridType) {
-        const correctedGridType = `${gridType}Table`;  // Append 'Table' to the gridType
-        return [createNewRow(correctedGridType) || {}];  // Return the result of createNewRow as an array
+        return [createNewRow(gridType) || {}];  // Return the result of createNewRow as an array
     }
 
     function loadExistingJobEntries(section_name, entry_type) {
@@ -421,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function () {
             trashCanColumn,
         ],
         rowData: [],
-        context: {gridType: 'AdjustmentsTable'}
+        context: {gridType: 'AdjustmentTable'}
     };
 
     const sections = ['estimate', 'quote', 'reality'];
@@ -429,8 +428,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.grids = {};
 
     sections.forEach(section => {
-        workType.forEach(gridType => {
-            const gridKey = `${section}${gridType}Table`;
+        workType.forEach(work => {
+            const gridType = `${work}Table`;  // Assigning the grid type dynamically based on the work type
+            const gridKey = `${section}${gridType}`;  // Create the full key for identifying the grid
             const gridElement = document.querySelector(`#${gridKey}`);
 
             if (!gridElement) {
@@ -440,33 +440,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
             let specificGridOptions;
             switch (gridType) {
-                case 'Time':
+                case 'TimeTable':
                     specificGridOptions = timeGridOptions;
                     break;
-                case 'Materials':
+                case 'MaterialsTable':
                     specificGridOptions = materialsGridOptions;
                     break;
-                case 'Adjustments':
+                case 'AdjustmentsTable':
                     specificGridOptions = adjustmentsGridOptions;
                     break;
             }
 
-            const rowData = createDefaultRowData(gridType);
+            if (!entry_forms) {
+                console.error('Error: entry_forms data is not loaded.');
+                return;  // Exit early if entry_forms is not loaded
+            }
+
+            const sectionData = entry_forms[section];
+            if (!sectionData) {
+                console.warn(`Data not found for section "${section}". Assuming this is a new job.`);
+            }
+
+            let rowData = getGridData(sectionData, gridType);
             // console.log("Grid type: ", gridType, ", Section: ", section, ", Grid Key: ", gridKey);
             // console.log("First row of rowData during grid initialization:", rowData[0]);
 
             const gridOptions = {
                 ...commonGridOptions,
                 ...specificGridOptions,
-                context: {section, gridType: `${gridType}Table`, gridKey: gridKey},
+                context: {section, gridType: `${gridType}`, gridKey: gridKey},
+                rowData: rowData  // Set initial row data in gridOptions
+
             };
 
             try {
                 const gridInstance = agGrid.createGrid(gridElement, gridOptions);
-                let rowData = getGridData(sectionData, gridType);
 
                 // Set row data after initializing the grid
-                gridOptions.api.setRowData(rowData);
+                gridInstance.setGridOption("rowData", rowData);
 
                 // Optional console log for debugging purposes
                 // console.log(`Grid options for ${gridKey}:`, gridOptions);
