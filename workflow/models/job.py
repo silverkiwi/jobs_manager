@@ -46,9 +46,10 @@ class Job(models.Model):
         max_length=100, null=True, blank=True
     )  # type: ignore
     contact_person: str = models.CharField(max_length=100)  # type: ignore
-    contact_phone: str = models.CharField(max_length=15)  # type: ignore
+    contact_phone: str = models.CharField(max_length=15, null=True, blank=True)  # type: ignore
     job_number = models.IntegerField(null=False, blank=False, unique=True)  # Job 1234
-    description: str = models.TextField()  # type: ignore
+    material_gauge_quantity: str = models.TextField(blank=True, null=True) # type: ignore
+    description: str = models.TextField(blank=True, null=True)  # type: ignore
     quote_acceptance_date: datetime.datetime = models.DateTimeField(null=True, blank=True)  # type: ignore
     delivery_date = models.DateField(null=True, blank=True) # type: ignore
     date_created: datetime.datetime = models.DateTimeField(

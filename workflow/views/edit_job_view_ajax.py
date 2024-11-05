@@ -178,7 +178,6 @@ def edit_job_view_ajax(request, job_id=None):
     # Render the job context to the template
     context = {
         'job': job,  # Add the job object to the context
-        'job_form': JobForm(instance=job),
         'job_id': job.id,
         'company_defaults': company_defaults,
         'entry_forms_json': entry_forms_json
@@ -209,7 +208,7 @@ def autosave_job_view(request):
         logger.debug(f"Job found: {job}")
 
         # Use JobSerializer for validation and updating the job
-        serializer = JobSerializer(instance=job, data=data, partial=True)
+        serializer = JobSerializer(instance=job, data=data) # Note you can add partial=True to allow partial updates.  Not there as the JS sends the whole object.
 
         if serializer.is_valid():
             serializer.save()
@@ -220,6 +219,8 @@ def autosave_job_view(request):
 
             logger.debug(
                 f"Job {job_id} successfully autosaved. Current Client: {client_name}, contact_person: {job.contact_person}")
+            logger.debug(f"job_name={job.job_name}, order_number={job.order_number}, phone_contact={job.contact_phone}")
+
             return JsonResponse({'success': True, 'job_id': job.id})
         else:
             logger.error(f"Validation errors: {serializer.errors}")

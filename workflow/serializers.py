@@ -65,14 +65,19 @@ class JobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = '__all__'  # Use '__all__' to include all fields or specify fields as needed
-        extra_kwargs = {
-            'name': {'required': False, 'allow_blank': True},
-            'contact_person': {'required': False, 'allow_blank': True},
-            'contact_phone': {'required': False, 'allow_blank': True},
-            'description': {'required': False, 'allow_blank': True},
-            'date_created': {'required': False}
-        }
+        fields = [
+            'id',  # Primary key (maps to job_id in HTML)
+            'name',
+            'client_id',  # This is used to set the client
+            'contact_person',
+            'contact_phone',
+            'job_number',
+            'order_number',
+            'date_created',
+            'material_gauge_quantity',
+            'description',
+            'pricings',  # Assuming job has multiple pricings
+        ]
 
     def get_pricings(self, obj):
         # Use the decorator or reverse relationship to retrieve the associated job pricings
