@@ -18,21 +18,33 @@ from workflow.models import (
 
 @admin.register(CompanyDefaults)
 class CompanyDefaultsAdmin(admin.ModelAdmin):
-    list_display = ['charge_out_rate', 'wage_rate', 'time_markup', 'materials_markup']
+    list_display = ["charge_out_rate", "wage_rate", "time_markup", "materials_markup"]
     fieldsets = (
-        (None, {
-            'fields': ('time_markup', 'materials_markup', 'charge_out_rate', 'wage_rate')
-        }),
-        ('Working Hours', {
-            'fields': (
-                ('mon_start', 'mon_end'),
-                ('tue_start', 'tue_end'),
-                ('wed_start', 'wed_end'),
-                ('thu_start', 'thu_end'),
-                ('fri_start', 'fri_end'),
-            )
-        }),
+        (
+            None,
+            {
+                "fields": (
+                    "time_markup",
+                    "materials_markup",
+                    "charge_out_rate",
+                    "wage_rate",
+                )
+            },
+        ),
+        (
+            "Working Hours",
+            {
+                "fields": (
+                    ("mon_start", "mon_end"),
+                    ("tue_start", "tue_end"),
+                    ("wed_start", "wed_end"),
+                    ("thu_start", "thu_end"),
+                    ("fri_start", "fri_end"),
+                )
+            },
+        ),
     )
+
 
 # Remove the duplicate StaffAdmin class and ensure only one exists
 @admin.register(Staff)
@@ -138,14 +150,32 @@ class JobPricingAdmin(SimpleHistoryAdmin):
 
 @admin.register(AdjustmentEntry)
 class AdjustmentEntryAdmin(admin.ModelAdmin):
-    list_display = ("job_pricing", "description", "cost_adjustment", "price_adjustment", "comments", "id")
+    list_display = (
+        "job_pricing",
+        "description",
+        "cost_adjustment",
+        "price_adjustment",
+        "comments",
+        "id",
+    )
     search_fields = ("description",)
     list_filter = ("job_pricing__pricing_stage",)
 
 
 @admin.register(TimeEntry)
 class TimeEntryAdmin(admin.ModelAdmin):
-    list_display = ("job_pricing", "staff", "date", "note", "is_billable", "wage_rate", "charge_out_rate", "description", "items", "mins_per_item")
+    list_display = (
+        "job_pricing",
+        "staff",
+        "date",
+        "note",
+        "is_billable",
+        "wage_rate",
+        "charge_out_rate",
+        "description",
+        "items",
+        "mins_per_item",
+    )
     search_fields = ("staff__first_name", "staff__last_name", "job_pricing__job__name")
     list_filter = ("job_pricing__pricing_stage", "date")
 

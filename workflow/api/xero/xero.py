@@ -34,18 +34,19 @@ def store_token(token: Dict[str, Any]) -> None:
     expires_in = token.get("expires_in")
     if expires_in:
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
-        token['expires_at'] = int(expires_at.timestamp())  # Store as a timestamp
+        token["expires_at"] = int(expires_at.timestamp())  # Store as a timestamp
 
-    expires_at = datetime.fromtimestamp(token['expires_at'], tz=timezone.utc)
+    expires_at = datetime.fromtimestamp(token["expires_at"], tz=timezone.utc)
     xero_tenant_id = token.get("xero_tenant_id")
     XeroToken.objects.update_or_create(
         tenant_id=get_tenant_id(),
         defaults={
-            'token_type': token['token_type'],
-            'access_token': token['access_token'],
-            'refresh_token': token['refresh_token'],
-            'expires_at': expires_at
-        })
+            "token_type": token["token_type"],
+            "access_token": token["access_token"],
+            "refresh_token": token["refresh_token"],
+            "expires_at": expires_at,
+        },
+    )
 
 
 @api_client.oauth2_token_getter
@@ -63,11 +64,11 @@ def get_token_internal() -> Optional[Dict[str, Any]]:
     try:
         token_instance = XeroToken.get_instance()  # Fetch the singleton token
         token = {
-            'token_type': token_instance.token_type,
-            'access_token': token_instance.access_token,
-            'refresh_token': token_instance.refresh_token,
-            'expires_at': int(token_instance.expires_at.timestamp()),
-            'xero_tenant_id': token_instance.tenant_id
+            "token_type": token_instance.token_type,
+            "access_token": token_instance.access_token,
+            "refresh_token": token_instance.refresh_token,
+            "expires_at": int(token_instance.expires_at.timestamp()),
+            "xero_tenant_id": token_instance.tenant_id,
         }
 
         # Cache the token after retrieving it from the database for faster future access
@@ -79,6 +80,7 @@ def get_token_internal() -> Optional[Dict[str, Any]]:
     except XeroToken.DoesNotExist:
         logger.info("No OAuth2 token found in database.")
         return None
+
 
 def get_tenant_id() -> str:
     token_instance = XeroToken.objects.first()
@@ -92,6 +94,7 @@ def get_tenant_id() -> str:
         xero_tenant_id = token_instance.tenant_id
 
     return xero_tenant_id
+
 
 def get_token() -> Dict[str, Any]:
     """Gets Xero Tokens (by calling the internal function).  Handles auto-refreshing of expired tokens"""

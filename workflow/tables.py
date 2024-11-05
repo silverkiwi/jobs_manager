@@ -27,16 +27,19 @@ from workflow.models import Invoice
 #             '<a href="{}" class="btn btn-sm btn-primary">Edit</a>', edit_url
 #         )
 
+
 class InvoiceTable(tables.Table):
     actions = tables.Column(empty_values=(), orderable=False)
 
     class Meta:
         model = Invoice
-        fields = ('number', 'client', 'date', 'total', 'status')
+        fields = ("number", "client", "date", "total", "status")
 
     def render_actions(self, record):
         # Ensure the correct UUID is passed to the URL for editing invoices
         return format_html(
             '<a href="{}" class="btn btn-sm btn-primary">Edit</a>',
-            reverse('update_invoice', kwargs={'pk': record.pk})  # Ensure this is a UUID
+            reverse(
+                "update_invoice", kwargs={"pk": record.pk}
+            ),  # Ensure this is a UUID
         )

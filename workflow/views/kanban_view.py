@@ -52,7 +52,9 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
             "name": job.name,
             "description": job.description,
             "job_number": job.job_number,
-            "client_name": getattr(job.client, 'name', ""),  # Handle None for client name.  Shouldn't ever happen
+            "client_name": getattr(
+                job.client, "name", ""
+            ),  # Handle None for client name.  Shouldn't ever happen
             "contact_person": job.contact_person,  # Add contact person
             "status": job.get_status_display(),  # Human-readable status
             "paid": job.paid,  # Paid status

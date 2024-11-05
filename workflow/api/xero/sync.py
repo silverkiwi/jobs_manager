@@ -24,10 +24,12 @@ def sync_xero_data(
     sync_function,
     last_modified_time,
     additional_params=None,
-    supports_pagination=True
+    supports_pagination=True,
 ):
 
-    logger.info(f"Syncing Xero data... Entity: {xero_entity_type}, since {last_modified_time}")
+    logger.info(
+        f"Syncing Xero data... Entity: {xero_entity_type}, since {last_modified_time}"
+    )
 
     xero_tenant_id = get_tenant_id()
 
@@ -41,10 +43,12 @@ def sync_xero_data(
         }
 
         if supports_pagination:
-            params.update({
-                "page": page,
-                "page_size": page_size,
-            })
+            params.update(
+                {
+                    "page": page,
+                    "page_size": page_size,
+                }
+            )
 
         if additional_params:
             params.update(additional_params)
@@ -73,8 +77,10 @@ def get_last_modified_time(model):
         "last_modified__max"
     ]
     return (
-#        last_modified_time.isoformat() if last_modified_time else "2024-01-01T00:00:00Z"
-        last_modified_time.isoformat() if last_modified_time else "2000-01-01T00:00:00Z"
+        #        last_modified_time.isoformat() if last_modified_time else "2024-01-01T00:00:00Z"
+        last_modified_time.isoformat()
+        if last_modified_time
+        else "2000-01-01T00:00:00Z"
     )
 
 
@@ -140,9 +146,7 @@ def sync_invoices(invoices):
     for inv in invoices:
         xero_id = getattr(inv, "invoice_id", None)
 
-        client = Client.objects.filter(
-            xero_contact_id=inv.contact.contact_id
-        ).first()
+        client = Client.objects.filter(xero_contact_id=inv.contact.contact_id).first()
 
         if not client:
             logger.warning(f"Client not found for invoice {inv.invoice_number}")
@@ -158,10 +162,10 @@ def sync_invoices(invoices):
                 invoice_status = getattr(inv, "status", None)
                 if invoice_status not in ("DELETED", "VOIDED", "DRAFT"):
                     # Now sync the line items
-                    line_items_data = getattr(inv,'line_items', [])
+                    line_items_data = getattr(inv, "line_items", [])
 
                     for line_item_data in line_items_data:
-                        description = getattr(line_item_data, "description",None)
+                        description = getattr(line_item_data, "description", None)
                         quantity = getattr(line_item_data, "quantity", 1)
                         unit_price = getattr(line_item_data, "unit_amount", None)
                         account_code = getattr(line_item_data, "account_code", None)
@@ -169,7 +173,9 @@ def sync_invoices(invoices):
                         line_amount = getattr(line_item_data, "line_amount", None)
 
                         # Find the related XeroAccount
-                        account = XeroAccount.objects.filter(account_code=account_code).first()
+                        account = XeroAccount.objects.filter(
+                            account_code=account_code
+                        ).first()
 
                         # Sync the line item
                         InvoiceLineItem.objects.update_or_create(
@@ -214,19 +220,20 @@ def sync_bills(bills):
                     xero_id=xero_id, defaults=defaults
                 )
                 # Now sync the line items
-                line_items_data = defaults['raw_json'].get('line_items', [])
+                line_items_data = defaults["raw_json"].get("line_items", [])
 
                 for line_item_data in line_items_data:
-                    description = getattr(line_item_data, "description",None)
+                    description = getattr(line_item_data, "description", None)
                     quantity = getattr(line_item_data, "quantity", 1)
                     unit_price = getattr(line_item_data, "unit_amount", None)
                     account_code = getattr(line_item_data, "account_code", None)
                     tax_amount = getattr(line_item_data, "tax_amount", None)
                     line_amount = getattr(line_item_data, "line_amount", None)
 
-
                     # Find the related XeroAccount
-                    account = XeroAccount.objects.filter(account_code=account_code).first()
+                    account = XeroAccount.objects.filter(
+                        account_code=account_code
+                    ).first()
 
                     # Sync the line item
                     BillLineItem.objects.update_or_create(
@@ -249,6 +256,7 @@ def sync_bills(bills):
             logger.error(f"Error processing bill {bill_obj.invoice_number}: {str(e)}")
             logger.error(f"Bill data: {defaults['raw_json']}")
             raise
+
 
 def sync_clients(xero_contacts):
     for contact_data in xero_contacts:
@@ -291,6 +299,7 @@ def sync_clients(xero_contacts):
             logger.error(f"Client data: {raw_json}")
             raise
 
+
 def sync_accounts(xero_accounts):
     for account_data in xero_accounts:
         xero_account_id = getattr(account_data, "account_id", None)
@@ -320,9 +329,13 @@ def sync_accounts(xero_accounts):
             )
 
             if created:
-                logger.info(f"New account added: {account.account_name} ({account.account_code})")
+                logger.info(
+                    f"New account added: {account.account_name} ({account.account_code})"
+                )
             else:
-                logger.info(f"Updated account: {account.account_name} ({account.account_code})")
+                logger.info(
+                    f"Updated account: {account.account_name} ({account.account_code})"
+                )
         except Exception as e:
             logger.error(f"Error processing account {account_name}: {str(e)}")
             logger.error(f"Account data: {raw_json}")
@@ -336,7 +349,9 @@ def sync_client_to_xero(client):
 
     # Step 1: Validate client data before attempting to sync
     if not client.validate_for_xero():
-        logger.error(f"Client {client.id} failed validation and will not be synced to Xero.")
+        logger.error(
+            f"Client {client.id} failed validation and will not be synced to Xero."
+        )
         return False  # Exit early if validation fails
 
     xero_tenant_id = get_tenant_id()  # Fetch Xero tenant ID
@@ -348,14 +363,15 @@ def sync_client_to_xero(client):
     # Step 3: Prepare client data for Xero using the model method
     contact_data = client.get_client_for_xero()
     if not contact_data:
-        logger.error(f"Client {client.id} failed validation and will not be synced to Xero.")
+        logger.error(
+            f"Client {client.id} failed validation and will not be synced to Xero."
+        )
         return False  # Exit early if validation fails
 
     # Step 4: Create or update the client in Xero
     try:
         response = accounting_api.create_contacts(
-            xero_tenant_id,
-            contacts={"contacts": [contact_data]}
+            xero_tenant_id, contacts={"contacts": [contact_data]}
         )
         contacts = response.contacts if response.contacts else []
         logger.info(f"Successfully synced client {client.name} to Xero.")
@@ -364,7 +380,10 @@ def sync_client_to_xero(client):
         logger.error(f"Failed to sync client {client.name} to Xero: {str(e)}")
         raise
 
-def single_sync_client(client_identifier=None, xero_contact_id=None, client_name=None, delete_local=False):
+
+def single_sync_client(
+    client_identifier=None, xero_contact_id=None, client_name=None, delete_local=False
+):
     """
     Sync a single client from Xero to the app. Supports lookup by internal ID, Xero ID, or client name.
     Optionally deletes the local client before syncing from Xero if `delete_local` is set to True.
@@ -389,14 +408,17 @@ def single_sync_client(client_identifier=None, xero_contact_id=None, client_name
 
             if clients.count() > 1:
                 raise MultipleObjectsReturned(
-                    f"Multiple clients found for name {client_name}. Please refine the search.")
+                    f"Multiple clients found for name {client_name}. Please refine the search."
+                )
             elif clients.count() == 1:
                 client = clients.first()
             else:
                 raise ObjectDoesNotExist(f"No client found for name {client_name}.")
 
         if not client:
-            raise ObjectDoesNotExist("No valid client found with the given identifiers.")
+            raise ObjectDoesNotExist(
+                "No valid client found with the given identifiers."
+            )
 
         logger.info(f"Attempting to sync client {client.name} with Xero.")
 
@@ -412,39 +434,58 @@ def single_sync_client(client_identifier=None, xero_contact_id=None, client_name
         try:
             with transaction.atomic():
                 client.delete()
-                logger.info(f"Client {client_name or client_identifier} deleted from the database.")
+                logger.info(
+                    f"Client {client_name or client_identifier} deleted from the database."
+                )
         except Client.DoesNotExist:
-            logger.info(f"Client {client_name or client_identifier} does not exist in the database.")
+            logger.info(
+                f"Client {client_name or client_identifier} does not exist in the database."
+            )
 
     # Step 4: Fetch the client from Xero
     try:
         response = accounting_api.get_contacts(
             xero_tenant_id,
             i_ds=[xero_contact_id] if xero_contact_id else None,
-            where=f"Name==\"{client_name}\"" if client_name and not xero_contact_id else None
+            where=(
+                f'Name=="{client_name}"'
+                if client_name and not xero_contact_id
+                else None
+            ),
         )
 
         contacts = response.contacts if response.contacts else []
         logger.info(contacts)
 
         if not contacts:
-            logger.error(f"Client {client_name or client_identifier} not found in Xero.")
+            logger.error(
+                f"Client {client_name or client_identifier} not found in Xero."
+            )
             raise
 
         xero_client = contacts[0]  # Assuming the first match
     except Exception as e:
-        logger.error(f"Failed to fetch client {client_name or client_identifier} from Xero: {str(e)}")
+        logger.error(
+            f"Failed to fetch client {client_name or client_identifier} from Xero: {str(e)}"
+        )
         raise
 
     # Step 5: Sync the client back into the database
     try:
         sync_clients([xero_client])  # Call your existing sync function for clients
-        logger.info(f"Successfully synced client {client_name or client_identifier} back into the database.")
+        logger.info(
+            f"Successfully synced client {client_name or client_identifier} back into the database."
+        )
     except Exception as e:
-        logger.error(f"Failed to sync client {client_name or client_identifier} into the database: {str(e)}")
+        logger.error(
+            f"Failed to sync client {client_name or client_identifier} into the database: {str(e)}"
+        )
         raise
 
-def single_sync_invoice(invoice_identifier=None, xero_invoice_id=None, invoice_number=None):
+
+def single_sync_invoice(
+    invoice_identifier=None, xero_invoice_id=None, invoice_number=None
+):
     # Step 1: Initialize APIs
     xero_tenant_id = get_tenant_id()
     accounting_api = AccountingApi(api_client)
@@ -465,14 +506,19 @@ def single_sync_invoice(invoice_identifier=None, xero_invoice_id=None, invoice_n
 
             if invoices.count() > 1:
                 raise MultipleObjectsReturned(
-                    f"Multiple invoices found for number {invoice_number}. Please refine the search.")
+                    f"Multiple invoices found for number {invoice_number}. Please refine the search."
+                )
             elif invoices.count() == 1:
                 invoice = invoices.first()
             else:
-                raise ObjectDoesNotExist(f"No invoice found for number {invoice_number}.")
+                raise ObjectDoesNotExist(
+                    f"No invoice found for number {invoice_number}."
+                )
 
         if not invoice:
-            raise ObjectDoesNotExist("No valid invoice found with the given identifiers.")
+            raise ObjectDoesNotExist(
+                "No valid invoice found with the given identifiers."
+            )
 
         logger.info(f"Attempting to sync invoice {invoice.number} with Xero.")
 
@@ -496,7 +542,7 @@ def single_sync_invoice(invoice_identifier=None, xero_invoice_id=None, invoice_n
         response = accounting_api.get_invoices(
             xero_tenant_id,
             invoice_numbers=[invoice_number],
-#            summary_only=False  # I found I didn't need this.  If we have < 100 invoices then it syncs enough detail
+            #            summary_only=False  # I found I didn't need this.  If we have < 100 invoices then it syncs enough detail
         )
 
         invoices = response.invoices if response.invoices else []
@@ -511,9 +557,13 @@ def single_sync_invoice(invoice_identifier=None, xero_invoice_id=None, invoice_n
     # Step 5: Sync the invoice back into the database
     try:
         sync_invoices(invoices)  # Call your existing sync function
-        logger.info(f"Successfully synced invoice {invoice_number} back into the database.")
+        logger.info(
+            f"Successfully synced invoice {invoice_number} back into the database."
+        )
     except Exception as e:
-        logger.error(f"Failed to sync invoice {invoice_number} into the database: {str(e)}")
+        logger.error(
+            f"Failed to sync invoice {invoice_number} into the database: {str(e)}"
+        )
 
 
 def sync_all_xero_data():
@@ -525,31 +575,31 @@ def sync_all_xero_data():
     our_latest_account = get_last_modified_time(XeroAccount)
 
     sync_xero_data(
-        xero_entity_type = "contacts",
-        xero_api_function = accounting_api.get_contacts,
-        sync_function = sync_clients,
-        last_modified_time = our_latest_contact,
+        xero_entity_type="contacts",
+        xero_api_function=accounting_api.get_contacts,
+        sync_function=sync_clients,
+        last_modified_time=our_latest_contact,
     )
 
     sync_xero_data(
-        xero_entity_type = "invoices",
-        xero_api_function = accounting_api.get_invoices,
-        sync_function = sync_invoices,
-        last_modified_time = our_latest_invoice,
+        xero_entity_type="invoices",
+        xero_api_function=accounting_api.get_invoices,
+        sync_function=sync_invoices,
+        last_modified_time=our_latest_invoice,
         additional_params={"where": 'Type=="ACCREC"'},
     )
     sync_xero_data(
-        xero_entity_type = "invoices",
-        xero_api_function = accounting_api.get_invoices,
-        sync_function = sync_bills,
-        last_modified_time = our_latest_bill,
+        xero_entity_type="invoices",
+        xero_api_function=accounting_api.get_invoices,
+        sync_function=sync_bills,
+        last_modified_time=our_latest_bill,
         additional_params={"where": 'Type=="ACCPAY"'},
     )
 
     sync_xero_data(
-        xero_entity_type = "accounts",
-        xero_api_function = accounting_api.get_accounts,
-        sync_function = sync_accounts,
-        last_modified_time = our_latest_account,
-        supports_pagination = False
+        xero_entity_type="accounts",
+        xero_api_function=accounting_api.get_accounts,
+        sync_function=sync_accounts,
+        last_modified_time=our_latest_account,
+        supports_pagination=False,
     )

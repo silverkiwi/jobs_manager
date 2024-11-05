@@ -24,7 +24,7 @@ class CreateJobViewOriginal(CreateView):
 class UpdateJobView(UpdateView):
     model = Job
     form_class = JobForm
-    template_name = ("jobs/update_job.html")
+    template_name = "jobs/update_job.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

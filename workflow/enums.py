@@ -11,6 +11,7 @@ class JobPricingStage(models.TextChoices):
     QUOTE = "quote", "Quote"
     REALITY = "reality", "Reality"
 
+
 class InvoiceStatus(models.TextChoices):
     DRAFT = "DRAFT", "Draft"
     SUBMITTED = "SUBMITTED", "Submitted"

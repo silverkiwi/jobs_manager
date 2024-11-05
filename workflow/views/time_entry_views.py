@@ -54,7 +54,7 @@ class CreateTimeEntryView(CreateView):
 class UpdateTimeEntryView(UpdateView):
     model: Type[TimeEntry] = TimeEntry
     form_class: Type[TimeEntryForm] = TimeEntryForm
-    template_name: str = "workflow/time_entries/update_time_entry.html" # noqa
+    template_name: str = "workflow/time_entries/update_time_entry.html"  # noqa
 
     def form_valid(self, form: TimeEntryForm) -> JsonResponse:
         # Update the time entry instance
@@ -66,7 +66,7 @@ class UpdateTimeEntryView(UpdateView):
 
         return response
 
-    def get_success_url(self): # noqa
+    def get_success_url(self):  # noqa
         # Redirect to the job pricing update page after successful time entry update
         return reverse_lazy(
             "update_job_pricing", kwargs={"pk": self.object.job_pricing.id}

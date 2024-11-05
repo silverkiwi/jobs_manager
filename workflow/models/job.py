@@ -37,10 +37,10 @@ class Job(models.Model):
     }
 
     client = models.ForeignKey(
-        'Client',
+        "Client",
         on_delete=models.SET_NULL,  # Option to handle if a client is deleted
         null=True,
-        related_name='jobs'  # Allows reverse lookup of jobs for a client
+        related_name="jobs",  # Allows reverse lookup of jobs for a client
     )
     order_number: str = models.CharField(
         max_length=100, null=True, blank=True
@@ -48,10 +48,10 @@ class Job(models.Model):
     contact_person: str = models.CharField(max_length=100)  # type: ignore
     contact_phone: str = models.CharField(max_length=15, null=True, blank=True)  # type: ignore
     job_number = models.IntegerField(null=False, blank=False, unique=True)  # Job 1234
-    material_gauge_quantity: str = models.TextField(blank=True, null=True) # type: ignore
+    material_gauge_quantity: str = models.TextField(blank=True, null=True)  # type: ignore
     description: str = models.TextField(blank=True, null=True)  # type: ignore
     quote_acceptance_date: datetime.datetime = models.DateTimeField(null=True, blank=True)  # type: ignore
-    delivery_date = models.DateField(null=True, blank=True) # type: ignore
+    delivery_date = models.DateField(null=True, blank=True)  # type: ignore
     date_created: datetime.datetime = models.DateTimeField(
         default=timezone.now
     )  # type: ignore
@@ -74,7 +74,6 @@ class Job(models.Model):
     paid: bool = models.BooleanField(default=False)  # type: ignore
     history: HistoricalRecords = HistoricalRecords()
 
-
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"
         return f"{client_name} - {self.job_number}"
@@ -90,23 +89,22 @@ class Job(models.Model):
     @property
     def estimate_pricing(self):
         """Returns the estimate JobPricing related to this job."""
-        return self.pricings.filter(pricing_stage='estimate').first()
+        return self.pricings.filter(pricing_stage="estimate").first()
 
     @property
     def quote_pricing(self):
         """Returns the quote JobPricing related to this job."""
-        return self.pricings.filter(pricing_stage='quote').first()
+        return self.pricings.filter(pricing_stage="quote").first()
 
     @property
     def reality_pricing(self):
         """Returns the reality JobPricing related to this job."""
-        return self.pricings.filter(pricing_stage='reality').first()
-
+        return self.pricings.filter(pricing_stage="reality").first()
 
     @staticmethod
     def generate_unique_job_number():
         with transaction.atomic():
-            last_job = Job.objects.select_for_update().order_by('-job_number').first()
+            last_job = Job.objects.select_for_update().order_by("-job_number").first()
             if last_job and last_job.job_number:
                 return last_job.job_number + 1
             return 1  # Start numbering from 1 if there are no existing records

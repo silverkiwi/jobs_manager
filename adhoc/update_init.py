@@ -4,6 +4,7 @@ import sys
 import argparse
 import logging
 
+
 def update_init_py(target_dir: str, verbose: bool = False) -> int:
     logger = logging.getLogger(__name__)
 
@@ -18,7 +19,9 @@ def update_init_py(target_dir: str, verbose: bool = False) -> int:
     ]
 
     if not py_files:
-        logger.warning(f"No Python files found in {target_dir}. Skipping __init__.py generation.")
+        logger.warning(
+            f"No Python files found in {target_dir}. Skipping __init__.py generation."
+        )
         return 3  # Error Code 3: No Python files found
 
     import_lines = [
@@ -42,8 +45,10 @@ def update_init_py(target_dir: str, verbose: bool = False) -> int:
             continue
 
         classes = [
-            node.name for node in ast.walk(tree)
-            if isinstance(node, ast.ClassDef) and node.name != "Meta"  # Exclude Meta class
+            node.name
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef)
+            and node.name != "Meta"  # Exclude Meta class
         ]
 
         if classes:
@@ -67,9 +72,15 @@ def update_init_py(target_dir: str, verbose: bool = False) -> int:
         logger.error(f"Failed to write to {init_file}: {e}")
         return 4  # Error Code 4: IOError during file writing
 
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Automatically update __init__.py with class imports")
-    parser.add_argument("target_directory", help="Directory to process for generating imports in __init__.py")
+    parser = argparse.ArgumentParser(
+        description="Automatically update __init__.py with class imports"
+    )
+    parser.add_argument(
+        "target_directory",
+        help="Directory to process for generating imports in __init__.py",
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 
     args = parser.parse_args()
@@ -77,11 +88,12 @@ def main() -> None:
     # Configure logging
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(levelname)s: %(message)s"
+        format="%(levelname)s: %(message)s",
     )
 
     result = update_init_py(args.target_directory, verbose=args.verbose)
     sys.exit(result)
+
 
 if __name__ == "__main__":
     main()

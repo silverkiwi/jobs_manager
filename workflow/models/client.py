@@ -5,12 +5,15 @@ from django.db import models
 
 logger = logging.getLogger(__name__)
 
+
 class Client(models.Model):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )  # Internal UUID
-    xero_contact_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
-        # Optional because not all prospects are synced to Xero
+    xero_contact_id = models.CharField(
+        max_length=255, unique=True, null=True, blank=True
+    )
+    # Optional because not all prospects are synced to Xero
     name = models.CharField(max_length=255)
     email = models.EmailField(null=True, blank=True)
     phone = models.CharField(max_length=50, null=True, blank=True)
@@ -34,7 +37,9 @@ class Client(models.Model):
             logger.error(f"Client {self.id} does not have a valid name.")
             return False
         if not self.email and not self.phone:
-            logger.error(f"Client {self.id} needs either a valid email or phone number.")
+            logger.error(
+                f"Client {self.id} needs either a valid email or phone number."
+            )
             return False
         # Add more checks as necessary for other fields
         return True

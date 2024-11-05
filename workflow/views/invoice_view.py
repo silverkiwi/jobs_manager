@@ -27,8 +27,9 @@ class InvoiceListView(SingleTableView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['filter'] = self.filterset  # Pass the filter to the context
+        context["filter"] = self.filterset  # Pass the filter to the context
         return context
+
 
 class InvoiceUpdateView(UpdateView):
     model = Invoice
@@ -41,6 +42,6 @@ class InvoiceUpdateView(UpdateView):
         context = super().get_context_data(**kwargs)
 
         # Add the line items related to this invoice
-        context['line_items'] = self.object.line_items.all()
+        context["line_items"] = self.object.line_items.all()
 
         return context

@@ -7,7 +7,7 @@ function debounce(func, wait) {
     };
 }
 
-// Function to collect all data from the hidden form
+// Function to collect all data from the form
 function collectAllData() {
     const data = {};
 
@@ -26,13 +26,45 @@ function collectAllData() {
     });
 
     // Collect additional data from AG Grid sections
-    data.estimate = collectGridData('estimate');
-    data.quote = collectGridData('quote');
-    data.reality = collectGridData('reality');
 
-    data.job_is_valid = checkJobValidity(); // We are responsible for calculating this
+    // Collect additional data from AG Grid sections
+    // These represent the latest versions of estimate, quote, reality
+    let latestEstimate = collectGridData('estimate');
+    let latestQuote = collectGridData('quote');
+    let latestReality = collectGridData('reality');
 
-    return data;
+    // Create a new `jobData` object, adding the `pricings` field
+    let jobData = {
+        ...data,  // Include all the top-level form fields collected earlier
+        pricings: [],  // Initialize the `pricings` array to hold historical and new revisions
+        job_is_valid: checkJobValidity()  // Existing job validity check
+    };
+
+
+    // Note, pricings should include historical revisions but for now we only track the latest
+    // In the future it's essential to modify this code
+    jobData.pricings.push({
+        pricing_stage: "estimate",
+        revision_number: getNextRevisionNumber(jobData.pricings, "estimate"),
+        ...latestEstimate
+    });
+
+    jobData.pricings.push({
+        pricing_stage: "quote",
+        revision_number: getNextRevisionNumber(jobData.pricings, "quote"),
+        ...latestQuote
+    });
+
+    jobData.pricings.push({
+        pricing_stage: "reality",
+        revision_number: getNextRevisionNumber(jobData.pricings, "reality"),
+        ...latestReality
+    });
+
+
+    jobData.job_is_valid = checkJobValidity(); // We are responsible for calculating this
+
+    return jobData;
 }
 
 function checkJobValidity() {
@@ -185,61 +217,65 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Attach to AG Grid changes as well
     gridOptions.api.addEventListener('cellValueChanged', function(event) {
-        debounceAutosaveAndRemoveValidation();
+        debouncedAutosave();
     });
 
     // Function to validate all required fields before autosave
-    function validateAllFields() {
-        let allValid = true;
+    // Unused?
+    // function validateAllFields() {
+    //     let allValid = true;
+    //
+    //     autosaveInputs.forEach(input => {
+    //         if (input.hasAttribute('required') && input.type !== "checkbox" && input.value.trim() === '') {
+    //             // Add validation error for required fields that are empty
+    //             addValidationError(input, 'This field is required.');
+    //             allValid = false;
+    //         } else if (input.type === "checkbox" && input.hasAttribute('required') && !input.checked) {
+    //             // If a checkbox is required but not checked
+    //             addValidationError(input, 'This checkbox is required.');
+    //             allValid = false;
+    //         } else {
+    //             // Remove validation error if field is valid
+    //             removeValidationError(input);
+    //         }
+    //     });
+    //
+    //     return allValid;
+    // }
 
-        autosaveInputs.forEach(input => {
-            if (input.hasAttribute('required') && input.type !== "checkbox" && input.value.trim() === '') {
-                // Add validation error for required fields that are empty
-                addValidationError(input, 'This field is required.');
-                allValid = false;
-            } else if (input.type === "checkbox" && input.hasAttribute('required') && !input.checked) {
-                // If a checkbox is required but not checked
-                addValidationError(input, 'This checkbox is required.');
-                allValid = false;
-            } else {
-                // Remove validation error if field is valid
-                removeValidationError(input);
-            }
-        });
-
-        return allValid;
-    }
-
-    // Function to add validation error to an input
-    function addValidationError(element, message) {
-        element.classList.add('is-invalid');
-        if (!element.nextElementSibling || !element.nextElementSibling.classList.contains('invalid-feedback')) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'invalid-feedback';
-            errorDiv.innerText = message;
-            element.parentElement.appendChild(errorDiv);
-        }
-    }
+    // // Function to add validation error to an input
+    // Unused?
+    // function addValidationError(element, message) {
+    //     element.classList.add('is-invalid');
+    //     if (!element.nextElementSibling || !element.nextElementSibling.classList.contains('invalid-feedback')) {
+    //         const errorDiv = document.createElement('div');
+    //         errorDiv.className = 'invalid-feedback';
+    //         errorDiv.innerText = message;
+    //         element.parentElement.appendChild(errorDiv);
+    //     }
+    // }
 
     // Function to remove validation error from an input
-    function removeValidationError(element) {
-        element.classList.remove('is-invalid');
-        if (element.nextElementSibling && element.nextElementSibling.classList.contains('invalid-feedback')) {
-            element.nextElementSibling.remove();
-        }
-    }
+    // Unused?
+    // function removeValidationError(element) {
+    //     element.classList.remove('is-invalid');
+    //     if (element.nextElementSibling && element.nextElementSibling.classList.contains('invalid-feedback')) {
+    //         element.nextElementSibling.remove();
+    //     }
+    // }
 
     // Autosave function with validation
-    function autosaveData() {
-        // Validate all fields before attempting to autosave
-        if (!validateAllFields()) {
-            console.warn('Autosave aborted due to validation errors.');
-            return;
-        }
-
-        // Proceed with autosave if all fields are valid
-        const collectedData = collectAllData(); // Assume this function collects the form data
-        saveDataToServer(collectedData); // Assume this function sends the data to the server
-    }
+    // Unused?
+    // function autosaveData() {
+    //     // Validate all fields before attempting to autosave
+    //     if (!validateAllFields()) {
+    //         console.warn('Autosave aborted due to validation errors.');
+    //         return;
+    //     }
+    //
+    //     // Proceed with autosave if all fields are valid
+    //     const collectedData = collectAllData(); // Assume this function collects the form data
+    //     saveDataToServer(collectedData); // Assume this function sends the data to the server
+    // }
 
 });

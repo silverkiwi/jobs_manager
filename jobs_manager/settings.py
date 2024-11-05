@@ -77,9 +77,9 @@ LOGGING = {
         "file": {
             "level": "DEBUG",
             "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
-            "filename": "debug_sql.log",   # Path to store SQL logs
-            "maxBytes": 1024*1024*5,       # 5 MB log size before rotating
-            "backupCount": 5,              # Keep up to 5 backup logs
+            "filename": "debug_sql.log",  # Path to store SQL logs
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB log size before rotating
+            "backupCount": 5,  # Keep up to 5 backup logs
         },
     },
     "root": {
@@ -122,18 +122,17 @@ load_dotenv(BASE_DIR / ".env")
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'msm_workflow',
-        'USER': 'django_user',
-        'PASSWORD': os.getenv('DB_PASSWORD', 'abcde'),
-        'HOST': 'localhost',
-        'PORT': '3306',
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "msm_workflow",
+        "USER": "django_user",
+        "PASSWORD": os.getenv("DB_PASSWORD", "abcde"),
+        "HOST": "localhost",
+        "PORT": "3306",
     },
-    'TEST': {
-        'NAME': 'test_msm_workflow',  # Optional, Django will create 'test_' + NAME by default
+    "TEST": {
+        "NAME": "test_msm_workflow",  # Optional, Django will create 'test_' + NAME by default
     },
-
 }
 
 # DATABASES = {
