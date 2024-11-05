@@ -7,35 +7,39 @@ function debounce(func, wait) {
     };
 }
 
-
+// Function to collect all data from the hidden form
 function collectAllData() {
-    const data = {
-        id: document.getElementById('job_id').value,
-        name: document.getElementById('job_name').value,
-        client: document.getElementById('client_id').value,
-        order_number: document.getElementById('order_number').value,
-        contact_person: document.getElementById('contact_person').value,
-        contact_phone: document.getElementById('phoneContact').value,
-        job_number: parseInt(document.getElementById('job_number').value, 10),
-        description: document.getElementById('description').value,
-        date_created: document.getElementById('date_created').value,
-        status: document.getElementById('jobStatus').value,
-        paid: document.getElementById('paidCheckbox').checked,
-        job_is_valid: checkJobValidity(), // We are responsible for calculating this
+    const data = {};
 
-        estimate: collectGridData('estimate'),
-        quote: collectGridData('quote'),
-        reality: collectGridData('reality')
-    };
+    // Collect data directly from visible input fields in the form
+    const formElements = document.querySelectorAll('.autosave-input');
+
+    formElements.forEach(element => {
+        let value;
+        if (element.type === 'checkbox') {
+            value = element.checked;
+        } else {
+            // Get value for other types of inputs, set to null if empty
+            value = element.value.trim() === "" ? null : element.value;
+        }
+        data[element.name] = value;
+    });
+
+    // Collect additional data from AG Grid sections
+    data.estimate = collectGridData('estimate');
+    data.quote = collectGridData('quote');
+    data.reality = collectGridData('reality');
+
+    data.job_is_valid = checkJobValidity(); // We are responsible for calculating this
 
     return data;
 }
 
 function checkJobValidity() {
     // Check if all required fields are populated
-    const requiredFields = ['job_name', 'client_id', 'contact_person', 'phoneContact', 'job_number'];
+    const requiredFields = ['job_name', 'client_id', 'contact_person', 'phone_contact', 'job_number'];
     const isValid = requiredFields.every(field => {
-        const value = document.getElementById(field).value;
+        const value = document.getElementById(field)?.value;
         return value !== null && value !== undefined && value.trim() !== '';
     });
 
@@ -62,10 +66,13 @@ function collectGridData(section) {
     return sectionData;
 }
 
-
 // Autosave function to send data to the server
 function autosaveData() {
     const collectedData = collectAllData();
+    if (Object.keys(collectedData).length === 0) {
+        console.error("No data collected for autosave.");
+        return;
+    }
     saveDataToServer(collectedData);
 }
 
@@ -81,13 +88,50 @@ function saveDataToServer(collectedData) {
         },
         body: JSON.stringify(collectedData)
     })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Autosave successful:', data);
-        })
-        .catch(error => {
-            console.error('Autosave failed:', error);
-        });
+    .then(response => {
+        if (!response.ok) {
+            // If the server response is not OK, it might contain validation errors.
+            return response.json().then(data => {
+                if (data.errors) {
+                    handleValidationErrors(data.errors);
+                }
+                throw new Error('Validation errors occurred');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Autosave successful:', data);
+    })
+    .catch(error => {
+        console.error('Autosave failed:', error);
+    });
+}
+
+function handleValidationErrors(errors) {
+    // Clear previous error messages
+    document.querySelectorAll('.invalid-feedback').forEach(errorMsg => errorMsg.remove());
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+    // Display new errors
+    for (const [field, messages] of Object.entries(errors)) {
+        const element = document.querySelector(`[name="${field}"]`);
+        if (element) {
+            element.classList.add('is-invalid');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.innerText = messages.join(', ');
+            element.parentElement.appendChild(errorDiv);
+
+            // Attach listener to remove the error once the user modifies the field
+            element.addEventListener('input', () => {
+                element.classList.remove('is-invalid');
+                if (element.nextElementSibling && element.nextElementSibling.classList.contains('invalid-feedback')) {
+                    element.nextElementSibling.remove();
+                }
+            }, { once: true });
+        }
+    }
 }
 
 // Helper function to get CSRF token for Django
@@ -96,17 +140,106 @@ function getCsrfToken() {
 }
 
 // Debounced version of the autosave function
-const debouncedAutosaveData = debounce(autosaveData, 500);
+const debouncedAutosave = debounce(function() {
+    console.log("Debounced autosave called");
+    autosaveData();
+}, 1000);
+
+const debouncedRemoveValidation = debounce(function(element) {
+    console.log("Debounced validation removal called for element:", element);
+    removeValidationError(element);
+}, 1000);
 
 // Attach autosave to form elements (input, select, textarea)
+// Synchronize visible UI fields with hidden form fields
 document.addEventListener('DOMContentLoaded', function () {
-    const formElements = document.querySelectorAll('input, select, textarea');
-    formElements.forEach(element => {
-        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-            element.addEventListener('input', debouncedAutosaveData);
-        } else if (element.tagName === 'SELECT') {
-            element.addEventListener('change', debouncedAutosaveData);
+    // Synchronize all elements with the 'autosave-input' class
+    const autosaveInputs = document.querySelectorAll('.autosave-input');
+
+    // Attach change event listener to handle special input types like checkboxes
+    autosaveInputs.forEach(fieldElement => {
+        fieldElement.addEventListener('blur', function() {
+            console.log("Blur event fired for:", fieldElement);
+            debouncedRemoveValidation(fieldElement);
+            debouncedAutosave();
+        });
+
+        if (fieldElement.type === 'checkbox') {
+            fieldElement.addEventListener('change', function() {
+                console.log("Change event fired for checkbox:", fieldElement);
+                debouncedRemoveValidation(fieldElement);
+                debouncedAutosave();
+            });
+        }
+
+        if (fieldElement.tagName === 'SELECT') {
+            fieldElement.addEventListener('change', function() {
+                console.log("Change event fired for select:", fieldElement);
+                debouncedRemoveValidation(fieldElement);
+                debouncedAutosave();
+            });
         }
     });
-});
 
+
+
+    // Attach to AG Grid changes as well
+    gridOptions.api.addEventListener('cellValueChanged', function(event) {
+        debounceAutosaveAndRemoveValidation();
+    });
+
+    // Function to validate all required fields before autosave
+    function validateAllFields() {
+        let allValid = true;
+
+        autosaveInputs.forEach(input => {
+            if (input.hasAttribute('required') && input.type !== "checkbox" && input.value.trim() === '') {
+                // Add validation error for required fields that are empty
+                addValidationError(input, 'This field is required.');
+                allValid = false;
+            } else if (input.type === "checkbox" && input.hasAttribute('required') && !input.checked) {
+                // If a checkbox is required but not checked
+                addValidationError(input, 'This checkbox is required.');
+                allValid = false;
+            } else {
+                // Remove validation error if field is valid
+                removeValidationError(input);
+            }
+        });
+
+        return allValid;
+    }
+
+    // Function to add validation error to an input
+    function addValidationError(element, message) {
+        element.classList.add('is-invalid');
+        if (!element.nextElementSibling || !element.nextElementSibling.classList.contains('invalid-feedback')) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.innerText = message;
+            element.parentElement.appendChild(errorDiv);
+        }
+    }
+
+    // Function to remove validation error from an input
+    function removeValidationError(element) {
+        element.classList.remove('is-invalid');
+        if (element.nextElementSibling && element.nextElementSibling.classList.contains('invalid-feedback')) {
+            element.nextElementSibling.remove();
+        }
+    }
+
+    // Autosave function with validation
+    function autosaveData() {
+        // Validate all fields before attempting to autosave
+        if (!validateAllFields()) {
+            console.warn('Autosave aborted due to validation errors.');
+            return;
+        }
+
+        // Proceed with autosave if all fields are valid
+        const collectedData = collectAllData(); // Assume this function collects the form data
+        saveDataToServer(collectedData); // Assume this function sends the data to the server
+    }
+
+});

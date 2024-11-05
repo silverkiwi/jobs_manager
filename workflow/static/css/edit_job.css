@@ -109,3 +109,22 @@ form .btn-link {
     min-height: var(--ag-row-height) !important;
     height: auto !important;
 }
+
+/* Make it obvious what fields are required */
+.required-field .form-label::after {
+    content: '*';
+    color: darkgrey;  /* Use a subtle color to indicate it's required, not red */
+    margin-left: 5px;
+    font-weight: normal;
+}
+
+/* Styling for an actual error (applied only when validation fails) */
+.is-invalid {
+    border-color: red;  /* Only use a red border when there's a validation error */
+}
+
+.invalid-feedback {
+    color: red;  /* The error message is red to indicate something is wrong */
+    font-size: 0.875em;
+    margin-top: 0.25em;
+}

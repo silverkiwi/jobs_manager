@@ -50,7 +50,7 @@ class Job(models.Model):
     job_number = models.IntegerField(null=False, blank=False, unique=True)  # Job 1234
     description: str = models.TextField()  # type: ignore
     quote_acceptance_date: datetime.datetime = models.DateTimeField(null=True, blank=True)  # type: ignore
-    delivery_date: datetime.datetime = models.DateTimeField(null=True, blank=True)  # type: ignore
+    delivery_date = models.DateField(null=True, blank=True) # type: ignore
     date_created: datetime.datetime = models.DateTimeField(
         default=timezone.now
     )  # type: ignore

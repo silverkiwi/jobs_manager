@@ -580,6 +580,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    const acceptQuoteButton = document.getElementById('acceptQuoteButton');
+    if (acceptQuoteButton) {
+        acceptQuoteButton.addEventListener('click', function () {
+            // Set the current date and time in ISO format to quote_acceptance_date_iso
+            const currentDateTimeISO = new Date().toISOString();
+            const quoteAcceptanceDateField = document.getElementById('quote_acceptance_date_iso');
+
+            if (quoteAcceptanceDateField) {
+                quoteAcceptanceDateField.value = currentDateTimeISO;
+                console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
+            }
+
+            // Trigger autosave to save the quote acceptance date change
+            autosaveData();
+        });
+    }
+
+
+
     const contactClientButton = document.getElementById('contactClientButton');
     if (contactClientButton) {
         contactClientButton.addEventListener('click', function () {

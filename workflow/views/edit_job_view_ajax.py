@@ -8,7 +8,8 @@ from django.views.decorators.http import require_http_methods
 
 from workflow.forms import JobPricingForm, JobForm, TimeEntryForm, MaterialEntryForm, AdjustmentEntryForm
 from workflow.helpers import get_company_defaults
-from workflow.models import Job, JobPricing, TimeEntry, CompanyDefaults, MaterialEntry, AdjustmentEntry
+from workflow.models import Job, JobPricing, TimeEntry, CompanyDefaults, MaterialEntry, AdjustmentEntry, Client
+from workflow.serializers import JobSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -187,124 +188,52 @@ def edit_job_view_ajax(request, job_id=None):
     return render(request, 'jobs/edit_job_ajax.html', context)
 
 
-@csrf_exempt
+
+# Note, recommended to remove the exemption in the future
+@require_http_methods(["POST"])
 def autosave_job_view(request):
-    if request.method == 'POST':
-        try:
-            logger.debug("Autosave request received")
+    try:
+        logger.debug("Autosave request received")
 
-            # Parse the incoming JSON data
-            data = json.loads(request.body)
-            logger.debug(f"Parsed data: {data}")
+        # Parse the incoming JSON data
+        data = json.loads(request.body)
+        logger.debug(f"Parsed data: {data}")
 
-            # Retrieve the job by ID
-            job_id = data.get('id')
-            if not job_id:
-                logger.error("Job ID missing in data")
-                return JsonResponse({'error': 'Job ID missing'}, status=400)
+        # Retrieve the job by ID
+        job_id = data.get('job_id')
+        if not job_id:
+            logger.error("Job ID missing in data")
+            return JsonResponse({'error': 'Job ID missing'}, status=400)
 
-            job = Job.objects.get(id=job_id)
-            logger.debug(f"Job found: {job}")
+        job = get_object_or_404(Job, pk=job_id)
+        logger.debug(f"Job found: {job}")
 
-            # Update job-level fields (Job fields shown on screen)
-            job.name = data.get('name', job.name)
-            job.client_id = data.get('client', job.client_id)
-            job.order_number = data.get('order_number', job.order_number)
-            job.contact_person = data.get('contact_person', job.contact_person)
-            job.contact_phone = data.get('contact_phone', job.contact_phone)
-            job.job_number = data.get('job_number', job.job_number)
-            job.description = data.get('description', job.description)
-            job.paid = data.get('paid', job.paid)  # Handle paid
-            job.status = data.get('status', job.status)  # Handle status
-            job.quote_acceptance_date = data.get('quote_acceptance_date', job.quote_acceptance_date)  # Workflow Settings
-            job.delivery_date = data.get('delivery_date', job.delivery_date)  # Workflow Settings
+        # Use JobSerializer for validation and updating the job
+        serializer = JobSerializer(instance=job, data=data, partial=True)
 
-            # Save the job instance after updating the fields
-            job.save()
-            logger.debug(f"Job {job.id} updated and saved successfully")
-
-            # Log the client name if it's set
+        if serializer.is_valid():
+            serializer.save()
             if job.client:
-                logger.debug(f"Updated Job {job.id} - Client Name: {job.client.name}")
+                client_name = job.client.name
             else:
-                logger.debug(f"Updated Job {job.id} - No Client Set")
+                client_name = "No Client"
 
-            # Now handle the Job Pricing sections: Estimate, Quote, Reality
-            sections = ['estimate', 'quote', 'reality']
-            for section in sections:
-                section_data = data.get(section, {})
-                logger.debug(f"{section.capitalize()} section data: {section_data}")
+            logger.debug(
+                f"Job {job_id} successfully autosaved. Current Client: {client_name}, contact_person: {job.contact_person}")
+            return JsonResponse({'success': True, 'job_id': job.id})
+        else:
+            logger.error(f"Validation errors: {serializer.errors}")
+            return JsonResponse({'success': False, 'errors': serializer.errors}, status=400)
 
-                # Fetch the pricing stage for the current section
-                pricing_stage = job.pricings.filter(pricing_stage=section).order_by('-created_at').first()
-                if not pricing_stage:
-                    logger.error(f"{section.capitalize()} pricing stage not found")
-                    return JsonResponse({'error': f'{section.capitalize()} pricing stage not found'}, status=400)
+    except json.JSONDecodeError:
+        logger.error("Failed to parse JSON")
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-                # Process the time entries for the current section
-                time_entries_data = section_data.get('time', [])
-                # logger.debug(f"{section.capitalize()} time entries: {time_entries_data}")
-                for time_entry_data in time_entries_data:
-                    if time_entry_data.get('total', 0) == 0:  # Skip dummy time entries
-                        # logger.debug(f"Skipping dummy time entry: {time_entry_data}")
-                        continue
-                    TimeEntry.objects.update_or_create(
-                        job_pricing=pricing_stage,
-                        defaults={
-                            'description': time_entry_data.get('description', ''),
-                            'items': time_entry_data.get('items', 0),
-                            'mins_per_item': time_entry_data.get('mins_per_item', 0),
-                            'charge_out_rate': time_entry_data.get('charge_out_rate', 0),
-                            'wage_rate': time_entry_data.get('wage_rate', 0),  # Should look up defaults
-                            'staff': time_entry_data.get('staff', None), # Only applies to reality so can be None
-                            'date': time_entry_data.get('date', None),  # Only applies to reality so can be None
-                        }
-                    )
+    except Job.DoesNotExist:
+        logger.error(f"Job with id {job_id} does not exist")
+        return JsonResponse({'error': 'Job not found'}, status=404)
 
-                # Process the material entries for the current section
-                material_entries_data = section_data.get('materials', [])
-                # logger.debug(f"{section.capitalize()} material entries: {material_entries_data}")
-                for material_entry_data in material_entries_data:
-                    if material_entry_data.get('total', 0) == 0:  # Skip dummy material entries
-                        # logger.debug(f"Skipping dummy material entry: {material_entry_data}")
-                        continue
-                    MaterialEntry.objects.update_or_create(
-                        job_pricing=pricing_stage,
-                        defaults={
-                            'item_code': material_entry_data.get('item_code', ''),
-                            'description': material_entry_data.get('description', ''),
-                            'quantity': material_entry_data.get('quantity', 0),
-                            'unit_cost': material_entry_data.get('cost_rate', 0),
-                            'unit_revenue': material_entry_data.get('retail_rate', 0),
-#                            'total': material_entry_data.get('total', 0),
-                            'comments': material_entry_data.get('comments', ''),
-                        }
-                    )
+    except Exception as e:
+        logger.exception("Unexpected error during autosave")
+        return JsonResponse({'error': 'Unexpected error'}, status=500)
 
-                # Process the adjustment entries for the current section
-                adjustment_entries_data = section_data.get('adjustments', [])
-                # logger.debug(f"{section.capitalize()} adjustment entries: {adjustment_entries_data}")
-                for adjustment_entry_data in adjustment_entries_data:
-                    if adjustment_entry_data.get('total', 0) == 0:  # Skip dummy adjustment entries
-                        # logger.debug(f"Skipping dummy adjustment entry: {adjustment_entry_data}")
-                        continue
-                    AdjustmentEntry.objects.update_or_create(
-                        job_pricing=pricing_stage,
-                        defaults={
-                            'description': adjustment_entry_data.get('description', ''),
-                            'cost_adjustment': adjustment_entry_data.get('cost_adjustment', 0),
-                            'price_adjustment': adjustment_entry_data.get('total', 0),
-                            'comments': adjustment_entry_data.get('comments', ''),
-                        }
-                    )
-
-            logger.debug(f"Successfully saved job {job.id} and all related data (Estimate, Quote, Reality)")
-            return JsonResponse({'status': 'success'}, status=200)
-
-        except Exception as e:
-            logger.error(f"Error occurred: {str(e)}")
-            logger.exception(e)  # Log the stack trace for better debugging
-            return JsonResponse({'error': str(e)}, status=400)
-    else:
-        logger.error("Invalid request method")
-        return JsonResponse({'error': 'Invalid method'}, status=405)

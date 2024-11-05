@@ -1,24 +1,24 @@
 <div class="job-details">
     <h2>Job Details</h2>
 
-        <input type="hidden" id="job_id" name="job_id" value="{{ job_form.instance.id }}">
+        <input type="hidden" id="job_id" name="job_id" class="autosave-input" value="{{ job_form.instance.id }}">
         <input type="hidden" id="companyDefaults" data-wage-rate="{{ company_defaults.wage_rate }}" data-charge-out-rate="{{ company_defaults.charge_out_rate }}">
         <p>Job ID: {{ job_form.instance.id }}</p>
 
     <div class="row mb-12">
-        <div class="col-md-12">
+        <div class="col-md-12 required-field">
             <label for="job_name" class="form-label">Job Name</label>
-            <input type="text" id="job_name" value="">
+            <input type="text" id="job_name" name="job_name" class="form-control autosave-input" value="" required>
         </div>
     </div>
 
 
     <div class="row mb-3">
         <div class="col-md-6 position-relative">
-            <div class="form-group">
+            <div class="form-group required-field">
                 <label for="client_name" class="form-label">Client</label>
                 <input type="text" id="client_name" class="form-control" value="{{ job.client.name|default:'' }}">
-                <input type="hidden" name="client_id" id="client_id" value="{{ job.client.id|default:'' }}">
+                <input type="hidden" id="client_id" name="client_id"  class="autosave-input" value="{{ job.client.id|default:'' }}" required>
                 <!-- Debug statements -->
                 <!-- Debug: Client ID from job_form - {{ job_form.client.value }} -->
                 <!-- Debug: Job Object Client ID - {{ job.client.id|default:'No Client ID' }} -->
@@ -29,9 +29,10 @@
             </div>
             <div id="clientSuggestionsContainer" class="suggestions-container"></div>
         </div>
-        <div class="col-md-6">
+
+        <div class="col-md-6 required-field">
             <label for="contact_person" class="form-label">Contact</label>
-            <input type="text" id="contact_person" name="contact_person"  class="form-control" value="{{ job_form.contact_person.value }}">
+            <input type="text" id="contact_person" name="contact_person" class="form-control autosave-input" value="{{ job_form.contact_person.value }}" required>
         </div>
     </div>
 
@@ -39,38 +40,39 @@
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="phoneContact" class="form-label">Phone Contact</label>
-            <input type="text" id="phoneContact" class="form-control" value="{{ job_form.contact_phone.value }}">
+            <input type="text" id="phone_contact" name="phone_contact" class="form-control autosave-input" value="{{ job_form.contact_phone.value }}">
         </div>
         <div class="col-md-6">
             <label for="job_number" class="form-label">Job Number</label>
-            <input type="text" id="job_number" class="form-control" value="{{ job_form.job_number.value }}" readonly>
+            <input type="text" id="job_number" name="job_number" class="form-control autosave-input" value="{{ job_form.job_number.value }}" readonly>
         </div>
     </div>
 
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="order_number" class="form-label">Order Number</label>
-            <input type="text" id="order_number" name="order_number" class="form-control"
+            <input type="text" id="order_number" name="order_number" class="form-control autosave-input"
                value="{% if job_form.order_number and job_form.order_number.value %}{{ job_form.order_number.value }}{% else %}{{ '' }}{% endif %}">
         </div>
         <div class="col-md-6">
             <label for="date_created" class="form-label">Job Creation Date</label>
-            <input type="text" id="date_created" class="form-control" value="{{ job_form.date_created.value }}"
-                   disabled>
+            <input type="hidden" id="date_created_iso"  name="date_created_iso" class="autosave-input"  value="{{ job.date_created|date:'c' }}">
+            <input type="text" id="date_created" class="form-control utc-time"
+                   data-utc="{{ job.date_created|date:'c' }}" disabled>
         </div>
     </div>
 
     <div class="row mb-3">
         <div class="col-md-12">
             <label for="materialGaugeQuantity">Material / Gauge / Quantity</label>
-            <textarea id="materialGaugeQuantity" class="form-control autoresizeTextarea" rows="1"></textarea>
+            <textarea id="materialGaugeQuantity" class="form-control autoresizeTextarea autosave-input" rows="1"></textarea>
         </div>
     </div>
 
     <div class="row mb-3">
         <div class="col-md-12">
             <label for="description">Job Description</label>
-            <textarea id="description" class="form-control autoresizeTextarea" rows="1"></textarea>
+            <textarea id="description" class="form-control autoresizeTextarea autosave-input" rows="1"></textarea>
         </div>
     </div>
 

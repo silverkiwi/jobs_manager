@@ -3,8 +3,8 @@
 
     <!-- Job Status Selection -->
     <div class="form-group">
-        <label for="jobStatus">Job Status:</label>
-        <select id="jobStatus" class="form-control">
+        <label for="job_status">Job Status:</label>
+        <select id="job_status" name="job_status" class="form-control autosave-input">
             <option value="quoting" {% if job_form.status.value == 'quoting' %}selected{% endif %}>Quoting</option>
             <option value="approved" {% if job_form.status.value == 'approved' %}selected{% endif %}>Approved</option>
             <option value="in_progress" {% if job_form.status.value == 'in_progress' %}selected{% endif %}>In Progress</option>
@@ -15,32 +15,35 @@
         </select>
     </div>
 
-    <!-- Quote Acceptance Date -->
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <input type="date" id="quoteAcceptanceDate" class="form-control"
-                   value="{% if job_form.quote_acceptance_date.value %}{{ job_form.quote_acceptance_date.value|date:'Y-m-d' }}{% else %}""{% endif %}"
-                       readonly>
-            <!-- Workflow logic to be added later -->
-        </div>
-    </div>
 
     <!-- Delivery Date -->
     <div class="row mb-3">
         <div class="col-md-6">
-            <label for="deliveryDate" class="form-label">Delivery Date</label>
-            <input type="date" id="deliveryDate" class="form-control"
-                   value="{% if job_form.delivery_date.value %}{{ job_form.delivery_date.value|date:'Y-m-d' }}{% else %}""{% endif %}"
-                   readonly>
+            <!-- User-Friendly Date Input -->
+            <label for="delivery_date" class="form-label">Delivery Date</label>
+            <input type="date" id="delivery_date" name="delivery_date" class="form-control autosave-input"
+                   value="{% if job_form.delivery_date.value %}{{ job_form.delivery_date.value|date:'Y-m-d' }}{% else %}{{ '' }}{% endif %}">
         </div>
     </div>
 
     <!-- Job Paid Checkbox -->
     <div class="form-group">
-        <label for="paidCheckbox">
-            <input type="checkbox" id="paidCheckbox" {% if job_form.paid.value %}checked{% endif %}>
+        <label for="paid_checkbox">
+            <input type="checkbox" id="paid_checkbox" name="paid" class="autosave-input" {% if job_form.paid.value %}checked{% endif %}>
             Job Paid
         </label>
+    </div>
+
+    <!-- Quote Acceptance Date -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <!-- Hidden ISO Date Field (Autosaved when quote is accepted) -->
+            <input type="hidden" id="quote_acceptance_date_iso" name="quote_acceptance_date_iso" class="autosave-input"
+                   value="{{ job_form.quote_acceptance_date.value|date:'c' }}">
+
+            <!-- Accept Quote Button -->
+            <button type="button" id="acceptQuoteButton" class="btn btn-primary">Accept Quote</button>
+        </div>
     </div>
 
     <!-- Action Buttons -->
