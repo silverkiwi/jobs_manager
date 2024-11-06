@@ -1,4 +1,5 @@
 # jobs_manager/workflow/serializers.py
+import logging
 
 from rest_framework import serializers
 
@@ -12,6 +13,7 @@ from workflow.models import (
 )
 from workflow.models.job import Job
 
+logger = logging.getLogger(__name__)
 
 class StaffSerializer:
     class Meta:
@@ -43,18 +45,22 @@ class AdjustmentSerializer(serializers.ModelSerializer):
 
 
 class JobPricingSerializer(serializers.ModelSerializer):
+    time_entries = serializers.SerializerMethodField()
+    material_entries = serializers.SerializerMethodField()
+    adjustment_entries = serializers.SerializerMethodField()
+
     class Meta:
         model = JobPricing
         fields = "__all__"
 
     def get_time_entries(self, obj):
-        return TimeSerializer(obj.time_entries, many=True).data
+        return TimeSerializer(obj.time_entries.all(), many=True).data
 
     def get_material_entries(self, obj):
-        return MaterialSerializer(obj.material_entries, many=True).data
+        return MaterialSerializer(obj.material_entries.all(), many=True).data
 
     def get_adjustment_entries(self, obj):
-        return AdjustmentSerializer(obj.adjustment_entries, many=True).data
+        return AdjustmentSerializer(obj.adjustment_entries.all(), many=True).data
 
 
 class ClientSerializer:
@@ -64,11 +70,20 @@ class ClientSerializer:
 
 
 class JobSerializer(serializers.ModelSerializer):
-    pricings = JobPricingSerializer(many=True)
+
+    # Handle multiple nested job pricings
+    historical_pricings = JobPricingSerializer(many=True, required=False)
+
+    # Handle latest pricings as individual fields for each pricing stage
+    latest_estimate_pricing = JobPricingSerializer(required=False)
+    latest_quote_pricing = JobPricingSerializer(required=False)
+    latest_reality_pricing = JobPricingSerializer(required=False)
+
+    # Related client field using client_id
     client_id = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
-        source="client",  # This will link `client_id` to the `client` field on the model
-        write_only=True,  # This is used for update operations
+        source="client",
+        write_only=True,  # Only required for updates; hides from read responses
     )
 
     class Meta:
@@ -84,9 +99,42 @@ class JobSerializer(serializers.ModelSerializer):
             "date_created",
             "material_gauge_quantity",
             "description",
-            "pricings",  # Assuming job has multiple pricings
+            "historical_pricings",  # All historical pricings
+            "latest_estimate_pricing",  # Latest pricing per stage
+            "latest_quote_pricing",
+            "latest_reality_pricing",
         ]
 
-    def get_pricings(self, obj):
-        # Use the decorator or reverse relationship to retrieve the associated job pricings
-        return JobPricingSerializer(obj.pricings, many=True).data
+    def update(self, instance, validated_data):
+        # Step 1: Handle updating latest pricings
+        latest_fields = ["latest_estimate_pricing", "latest_quote_pricing", "latest_reality_pricing"]
+
+        for field in latest_fields:
+            latest_data = validated_data.pop(field, None)
+            if latest_data:
+                related_instance = getattr(instance, field, None)
+                if related_instance:
+                    for attr, value in latest_data.items():
+                        setattr(related_instance, attr, value)
+                    related_instance.save()
+
+        # Step 2: Handle updating historical pricings if provided
+        pricings_data = validated_data.pop("historical_pricings", None)
+        logger.debug(f"Payload historical_pricings: {pricings_data}")
+        if pricings_data:
+            for pricing_data in pricings_data:
+                # Use pricing ID to identify historical entries to update
+                pricing_id = pricing_data.get("id")
+                if pricing_id:
+                    historical_instance = JobPricing.objects.get(pk=pricing_id)
+                    for attr, value in pricing_data.items():
+                        setattr(historical_instance, attr, value)
+                    historical_instance.save()
+
+        # Step 3: Update the rest of the job fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
+

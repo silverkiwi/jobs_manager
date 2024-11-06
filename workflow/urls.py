@@ -104,43 +104,43 @@ urlpatterns = [
         name="update_invoice",
     ),
     # Job URLs
-    path(
-        "old_jobs/create/", job_view.CreateJobViewOriginal.as_view(), name="create_job"
-    ),
-    path("old_jobs/", job_view.ListJobView.as_view(), name="list_jobs"),
-    path("old_jobs/<uuid:pk>/", job_view.UpdateJobView.as_view(), name="update_job"),
-    path(
-        "old_jobs/<uuid:pk>/update_status/",
-        kanban_view.update_job_status,
-        name="update_job_status",
-    ),
+    # path(
+    #     "old_jobs/create/", job_view.CreateJobViewOriginal.as_view(), name="create_job"
+    # ),
+    # path("old_jobs/", job_view.ListJobView.as_view(), name="list_jobs"),
+    # path("old_jobs/<uuid:pk>/", job_view.UpdateJobView.as_view(), name="update_job"),
+    # path(
+    #     "old_jobs/<uuid:pk>/update_status/",
+    #     kanban_view.update_job_status,
+    #     name="update_job_status",
+    # ),
     # Job Pricing URLs
-    path(
-        "old_jobs/<uuid:job_id>/create_pricing/<str:pricing_stage>/",
-        job_pricing_view.CreateJobPricingView.as_view(),
-        name="create_job_pricing",
-    ),
-    path(
-        "old_job_pricing/<uuid:pk>/",
-        job_pricing_view.UpdateJobPricingView.as_view(),
-        name="update_job_pricing",
-    ),
+    # path(
+    #     "old_jobs/<uuid:job_id>/create_pricing/<str:pricing_stage>/",
+    #     job_pricing_view.CreateJobPricingView.as_view(),
+    #     name="create_job_pricing",
+    # ),
+    # path(
+    #     "old_job_pricing/<uuid:pk>/",
+    #     job_pricing_view.UpdateJobPricingView.as_view(),
+    #     name="update_job_pricing",
+    # ),
     # Entry URLs
-    path(
-        "old_job_pricing/<uuid:job_pricing_id>/time_entry/create/",
-        time_entry_views.CreateTimeEntryView.as_view(),
-        name="create_time_entry",
-    ),
-    path(
-        "old_job_pricing/<uuid:job_pricing_id>/material_entry/create/",
-        material_entry_view.CreateMaterialEntryView.as_view(),
-        name="create_material_entry",
-    ),
-    path(
-        "old_job_pricing/<uuid:job_pricing_id>/adjustment_entry/create/",
-        adjustment_entry_view.CreateAdjustmentEntryView.as_view(),
-        name="create_adjustment_entry",
-    ),
+    # path(
+    #     "old_job_pricing/<uuid:job_pricing_id>/time_entry/create/",
+    #     time_entry_views.CreateTimeEntryView.as_view(),
+    #     name="create_time_entry",
+    # ),
+    # path(
+    #     "old_job_pricing/<uuid:job_pricing_id>/material_entry/create/",
+    #     material_entry_view.CreateMaterialEntryView.as_view(),
+    #     name="create_material_entry",
+    # ),
+    # path(
+    #     "old_job_pricing/<uuid:job_pricing_id>/adjustment_entry/create/",
+    #     adjustment_entry_view.CreateAdjustmentEntryView.as_view(),
+    #     name="create_adjustment_entry",
+    # ),
     path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
     path("job/<uuid:job_id>/", edit_job_view_ajax.edit_job_view_ajax, name="edit_job"),
     path(

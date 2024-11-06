@@ -87,19 +87,46 @@ class Job(models.Model):
         super(Job, self).save(*args, **kwargs)
 
     @property
-    def estimate_pricing(self):
+    def estimate_pricings(self):
+        return self.pricings.filter(pricing_stage='estimate')
+
+    @property
+    def quote_pricings(self):
+        return self.pricings.filter(pricing_stage='quote')
+
+    @property
+    def reality_pricings(self):
+        return self.pricings.filter(pricing_stage='reality')
+
+    @property
+    def latest_estimate_pricing(self):
         """Returns the estimate JobPricing related to this job."""
-        return self.pricings.filter(pricing_stage="estimate").first()
+        return self.pricings.filter(pricing_stage='estimate').order_by('-created_at').first()
 
     @property
-    def quote_pricing(self):
+    def latest_quote_pricing(self):
         """Returns the quote JobPricing related to this job."""
-        return self.pricings.filter(pricing_stage="quote").first()
+        return self.pricings.filter(pricing_stage='quote').order_by('-created_at').first()
 
     @property
-    def reality_pricing(self):
+    def latest_reality_pricing(self):
         """Returns the reality JobPricing related to this job."""
-        return self.pricings.filter(pricing_stage="reality").first()
+        return self.pricings.filter(pricing_stage='reality').order_by('-created_at').first()
+
+    @property
+    def historical_estimate_pricings(self):
+        """Returns all historical estimate JobPricing entries except the latest one."""
+        return self.estimate_pricings.order_by('-created_at')[1:]
+
+    @property
+    def historical_quote_pricings(self):
+        """Returns all historical quote JobPricing entries except the latest one."""
+        return self.quote_pricings.order_by('-created_at')[1:]
+
+    @property
+    def historical_reality_pricings(self):
+        """Returns all historical reality JobPricing entries except the latest one."""
+        return self.reality_pricings.order_by('-created_at')[1:]
 
     @staticmethod
     def generate_unique_job_number():

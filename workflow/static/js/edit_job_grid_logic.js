@@ -120,24 +120,24 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function loadExistingJobEntries(section_name, entry_type) {
-        // Check if entry_forms is available and valid
-        if (!entry_forms) {
-            console.error('Debug: entry_forms data is not available.');
+        // Check if latest_job_pricings_json is available and valid
+        if (!latest_job_pricings_json) {
+            console.error('Debug: latest_job_pricings_json data is not available.');
             return [createNewRow(entry_type)];
         }
 
-        if (!entry_forms[section_name]) {
-            console.error(`Debug: entry_forms does not contain section "${section_name}".`);
+        if (!latest_job_pricings_json[section_name]) {
+            console.error(`Debug: latest_job_pricings_json does not contain section "${section_name}".`);
             return [createNewRow(entry_type)];
         }
 
         // Call the specific loader function based on the entry type
         if (entry_type === 'time') {
-            return loadExistingJobTimeEntries(entry_forms[section_name]);
+            return loadExistingJobTimeEntries(latest_job_pricings_json[section_name]);
         } else if (entry_type === 'material') {
-            return loadExistingJobMaterialEntries(entry_forms[section_name]);
+            return loadExistingJobMaterialEntries(latest_job_pricings_json[section_name]);
         } else if (entry_type === 'adjustment') {
-            return loadExistingJobAdjustmentEntries(entry_forms[section_name]);
+            return loadExistingJobAdjustmentEntries(latest_job_pricings_json[section_name]);
         }
 
         console.error(`Debug: Unknown entry type "${entry_type}".`);
@@ -322,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             event.api.refreshCells({rowNodes: [event.node], columns: ['total', 'total_minutes'], force: true});
 
-            debouncedAutosaveData(event);
+            debouncedAutosave(event);
             calculateTotals();
         }
     };
@@ -451,12 +451,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     break;
             }
 
-            if (!entry_forms) {
-                console.error('Error: entry_forms data is not loaded.');
-                return;  // Exit early if entry_forms is not loaded
+            if (!latest_job_pricings_json) {
+                console.error('Error: latest_job_pricings_json data is not loaded.');
+                return;  // Exit early if latest_job_pricings_json is not loaded
             }
 
-            const sectionData = entry_forms[section];
+            const sectionData = latest_job_pricings_json[section];
             if (!sectionData) {
                 console.warn(`Data not found for section "${section}". Assuming this is a new job.`);
             }

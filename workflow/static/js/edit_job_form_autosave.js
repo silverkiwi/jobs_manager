@@ -9,7 +9,7 @@ function debounce(func, wait) {
 
 // Function to collect all data from the form
 function collectAllData() {
-    const data = {};
+    const data = {};  // Collects main form data
 
     // Collect data directly from visible input fields in the form
     const formElements = document.querySelectorAll('.autosave-input');
@@ -19,57 +19,32 @@ function collectAllData() {
         if (element.type === 'checkbox') {
             value = element.checked;
         } else {
-            // Get value for other types of inputs, set to null if empty
             value = element.value.trim() === "" ? null : element.value;
         }
         data[element.name] = value;
     });
 
-    // Collect additional data from AG Grid sections
+    // Add job validity check
+    data.job_is_valid = checkJobValidity();
 
-    // Collect additional data from AG Grid sections
-    // These represent the latest versions of estimate, quote, reality
-    let latestEstimate = collectGridData('estimate');
-    let latestQuote = collectGridData('quote');
-    let latestReality = collectGridData('reality');
+    // 2. Get all historical pricings that were passed in the initial context
+    let historicalPricings = JSON.parse(JSON.stringify(window.historical_job_pricings_json));
 
-    // Create a new `jobData` object, adding the `pricings` field
-    let jobData = {
-        ...data,  // Include all the top-level form fields collected earlier
-        pricings: [],  // Initialize the `pricings` array to hold historical and new revisions
-        job_is_valid: checkJobValidity()  // Existing job validity check
-    };
+    // 3. Collect latest revisions from AG Grid
+    data.latest_estimate = collectGridData('estimate');
+    data.latest_quote = collectGridData('quote');
+    data.latest_reality = collectGridData('reality');
 
+    // 4. Add the historical pricings to jobData
+    data.historical_pricings = historicalPricings;
 
-    // Note, pricings should include historical revisions but for now we only track the latest
-    // In the future it's essential to modify this code
-    jobData.pricings.push({
-        pricing_stage: "estimate",
-        revision_number: getNextRevisionNumber(jobData.pricings, "estimate"),
-        ...latestEstimate
-    });
+    return data;
 
-    jobData.pricings.push({
-        pricing_stage: "quote",
-        revision_number: getNextRevisionNumber(jobData.pricings, "quote"),
-        ...latestQuote
-    });
-
-    jobData.pricings.push({
-        pricing_stage: "reality",
-        revision_number: getNextRevisionNumber(jobData.pricings, "reality"),
-        ...latestReality
-    });
-
-
-    jobData.job_is_valid = checkJobValidity(); // We are responsible for calculating this
-
-    return jobData;
 }
 
 function checkJobValidity() {
     // Check if all required fields are populated
-    const requiredFields = ['job_name', 'client_id', 'contact_person', 'phone_contact', 'job_number'];
+    const requiredFields = ['job_name', 'client_id', 'contact_person', 'job_number'];
     const isValid = requiredFields.every(field => {
         const value = document.getElementById(field)?.value;
         return value !== null && value !== undefined && value.trim() !== '';
@@ -171,6 +146,13 @@ function getCsrfToken() {
     return document.querySelector('[name=csrfmiddlewaretoken]').value;
 }
 
+function removeValidationError(element) {
+    element.classList.remove('is-invalid');
+    if (element.nextElementSibling && element.nextElementSibling.classList.contains('invalid-feedback')) {
+        element.nextElementSibling.remove();
+    }
+}
+
 // Debounced version of the autosave function
 const debouncedAutosave = debounce(function() {
     console.log("Debounced autosave called");
@@ -213,13 +195,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-
-
-    // Attach to AG Grid changes as well
-    gridOptions.api.addEventListener('cellValueChanged', function(event) {
-        debouncedAutosave();
-    });
-
     // Function to validate all required fields before autosave
     // Unused?
     // function validateAllFields() {
@@ -257,25 +232,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to remove validation error from an input
     // Unused?
-    // function removeValidationError(element) {
-    //     element.classList.remove('is-invalid');
-    //     if (element.nextElementSibling && element.nextElementSibling.classList.contains('invalid-feedback')) {
-    //         element.nextElementSibling.remove();
-    //     }
-    // }
 
-    // Autosave function with validation
-    // Unused?
-    // function autosaveData() {
-    //     // Validate all fields before attempting to autosave
-    //     if (!validateAllFields()) {
-    //         console.warn('Autosave aborted due to validation errors.');
-    //         return;
-    //     }
-    //
-    //     // Proceed with autosave if all fields are valid
-    //     const collectedData = collectAllData(); // Assume this function collects the form data
-    //     saveDataToServer(collectedData); // Assume this function sends the data to the server
-    // }
+
 
 });

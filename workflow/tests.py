@@ -73,15 +73,15 @@ class JobApiTests(TestCase):
 
     def test_job_has_estimate_pricing(self):
         # Test if the job correctly returns the estimate pricing
-        self.assertEqual(self.job.estimate_pricing, self.estimate_pricing)
+        self.assertEqual(self.job.latest_estimate_pricing, self.estimate_pricing)
 
     def test_job_has_quote_pricing(self):
         # Test if the job correctly returns the quote pricing
-        self.assertEqual(self.job.quote_pricing, self.quote_pricing)
+        self.assertEqual(self.job.latest_quote_pricing, self.quote_pricing)
 
     def test_job_has_reality_pricing(self):
         # Test if the job correctly returns the reality pricing
-        self.assertEqual(self.job.reality_pricing, self.reality_pricing)
+        self.assertEqual(self.job.latest_reality_pricing, self.reality_pricing)
 
     def test_get_job_api_success(self):
         # Simulate an API request to get job details

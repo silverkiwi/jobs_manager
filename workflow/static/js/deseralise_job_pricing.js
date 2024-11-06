@@ -1,28 +1,50 @@
 // Deserialize entryFormsData
 document.addEventListener('DOMContentLoaded', function () {
-    const entryFormsElement = document.getElementById('entryFormsData');
-    if (entryFormsElement) {
+    // Update the HTML element ID to match the backend context
+    const latestJobPricingsElement = document.getElementById('latestJobPricingsData');
+    if (latestJobPricingsElement) {
         try {
-            console.log('Debug: Raw entryFormsData content:', entryFormsElement.textContent);
-            window.entry_forms = JSON.parse(entryFormsElement.textContent);
-            console.log('Debug: Loaded entry_forms data:', window.entry_forms);
+            // Log raw content to debug
+            console.log('Debug: Raw latestJobPricingsData content:', latestJobPricingsElement.textContent);
+            // Use snake case for consistency with backend variable names
+            window.latest_job_pricings_json = JSON.parse(latestJobPricingsElement.textContent);
+            console.log('Debug: Loaded latest job pricing data:', window.latest_job_pricings_json);
         } catch (error) {
-            console.error('Failed to parse entry forms data:', error);
+            console.error('Failed to parse latest job pricing data:', error);
         }
     } else {
-        console.error('Could not find entry forms data.');
+        console.error('Could not find latest job pricing data.');
     }
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+    // Update the HTML element ID to match the backend context
+    const historicalJobPricingsElement = document.getElementById('historicalJobPricingsData');
+    if (historicalJobPricingsElement) {
+        try {
+            // Log raw content to debug
+            console.log('Debug: Raw historicalJobPricingsElement content:', historicalJobPricingsElement.textContent);
+            // Use snake case for consistency with backend variable names
+            window.historical_job_pricings_json = JSON.parse(historicalJobPricingsElement.textContent);
+            console.log('Debug: Loaded historical job pricing data:', window.historical_job_pricings_json);
+        } catch (error) {
+            console.error('Failed to parse Historical job pricing data:', error);
+        }
+    } else {
+        console.error('Could not find historical job pricing data.');
+    }
+});
+
+
 function getGridData(section, gridType) {
-    // Check if entry_forms data is available globally
-    if (!window.entry_forms) {
-        console.error('Error: entry_forms data is not loaded.');
+    // Check if latest_job_pricings_json data is available globally
+    if (!window.latest_job_pricings_json) {
+        console.error('Error: latest_job_pricings_json data is not loaded.');
         return [createNewRow(gridType)];
     }
 
-    // Validate if the requested section exists in entry_forms
-    const sectionData = window.entry_forms[section];
+    // Validate if the requested section exists in latest_job_pricings_json
+    const sectionData = window.latest_job_pricings_json[section];
     if (!sectionData || !sectionData[gridType]) {
         console.log(`Debug: No data found for section "${section}" and grid type "${gridType}". Creating a new row.`);
         return [createNewRow(gridType)];

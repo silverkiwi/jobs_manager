@@ -141,6 +141,28 @@ class JobPricing(models.Model):
         }
         return pricing_entries
 
+    class Meta:
+        ordering = [
+            "-created_at",
+            "pricing_stage",
+        ]  # Orders by newest entries first, and then by stage
+
+    def save(self, *args, **kwargs):
+        # Check if this is a new instance (not yet saved to the database)
+        if self.pk is None:
+            # Find the highest revision number for this job and pricing stage
+            last_revision = JobPricing.objects.filter(
+                job=self.job,
+                pricing_stage=self.pricing_stage
+            ).aggregate(models.Max('revision_number'))['revision_number__max']
+
+            # Set the revision_number to the next available number
+            self.revision_number = 1 if last_revision is None else last_revision + 1
+
+        # Call the superclass save method to save the object
+        super().save(*args, **kwargs)
+
+
     def __str__(self):
         # Only bother displaying revision if there is one
         if self.revision_number > 1:
@@ -150,11 +172,7 @@ class JobPricing(models.Model):
 
         return f"{self.job.name} - {self.get_pricing_stage_display()} ({self.get_pricing_type_display()}){revision_str}"
 
-    class Meta:
-        ordering = [
-            "-created_at",
-            "pricing_stage",
-        ]  # Orders by newest entries first, and then by stage
+
 
 
 # Not implemented yet - just putting this here to add in future design thinking
