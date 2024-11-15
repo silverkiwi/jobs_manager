@@ -7,8 +7,6 @@ from django.db import models, transaction
 from workflow.enums import JobPricingStage, JobPricingType
 
 
-def decimal_to_float(value):
-    return float(value) if isinstance(value, Decimal) else value
 
 
 class JobPricing(models.Model):

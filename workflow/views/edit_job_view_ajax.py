@@ -213,7 +213,10 @@ def autosave_job_view(request):
             context={'request': request}
         )
 
+        logger.debug(f"Initial serializer data: {serializer.initial_data}")
+
         if serializer.is_valid():
+            logger.debug(f"Validated data: {serializer.validated_data}")
             serializer.save()
 
             # Logging client name for better traceability

@@ -1,132 +1,7 @@
-import logging
-from decimal import Decimal
-import datetime
-import uuid
-
+from workflow.models import MaterialEntry
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 
-from workflow.models import (
-    JobPricing,
-    MaterialEntry,
-    AdjustmentEntry,
-    TimeEntry,
-    Client,
-    Staff,
-)
-from workflow.models.job import Job
-from workflow.models.job_pricing import decimal_to_float
-
-logger = logging.getLogger(__name__)
-
-
-class StaffSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Staff
-        fields = "__all__"
-
-
-class TimeEntrySerializer(serializers.ModelSerializer):
-    total_minutes = serializers.SerializerMethodField()
-    total = serializers.SerializerMethodField()
-
-    class Meta:
-        model = TimeEntry
-        fields = [
-            'id',
-            'description',
-            'items',
-            'mins_per_item',
-            'wage_rate',
-            'charge_out_rate',
-            'total_minutes',
-            'total',
-        ]
-
-    def get_total_minutes(self, obj):
-        return decimal_to_float(obj.minutes)
-
-    def get_total(self, obj):
-        return decimal_to_float(obj.revenue)
-
-
-class MaterialEntrySerializer(serializers.ModelSerializer):
-    cost_rate = serializers.DecimalField(source='unit_cost', max_digits=10, decimal_places=2)
-    retail_rate = serializers.DecimalField(source='unit_revenue', max_digits=10, decimal_places=2)
-    total = serializers.SerializerMethodField()
-
-    class Meta:
-        model = MaterialEntry
-        fields = [
-            'id',
-            'item_code',
-            'description',
-            'quantity',
-            'cost_rate',
-            'retail_rate',
-            'total',
-            'comments',
-        ]
-
-    def get_total(self, obj):
-        return decimal_to_float(obj.revenue)
-
-
-class AdjustmentEntrySerializer(serializers.ModelSerializer):
-    total = serializers.DecimalField(source='price_adjustment', max_digits=10, decimal_places=2)
-
-    class Meta:
-        model = AdjustmentEntry
-        fields = [
-            'id',
-            'description',
-            'cost_adjustment',
-            'price_adjustment',
-            'comments',
-            'total',
-        ]
-
-
-class JobPricingSerializer(serializers.ModelSerializer):
-    time_entries = TimeEntrySerializer(many=True, required=False)
-    material_entries = MaterialEntrySerializer(many=True, required=False)
-    adjustment_entries = AdjustmentEntrySerializer(many=True, required=False)
-
-    class Meta:
-        model = JobPricing
-        fields = [
-            'id',
-            'pricing_stage',
-            'pricing_type',
-            'revision_number',
-            'created_at',
-            'updated_at',
-            'time_entries',
-            'material_entries',
-            'adjustment_entries',
-        ]
-
-    def to_representation(self, instance):
-        logger.debug(f"JobPricingSerializer to_representation called for instance {instance.id}")
-        representation = super().to_representation(instance)
-
-        # Convert Decimal fields to float
-        for key, value in representation.items():
-            if isinstance(value, Decimal):
-                representation[key] = float(value)
-            elif isinstance(value, datetime.datetime):
-                representation[key] = value.isoformat()
-            elif isinstance(value, uuid.UUID):
-                representation[key] = str(value)
-
-        logger.debug(f"JobPricingSerializer representation result: {representation}")
-        return representation
-
-
-class ClientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Client
-        fields = "__all__"
+from workflow.serializers.job_pricing_serializer import JobPricingSerializer
 
 
 class JobSerializer(serializers.ModelSerializer):
@@ -162,6 +37,13 @@ class JobSerializer(serializers.ModelSerializer):
             "quote_acceptance_date",
             "job_is_valid",
         ]
+
+    def validate(self, attrs):
+        logger.debug(f"JobSerializer validate called with attrs: {attrs}")
+        logger.debug(f"Initial data contains: {self.initial_data.keys()}")
+        validated = super().validate(attrs)
+        logger.debug(f"After super().validate, data is: {validated}")
+        return validated
 
     def _process_pricing_data(self, pricing_data, pricing_instance):
         """Process pricing data for a specific pricing instance"""

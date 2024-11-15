@@ -12,3 +12,6 @@ def get_company_defaults():
         }
     )
     return defaults
+
+def decimal_to_float(value):
+    return float(value) if isinstance(value, Decimal) else value
