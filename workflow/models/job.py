@@ -1,11 +1,14 @@
 import datetime
 import uuid
 from typing import Dict, List
+import logging
 
 from django.db import models, transaction
+from django.apps import apps
 from django.utils import timezone
 from simple_history.models import HistoricalRecords  # type: ignore
 
+logger = logging.getLogger(__name__)
 
 class Job(models.Model):
     name = models.CharField(max_length=100, null=False, blank=False)  # type: ignore
@@ -72,6 +75,38 @@ class Job(models.Model):
     # )
     job_is_valid = models.BooleanField(default=False)  # type: ignore
     paid: bool = models.BooleanField(default=False)  # type: ignore
+
+    # Direct relationships for estimate, quote, reality
+    latest_estimate_pricing = models.OneToOneField(
+        'JobPricing',
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name='latest_estimate_for_job'
+    )
+
+    latest_quote_pricing = models.OneToOneField(
+        'JobPricing',
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name='latest_quote_for_job'
+    )
+
+    latest_reality_pricing = models.OneToOneField(
+        'JobPricing',
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name='latest_reality_for_job'
+    )
+
+    archived_pricings = models.ManyToManyField(
+        "JobPricing",
+        related_name="archived_pricings_for_job",
+        blank=True,
+    )
+
     history: HistoricalRecords = HistoricalRecords()
 
     def __str__(self) -> str:
@@ -82,51 +117,30 @@ class Job(models.Model):
         return f"Job: {self.job_number}"  # type: ignore
 
     def save(self, *args, **kwargs):
-        if not self.job_number:
-            self.job_number = self.generate_unique_job_number()
+        # Step 1: Check if this is a new instance (based on `self._state.adding`)
+        if self._state.adding:
+            # Step 2: Generate a unique job number if it's not set yet
+            if not self.job_number:
+                self.job_number = self.generate_unique_job_number()
+
+            # Lazy import JobPricing using Django's apps.get_model()
+            JobPricing = apps.get_model('workflow', 'JobPricing')
+
+            # Step 3: Create the initial JobPricing instances for estimate, quote, and reality
+            logger.debug("Creating related JobPricing entries.")
+            estimate_pricing = JobPricing.objects.create(pricing_stage="estimate")
+            quote_pricing = JobPricing.objects.create(pricing_stage="quote")
+            reality_pricing = JobPricing.objects.create(pricing_stage="reality")
+            logger.debug("Initial pricings created successfully.")
+
+            # Step 4: Link the JobPricing objects to this job
+            self.latest_estimate_pricing = estimate_pricing
+            self.latest_quote_pricing = quote_pricing
+            self.latest_reality_pricing = reality_pricing
+
+        # Step 5: Save the Job to persist everything, including relationships
+        logger.debug(f"Saving job with job number: {self.job_number}")
         super(Job, self).save(*args, **kwargs)
-
-    @property
-    def estimate_pricings(self):
-        return self.pricings.filter(pricing_stage='estimate')
-
-    @property
-    def quote_pricings(self):
-        return self.pricings.filter(pricing_stage='quote')
-
-    @property
-    def reality_pricings(self):
-        return self.pricings.filter(pricing_stage='reality')
-
-    @property
-    def latest_estimate_pricing(self):
-        """Returns the estimate JobPricing related to this job."""
-        return self.pricings.filter(pricing_stage='estimate').order_by('-created_at').first()
-
-    @property
-    def latest_quote_pricing(self):
-        """Returns the quote JobPricing related to this job."""
-        return self.pricings.filter(pricing_stage='quote').order_by('-created_at').first()
-
-    @property
-    def latest_reality_pricing(self):
-        """Returns the reality JobPricing related to this job."""
-        return self.pricings.filter(pricing_stage='reality').order_by('-created_at').first()
-
-    @property
-    def historical_estimate_pricings(self):
-        """Returns all historical estimate JobPricing entries except the latest one."""
-        return self.estimate_pricings.order_by('-created_at')[1:]
-
-    @property
-    def historical_quote_pricings(self):
-        """Returns all historical quote JobPricing entries except the latest one."""
-        return self.quote_pricings.order_by('-created_at')[1:]
-
-    @property
-    def historical_reality_pricings(self):
-        """Returns all historical reality JobPricing entries except the latest one."""
-        return self.reality_pricings.order_by('-created_at')[1:]
 
     @staticmethod
     def generate_unique_job_number():

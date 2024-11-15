@@ -5,7 +5,6 @@ from decimal import Decimal
 from django.db import models, transaction
 
 from workflow.enums import JobPricingStage, JobPricingType
-from workflow.models import Job
 
 
 def decimal_to_float(value):
@@ -15,7 +14,9 @@ def decimal_to_float(value):
 class JobPricing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="pricings")
+    # job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="pricings")
+    # I've removed the FK because it becomes circular
+
     pricing_stage = models.CharField(
         max_length=20,
         choices=JobPricingStage.choices,
@@ -82,7 +83,7 @@ class JobPricing(models.Model):
         return sum(entry.cost_adjustment for entry in self.adjustment_entries.all())
 
     @property
-    def total_adjustment_revenuet(self):
+    def total_adjustment_revenue(self):
         """Calculate the total cost for all adjustment entries."""
         return sum(entry.price_adjustment for entry in self.adjustment_entries.all())
 
@@ -102,44 +103,6 @@ class JobPricing(models.Model):
             + self.total_adjustment_revenue
         )
 
-    def extract_pricing_data(self):
-        """Used for passing pricing data into HTML templates."""
-        time_entries = [
-            {
-                "description": entry.description,
-                "items": decimal_to_float(entry.items),
-                "mins_per_item": decimal_to_float(entry.mins_per_item),
-                "wage_rate": decimal_to_float(entry.wage_rate),
-                "charge_out_rate": decimal_to_float(entry.charge_out_rate),
-            }
-            for entry in self.time_entries.all()  # Reverse lookup assuming related_name='time_entries'
-        ]
-        material_entries = [
-            {
-                "item_code": entry.item_code,
-                "description": entry.description,
-                "quantity": decimal_to_float(entry.quantity),
-                "cost_price": decimal_to_float(entry.unit_cost),
-                "retail_price": decimal_to_float(entry.unit_revenue),
-                "comments": entry.comments,
-            }
-            for entry in self.material_entries.all()  # Reverse lookup assuming related_name='material_entries'
-        ]
-        adjustment_entries = [
-            {
-                "description": entry.description,
-                "cost_adjustment": decimal_to_float(entry.cost_adjustment),
-                "price_adjustment": decimal_to_float(entry.price_adjustment),
-                "comments": entry.comments,
-            }
-            for entry in self.adjustment_entries.all()  # Reverse lookup assuming related_name='adjustment_entries'
-        ]
-        pricing_entries = {
-            "time": time_entries,
-            "material": material_entries,
-            "adjustment": adjustment_entries,
-        }
-        return pricing_entries
 
     class Meta:
         ordering = [

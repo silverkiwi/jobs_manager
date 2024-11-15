@@ -1,7 +1,10 @@
-# jobs_manager/workflow/serializers.py
 import logging
+from decimal import Decimal
+import datetime
+import uuid
 
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from workflow.models import (
     JobPricing,
@@ -15,83 +18,118 @@ from workflow.models.job import Job
 
 logger = logging.getLogger(__name__)
 
-class StaffSerializer:
+
+class StaffSerializer(serializers.ModelSerializer):
     class Meta:
         model = Staff
         fields = "__all__"
 
 
-class TimeSerializer(serializers.ModelSerializer):
-    staff_id = serializers.PrimaryKeyRelatedField(
-        queryset=Staff.objects.all(),
-        source="staff",  # This will link `staff_id` to the `staff` field on the model
-    )
-
+class TimeEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeEntry
-        fields = "__all__"
+        fields = [
+            'id',
+            'description',
+            'items',
+            'mins_per_item',
+            'wage_rate',
+            'charge_out_rate',
+            'total_minutes',
+            'total',
+        ]
 
 
-class MaterialSerializer(serializers.ModelSerializer):
+class MaterialEntrySerializer(serializers.ModelSerializer):
+    cost_rate = serializers.DecimalField(source='unit_cost', max_digits=10, decimal_places=2)
+    retail_rate = serializers.DecimalField(source='unit_revenue', max_digits=10, decimal_places=2)
+
     class Meta:
         model = MaterialEntry
-        fields = "__all__"
+        fields = [
+            'id',
+            'item_code',
+            'description',
+            'quantity',
+            'cost_rate',
+            'retail_rate',
+            'total',
+            'comments',
+        ]
 
 
-class AdjustmentSerializer(serializers.ModelSerializer):
+class AdjustmentEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = AdjustmentEntry
-        fields = "__all__"
+        fields = [
+            'id',
+            'description',
+            'cost_adjustment',
+            'price_adjustment',
+            'comments',
+            'total',
+        ]
 
 
 class JobPricingSerializer(serializers.ModelSerializer):
-    time_entries = serializers.SerializerMethodField()
-    material_entries = serializers.SerializerMethodField()
-    adjustment_entries = serializers.SerializerMethodField()
+    time_entries = TimeEntrySerializer(many=True, required=False)
+    material_entries = MaterialEntrySerializer(many=True, required=False)
+    adjustment_entries = AdjustmentEntrySerializer(many=True, required=False)
 
     class Meta:
         model = JobPricing
-        fields = "__all__"
+        fields = [
+            'id',
+            'pricing_stage',
+            'pricing_type',
+            'revision_number',
+            'created_at',
+            'updated_at',
+            'time_entries',
+            'material_entries',
+            'adjustment_entries',
+        ]
 
-    def get_time_entries(self, obj):
-        return TimeSerializer(obj.time_entries.all(), many=True).data
+    def to_representation(self, instance):
+        logger.debug(f"JobPricingSerializer to_representation called for instance {instance.id}")
+        representation = super().to_representation(instance)
 
-    def get_material_entries(self, obj):
-        return MaterialSerializer(obj.material_entries.all(), many=True).data
+        # Convert Decimal fields to float
+        for key, value in representation.items():
+            if isinstance(value, Decimal):
+                representation[key] = float(value)
+            elif isinstance(value, datetime.datetime):
+                representation[key] = value.isoformat()
+            elif isinstance(value, uuid.UUID):
+                representation[key] = str(value)
 
-    def get_adjustment_entries(self, obj):
-        return AdjustmentSerializer(obj.adjustment_entries.all(), many=True).data
+        logger.debug(f"JobPricingSerializer representation result: {representation}")
+        return representation
 
 
-class ClientSerializer:
+class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
         fields = "__all__"
 
 
 class JobSerializer(serializers.ModelSerializer):
-
-    # Handle multiple nested job pricings
-    historical_pricings = JobPricingSerializer(many=True, required=False)
-
-    # Handle latest pricings as individual fields for each pricing stage
     latest_estimate_pricing = JobPricingSerializer(required=False)
     latest_quote_pricing = JobPricingSerializer(required=False)
     latest_reality_pricing = JobPricingSerializer(required=False)
-
-    # Related client field using client_id
     client_id = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
         source="client",
-        write_only=True,  # Only required for updates; hides from read responses
+        write_only=True,
     )
+    job_status = serializers.CharField(source='status')
 
     class Meta:
         model = Job
         fields = [
-            "id",  # Primary key (maps to job_id in HTML)
+            "id",
             "name",
-            "client_id",  # This is used to set the client
+            "client_id",
             "contact_person",
             "contact_phone",
             "job_number",
@@ -99,42 +137,101 @@ class JobSerializer(serializers.ModelSerializer):
             "date_created",
             "material_gauge_quantity",
             "description",
-            "historical_pricings",  # All historical pricings
-            "latest_estimate_pricing",  # Latest pricing per stage
+            "latest_estimate_pricing",
             "latest_quote_pricing",
             "latest_reality_pricing",
+            "job_status",
+            "delivery_date",
+            "paid",
+            "quote_acceptance_date",
+            "job_is_valid",
         ]
 
+    def _process_pricing_entries(self, pricing_data, pricing_instance):
+        """Process time, material, and adjustment entries for a pricing instance"""
+        logger.debug(f"Processing pricing entries for instance {pricing_instance.id}")
+        logger.debug(f"Received pricing data: {pricing_data}")
+
+        if not pricing_data:
+            logger.debug("No pricing data provided")
+            return
+
+        # Handle time entries
+        if 'time' in pricing_data:
+            logger.debug(f"Processing {len(pricing_data['time'])} time entries")
+            pricing_instance.time_entries.all().delete()
+            for entry in pricing_data['time']:
+                logger.debug(f"Creating time entry: {entry}")
+                TimeEntry.objects.create(
+                    job_pricing=pricing_instance,
+                    description=entry.get('description', ''),
+                    items=entry.get('items', 0),
+                    mins_per_item=entry.get('mins_per_item', 0),
+                    wage_rate=entry.get('wage_rate', 0),
+                    charge_out_rate=entry.get('charge_out_rate', 0),
+                )
+
+        # Handle material entries
+        if 'materials' in pricing_data:
+            logger.debug(f"Processing {len(pricing_data['materials'])} material entries")
+            pricing_instance.material_entries.all().delete()
+            for entry in pricing_data['materials']:
+                logger.debug(f"Creating material entry: {entry}")
+                MaterialEntry.objects.create(
+                    job_pricing=pricing_instance,
+                    item_code=entry.get('item_code', ''),
+                    description=entry.get('description', ''),
+                    quantity=entry.get('quantity', 0),
+                    unit_cost=entry.get('cost_rate', 0),
+                    unit_revenue=entry.get('retail_rate', 0),
+                    comments=entry.get('comments', ''),
+                )
+
+        # Handle adjustment entries
+        if 'adjustments' in pricing_data:
+            logger.debug(f"Processing {len(pricing_data['adjustments'])} adjustment entries")
+            pricing_instance.adjustment_entries.all().delete()
+            for entry in pricing_data['adjustments']:
+                logger.debug(f"Creating adjustment entry: {entry}")
+                AdjustmentEntry.objects.create(
+                    job_pricing=pricing_instance,
+                    description=entry.get('description', ''),
+                    cost_adjustment=entry.get('cost_adjustment', 0),
+                    price_adjustment=entry.get('price_adjustment', 0),
+                    comments=entry.get('comments', ''),
+                )
+
+        logger.debug(f"Finished processing entries for pricing instance {pricing_instance.id}")
+
     def update(self, instance, validated_data):
-        # Step 1: Handle updating latest pricings
-        latest_fields = ["latest_estimate_pricing", "latest_quote_pricing", "latest_reality_pricing"]
+        logger.debug(f"JobSerializer update called for instance {instance.id}")
+        logger.debug(f"Validated data received: {validated_data}")
 
-        for field in latest_fields:
-            latest_data = validated_data.pop(field, None)
-            if latest_data:
-                related_instance = getattr(instance, field, None)
-                if related_instance:
-                    for attr, value in latest_data.items():
-                        setattr(related_instance, attr, value)
-                    related_instance.save()
+        # Extract pricing data
+        latest_estimate = validated_data.pop('latest_estimate', None)
+        latest_quote = validated_data.pop('latest_quote', None)
+        latest_reality = validated_data.pop('latest_reality', None)
 
-        # Step 2: Handle updating historical pricings if provided
-        pricings_data = validated_data.pop("historical_pricings", None)
-        logger.debug(f"Payload historical_pricings: {pricings_data}")
-        if pricings_data:
-            for pricing_data in pricings_data:
-                # Use pricing ID to identify historical entries to update
-                pricing_id = pricing_data.get("id")
-                if pricing_id:
-                    historical_instance = JobPricing.objects.get(pk=pricing_id)
-                    for attr, value in pricing_data.items():
-                        setattr(historical_instance, attr, value)
-                    historical_instance.save()
+        logger.debug(f"Extracted estimate data: {latest_estimate}")
+        logger.debug(f"Extracted quote data: {latest_quote}")
+        logger.debug(f"Extracted reality data: {latest_reality}")
 
-        # Step 3: Update the rest of the job fields
+        # Update the job instance with non-pricing data
         for attr, value in validated_data.items():
+            logger.debug(f"Setting attribute {attr} = {value}")
             setattr(instance, attr, value)
         instance.save()
 
-        return instance
+        # Process each pricing section
+        if latest_estimate:
+            logger.debug("Processing latest estimate pricing")
+            self._process_pricing_entries(latest_estimate, instance.latest_estimate_pricing)
+        if latest_quote:
+            logger.debug("Processing latest quote pricing")
+            self._process_pricing_entries(latest_quote, instance.latest_quote_pricing)
+        if latest_reality:
+            logger.debug("Processing latest reality pricing")
+            self._process_pricing_entries(latest_reality, instance.latest_reality_pricing)
 
+        logger.debug("Job update completed")
+        return instance

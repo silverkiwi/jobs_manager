@@ -6,8 +6,8 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
 from workflow.models import Job
-from workflow.serializers import JobSerializer
-from workflow.services.job_service import get_job_with_pricings, create_new_job,  \
+from workflow.serializers import JobSerializer, JobPricingSerializer
+from workflow.services.job_service import get_job_with_pricings, \
     get_latest_job_pricings, get_historical_job_pricings
 
 from workflow.helpers import get_company_defaults
@@ -22,7 +22,7 @@ def create_job_view(request):
 def create_job_api(request):
     try:
         # Create the job with default values using the service function
-        new_job = create_new_job()
+        new_job = Job.objects.create()
 
         # Log that the job and pricings have been created successfully
         logger.debug(f"New job created with ID: {new_job.id}")
@@ -139,19 +139,25 @@ def edit_job_view_ajax(request, job_id=None):
     # Fetch All Job Pricing Revisions for Each Pricing Stage
     historical_job_pricings = get_historical_job_pricings(job)
 
+    # Serialize the historical pricings without sections
+    historical_job_pricings_serialized = [
+        JobPricingSerializer(pricing).data
+        for pricing in historical_job_pricings
+    ]
+
     # Fetch the Latest Revision for Each Pricing Stage
     latest_job_pricings = get_latest_job_pricings(job)
 
 
     # Include the Latest Revision Data
-    latest_job_pricings_data = {
-        section_name: latest_pricing.extract_pricing_data() if latest_pricing else None
+    latest_job_pricings_serialized = {
+        section_name: JobPricingSerializer(latest_pricing).data
         for section_name, latest_pricing in latest_job_pricings.items()
     }
 
     # Serialize the job pricings data to JSON
-    historical_job_pricings_json = json.dumps(historical_job_pricings)
-    latest_job_pricings_json = json.dumps(latest_job_pricings_data)
+    historical_job_pricings_json = json.dumps(historical_job_pricings_serialized)
+    latest_job_pricings_json = json.dumps(latest_job_pricings_serialized)
 
     # Get company defaults for any shared settings or values
     company_defaults = get_company_defaults()
