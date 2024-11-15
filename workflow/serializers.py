@@ -26,8 +26,8 @@ class StaffSerializer(serializers.ModelSerializer):
 
 
 class TimeEntrySerializer(serializers.ModelSerializer):
-    total_minutes = serializers.DecimalField(source='minutes', max_digits=10, decimal_places=2, read_only=True)
-    total = serializers.DecimalField(source='revenue', max_digits=10, decimal_places=2, read_only=True)
+    total_minutes = serializers.SerializerMethodField()
+    total = serializers.SerializerMethodField()
 
     class Meta:
         model = TimeEntry
@@ -42,11 +42,17 @@ class TimeEntrySerializer(serializers.ModelSerializer):
             'total',
         ]
 
+    def get_total_minutes(self, obj):
+        return obj.minutes
+
+    def get_total(self, obj):
+        return obj.revenue
+
 
 class MaterialEntrySerializer(serializers.ModelSerializer):
     cost_rate = serializers.DecimalField(source='unit_cost', max_digits=10, decimal_places=2)
     retail_rate = serializers.DecimalField(source='unit_revenue', max_digits=10, decimal_places=2)
-    total = serializers.DecimalField(source='revenue', max_digits=10, decimal_places=2, read_only=True)
+    total = serializers.SerializerMethodField()
 
     class Meta:
         model = MaterialEntry
@@ -60,6 +66,9 @@ class MaterialEntrySerializer(serializers.ModelSerializer):
             'total',
             'comments',
         ]
+
+    def get_total(self, obj):
+        return obj.revenue
 
 
 class AdjustmentEntrySerializer(serializers.ModelSerializer):
@@ -111,43 +120,6 @@ class JobPricingSerializer(serializers.ModelSerializer):
 
         logger.debug(f"JobPricingSerializer representation result: {representation}")
         return representation
-
-    def update(self, instance, validated_data):
-        logger.debug(f"JobSerializer update called for instance {instance.id}")
-        logger.debug(f"Validated data received: {validated_data}")
-
-        # Get pricing data from the initial_data instead of request
-        raw_data = self.initial_data
-        logger.debug(f"Initial data: {raw_data}")
-
-        # Process each pricing section
-        if 'latest_estimate' in raw_data:
-            logger.debug("Processing latest estimate pricing")
-            self._process_pricing_data(raw_data['latest_estimate'], instance.latest_estimate_pricing)
-        else:
-            logger.debug("No latest_estimate in raw_data")
-
-        if 'latest_quote' in raw_data:
-            logger.debug("Processing latest quote pricing")
-            self._process_pricing_data(raw_data['latest_quote'], instance.latest_quote_pricing)
-        else:
-            logger.debug("No latest_quote in raw_data")
-
-        if 'latest_reality' in raw_data:
-            logger.debug("Processing latest reality pricing")
-            self._process_pricing_data(raw_data['latest_reality'], instance.latest_reality_pricing)
-        else:
-            logger.debug("No latest_reality in raw_data")
-
-        # Update the job instance with non-pricing data
-        logger.debug("Updating job instance with non-pricing data")
-        for attr, value in validated_data.items():
-            logger.debug(f"Setting attribute {attr} = {value}")
-            setattr(instance, attr, value)
-
-        instance.save()
-        logger.debug("Job update completed")
-        return instance
 
 
 class ClientSerializer(serializers.ModelSerializer):
