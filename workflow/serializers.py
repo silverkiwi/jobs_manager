@@ -106,6 +106,36 @@ class JobPricingSerializer(serializers.ModelSerializer):
         logger.debug(f"JobPricingSerializer representation result: {representation}")
         return representation
 
+    def update(self, instance, validated_data):
+        logger.debug(f"JobPricingSerializer update called for instance {instance.id}")
+
+        # Get the entries data
+        time_entries_data = validated_data.pop('time_entries', [])
+        material_entries_data = validated_data.pop('material_entries', [])
+        adjustment_entries_data = validated_data.pop('adjustment_entries', [])
+
+        # Update the JobPricing instance
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Handle time entries
+        instance.time_entries.all().delete()
+        for entry_data in time_entries_data:
+            TimeEntry.objects.create(job_pricing=instance, **entry_data)
+
+        # Handle material entries
+        instance.material_entries.all().delete()
+        for entry_data in material_entries_data:
+            MaterialEntry.objects.create(job_pricing=instance, **entry_data)
+
+        # Handle adjustment entries
+        instance.adjustment_entries.all().delete()
+        for entry_data in adjustment_entries_data:
+            AdjustmentEntry.objects.create(job_pricing=instance, **entry_data)
+
+        return instance
+
 
 class ClientSerializer(serializers.ModelSerializer):
     class Meta:
@@ -147,91 +177,71 @@ class JobSerializer(serializers.ModelSerializer):
             "job_is_valid",
         ]
 
-    def _process_pricing_entries(self, pricing_data, pricing_instance):
-        """Process time, material, and adjustment entries for a pricing instance"""
-        logger.debug(f"Processing pricing entries for instance {pricing_instance.id}")
-        logger.debug(f"Received pricing data: {pricing_data}")
+    def _process_pricing_data(self, pricing_data, pricing_instance):
+        """Process pricing data for a specific pricing instance"""
+        logger.debug(f"Processing pricing data for instance {pricing_instance.id}")
 
         if not pricing_data:
-            logger.debug("No pricing data provided")
             return
 
-        # Handle time entries
-        if 'time' in pricing_data:
-            logger.debug(f"Processing {len(pricing_data['time'])} time entries")
-            pricing_instance.time_entries.all().delete()
-            for entry in pricing_data['time']:
-                logger.debug(f"Creating time entry: {entry}")
-                TimeEntry.objects.create(
-                    job_pricing=pricing_instance,
-                    description=entry.get('description', ''),
-                    items=entry.get('items', 0),
-                    mins_per_item=entry.get('mins_per_item', 0),
-                    wage_rate=entry.get('wage_rate', 0),
-                    charge_out_rate=entry.get('charge_out_rate', 0),
-                )
+        # Process time entries
+        time_entries = pricing_data.get('time', [])
+        pricing_instance.time_entries.all().delete()
+        for entry in time_entries:
+            TimeEntry.objects.create(
+                job_pricing=pricing_instance,
+                description=entry.get('description', ''),
+                items=entry.get('items', 0),
+                mins_per_item=entry.get('mins_per_item', 0),
+                wage_rate=entry.get('wage_rate', 0),
+                charge_out_rate=entry.get('charge_out_rate', 0),
+            )
 
-        # Handle material entries
-        if 'materials' in pricing_data:
-            logger.debug(f"Processing {len(pricing_data['materials'])} material entries")
-            pricing_instance.material_entries.all().delete()
-            for entry in pricing_data['materials']:
-                logger.debug(f"Creating material entry: {entry}")
-                MaterialEntry.objects.create(
-                    job_pricing=pricing_instance,
-                    item_code=entry.get('item_code', ''),
-                    description=entry.get('description', ''),
-                    quantity=entry.get('quantity', 0),
-                    unit_cost=entry.get('cost_rate', 0),
-                    unit_revenue=entry.get('retail_rate', 0),
-                    comments=entry.get('comments', ''),
-                )
+        # Process material entries
+        material_entries = pricing_data.get('materials', [])
+        pricing_instance.material_entries.all().delete()
+        for entry in material_entries:
+            MaterialEntry.objects.create(
+                job_pricing=pricing_instance,
+                item_code=entry.get('item_code', ''),
+                description=entry.get('description', ''),
+                quantity=entry.get('quantity', 0),
+                unit_cost=entry.get('cost_rate', 0),
+                unit_revenue=entry.get('retail_rate', 0),
+                comments=entry.get('comments', ''),
+            )
 
-        # Handle adjustment entries
-        if 'adjustments' in pricing_data:
-            logger.debug(f"Processing {len(pricing_data['adjustments'])} adjustment entries")
-            pricing_instance.adjustment_entries.all().delete()
-            for entry in pricing_data['adjustments']:
-                logger.debug(f"Creating adjustment entry: {entry}")
-                AdjustmentEntry.objects.create(
-                    job_pricing=pricing_instance,
-                    description=entry.get('description', ''),
-                    cost_adjustment=entry.get('cost_adjustment', 0),
-                    price_adjustment=entry.get('price_adjustment', 0),
-                    comments=entry.get('comments', ''),
-                )
-
-        logger.debug(f"Finished processing entries for pricing instance {pricing_instance.id}")
+        # Process adjustment entries
+        adjustment_entries = pricing_data.get('adjustments', [])
+        pricing_instance.adjustment_entries.all().delete()
+        for entry in adjustment_entries:
+            AdjustmentEntry.objects.create(
+                job_pricing=pricing_instance,
+                description=entry.get('description', ''),
+                cost_adjustment=entry.get('cost_adjustment', 0),
+                price_adjustment=entry.get('price_adjustment', 0),
+                comments=entry.get('comments', ''),
+            )
 
     def update(self, instance, validated_data):
         logger.debug(f"JobSerializer update called for instance {instance.id}")
-        logger.debug(f"Validated data received: {validated_data}")
 
-        # Extract pricing data
-        latest_estimate = validated_data.pop('latest_estimate', None)
-        latest_quote = validated_data.pop('latest_quote', None)
-        latest_reality = validated_data.pop('latest_reality', None)
+        # Get pricing data from the raw input
+        raw_data = self.context['request'].data
 
-        logger.debug(f"Extracted estimate data: {latest_estimate}")
-        logger.debug(f"Extracted quote data: {latest_quote}")
-        logger.debug(f"Extracted reality data: {latest_reality}")
+        # Process each pricing section
+        if 'latest_estimate' in raw_data:
+            self._process_pricing_data(raw_data['latest_estimate'], instance.latest_estimate_pricing)
+
+        if 'latest_quote' in raw_data:
+            self._process_pricing_data(raw_data['latest_quote'], instance.latest_quote_pricing)
+
+        if 'latest_reality' in raw_data:
+            self._process_pricing_data(raw_data['latest_reality'], instance.latest_reality_pricing)
 
         # Update the job instance with non-pricing data
         for attr, value in validated_data.items():
-            logger.debug(f"Setting attribute {attr} = {value}")
             setattr(instance, attr, value)
+
         instance.save()
-
-        # Process each pricing section
-        if latest_estimate:
-            logger.debug("Processing latest estimate pricing")
-            self._process_pricing_entries(latest_estimate, instance.latest_estimate_pricing)
-        if latest_quote:
-            logger.debug("Processing latest quote pricing")
-            self._process_pricing_entries(latest_quote, instance.latest_quote_pricing)
-        if latest_reality:
-            logger.debug("Processing latest reality pricing")
-            self._process_pricing_entries(latest_reality, instance.latest_reality_pricing)
-
-        logger.debug("Job update completed")
         return instance
