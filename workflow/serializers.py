@@ -108,6 +108,7 @@ class JobPricingSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         logger.debug(f"JobPricingSerializer update called for instance {instance.id}")
+        logger.debug(f"JobPricingSerializer validated_data: {validated_data}")
 
         # Get the entries data
         time_entries_data = validated_data.pop('time_entries', [])
@@ -180,15 +181,27 @@ class JobSerializer(serializers.ModelSerializer):
     def _process_pricing_data(self, pricing_data, pricing_instance):
         """Process pricing data for a specific pricing instance"""
         logger.debug(f"Processing pricing data for instance {pricing_instance.id}")
+        logger.debug(f"Raw pricing data received: {pricing_data}")
 
         if not pricing_data:
+            logger.debug("No pricing data provided")
             return
 
         # Process time entries
         time_entries = pricing_data.get('time', [])
+        logger.debug(f"Processing {len(time_entries)} time entries")
+        logger.debug(f"Time entries data: {time_entries}")
+
+        # Log existing entries before deletion
+        existing_entries = pricing_instance.time_entries.all()
+        logger.debug(f"Existing time entries before deletion: {list(existing_entries.values())}")
+
         pricing_instance.time_entries.all().delete()
+        logger.debug("Deleted existing time entries")
+
         for entry in time_entries:
-            TimeEntry.objects.create(
+            logger.debug(f"Creating time entry with data: {entry}")
+            new_entry = TimeEntry.objects.create(
                 job_pricing=pricing_instance,
                 description=entry.get('description', ''),
                 items=entry.get('items', 0),
@@ -196,9 +209,11 @@ class JobSerializer(serializers.ModelSerializer):
                 wage_rate=entry.get('wage_rate', 0),
                 charge_out_rate=entry.get('charge_out_rate', 0),
             )
+            logger.debug(f"Created new time entry: {new_entry.id}")
 
         # Process material entries
         material_entries = pricing_data.get('materials', [])
+        logger.debug(f"Processing {len(material_entries)} material entries")
         pricing_instance.material_entries.all().delete()
         for entry in material_entries:
             MaterialEntry.objects.create(
@@ -213,6 +228,7 @@ class JobSerializer(serializers.ModelSerializer):
 
         # Process adjustment entries
         adjustment_entries = pricing_data.get('adjustments', [])
+        logger.debug(f"Processing {len(adjustment_entries)} adjustment entries")
         pricing_instance.adjustment_entries.all().delete()
         for entry in adjustment_entries:
             AdjustmentEntry.objects.create(
@@ -225,23 +241,46 @@ class JobSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         logger.debug(f"JobSerializer update called for instance {instance.id}")
+        logger.debug(f"Validated data received: {validated_data}")
 
-        # Get pricing data from the raw input
-        raw_data = self.context['request'].data
+        # Get pricing data from the raw input, safely handling the case where request might not be in context
+        raw_data = {}
+        logger.debug(f"Context keys: {self.context.keys()}")  # NEW: Check what's in context
+
+        if 'request' in self.context:
+            raw_data = self.context['request'].data
+            logger.debug(f"Raw data from request: {raw_data}")
+            logger.debug(f"Raw data keys: {raw_data.keys()}")  # Add this line
+        else:
+            logger.debug("No request in context")
 
         # Process each pricing section
         if 'latest_estimate' in raw_data:
+            logger.debug("Processing latest estimate pricing")
+            logger.debug(f"latest_estimate data: {raw_data['latest_estimate']}")
+            logger.debug(f"latest_estimate_pricing instance: {instance.latest_estimate_pricing}")
             self._process_pricing_data(raw_data['latest_estimate'], instance.latest_estimate_pricing)
+        else:
+            logger.debug("No latest_estimate in raw_data")  # Add this line
 
         if 'latest_quote' in raw_data:
+            logger.debug("Processing latest quote pricing")
             self._process_pricing_data(raw_data['latest_quote'], instance.latest_quote_pricing)
+        else:
+            logger.debug("No latest_quote in raw_data")  # Add this line
 
         if 'latest_reality' in raw_data:
+            logger.debug("Processing latest reality pricing")
             self._process_pricing_data(raw_data['latest_reality'], instance.latest_reality_pricing)
+        else:
+            logger.debug("No latest_reality in raw_data")  # Add this line
 
         # Update the job instance with non-pricing data
+        logger.debug("Updating job instance with non-pricing data")
         for attr, value in validated_data.items():
+            logger.debug(f"Setting attribute {attr} = {value}")
             setattr(instance, attr, value)
 
         instance.save()
+        logger.debug("Job update completed")
         return instance
