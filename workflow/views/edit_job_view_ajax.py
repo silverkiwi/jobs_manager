@@ -205,7 +205,13 @@ def autosave_job_view(request):
         logger.debug(f"Job found: {job}")
 
         # Step 3: Pass the job and incoming data to a dedicated serializer
-        serializer = JobSerializer(instance=job, data=data, partial=True)
+        # Add context with request
+        serializer = JobSerializer(
+            instance=job,
+            data=data,
+            partial=True,
+            context={'request': request}
+        )
 
         if serializer.is_valid():
             serializer.save()
