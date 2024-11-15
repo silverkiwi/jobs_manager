@@ -15,6 +15,7 @@ from workflow.models import (
     Staff,
 )
 from workflow.models.job import Job
+from workflow.models.job_pricing import decimal_to_float
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +44,10 @@ class TimeEntrySerializer(serializers.ModelSerializer):
         ]
 
     def get_total_minutes(self, obj):
-        return obj.minutes
+        return decimal_to_float(obj.minutes)
 
     def get_total(self, obj):
-        return obj.revenue
+        return decimal_to_float(obj.revenue)
 
 
 class MaterialEntrySerializer(serializers.ModelSerializer):
@@ -68,7 +69,7 @@ class MaterialEntrySerializer(serializers.ModelSerializer):
         ]
 
     def get_total(self, obj):
-        return obj.revenue
+        return decimal_to_float(obj.revenue)
 
 
 class AdjustmentEntrySerializer(serializers.ModelSerializer):
