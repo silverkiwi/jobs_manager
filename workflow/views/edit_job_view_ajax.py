@@ -131,10 +131,7 @@ def edit_job_view_ajax(request, job_id=None):
         job = get_job_with_pricings(job_id)
         logger.debug(f"Editing existing job with ID: {job.id}")
     else:
-        # Note: I don't think this is ever called because create_job_and_redirect.html creates it first
-        # Create a new Job using the service layer function
-        job = create_new_job()
-        logger.debug(f"Created a new job with ID: {job.id}")
+        raise ValueError("Job ID is required to edit a job")
 
     # Fetch All Job Pricing Revisions for Each Pricing Stage
     historical_job_pricings = get_historical_job_pricings(job)

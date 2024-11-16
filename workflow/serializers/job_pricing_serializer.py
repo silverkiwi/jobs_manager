@@ -1,6 +1,6 @@
 import uuid
 import logging
-from datetime import datetime
+import datetime
 from decimal import Decimal
 
 from rest_framework import serializers

@@ -31,9 +31,9 @@ function collectAllData() {
     let historicalPricings = JSON.parse(JSON.stringify(window.historical_job_pricings_json));
 
     // 3. Collect latest revisions from AG Grid
-    data.latest_estimate = collectGridData('estimate');
-    data.latest_quote = collectGridData('quote');
-    data.latest_reality = collectGridData('reality');
+    data.latest_estimate_pricing = collectGridData('estimate');
+    data.latest_quote_pricing = collectGridData('quote');
+    data.latest_reality_pricing = collectGridData('reality');
 
     // 4. Add the historical pricings to jobData
     data.historical_pricings = historicalPricings;

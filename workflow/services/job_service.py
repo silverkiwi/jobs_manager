@@ -56,7 +56,7 @@ def get_historical_job_pricings(job):
 def get_latest_job_pricings(job):
     """Fetches the latest revision of each pricing stage for the given job."""
     return {
-        "estimate": job.latest_estimate_pricing,
-        "quote": job.latest_quote_pricing,
-        "reality": job.latest_reality_pricing,
+        "estimate": job.latest_estimate,
+        "quote": job.latest_quote,
+        "reality": job.latest_reality,
     }
