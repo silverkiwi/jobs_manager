@@ -6,11 +6,13 @@ from workflow.models import MaterialEntry
 class MaterialEntrySerializer(serializers.ModelSerializer):
     unit_cost = serializers.DecimalField(max_digits=10, decimal_places=2)
     unit_revenue = serializers.DecimalField(max_digits=10, decimal_places=2)
-    total = serializers.SerializerMethodField()
+    revenue = serializers.SerializerMethodField()
     description = serializers.CharField(allow_blank=True)
     item_code = serializers.CharField(allow_blank=True)
     comments = serializers.CharField(allow_blank=True)
     quantity = serializers.DecimalField(max_digits=10, decimal_places=2)
+    revenue = serializers.SerializerMethodField(read_only=True)
+    cost = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = MaterialEntry
@@ -21,9 +23,17 @@ class MaterialEntrySerializer(serializers.ModelSerializer):
             'quantity',
             'unit_cost',
             'unit_revenue',
-            'total',
+            'revenue',
+            'cost',
             'comments',
         ]
 
-    def get_total(self, obj):
-        return decimal_to_float(obj.revenue)
+
+    def get_revenue(self, obj):
+        # Use the model's revenue property
+        return obj.revenue
+
+    def get_cost(self, obj):
+        # Use the model's cost method
+        return decimal_to_float(obj.cost)
+

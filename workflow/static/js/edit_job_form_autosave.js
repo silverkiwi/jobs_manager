@@ -64,7 +64,10 @@ function collectGridData(section) {
         if (gridData && gridData.api) {
             const rowData = [];
             gridData.api.forEachNode(node => rowData.push(node.data));
-            sectionData[gridName.toLowerCase().replace('table', '')] = rowData;
+            // Use the new key format
+            const entryKey = gridName.toLowerCase().replace('table', '') + '_entries';
+            sectionData[entryKey] = rowData;
+            // This creates keys like 'time_entries', 'material_entries', 'adjustment_entries'
         } else {
             console.error(`Grid or API not found for ${gridKey}`);
         }

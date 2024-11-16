@@ -10,7 +10,7 @@ from workflow.serializers import JobSerializer, JobPricingSerializer
 from workflow.services.job_service import get_job_with_pricings, \
     get_latest_job_pricings, get_historical_job_pricings
 
-from workflow.helpers import get_company_defaults
+from workflow.helpers import get_company_defaults, DecimalEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -131,10 +131,7 @@ def edit_job_view_ajax(request, job_id=None):
         job = get_job_with_pricings(job_id)
         logger.debug(f"Editing existing job with ID: {job.id}")
     else:
-        # Note: I don't think this is ever called because create_job_and_redirect.html creates it first
-        # Create a new Job using the service layer function
-        job = create_new_job()
-        logger.debug(f"Created a new job with ID: {job.id}")
+       raise ValueError("Job ID is required to edit a job")
 
     # Fetch All Job Pricing Revisions for Each Pricing Stage
     historical_job_pricings = get_historical_job_pricings(job)
@@ -155,8 +152,8 @@ def edit_job_view_ajax(request, job_id=None):
     }
 
     # Serialize the job pricings data to JSON
-    historical_job_pricings_json = json.dumps(historical_job_pricings_serialized)
-    latest_job_pricings_json = json.dumps(latest_job_pricings_serialized)
+    historical_job_pricings_json = json.dumps(historical_job_pricings_serialized, cls=DecimalEncoder)
+    latest_job_pricings_json = json.dumps(latest_job_pricings_serialized, cls=DecimalEncoder)
 
     # Get company defaults for any shared settings or values
     company_defaults = get_company_defaults()
@@ -216,6 +213,7 @@ def autosave_job_view(request):
         if serializer.is_valid():
             logger.debug(f"Validated data: {serializer.validated_data}")
             serializer.save()
+            job.latest_estimate_pricing.display_entries()  # Just for debugging
 
             # Logging client name for better traceability
             client_name = job.client.name if job.client else "No Client"

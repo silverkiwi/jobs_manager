@@ -1,19 +1,19 @@
 # workflow/models/job_pricing.py
+import logging
 import uuid
 from decimal import Decimal
 
 from django.db import models, transaction
+from django.apps import apps
 
 from workflow.enums import JobPricingStage, JobPricingType
 
 
 
+logger = logging.getLogger(__name__)
 
 class JobPricing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    # job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="pricings")
-    # I've removed the FK because it becomes circular
 
     pricing_stage = models.CharField(
         max_length=20,
@@ -109,20 +109,61 @@ class JobPricing(models.Model):
         ]  # Orders by newest entries first, and then by stage
 
     def save(self, *args, **kwargs):
-        # Check if this is a new instance (not yet saved to the database)
-        if self.pk is None:
-            # Find the highest revision number for this job and pricing stage
-            last_revision = JobPricing.objects.filter(
-                job=self.job,
-                pricing_stage=self.pricing_stage
-            ).aggregate(models.Max('revision_number'))['revision_number__max']
+        if self._state.adding:
+            # Get the models we need
+            TimeEntry = apps.get_model('workflow', 'TimeEntry')
+            MaterialEntry = apps.get_model('workflow', 'MaterialEntry')
+            AdjustmentEntry = apps.get_model('workflow', 'AdjustmentEntry')
 
-            # Set the revision_number to the next available number
-            self.revision_number = 1 if last_revision is None else last_revision + 1
+            self.revision_number = 1
 
-        # Call the superclass save method to save the object
-        super().save(*args, **kwargs)
+            # Save first so we have a primary key
+            super().save(*args, **kwargs)
 
+            # Create default entries
+            TimeEntry.objects.create(
+                job_pricing=self,
+                wage_rate=Decimal('32.00'),
+                charge_out_rate=Decimal('105.00')
+            )
+
+            MaterialEntry.objects.create(
+                job_pricing=self
+            )
+
+            AdjustmentEntry.objects.create(
+                job_pricing=self
+            )
+        else:
+            # Normal save for existing instances
+            super().save(*args, **kwargs)
+
+    @property
+    def related_job(self):
+        """Get the associated job through reverse relationships."""
+        Job = apps.get_model('workflow', 'Job')
+        return (Job.objects.filter(latest_estimate_pricing=self).first() or
+                Job.objects.filter(latest_quote_pricing=self).first() or
+                Job.objects.filter(latest_reality_pricing=self).first())
+
+    def display_entries(self):
+        """This is like a long form of __str___ - it gives a full list of all time/materials/adjustments."""
+        time_entries = self.time_entries.all()
+        material_entries = self.material_entries.all()
+        adjustment_entries = self.adjustment_entries.all()
+
+        logger.debug(f"\nEntries for JobPricing {self.id} ({self.pricing_stage}):")
+        logger.debug("\nTime Entries:")
+        for entry in time_entries:
+            logger.debug(f"- {entry.description}: {entry.items} items, {entry.mins_per_item} mins/item")
+
+        logger.debug("\nMaterial Entries:")
+        for entry in material_entries:
+            logger.debug(f"- {entry.description}: {entry.quantity} @ {entry.unit_cost}/{entry.unit_revenue}")
+
+        logger.debug("\nAdjustment Entries:")
+        for entry in adjustment_entries:
+            logger.debug(f"- {entry.description}: cost {entry.cost_adjustment}, price {entry.price_adjustment}")
 
     def __str__(self):
         # Only bother displaying revision if there is one
@@ -131,7 +172,10 @@ class JobPricing(models.Model):
         else:
             revision_str = ""
 
-        return f"{self.job.name} - {self.get_pricing_stage_display()} ({self.get_pricing_type_display()}){revision_str}"
+        job = self.related_job
+        job_name = job.name if job else "No Job"
+        job_name_str = f"{job_name} - {self.get_pricing_stage_display()} ({self.get_pricing_type_display()}){revision_str}"
+        return job_name_str
 
 
 

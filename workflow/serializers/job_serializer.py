@@ -43,41 +43,53 @@ class JobSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         logger.debug(f"JobSerializer validate called with attrs: {attrs}")
-        logger.debug(f"Initial data contains: {self.initial_data.keys()}")
+        # Validate nested pricing serializers
+        nested_pricings = ['latest_estimate_pricing', 'latest_quote_pricing', 'latest_reality_pricing']
+        for pricing_key in nested_pricings:
+            pricing_data = attrs.get(pricing_key)
+            if pricing_data:
+                pricing_serializer = JobPricingSerializer(data=pricing_data, partial=True)
+                if not pricing_serializer.is_valid():
+                    logger.error(f"Validation errors in {pricing_key}: {pricing_serializer.errors}")
+                    raise serializers.ValidationError({pricing_key: pricing_serializer.errors})
+
         validated = super().validate(attrs)
         logger.debug(f"After super().validate, data is: {validated}")
         return validated
 
     def update(self, instance, validated_data):
         logger.debug(f"JobSerializer update called for instance {instance.id}")
+        logger.debug(f"Validated data received: {validated_data}")
 
         # Handle basic job fields first
         for attr, value in validated_data.items():
             if attr not in ['latest_estimate_pricing', 'latest_quote_pricing', 'latest_reality_pricing']:
                 setattr(instance, attr, value)
 
-        # Get pricing data from initial_data
-        raw_data = self.initial_data
-
-        # Handle each pricing type using their respective serializers
         pricing_types = {
-            'latest_estimate': instance.latest_estimate_pricing,
-            'latest_quote': instance.latest_quote_pricing,
-            'latest_reality': instance.latest_reality_pricing
+            'latest_estimate_pricing': instance.latest_estimate_pricing,
+            'latest_quote_pricing': instance.latest_quote_pricing,
+            'latest_reality_pricing': instance.latest_reality_pricing
         }
 
         for pricing_type, pricing_instance in pricing_types.items():
-            if pricing_type in raw_data:
+            pricing_data = validated_data.get(pricing_type)
+            if pricing_data:
+                logger.debug(f"Creating serializer for {pricing_type} with data: {pricing_data}")
                 pricing_serializer = JobPricingSerializer(
                     instance=pricing_instance,
-                    data=raw_data[pricing_type],
+                    data=pricing_data,
                     partial=True,
                     context=self.context
                 )
+
+                # Temporary validation check for debugging
                 if pricing_serializer.is_valid():
+                    logger.debug(f"{pricing_type} serializer is valid")
                     pricing_serializer.save()
                 else:
-                    logger.error(f"Validation errors in {pricing_type}: {pricing_serializer.errors}")
+                    logger.error(f"{pricing_type} serializer validation failed: {pricing_serializer.errors}")
+                    raise serializers.ValidationError({pricing_type: pricing_serializer.errors})
 
         instance.save()
         return instance

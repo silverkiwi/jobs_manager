@@ -13,18 +13,20 @@ class MaterialEntry(models.Model):
     job_pricing = models.ForeignKey(
         "JobPricing",
         on_delete=models.CASCADE,
+        null=False,
+        blank=False,
         related_name="material_entries",
     )
     item_code = models.CharField(
-        max_length=20, null=True, blank=True
+        max_length=20, null=False, blank=True, default=""
     )  # Later a FK probably
-    description = models.CharField(max_length=200)
+    description = models.CharField(max_length=200,null=False, blank=True, default="")
     comments = models.CharField(
-        max_length=200, null=True, blank=True
+        max_length=200, null=False, blank=True, default=""
     )  # Freetext internal note
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
-    unit_revenue = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, null=False, default=0) # Default comes up on the dummy row
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=False, default=0)
+    unit_revenue = models.DecimalField(max_digits=10, decimal_places=2, null=False, default=0)
 
     @property
     def cost(self) -> Decimal:

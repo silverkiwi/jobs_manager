@@ -36,6 +36,9 @@ class JobPricingSerializer(serializers.ModelSerializer):
         logger.debug(f"JobPricingSerializer to_representation called for instance {instance.id}")
         representation = super().to_representation(instance)
 
+        # Debug the raw queryset data
+        logger.debug(f"Raw material entries: {list(instance.material_entries.all().values())}")
+
         # Convert Decimal fields to float
         for key, value in representation.items():
             if isinstance(value, Decimal):
@@ -45,15 +48,25 @@ class JobPricingSerializer(serializers.ModelSerializer):
             elif isinstance(value, uuid.UUID):
                 representation[key] = str(value)
 
-        logger.debug(f"JobPricingSerializer representation result: {representation}")
+        # Ensure all entries are properly represented
+        representation['time_entries'] = TimeEntrySerializer(instance.time_entries.all(), many=True).data
+        representation['material_entries'] = MaterialEntrySerializer(instance.material_entries.all(), many=True).data
+        representation['adjustment_entries'] = AdjustmentEntrySerializer(instance.adjustment_entries.all(),
+                                                                         many=True).data
+
+        logger.debug(f"Final representation: {representation}")
         return representation
 
     def to_internal_value(self, data):
         logger.debug(f"JobPricingSerializer to_internal_value called with data: {data}")
         # Extract the nested entries data before validation
-        time_data = data.get('time', [])
-        material_data = data.get('materials', [])
-        adjustment_data = data.get('adjustments', [])
+        time_data = data.get('time_entries', [])
+        material_data = data.get('material_entries', [])
+        adjustment_data = data.get('adjustment_entries', [])
+
+        logger.debug(f"Time data received: {time_data}")
+        logger.debug(f"Material data received: {material_data}")
+        logger.debug(f"Adjustment data received: {adjustment_data}")
 
         # Restructure data to match serializer fields
         restructured_data = {
@@ -69,49 +82,72 @@ class JobPricingSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         logger.debug(f"JobPricingSerializer validate called with attrs: {attrs}")
-        validated_data = super().validate(attrs)
-        logger.debug(f"JobPricingSerializer validate result: {validated_data}")
-        return validated_data
+
+        # Validate nested components
+        for field in ['time_entries', 'material_entries', 'adjustment_entries']:
+            field_data = attrs.get(field, [])
+            field_serializer = None
+            if field == 'time_entries':
+                field_serializer = TimeEntrySerializer(data=field_data, many=True)
+            elif field == 'material_entries':
+                field_serializer = MaterialEntrySerializer(data=field_data, many=True)
+            elif field == 'adjustment_entries':
+                field_serializer = AdjustmentEntrySerializer(data=field_data, many=True)
+
+            if field_serializer and not field_serializer.is_valid():
+                logger.error(f"Validation errors in {field}: {field_serializer.errors}")
+                raise serializers.ValidationError({field: field_serializer.errors})
+
+        validated = super().validate(attrs)
+        logger.debug(f"After super().validate, data is: {validated}")
+        return validated
 
     def update(self, instance, validated_data):
         logger.debug(f"JobPricingSerializer update called for instance {instance.id}")
-        logger.debug(f"Update validated_data: {validated_data}")
+        logger.debug(f"JobPricingSerializer validated_data: {validated_data}")
 
-        # Handle nested time entries using the serializer
+        # Update time entries
         if 'time_entries' in validated_data:
-            logger.debug("Processing time entries")
+            # Delete existing entries
             instance.time_entries.all().delete()
-            time_serializer = TimeEntrySerializer(data=validated_data['time_entries'], many=True)
-            if time_serializer.is_valid():
-                time_serializer.save(job_pricing=instance)
-            else:
-                logger.error(f"Time entry validation errors: {time_serializer.errors}")
+            # Create new entries using serializer
+            for time_entry_data in validated_data.pop('time_entries', []):
+                time_entry_serializer = TimeEntrySerializer(data=time_entry_data)
+                if time_entry_serializer.is_valid():
+                    time_entry_serializer.save(job_pricing=instance)
+                else:
+                    logger.error(f"Time entry validation failed: {time_entry_serializer.errors}")
+                    raise serializers.ValidationError({'time_entries': time_entry_serializer.errors})
 
-        # Handle nested material entries using the serializer
+        # Update material entries
         if 'material_entries' in validated_data:
-            logger.debug("Processing material entries")
+            # Delete existing entries
             instance.material_entries.all().delete()
-            material_serializer = MaterialEntrySerializer(data=validated_data['material_entries'], many=True)
-            if material_serializer.is_valid():
-                material_serializer.save(job_pricing=instance)
-            else:
-                logger.error(f"Material entry validation errors: {material_serializer.errors}")
+            # Create new entries using serializer
+            for material_entry_data in validated_data.pop('material_entries', []):
+                material_entry_serializer = MaterialEntrySerializer(data=material_entry_data)
+                if material_entry_serializer.is_valid():
+                    material_entry_serializer.save(job_pricing=instance)
+                else:
+                    logger.error(f"Material entry validation failed: {material_entry_serializer.errors}")
+                    raise serializers.ValidationError({'material_entries': material_entry_serializer.errors})
 
-        # Handle nested adjustment entries using the serializer
+        # Update adjustment entries
         if 'adjustment_entries' in validated_data:
-            logger.debug("Processing adjustment entries")
+            # Delete existing entries
             instance.adjustment_entries.all().delete()
-            adjustment_serializer = AdjustmentEntrySerializer(data=validated_data['adjustment_entries'], many=True)
-            if adjustment_serializer.is_valid():
-                adjustment_serializer.save(job_pricing=instance)
-            else:
-                logger.error(f"Adjustment entry validation errors: {adjustment_serializer.errors}")
+            # Create new entries using serializer
+            for adjustment_entry_data in validated_data.pop('adjustment_entries', []):
+                adjustment_entry_serializer = AdjustmentEntrySerializer(data=adjustment_entry_data)
+                if adjustment_entry_serializer.is_valid():
+                    adjustment_entry_serializer.save(job_pricing=instance)
+                else:
+                    logger.error(f"Adjustment entry validation failed: {adjustment_entry_serializer.errors}")
+                    raise serializers.ValidationError({'adjustment_entries': adjustment_entry_serializer.errors})
 
-        # Update the remaining fields
+        # Update other fields
         for attr, value in validated_data.items():
-            if attr not in ['time_entries', 'material_entries', 'adjustment_entries']:
-                setattr(instance, attr, value)
+            setattr(instance, attr, value)
 
         instance.save()
-        logger.debug("JobPricing update completed")
         return instance

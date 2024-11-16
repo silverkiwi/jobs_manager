@@ -118,7 +118,7 @@ function loadExistingJobTimeEntries(entries) {
     wage_rate: entry.wage_rate,
     charge_out_rate: entry.charge_out_rate,
     total_minutes: entry.total_minutes,
-    total: entry.total,
+    revenue: entry.revenue,
   }));
 }
 
@@ -130,7 +130,7 @@ function loadExistingJobMaterialEntries(entries) {
     quantity: entry.quantity,
     cost_price: entry.cost_price,
     retail_price: entry.retail_price,
-    total: entry.total,
+    revenue: entry.revenue,
     comments: entry.comments,
   }));
 }
@@ -142,7 +142,7 @@ function loadExistingJobAdjustmentEntries(entries) {
     cost_adjustment: entry.cost_adjustment,
     price_adjustment: entry.price_adjustment,
     comments: entry.comments,
-    total: entry.total,
+    revenue: entry.revenue,
   }));
 }
 
@@ -162,16 +162,16 @@ function createNewRow(gridType) {
         wage_rate: defaultWageRate,
         charge_out_rate: defaultChargeOutRate,
         total_minutes: 0,
-        total: 0,
+        revenue: 0,
       };
     case 'MaterialsTable':
       return {
         item_code: '',
         description: '',
         quantity: 0,
-        cost_price: 0,
-        retail_price: 0,
-        total: 0,
+        unit_cost: 0,
+        unit_revenue: 0,
+        revenue: 0,
         comments: '',
       };
     case 'AdjustmentsTable':
@@ -180,7 +180,7 @@ function createNewRow(gridType) {
         cost_adjustment: 0,
         price_adjustment: 0,
         comments: '',
-        total: 0,
+        revenue: 0,
       };
     default:
       console.error(`Unknown grid type for new row creation: "${gridType}"`);

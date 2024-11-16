@@ -12,13 +12,15 @@ class AdjustmentEntry(models.Model):
     job_pricing = models.ForeignKey(
         "JobPricing",  # Use string reference to avoid circular import
         on_delete=models.CASCADE,
+        null=False,
+        blank=False,
         related_name="adjustment_entries",
     )
-    description = models.CharField(max_length=200, null=True, blank=True)
-    cost_adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    price_adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    description = models.CharField(max_length=200, null=False, blank=True, default="")
+    cost_adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, null=False)
+    price_adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, null=False)
     comments = models.CharField(
-        max_length=200, null=True, blank=True
+        max_length=200, null=False, blank=True, default=""
     )  # Freetext internal note
 
     def __str__(self):
