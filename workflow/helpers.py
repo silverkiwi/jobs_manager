@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from workflow.models.company_defaults import CompanyDefaults
 
 

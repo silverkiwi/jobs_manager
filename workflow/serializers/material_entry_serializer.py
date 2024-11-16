@@ -1,3 +1,8 @@
+from rest_framework import serializers
+
+from workflow.helpers import decimal_to_float
+from workflow.models import MaterialEntry
+
 class MaterialEntrySerializer(serializers.ModelSerializer):
     cost_rate = serializers.DecimalField(source='unit_cost', max_digits=10, decimal_places=2)
     retail_rate = serializers.DecimalField(source='unit_revenue', max_digits=10, decimal_places=2)
