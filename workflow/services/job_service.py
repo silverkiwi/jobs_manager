@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from workflow.models import Job, TimeEntry, MaterialEntry, AdjustmentEntry
 
 
+
 def get_job_with_pricings(job_id):
     """Fetches a Job object with all relevant latest JobPricing data, including time, material, and adjustment entries."""
 
@@ -45,6 +46,7 @@ def get_job_with_pricings(job_id):
     return job
 
 
+
 def get_historical_job_pricings(job):
     """Fetch all historical (archived) revisions for the job."""
     # Fetch all archived pricings for the given job
@@ -56,7 +58,7 @@ def get_historical_job_pricings(job):
 def get_latest_job_pricings(job):
     """Fetches the latest revision of each pricing stage for the given job."""
     return {
-        "estimate": job.latest_estimate,
-        "quote": job.latest_quote,
-        "reality": job.latest_reality,
+        "estimate": job.latest_estimate_pricing,
+        "quote": job.latest_quote_pricing,
+        "reality": job.latest_reality_pricing,
     }

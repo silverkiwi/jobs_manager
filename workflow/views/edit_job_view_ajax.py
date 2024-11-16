@@ -55,23 +55,23 @@ def get_job_api(request):
             f"Retrieving job with Job Number: {job.job_number}, ID: {job.id}, Client Name: {job_client}"
         )
 
-        # Prepare response data with job pricings
+        # Prepare response data with job pricings using correct field names
         response_data = {
             "id": str(job.id),
             "created_at": job.created_at,
             "updated_at": job.updated_at,
             "client": job_client,
-            "estimate_pricing": {
-                "pricing_stage": latest_pricings["estimate"].pricing_stage if latest_pricings["estimate"] else None,
-                "pricing_type": latest_pricings["estimate"].pricing_type if latest_pricings["estimate"] else None,
+            "latest_estimate_pricing": {
+                "pricing_stage": job.latest_estimate_pricing.pricing_stage if job.latest_estimate_pricing else None,
+                "pricing_type": job.latest_estimate_pricing.pricing_type if job.latest_estimate_pricing else None,
             },
-            "quote_pricing": {
-                "pricing_stage": latest_pricings["quote"].pricing_stage if latest_pricings["quote"] else None,
-                "pricing_type": latest_pricings["quote"].pricing_type if latest_pricings["quote"] else None,
+            "latest_quote_pricing": {
+                "pricing_stage": job.latest_quote_pricing.pricing_stage if job.latest_quote_pricing else None,
+                "pricing_type": job.latest_quote_pricing.pricing_type if job.latest_quote_pricing else None,
             },
-            "reality_pricing": {
-                "pricing_stage": latest_pricings["reality"].pricing_stage if latest_pricings["reality"] else None,
-                "pricing_type": latest_pricings["reality"].pricing_type if latest_pricings["reality"] else None,
+            "latest_reality_pricing": {
+                "pricing_stage": job.latest_reality_pricing.pricing_stage if job.latest_reality_pricing else None,
+                "pricing_type": job.latest_reality_pricing.pricing_type if job.latest_reality_pricing else None,
             },
         }
 
@@ -131,7 +131,10 @@ def edit_job_view_ajax(request, job_id=None):
         job = get_job_with_pricings(job_id)
         logger.debug(f"Editing existing job with ID: {job.id}")
     else:
-        raise ValueError("Job ID is required to edit a job")
+        # Note: I don't think this is ever called because create_job_and_redirect.html creates it first
+        # Create a new Job using the service layer function
+        job = create_new_job()
+        logger.debug(f"Created a new job with ID: {job.id}")
 
     # Fetch All Job Pricing Revisions for Each Pricing Stage
     historical_job_pricings = get_historical_job_pricings(job)
@@ -144,7 +147,6 @@ def edit_job_view_ajax(request, job_id=None):
 
     # Fetch the Latest Revision for Each Pricing Stage
     latest_job_pricings = get_latest_job_pricings(job)
-
 
     # Include the Latest Revision Data
     latest_job_pricings_serialized = {
@@ -178,7 +180,6 @@ def edit_job_view_ajax(request, job_id=None):
 
     # Render the Template
     return render(request, "jobs/edit_job_ajax.html", context)
-
 
 
 # Note, recommended to remove the exemption in the future
