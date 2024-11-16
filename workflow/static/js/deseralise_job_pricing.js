@@ -56,27 +56,44 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function getGridData(section, gridType) {
+  console.log('Debug: getGridData called with:', { section, gridType });
+
   // Check if latest_job_pricings_json data is available globally
   if (!window.latest_job_pricings_json) {
     console.error('Error: latest_job_pricings_json data is not loaded.');
     return [createNewRow(gridType)];
   }
 
+  console.log(
+    'Debug: About to access latest job pricing data:',
+    window.latest_job_pricings_json
+  );
+
   // Update to use the correct field names (_pricing suffix)
   const sectionKey = `${section}_pricing`;
+  console.log('Debug: Looking for section:', sectionKey);
 
   // Validate if the requested section exists in latest_job_pricings_json
   const sectionData = window.latest_job_pricings_json[sectionKey];
-  if (!sectionData || !sectionData[gridType]) {
+  console.log('Debug: Found section data:', sectionData);
+
+  // Convert grid type to entry type
+  const entryType = gridType.toLowerCase().replace('table', '_entries');
+  console.log('Debug: Looking for entry type:', entryType);
+
+  if (!sectionData || !sectionData[entryType]) {
     console.log(
-      `Debug: No data found for section "${sectionKey}" and grid type "${gridType}". Creating a new row.`
+      `Debug: No data found for section "${sectionKey}" and entry type "${entryType}". Creating a new row.`
     );
     return [createNewRow(gridType)];
   }
 
+  console.log('Debug: Found entries:', sectionData[entryType]);
+
   // Return the existing entries for the section and gridType
-  return loadExistingJobEntries(sectionData[gridType], gridType);
+  return loadExistingJobEntries(sectionData[entryType], gridType);
 }
+
 
 function loadExistingJobEntries(entries, gridType) {
   switch (gridType) {
