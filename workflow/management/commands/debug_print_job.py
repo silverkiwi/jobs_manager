@@ -38,7 +38,7 @@ class Command(BaseCommand):
                 )
 
             # Print Adjustment Entries
-            for adjustment in job_pricing.adjustment_entries.all():
+            for adjustment in job_pricing.adjustments_entries.all():
                 self.stdout.write(
                     f"Adjustment - Description: {adjustment.description}, Cost Adjustment: {adjustment.cost_adjustment}, Price Adjustment: {adjustment.price_adjustment}"
                 )

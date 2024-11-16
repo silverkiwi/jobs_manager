@@ -78,7 +78,10 @@ function getGridData(section, gridType) {
   console.log('Debug: Found section data:', sectionData);
 
   // Convert grid type to entry type
-  const entryType = gridType.toLowerCase().replace('table', '_entries');
+    const gridBaseName = gridType.toLowerCase().replace('table', '');
+    const entryType = (gridBaseName === 'materials' ? 'material' :
+                      gridBaseName === 'adjustments' ? 'adjustment' :
+                      gridBaseName) + '_entries';
   console.log('Debug: Looking for entry type:', entryType);
 
   if (!sectionData || !sectionData[entryType]) {
@@ -128,8 +131,8 @@ function loadExistingJobMaterialEntries(entries) {
     item_code: entry.item_code,
     description: entry.description,
     quantity: entry.quantity,
-    cost_price: entry.cost_price,
-    retail_price: entry.retail_price,
+    unit_cost: entry.unit_cost,
+    unit_revenue: entry.unit_revenue,
     revenue: entry.revenue,
     comments: entry.comments,
   }));
