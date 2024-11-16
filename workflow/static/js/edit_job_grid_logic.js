@@ -181,22 +181,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function loadExistingJobAdjustmentEntries(section) {
-        if (!section.adjustment || section.adjustment.length === 0) {
-            console.log('Debug: No adjustment entries found.');
-            return [createNewRow('adjustment')];
-        }
-
-        console.log(`Debug: Found ${section.adjustment.length} adjustment entries.`);
-        return section.adjustment.map(entry => ({
-            description: entry.description,
-            cost_adjustment: entry.cost_adjustment,
-            price_adjustment: entry.price_adjustment,
-            comments: entry.comments,
-            total: entry.total,
-        }));
-    }
-
-    function loadExistingJobAdjustmentEntries(section) {
         if (!section.adjustment_entries || section.adjustment_entries.length === 0) {
             console.log('Debug: No adjustment entries found.');
             return [createNewRow('AdjustmentsTable')];
@@ -378,14 +362,14 @@ document.addEventListener('DOMContentLoaded', function () {
             {headerName: 'Quantity', field: 'quantity', editable: true, valueParser: numberParser},
             {
                 headerName: 'Cost Rate',
-                field: 'cost_rate',
+                field: 'unit_cost',
                 editable: true,
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
             },
             {
                 headerName: 'Retail Rate',
-                field: 'retail_rate',
+                field: 'unit_revenue',
                 editable: true,
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
@@ -456,12 +440,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;  // Exit early if latest_job_pricings_json is not loaded
             }
 
-            const sectionData = latest_job_pricings_json[section];
+            const sectionData = latest_job_pricings_json[`${section}_pricing`];
             if (!sectionData) {
                 console.warn(`Data not found for section "${section}". Assuming this is a new job.`);
             }
 
-            let rowData = getGridData(sectionData, gridType);
+            let rowData = getGridData(section, gridType);
             // console.log("Grid type: ", gridType, ", Section: ", section, ", Grid Key: ", gridKey);
             // console.log("First row of rowData during grid initialization:", rowData[0]);
 
