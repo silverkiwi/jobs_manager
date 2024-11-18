@@ -73,6 +73,8 @@ class Job(models.Model):
     #     related_name="revisions",
     #     on_delete=models.SET_NULL,
     # )
+    shop_job = models.BooleanField(default=False, null=False, blank=False)  # type: ignore  # Essentially true if and only if client_id is None
+
     job_is_valid = models.BooleanField(default=False)  # type: ignore
     paid: bool = models.BooleanField(default=False)  # type: ignore
 

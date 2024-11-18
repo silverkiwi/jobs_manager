@@ -23,6 +23,7 @@ crispy-bootstrap5 = "^2024.2"
 djangorestframework = "^3.15.2"
 mysqlclient = "^2.2.4"
 concurrent-log-handler = "^0.9.25"
+django-debug-toolbar = "^4.4.6"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
@@ -37,6 +38,7 @@ isort = "^5.13.2"
 vulture = "^2.12"
 deptry = "^0.20.0"
 pandas = "^2.2.3"
+django-debug-toolbar = "^4.4.6"
 
 [build-system]
 requires = ["poetry-core"]

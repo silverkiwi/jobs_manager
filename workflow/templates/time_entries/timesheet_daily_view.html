@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{#{% block extra_css %}#}
+{#<link rel="stylesheet" href="{% static 'css/timesheet_daily_view.css' %}">#}
+{#{% endblock %}#}
+
+{% block content %}
+<div id="timesheet-daily-view-container">
+    <h3>Timesheet Daily View</h3>
+    <div id="ag-grid-container" class="ag-theme-alpine" style="height: 500px; width: 100%;"></div>
+
+    <!-- Staff Summary Section -->
+    <div id="staff-summary-section" class="overview-section">
+        <h3>Staff Summary</h3>
+        <div id="staff-chart"></div>
+    </div>
+
+    <!-- Job Progress Section -->
+    <div id="job-progress-section" class="overview-section">
+        <h3>Job Progress Summary</h3>
+        <div id="job-chart"></div>
+    </div>
+</div>
+{% endblock %}

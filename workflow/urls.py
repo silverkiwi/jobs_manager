@@ -1,6 +1,7 @@
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import path, include
 from django.views.generic import RedirectView
+import debug_toolbar
 
 from workflow.views import (
     edit_job_view_ajax,
@@ -14,6 +15,7 @@ from workflow.views import (
     material_entry_view,
     staff_view,
     time_entry_views,
+    time_overview_view,
     xero_view,
 )
 
@@ -143,10 +145,23 @@ urlpatterns = [
     # ),
     path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
     path("job/<uuid:job_id>/", edit_job_view_ajax.edit_job_view_ajax, name="edit_job"),
+
     path(
-        "time_entries/<uuid:pk>/",
-        time_entry_views.UpdateTimeEntryView.as_view(),
-        name="update_time_entry",
+        "timesheets/overview/",
+        time_overview_view.TimesheetOverviewView.as_view(),
+        name="timesheet_overview",
+    ),
+    path(
+        "timesheets/overview/<str:start_date>/",
+        time_overview_view.TimesheetOverviewView.as_view(),
+        name="timesheet_overview_with_date",
+    ),
+
+    # Edit timesheet entries for a specific day
+    path(
+        "timesheets/day/<str:date>/",
+        time_overview_view.TimesheetDailyView.as_view(),
+        name="timesheet_daily_view",
     ),
     # Kanban views
     path("kanban/", kanban_view.kanban_view, name="view_kanban"),
@@ -168,4 +183,6 @@ urlpatterns = [
         staff_view.get_staff_rates,
         name="get_staff_rates",
     ),
+    path('__debug__/', include(debug_toolbar.urls)),  # Add this line
+
 ]

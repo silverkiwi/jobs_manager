@@ -114,7 +114,7 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
 
-    def get_hours_for_date(self, target_date: date) -> float:
+    def get_scheduled_hours(self, target_date: date) -> float:
         """Get expected working hours for a specific date"""
         weekday = target_date.weekday()
         hours_by_day = [

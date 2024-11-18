@@ -37,6 +37,7 @@ AUTH_USER_MODEL = "workflow.Staff"
 INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
+    "debug_toolbar",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -51,6 +52,7 @@ INSTALLED_APPS = [
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -95,6 +97,9 @@ LOGGING = {
     },
 }
 
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
 
 ROOT_URLCONF = "jobs_manager.urls"
 

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/timesheet_overview.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="timesheet-overview-container">
+
+
+
+    <!-- Days Overview Section -->
+    <div id="days-section" class="overview-section">
+        <div id="days-container">
+            <!-- Display 7 boxes for the last 7 days -->
+            {% for day in last_seven_days %}
+            <div class="day-box">
+            Hello
+                <p class="day-name">
+                    <a href="{% url 'timesheet_daily_view' date=day %}" class="day-name-link">{{ day|date:"l" }}</a>
+                </p> <!-- Day name as link -->
+                <p class="day-date">{{ day }}</p> <!-- Day date, e.g., 2024-11-11 -->
+                <div id="day-chart-{{ forloop.counter }}" class="day-chart"></div> <!-- Placeholder for Highcharts -->
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Staff Overview Section -->
+    <div id="staff-section" class="overview-section">
+        <h3>Staff Overview</h3>
+        <div id="staff-table-container">
+            <!-- Highcharts will generate staff table here -->
+        </div>
+    </div>
+
+    <!-- Job Overview Section -->
+    <div id="job-section" class="overview-section">
+        <h3>Job Overview</h3>
+        <div id="job-table-container">
+            <!-- Highcharts will generate job table here -->
+        </div>
+    </div>
+</div>
+
+    <!-- Temporary link to view previous 7 days -->
+<div style="text-align: center; margin-top: 20px;">
+    <a href="/timesheets/overview/{{ start_date|date:'Y-m-d' }}/" id="previous-seven-days-link">Previous 7 Days</a>
+</div>
+
+        <!-- Temporary Debug Section to View Context JSON -->
+    <div id="debug-context" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9;">
+        <h3>Debug Context (Temporary)</h3>
+        <pre>{{ context_json|safe }}</pre>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="{% static 'js/timesheet_overview.js' %}"></script>
+{% endblock %}
