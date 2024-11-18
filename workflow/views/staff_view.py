@@ -48,6 +48,6 @@ def get_staff_rates(request, staff_id):
     staff = get_object_or_404(Staff, id=staff_id)
     rates = {
         "wage_rate": float(staff.wage_rate),
-        "charge_out_rate": float(staff.charge_out_rate),
+        # "charge_out_rate": float(staff.charge_out_rate),
     }
     return JsonResponse(rates)

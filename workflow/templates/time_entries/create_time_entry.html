@@ -16,7 +16,7 @@
         document.getElementById('id_staff').addEventListener('change', function () {
             const staffId = this.value;
             const wageRateField = document.getElementById('id_wage_rate');
-            const chargeOutRateField = document.getElementById('id_charge_out_rate');
+            {#const chargeOutRateField = document.getElementById('id_charge_out_rate');#}
 
             if (staffId) {
                 // Perform AJAX request to get the new wage and charge out rates
@@ -24,7 +24,7 @@
                     .then(response => response.json())
                     .then(data => {
                         wageRateField.value = data.wage_rate;  // Update wage rate
-                        chargeOutRateField.value = data.charge_out_rate;  // Update charge out rate
+                        {#chargeOutRateField.value = data.charge_out_rate;  // Update charge out rate#}
                     });
             }
         });

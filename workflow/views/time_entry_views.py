@@ -33,7 +33,7 @@ class CreateTimeEntryView(CreateView):
         # Set the wage_rate and charge_out_rate based on the selected staff from the form
         staff = form.instance.staff
         form.instance.wage_rate = staff.wage_rate
-        form.instance.charge_out_rate = staff.charge_out_rate
+        # form.instance.charge_out_rate = staff.charge_out_rate
 
         # Save the form (calls form.save())
         response = super().form_valid(form)

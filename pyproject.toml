@@ -36,6 +36,7 @@ types-pytz = "^2024.1.0.20240417"
 isort = "^5.13.2"
 vulture = "^2.12"
 deptry = "^0.20.0"
+pandas = "^2.2.3"
 
 [build-system]
 requires = ["poetry-core"]

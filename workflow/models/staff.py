@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any, ClassVar, List, Optional, cast
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
@@ -28,10 +28,8 @@ class StaffManager(BaseUserManager):
     ) -> "Staff":
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("wage_rate", 0)
-        extra_fields.setdefault("charge_out_rate", 0)
+        # extra_fields.setdefault("charge_out_rate", 0)
         return self.create_user(email, password, **extra_fields)
 
 
@@ -46,15 +44,61 @@ class Staff(AbstractBaseUser, PermissionsMixin):
         max_length=30, blank=True, null=True
     )  # type: ignore
     wage_rate: float = models.DecimalField(
-        max_digits=10, decimal_places=2
+        max_digits=10, decimal_places=2, default=0
     )  # type: ignore
-    charge_out_rate: float = models.DecimalField(
-        max_digits=10, decimal_places=2
-    )  # type: ignore
+    # charge_out_rate: float = models.DecimalField(
+    #     max_digits=10, decimal_places=2
+    # )  # type: ignore
+    # Add to existing Staff model:
+    hours_mon = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=8.00,
+        help_text="Standard hours for Monday, 0 for non-working day"
+    )
+    hours_tue = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=8.00,
+        help_text="Standard hours for Tuesday, 0 for non-working day"
+    )
+    hours_wed = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=8.00,
+        help_text="Standard hours for Wednesday, 0 for non-working day"
+    )
+    hours_thu = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=8.00,
+        help_text="Standard hours for Thursday, 0 for non-working day"
+    )
+    hours_fri = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=8.00,
+        help_text="Standard hours for Friday, 0 for non-working day"
+    )
+    hours_sat = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=0.00,
+        help_text="Standard hours for Saturday, 0 for non-working day"
+    )
+    hours_sun = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=0.00,
+        help_text="Standard hours for Sunday, 0 for non-working day"
+    )
+
+
     ims_payroll_id: str = models.CharField(max_length=100, unique=True)  # type: ignore
     is_active: bool = models.BooleanField(default=True)  # type: ignore
     is_staff: bool = models.BooleanField(default=False)  # type: ignore
     date_joined: datetime = models.DateTimeField(default=timezone.now)  # type: ignore
+    raw_ims_data = models.JSONField(null=True, blank=True, default=dict)  # type: ignore
     history: HistoricalRecords = HistoricalRecords()  # type: ignore
 
     objects = StaffManager()  # Use the custom manager
@@ -63,13 +107,26 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS: ClassVar[List[str]] = [
         "first_name",
         "last_name",
-        "wage_rate",
-        "charge_out_rate",
+        # "charge_out_rate",
         "ims_payroll_id",
     ]
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+    def get_hours_for_date(self, target_date: date) -> float:
+        """Get expected working hours for a specific date"""
+        weekday = target_date.weekday()
+        hours_by_day = [
+            self.hours_mon,
+            self.hours_tue,
+            self.hours_wed,
+            self.hours_thu,
+            self.hours_fri,
+            self.hours_sat,
+            self.hours_sun
+        ]
+        return float(hours_by_day[weekday])
 
     def get_display_name(self) -> str:
         return self.preferred_name or self.first_name
