@@ -1,37 +1,27 @@
-// deserialize_timesheet.js
-document.addEventListener('DOMContentLoaded', function() {
-    const timesheetElement = document.getElementById('timesheetData');
-    if (timesheetElement) {
-        try {
-            const rawData = JSON.parse(timesheetElement.textContent);
-            window.timesheet_data = {
-                ...rawData,
-                time_entries: loadExistingTimeEntries(rawData.time_entries)
-            };
-            console.log('Debug: Loaded timesheet data:', window.timesheet_data);
-        } catch (error) {
-            console.error('Failed to parse timesheet data:', error);
-        }
-    } else {
-        console.error('Could not find timesheet data element.');
+document.addEventListener('DOMContentLoaded', function () {
+    try {
+        // Deserialization
+        const timesheetEntries = window.timesheetEntries || [];
+        const jobs = window.jobs || [];
+
+        console.log('Deserialized Timesheet Entries:', timesheetEntries);
+        console.log('Deserialized Jobs:', jobs);
+
+        // Data Transformation (if needed)
+        const transformedEntries = timesheetEntries.map(entry => ({
+            ...entry,
+            rate_type: getRateTypeFromMultiplier(entry.rate_multiplier),
+        }));
+
+        // Expose to global scope (if needed elsewhere)
+        window.transformedTimesheetEntries = transformedEntries;
+        window.jobs = jobs;
+
+        console.log('Transformed Timesheet Entries:', transformedEntries);
+    } catch (error) {
+        console.error('Error during deserialization or transformation:', error);
     }
 });
-
-function loadExistingTimeEntries(entries) {
-    return entries.map(entry => ({
-        job_number: entry.job_pricing.related_job.job_number,
-        job_name: entry.job_pricing.related_job.name,
-        customer: entry.job_pricing.related_job.client?.name || 'Shop Job',
-        description: entry.description,
-        rate_type: getRateTypeFromMultiplier(entry.rate_multiplier),
-        hours: entry.minutes / 60,
-        wage_amount: entry.cost,
-        bill_amount: entry.revenue,
-        is_billable: entry.is_billable,
-        notes: entry.note,
-        charge_out_rate: entry.charge_out_rate
-    }));
-}
 
 function getRateTypeFromMultiplier(multiplier) {
     switch (multiplier) {

@@ -7,6 +7,13 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css"/>
 {% endblock %}
 
+<script id="jobs-data" type="application/json">
+    {{ jobs_json|safe }}
+</script>
+<script id="timesheet-entries-data" type="application/json">
+    {{ timesheet_entries_json|safe }}
+</script>
+
 {% block content %}
 
 <div class="container">
@@ -27,15 +34,11 @@
     </a>
 </div>
 
-<div id="timesheetData" style="display: none;">
-    {{ timesheet_data_json|safe }}
-</div>
-
 
     <!-- Debug context (temporary) -->
 <div id="debug-context" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;">
     <h3>Debug Context</h3>
-    <pre>{{ timesheet_data_json|safe }}</pre>
+    <pre>{{ timesheet_data|json_script:"timesheet-data" }}</pre>
 </div>
 </div>
 

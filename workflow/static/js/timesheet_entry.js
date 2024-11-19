@@ -125,20 +125,20 @@ function calculateAmounts(data) {
        },
        onCellValueChanged: (params) => {
            // If job number changes, update job name and customer
-if (params.column.colId === 'job_number') {
-            const job = window.timesheet_data.jobs.find(j => j.job_number === params.newValue);
-            if (job) {
-                params.node.setDataValue('job_name', job.name);
-                params.node.setDataValue('customer', job.client_name);
-                // Don't set wage_rate as it comes from staff
-                params.node.setDataValue('charge_out_rate', job.charge_out_rate);
-                calculateAmounts(params.node.data);
-                params.api.refreshCells({
-                    rowNodes: [params.node],
-                    columns: ['job_name', 'customer', 'wage_amount', 'bill_amount']
-                });
-            }
-        }
+            if (params.column.colId === 'job_number') {
+                        const job = window.timesheet_data.jobs.find(j => j.job_number === params.newValue);
+                        if (job) {
+                            params.node.setDataValue('job_name', job.name);
+                            params.node.setDataValue('customer', job.client_name);
+                            // Don't set wage_rate as it comes from staff
+                            params.node.setDataValue('charge_out_rate', job.charge_out_rate);
+                            calculateAmounts(params.node.data);
+                            params.api.refreshCells({
+                                rowNodes: [params.node],
+                                columns: ['job_name', 'customer', 'wage_amount', 'bill_amount']
+                            });
+                        }
+                    }
 
            // Recalculate amounts if rate type or hours changes
            if (['rate_type', 'hours'].includes(params.column.colId)) {
