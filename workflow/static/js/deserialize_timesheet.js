@@ -1,21 +1,29 @@
 document.addEventListener('DOMContentLoaded', function () {
     try {
-        // Deserialization
-        const timesheetEntries = window.timesheetEntries || [];
-        const jobs = window.jobs || [];
+        // Fetch JSON from <script> tags
+        const jobsDataElement = document.getElementById('jobs-data');
+        const timesheetEntriesDataElement = document.getElementById('timesheet-entries-data');
 
-        console.log('Deserialized Timesheet Entries:', timesheetEntries);
+        if (!jobsDataElement || !timesheetEntriesDataElement) {
+            throw new Error('Required data elements are missing from the DOM.');
+        }
+
+        // Parse JSON
+        const jobs = JSON.parse(jobsDataElement.textContent);
+        const timesheetEntries = JSON.parse(timesheetEntriesDataElement.textContent);
+
         console.log('Deserialized Jobs:', jobs);
+        console.log('Deserialized Timesheet Entries:', timesheetEntries);
 
-        // Data Transformation (if needed)
+        // Transform timesheet entries (if needed)
         const transformedEntries = timesheetEntries.map(entry => ({
             ...entry,
             rate_type: getRateTypeFromMultiplier(entry.rate_multiplier),
         }));
 
-        // Expose to global scope (if needed elsewhere)
-        window.transformedTimesheetEntries = transformedEntries;
+        // Expose to global scope (if needed)
         window.jobs = jobs;
+        window.transformedTimesheetEntries = transformedEntries;
 
         console.log('Transformed Timesheet Entries:', transformedEntries);
     } catch (error) {
