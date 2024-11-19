@@ -86,11 +86,13 @@ class TimesheetOverviewView(TemplateView):
 
         # Prepare context for rendering
         context = {
-            "start_date": start_date.strftime('%Y-%m-%d'),
+            "start_date": start_date,
             "staff_data": staff_data,
             "job_data": job_data,
             "timesheet_entries": timesheet_entries,
+            "last_seven_days": last_seven_days,
             "context_json": json.dumps({
+                "start_date": start_date.strftime('%Y-%m-%d'),
                 "staff_data": staff_data,
                 "job_data": job_data,
                 "timesheet_entries": timesheet_entries,
@@ -103,7 +105,7 @@ class TimesheetOverviewView(TemplateView):
 
 
 class TimesheetDailyView(TemplateView):
-    template_name = "workflow/timesheet_daily_view.html"
+    template_name = "time_entries/timesheet_daily_view.html"
 
     def get_estimated_hours(self, job):
         # Sum the hours based on the job's estimate_pricing property
