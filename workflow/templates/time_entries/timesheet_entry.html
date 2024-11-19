@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<!-- AG Grid Styles -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css"/>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <h2>Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ date }}</h2>
+
+    <div class="summary-section">
+        <p>Scheduled Hours: {{ scheduled_hours }}</p>
+        <!-- We'll add more summary info here -->
+    </div>
+
+    <!-- AG Grid will be initialized here -->
+    <div id="timesheet-grid" class="ag-theme-alpine" style="height: 400px; width: 100%;">
+    </div>
+
+    <div class="header-actions">
+    <a href="{% url 'timesheet_daily_view' date=date %}" class="btn btn-secondary">
+        Back to Daily Overview
+    </a>
+</div>
+
+<div id="timesheetData" style="display: none;">
+    {{ timesheet_data_json|safe }}
+</div>
+
+
+    <!-- Debug context (temporary) -->
+<div id="debug-context" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;">
+    <h3>Debug Context</h3>
+    <pre>{{ timesheet_data_json|safe }}</pre>
+</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- AG Grid Script -->
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
+<script src="{% static 'js/deserialize_timesheet.js' %}"></script>
+<script src="{% static 'js/timesheet_entry.js' %}"></script>
+
+<script>
+</script>
+{% endblock %}

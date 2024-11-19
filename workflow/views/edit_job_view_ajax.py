@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 def create_job_view(request):
     return render(request, "jobs/create_job_and_redirect.html")
 
+def api_fetch_status_values(request):
+    status_values = dict(Job.JOB_STATUS_CHOICES)
+    return JsonResponse(status_values)
 
 @require_http_methods(["POST"])
 def create_job_api(request):

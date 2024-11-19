@@ -10,16 +10,35 @@
     <h3>Timesheet Daily View</h3>
     <div id="ag-grid-container" class="ag-theme-alpine" style="height: 500px; width: 100%;"></div>
 
-    <!-- Staff Summary Section -->
-    <div id="staff-summary-section" class="overview-section">
-        <h3>Staff Summary</h3>
-        <div id="staff-chart"></div>
+    <div id="staff-boxes-section" class="overview-section">
+    <div id="staff-boxes-container">
+        {% for staff in staff_data %}
+        <div class="staff-box">
+            Hello
+            <p class="staff-name">
+                <a href="{% url 'timesheet_entry' date=date staff_id=staff.staff_id %}" class="staff-name-link">
+                    {{ staff.name }}
+                </a>
+            </p>
+            <p class="staff-stats">
+                Scheduled: {{ staff.scheduled_hours }} hrs
+                Actual: {{ staff.actual_hours }} hrs
+            </p>
+            <div id="staff-chart-{{ staff.staff_id }}" class="staff-chart"></div>
+        </div>
+        {% endfor %}
     </div>
+</div>
+
 
     <!-- Job Progress Section -->
     <div id="job-progress-section" class="overview-section">
         <h3>Job Progress Summary</h3>
         <div id="job-chart"></div>
     </div>
+</div>
+<div id="debug-context" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9;">
+    <h3>Debug Context (Temporary)</h3>
+    <pre>{{ context_json|safe }}</pre>
 </div>
 {% endblock %}

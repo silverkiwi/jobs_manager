@@ -4,12 +4,12 @@ from .adjustment_entry_view import CreateAdjustmentEntryView, UpdateAdjustmentEn
 from .client_view import ClientListView, ClientUpdateView
 from .dashboard_view import DashboardView
 from .invoice_view import InvoiceListView, InvoiceUpdateView
-from .job_pricing_view import CreateJobPricingView, UpdateJobPricingView
 from .job_view import CreateJobViewOriginal, UpdateJobView, ListJobView
 from .material_entry_view import CreateMaterialEntryView, MaterialEntryUpdateView
 from .report_view import ReportCompanyProfitAndLoss, CompanyProfitAndLossView
 from .staff_view import StaffListView, StaffCreateView, StaffUpdateView
 from .time_entry_views import CreateTimeEntryView, UpdateTimeEntryView
+from .time_overview_view import TimesheetOverviewView, TimesheetDailyView
 
 __all__ = [
     'CreateAdjustmentEntryView',
@@ -19,8 +19,6 @@ __all__ = [
     'DashboardView',
     'InvoiceListView',
     'InvoiceUpdateView',
-    'CreateJobPricingView',
-    'UpdateJobPricingView',
     'CreateJobViewOriginal',
     'UpdateJobView',
     'ListJobView',
@@ -33,4 +31,6 @@ __all__ = [
     'StaffUpdateView',
     'CreateTimeEntryView',
     'UpdateTimeEntryView',
+    'TimesheetOverviewView',
+    'TimesheetDailyView',
 ]

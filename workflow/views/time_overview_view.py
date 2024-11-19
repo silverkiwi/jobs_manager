@@ -51,9 +51,9 @@ class TimesheetOverviewView(TemplateView):
         open_jobs = Job.objects.filter(status='open')
         for job in open_jobs:
             # Get estimated hours, quoted hours, and actual hours
-            estimated_hours = job.estimate_pricing.get('hours', None)  # Assuming estimate_pricing contains hours estimate
-            quoted_hours = job.quote_pricing.get('hours', None)  # Assuming quote_pricing contains quoted hours
-            actual_entries = TimeEntry.objects.filter(job_pricing=job.jobpricing_set.first())
+            estimated_hours = job.latest_estimate_pricing.time_entries.get('hours', None)  #
+            quoted_hours = job.latest_quote_pricing.time_entries.get('hours', None)
+            actual_entries = job.latest_reality_pricing.time_entries
             actual_hours = [entry.hours() for entry in actual_entries]
             is_billable = any(entry.is_billable for entry in actual_entries)
             charge_out_rates = [entry.charge_out_rate for entry in actual_entries]
@@ -77,7 +77,7 @@ class TimesheetOverviewView(TemplateView):
             timesheet_entries.append({
                 "date": entry.date.strftime("%Y-%m-%d"),
                 "staff_member": entry.staff.get_display_name() if entry.staff else "Unknown",
-                "job_name": entry.job_pricing.job.name,
+                "job_name": entry.job_pricing.related_job.name,
                 "hours_worked": entry.hours(),  # Use the decorator to get minutes and convert to hours
                 "is_billable": entry.is_billable,
                 "wage_rate": entry.wage_rate,
@@ -107,25 +107,48 @@ class TimesheetOverviewView(TemplateView):
 class TimesheetDailyView(TemplateView):
     template_name = "time_entries/timesheet_daily_view.html"
 
-    def get_estimated_hours(self, job):
-        # Sum the hours based on the job's estimate_pricing property
-        if job.estimate_pricing:
-            return sum([entry.hours for entry in job.estimate_pricing.time_entries.all()])
-        return 0
 
     def get(self, request, date=None, *args, **kwargs):
-        # Step 1: Determine the date
         if date:
             try:
                 target_date = datetime.strptime(date, '%Y-%m-%d').date()
             except ValueError:
-                # If the date format is incorrect, default to today
                 target_date = timezone.now().date()
         else:
-            # Default to today
             target_date = timezone.now().date()
 
+        staff_data = []
+        for staff_member in Staff.objects.all():
+            scheduled_hours = staff_member.get_scheduled_hours(target_date)
+            time_entries = TimeEntry.objects.filter(
+                date=target_date,
+                staff=staff_member
+            ).select_related('job_pricing')
 
+            actual_hours = sum(entry.hours for entry in time_entries)
+
+            staff_data.append({
+                "staff_id": staff_member.id,
+                "name": staff_member.get_display_name(),
+                "scheduled_hours": scheduled_hours,
+                "actual_hours": actual_hours,
+                "entries": [{
+                    "job_name": entry.job_pricing.job.name,
+                    "hours": entry.hours,
+                    "is_billable": entry.is_billable
+                } for entry in time_entries]
+            })
+
+        context = {
+            "date": target_date.strftime('%Y-%m-%d'),
+            "staff_data": staff_data,
+            "context_json": json.dumps({
+                "date": target_date.strftime('%Y-%m-%d'),
+                "staff_data": staff_data
+            }, cls=DjangoJSONEncoder)
+        }
+
+        return render(request, self.template_name, context)
         # Step 2: Retrieve all time entries for the given date
         time_entries = TimeEntry.objects.filter(date=target_date).select_related('staff', 'job_pricing')
         data = []

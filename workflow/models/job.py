@@ -8,6 +8,8 @@ from django.apps import apps
 from django.utils import timezone
 from simple_history.models import HistoricalRecords  # type: ignore
 
+from workflow.models import CompanyDefaults
+
 logger = logging.getLogger(__name__)
 
 class Job(models.Model):
@@ -77,6 +79,12 @@ class Job(models.Model):
 
     job_is_valid = models.BooleanField(default=False)  # type: ignore
     paid: bool = models.BooleanField(default=False)  # type: ignore
+    charge_out_rate = models.DecimalField(               # TODO: This needs to be added to the edit job form
+        max_digits=10,
+        decimal_places=2,
+        null=False,  # Not nullable because save() ensures a value
+        blank=False  # Should be required in forms too
+    )
 
     # Direct relationships for estimate, quote, reality
     latest_estimate_pricing = models.OneToOneField(
@@ -124,6 +132,12 @@ class Job(models.Model):
             # Step 2: Generate a unique job number if it's not set yet
             if not self.job_number:
                 self.job_number = self.generate_unique_job_number()
+
+            if self.charge_out_rate is None:
+                # However you're getting CompanyDefaults
+                CompanyDefaults = apps.get_model('workflow', 'CompanyDefaults')
+                defaults = CompanyDefaults.objects.first()
+                self.charge_out_rate = defaults.charge_out_rate
 
             # Lazy import JobPricing using Django's apps.get_model()
             JobPricing = apps.get_model('workflow', 'JobPricing')

@@ -129,7 +129,13 @@ class Staff(AbstractBaseUser, PermissionsMixin):
         return float(hours_by_day[weekday])
 
     def get_display_name(self) -> str:
-        return self.preferred_name or self.first_name
+        display = self.preferred_name or self.first_name
+        display = display.split()[0] if display else ""
+        return display
+
+    def get_display_full_name(self) -> str:
+        display = self.get_display_name() + " " + self.last_name
+        return display
 
     def is_staff_manager(self):
         return self.groups.filter(name="StaffManager").exists() or self.is_superuser

@@ -34,6 +34,8 @@ class TimeEntry(models.Model):
                                       help_text="Set to false to avoid billing the client.  E.g. fixup work")
     wage_rate = models.DecimalField(max_digits=10, decimal_places=2)
     charge_out_rate = models.DecimalField(max_digits=10, decimal_places=2)
+    wage_rate_multiplier = models.DecimalField(blank=False, null=False, default=1, max_digits=5, decimal_places=2,
+                                               help_text="Set to 2 for double time, etc.  Do not set to 0 unless you want the staff member to work for free.")
 
     description = models.TextField(
         blank=False, null=False, default=""
