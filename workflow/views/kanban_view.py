@@ -1,6 +1,7 @@
 # kanban.py
 
 import json
+from uuid import UUID
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -20,10 +21,10 @@ def kanban_view(request: HttpRequest) -> HttpResponse:
 
 
 @csrf_exempt
-def update_job_status(request: HttpRequest, pk: int) -> HttpResponse:
+def update_job_status(request: HttpRequest, job_id: UUID) -> HttpResponse:
     if request.method == "POST":
         try:
-            job = Job.objects.get(pk=pk)
+            job = Job.objects.get(pk=job_id)
             try:
                 payload = json.loads(request.body)
                 new_status = payload.get("status")

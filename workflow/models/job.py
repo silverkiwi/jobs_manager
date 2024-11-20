@@ -121,7 +121,8 @@ class Job(models.Model):
 
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"
-        return f"{client_name} - {self.job_number}"
+        job_name = self.name if self.name else "No Job Name"
+        return f" {self.job_number} - {job_name} for {client_name}"
 
     def get_display_name(self) -> str:
         return f"Job: {self.job_number}"  # type: ignore

@@ -33,11 +33,11 @@ class JobPricingSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
-        logger.debug(f"JobPricingSerializer to_representation called for instance {instance.id}")
+        # logger.debug(f"JobPricingSerializer to_representation called for instance {instance.id}")
         representation = super().to_representation(instance)
 
         # Debug the raw queryset data
-        logger.debug(f"Raw material entries: {list(instance.material_entries.all().values())}")
+        # logger.debug(f"Raw material entries: {list(instance.material_entries.all().values())}")
 
         # Convert Decimal fields to float
         for key, value in representation.items():

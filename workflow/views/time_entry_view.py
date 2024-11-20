@@ -20,6 +20,11 @@ class TimesheetEntryView(TemplateView):
 
         # Get the staff member
         staff_member = Staff.objects.get(id=staff_id)
+        staff_data = {
+            'id': staff_member.id,
+            'name': staff_member.get_display_full_name(),
+            'wage_rate': staff_member.wage_rate
+        }
 
         # Get existing time entries for this staff member on this date
         time_entries = TimeEntry.objects.filter(
@@ -27,13 +32,14 @@ class TimesheetEntryView(TemplateView):
             staff=staff_member
         ).select_related('job_pricing__latest_reality_for_job__client')
 
+
         timesheet_data = [
             {
                 'id': str(entry.id),
                 'job_pricing_id': entry.job_pricing_id,
-                'job_number': entry.job_pricing.related_job.job_number if entry.job_pricing else None,
-                'job_name': entry.job_pricing.related_job.name if entry.job_pricing else None,
-                'client_name': entry.job_pricing.related_job.client.name if entry.job_pricing and entry.job_pricing.related_job.client else None,
+                'job_number': entry.job_pricing.related_job.job_number,
+                'job_name': entry.job_pricing.related_job.name,
+                'client_name': entry.job_pricing.related_job.client.name,
                 'description': entry.description or '',
                 'hours': float(entry.hours),
                 'rate_multiplier': float(entry.wage_rate_multiplier),
@@ -41,6 +47,7 @@ class TimesheetEntryView(TemplateView):
             }
             for entry in time_entries
         ]
+
 
         open_jobs = Job.objects.filter(
             status__in=['quoting', 'approved', 'in_progress']
@@ -50,24 +57,19 @@ class TimesheetEntryView(TemplateView):
             'id': str(job.id),
             'job_number': job.job_number,
             'name': job.name,
-            'client_name': job.client.name if job.client else 'Shop Job',
+            'job_display_name': str(job),
+            'client_name': job.client.name if job.client else 'NO CLIENT!?',
             'charge_out_rate': float(job.charge_out_rate)
         } for job in open_jobs]
 
-        time_entries_data = {
-            'staff_id': str(staff_id),
-            'date': target_date.strftime('%Y-%m-%d'),
-            'wage_rate': float(staff_member.wage_rate),
-            'jobs': jobs_data,
-            'time_entries': time_entries  # Let deserializer handle this
-        }
 
         context = {
             "staff_member": staff_member,
+            "staff_member_json": json.dumps(staff_data,cls=DjangoJSONEncoder),
             "date": target_date.strftime('%Y-%m-%d'),
             "scheduled_hours": float(staff_member.get_scheduled_hours(target_date)),
+            "timesheet_entries_json": json.dumps(timesheet_data, cls=DjangoJSONEncoder),
             "jobs_json": json.dumps(jobs_data, cls=DjangoJSONEncoder),
-            "timesheet_entries_data": json.dumps(time_entries_data, cls=DjangoJSONEncoder),
         }
 
         return render(request, self.template_name, context)

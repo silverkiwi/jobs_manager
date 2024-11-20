@@ -172,9 +172,10 @@ def edit_job_view_ajax(request, job_id=None):
 
     logger.debug(f"Rendering template for job {job.id} with job number {job.job_number}")
     try:
+        pass
         # Dump the context to JSON for logging
-        logger.debug(f"Historical pricing being passed to template: {json.dumps(historical_job_pricings_json)}")
-        logger.debug(f"Latest pricing being passed to template: {json.dumps(latest_job_pricings_json)}")
+        #logger.debug(f"Historical pricing being passed to template: {json.dumps(historical_job_pricings_json)}")
+        #logger.debug(f"Latest pricing being passed to template: {json.dumps(latest_job_pricings_json)}")
     except Exception as e:
         logger.error(f"Error while dumping context: {e}")
 

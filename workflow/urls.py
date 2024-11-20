@@ -109,6 +109,8 @@ urlpatterns = [
 
     path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
     path("job/<uuid:job_id>/", edit_job_view_ajax.edit_job_view_ajax, name="edit_job"),
+    path('jobs/<uuid:job_id>/update_status/', kanban_view.update_job_status, name='update_job_status'),
+
     path(
         "timesheets/day/<str:date>/<uuid:staff_id>/",
         time_entry_view.TimesheetEntryView.as_view(),

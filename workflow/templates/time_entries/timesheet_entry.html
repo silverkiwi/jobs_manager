@@ -7,12 +7,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css"/>
 {% endblock %}
 
-<script id="jobs-data" type="application/json">
-    {{ jobs_json|safe }}
-</script>
-<script id="timesheet-entries-data" type="application/json">
-    {{ timesheet_entries_json|safe }}
-</script>
+
+
 
 {% block content %}
 
@@ -32,13 +28,36 @@
     <a href="{% url 'timesheet_daily_view' date=date %}" class="btn btn-secondary">
         Back to Daily Overview
     </a>
-</div>
 
+    <!-- JSON Data -->
+    <script id="jobs-data" type="application/json">
+        {{ jobs_json|safe }}
+    </script>
+    <script id="timesheet-entries-data" type="application/json">
+        {{ timesheet_entries_json|safe }}
+    </script>
+        <script id="staff-data" type="application/json">
+    {{ staff_member_json|safe }}
+    </script>
 
-    <!-- Debug context (temporary) -->
+    <!-- Debug context -->
 <div id="debug-context" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;">
     <h3>Debug Context</h3>
-    <pre>{{ timesheet_data|json_script:"timesheet-data" }}</pre>
+
+    <h4>Staff Member:</h4>
+        {{ staff_member_json|safe }}
+
+    <h4>Date:</h4>
+    <pre>{{ date }}</pre>
+
+    <h4>Scheduled Hours:</h4>
+    <pre>{{ scheduled_hours }}</pre>
+
+    <h4>Jobs Data:</h4>
+    <pre>{{ jobs_json|safe }}</pre>
+
+    <h4>Timesheet Entries:</h4>
+    <pre>{{ timesheet_entries_json|safe }}</pre>
 </div>
 </div>
 

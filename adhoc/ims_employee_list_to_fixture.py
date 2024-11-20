@@ -58,4 +58,4 @@ def convert_ims_to_fixtures(input_file: str) -> None:
     print(f"Created {len(fixtures)} staff fixtures in {output_file}")
 
 if __name__ == '__main__':
-    convert_ims_to_fixtures(r'C:\Users\User\Downloads\Morris Sheetmetal Works 2015 L_employee_list_2024_11_18_v2.txt')
+    convert_ims_to_fixtures(r'C:\Users\User\Downloads\Morris Sheetmetal Works 2015 L_employee_list_2024_11_20.txt')

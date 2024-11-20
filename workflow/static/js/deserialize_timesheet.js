@@ -2,16 +2,25 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
         // Fetch JSON from <script> tags
         const jobsDataElement = document.getElementById('jobs-data');
+        const staffDataElement = document.getElementById('staff-data');
         const timesheetEntriesDataElement = document.getElementById('timesheet-entries-data');
 
-        if (!jobsDataElement || !timesheetEntriesDataElement) {
-            throw new Error('Required data elements are missing from the DOM.');
+        if (!jobsDataElement) {
+            throw new Error('Jobs data element is missing from the DOM.');
+        }
+        if (!staffDataElement) {
+            throw new Error('Staff data element is missing from the DOM.');
+        }
+        if (!timesheetEntriesDataElement) {
+            throw new Error('Timesheet entries data element is missing from the DOM.');
         }
 
         // Parse JSON
+        const staff = JSON.parse(staffDataElement.textContent);
         const jobs = JSON.parse(jobsDataElement.textContent);
         const timesheetEntries = JSON.parse(timesheetEntriesDataElement.textContent);
 
+        console.log('Deserialized Staff:', staff);
         console.log('Deserialized Jobs:', jobs);
         console.log('Deserialized Timesheet Entries:', timesheetEntries);
 
@@ -22,10 +31,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }));
 
         // Expose to global scope (if needed)
-        window.jobs = jobs;
-        window.transformedTimesheetEntries = transformedEntries;
+        window.timesheet_data = {
+            staff: staff,
+            jobs: jobs,
+            time_entries: transformedEntries
+        };
 
-        console.log('Transformed Timesheet Entries:', transformedEntries);
+        console.log("Timesheet data set:", window.timesheet_data);  // Let's see this log
     } catch (error) {
         console.error('Error during deserialization or transformation:', error);
     }
