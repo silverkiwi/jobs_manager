@@ -89,8 +89,8 @@ function createJobCard(job) {
     card.setAttribute('data-job-description', job.description || '');
     card.setAttribute('data-job-number', job.job_number);
     card.innerHTML = `
-        <h3><a href="/job/${job.id}/">Job ${job.job_number}: ${job.name}</a></h3>
-        <p>${job.description}</p>
+        <h3><a href="/job/${job.id}/">#${job.job_number}: ${job.name}</a></h3>
+        <p>${job.description ?? ''}</p>
     `;
     return card;
 }

@@ -18,8 +18,12 @@
             {% for job in jobs %}
                 {% if job.status == status_key %}
                 <div class="job-card" data-id="{{ job.id }}">
-                    <h3>{{ job.name }}</h3>
-                    <p>{{ job.description }}</p>
+                    <h3>
+                        <a href="{% url 'edit_job' job.id %}">
+                            #{{ job.job_number }}: {{ job.name }}
+                        </a>
+                    </h3>
+                    <p>{{ job.description|default:'' }}</p>
                 </div>
                 {% endif %}
             {% empty %}

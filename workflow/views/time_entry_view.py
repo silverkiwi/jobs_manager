@@ -1,6 +1,9 @@
 import json
+import logging
 
 from django.core.serializers.json import DjangoJSONEncoder
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 from django.shortcuts import render
 from django.utils import timezone
@@ -8,6 +11,7 @@ from datetime import datetime
 
 from workflow.models import TimeEntry, Staff, Job
 
+logger = logging.getLogger(__name__)
 
 class TimesheetEntryView(TemplateView):
     template_name = "time_entries/timesheet_entry.html"  # We'll need to create this
@@ -44,6 +48,9 @@ class TimesheetEntryView(TemplateView):
                 'hours': float(entry.hours),
                 'rate_multiplier': float(entry.wage_rate_multiplier),
                 'is_billable': entry.is_billable,
+                'timesheet_date': target_date.strftime('%Y-%m-%d'),
+                'staff_id': staff_member.id,
+
             }
             for entry in time_entries
         ]
@@ -66,7 +73,7 @@ class TimesheetEntryView(TemplateView):
         context = {
             "staff_member": staff_member,
             "staff_member_json": json.dumps(staff_data,cls=DjangoJSONEncoder),
-            "date": target_date.strftime('%Y-%m-%d'),
+            "timesheet_date": target_date.strftime('%Y-%m-%d'),
             "scheduled_hours": float(staff_member.get_scheduled_hours(target_date)),
             "timesheet_entries_json": json.dumps(timesheet_data, cls=DjangoJSONEncoder),
             "jobs_json": json.dumps(jobs_data, cls=DjangoJSONEncoder),
@@ -78,3 +85,46 @@ class TimesheetEntryView(TemplateView):
         # Handle saving time entries
         # We'll implement this once we have the template/form structure defined
         pass
+
+
+@require_http_methods(["POST"])
+def autosave_timesheet_view(request):
+    try:
+        logger.debug("Timesheet autosave request received")
+
+        # Parse incoming JSON data
+        data = json.loads(request.body)
+        logger.debug(f"Parsed data: {data}")
+
+        # Validate the presence of time entries
+        time_entries = data.get("time_entries", [])
+        if not time_entries:
+            logger.error("No time entries found in request")
+            return JsonResponse({"error": "No time entries provided"}, status=400)
+
+        for entry_data in time_entries:
+            entry_id = entry_data.get("id")
+            if entry_id:
+                # Update existing entry
+                try:
+                    entry = TimeEntry.objects.get(id=entry_id)
+                    for field, value in entry_data.items():
+                        setattr(entry, field, value)
+                    entry.save()
+                    logger.debug(f"Updated TimeEntry ID: {entry.id}")
+                except TimeEntry.DoesNotExist:
+                    logger.warning(f"TimeEntry with ID {entry_id} not found; skipping.")
+            else:
+                # Create new entry
+                entry = TimeEntry.objects.create(**entry_data)
+                logger.debug(f"Created new TimeEntry ID: {entry.id}")
+
+        return JsonResponse({"success": True})
+
+    except json.JSONDecodeError:
+        logger.error("Failed to parse JSON")
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    except Exception as e:
+        logger.exception("Unexpected error during timesheet autosave")
+        return JsonResponse({"error": "Unexpected error occurred"}, status=500)

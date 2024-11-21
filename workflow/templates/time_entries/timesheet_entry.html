@@ -13,7 +13,7 @@
 {% block content %}
 
 <div class="container">
-    <h2>Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ date }}</h2>
+    <h2>Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ timesheet_date  }}</h2>
 
     <div class="summary-section">
         <p>Scheduled Hours: {{ scheduled_hours }}</p>
@@ -25,11 +25,12 @@
     </div>
 
     <div class="header-actions">
-    <a href="{% url 'timesheet_daily_view' date=date %}" class="btn btn-secondary">
+    <a href="{% url 'timesheet_daily_view' date=timesheet_date %}" class="btn btn-secondary">
         Back to Daily Overview
     </a>
 
     <!-- JSON Data -->
+    <script id="timesheet-date" type="application/json">"{{ timesheet_date|escapejs }}"</script>
     <script id="jobs-data" type="application/json">
         {{ jobs_json|safe }}
     </script>
@@ -39,6 +40,7 @@
         <script id="staff-data" type="application/json">
     {{ staff_member_json|safe }}
     </script>
+
 
     <!-- Debug context -->
 <div id="debug-context" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;">
@@ -67,6 +69,7 @@
 <!-- AG Grid Script -->
 <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
 <script src="{% static 'js/deserialize_timesheet.js' %}"></script>
+<script src="{% static 'js/timesheet_autosave.js' %}"></script>
 <script src="{% static 'js/timesheet_entry.js' %}"></script>
 
 <script>

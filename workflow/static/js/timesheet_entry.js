@@ -92,6 +92,19 @@ document.addEventListener('DOMContentLoaded', function () {
         return `<span class="delete-icon">🗑️</span>`;
     }
 
+    function createNewRow() {
+    return {
+        id: null, // New rows start without an ID
+        job_number: null, // Placeholder for job number
+        timesheet_date: window.timesheet_data.timesheet_date, // Ensure timesheet_date is included
+        staff_id: window.timesheet_data.staff.id, // Ensure staff_id is included
+        is_billable: true, // Default value
+        rate_type: 'Ord', // Default rate type
+        hours: 0, // Default hours
+        description: '', // Default description
+    };
+}
+
     function calculateAmounts(data) {
         console.log('Calculating amounts for data:', data); // Log the data being processed
         const hours = data.hours || 0;
@@ -123,6 +136,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const gridOptions = {
         columnDefs: [
+            {
+                field: 'id',
+                hide: true, // Hidden column for the database ID
+                editable: false,
+            },
             {
                 field: 'job_number',
                 headerName: 'Job #',
@@ -205,7 +223,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 field: 'job_data',
                 headerName: 'Job Data',
                 width: 0,
-                hide: true,
+                hide: true, // Invisible column to make processing easier
+                editable: false
+            },
+            {
+                field: 'staff_id',
+                hide: true,  // Invisible column
+                editable: false
+            },
+            {
+                field: 'timesheet_date',
+                hide: true,  // Invisible column
                 editable: false
             },
             {
@@ -256,17 +284,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     columns: ['wage_amount', 'bill_amount']
                 });
             }
+            console.log('Triggering autosave after cell value change.');
+            debouncedAutosave();
         },
         // Add new row when Enter is pressed on last row
         onCellKeyDown: (params) => {
             if (params.event.key === 'Enter') {
                 const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
                 if (isLastRow) {
-                    const newRow = {
-                        is_billable: true,
-                        rate_type: 'Ord'
-                    };
-                    params.api.applyTransaction({add: [newRow]});
+                    params.api.applyTransaction({ add: [createNewRow()] }); // Use centralized function
                     // Focus the first editable cell of the newly added row
                     const newRowIndex = params.api.getDisplayedRowCount() - 1;
                     params.api.setFocusedCell(newRowIndex, 'job_number');
@@ -279,17 +305,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize the grid
     const gridDiv = document.querySelector('#timesheet-grid');
-    const grid = agGrid.createGrid(gridDiv, gridOptions);
+    window.grid = agGrid.createGrid(gridDiv, gridOptions);
 
     // Load existing entries if any, otherwise add an empty row
     if (window.timesheet_data.time_entries?.length > 0) {
-        grid.applyTransaction({ add: window.timesheet_data.time_entries });
+        window.grid.applyTransaction({ add: window.timesheet_data.time_entries });
     } else {
-        grid.applyTransaction({
-            add: [{
-                is_billable: true,
-                rate_type: 'Ord'
-            }]
+        window.grid.applyTransaction({
+            add: [createNewRow()] // Use centralized function
         });
     }
 });

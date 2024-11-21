@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Fetch JSON from <script> tags
         const jobsDataElement = document.getElementById('jobs-data');
         const staffDataElement = document.getElementById('staff-data');
+        const timesheetDateElement = document.getElementById('timesheet-date');
         const timesheetEntriesDataElement = document.getElementById('timesheet-entries-data');
 
         if (!jobsDataElement) {
@@ -11,6 +12,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!staffDataElement) {
             throw new Error('Staff data element is missing from the DOM.');
         }
+        if (!timesheetDateElement) {
+            throw new Error('Timesheet date data element is missing from the DOM.');
+        }
+
         if (!timesheetEntriesDataElement) {
             throw new Error('Timesheet entries data element is missing from the DOM.');
         }
@@ -18,23 +23,28 @@ document.addEventListener('DOMContentLoaded', function () {
         // Parse JSON
         const staff = JSON.parse(staffDataElement.textContent);
         const jobs = JSON.parse(jobsDataElement.textContent);
+        const timesheet_date = JSON.parse(timesheetDateElement.textContent.trim());
         const timesheetEntries = JSON.parse(timesheetEntriesDataElement.textContent);
 
         console.log('Deserialized Staff:', staff);
         console.log('Deserialized Jobs:', jobs);
+        console.log('Deserialized Timesheet Date:', timesheet_date);
         console.log('Deserialized Timesheet Entries:', timesheetEntries);
 
         // Transform timesheet entries (if needed)
         const transformedEntries = timesheetEntries.map(entry => ({
             ...entry,
             rate_type: getRateTypeFromMultiplier(entry.rate_multiplier),
+            timesheet_date: timesheet_date,
+            staff_id: staff.id
         }));
 
         // Expose to global scope (if needed)
         window.timesheet_data = {
             staff: staff,
             jobs: jobs,
-            time_entries: transformedEntries
+            time_entries: transformedEntries,
+            timesheet_date: timesheet_date
         };
 
         console.log("Timesheet data set:", window.timesheet_data);  // Let's see this log
@@ -45,8 +55,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function getRateTypeFromMultiplier(multiplier) {
     switch (multiplier) {
-        case 1.5: return '1.5';
-        case 2.0: return '2.0';
-        default: return 'Ord';
+        case 1.5:
+            return '1.5';
+        case 2.0:
+            return '2.0';
+        default:
+            return 'Ord';
     }
 }

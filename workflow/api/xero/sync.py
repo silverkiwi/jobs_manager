@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from uuid import UUID
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
@@ -76,6 +76,11 @@ def get_last_modified_time(model):
     last_modified_time = model.objects.aggregate(Max("last_modified"))[
         "last_modified__max"
     ]
+    if last_modified_time:
+        last_modified_time = last_modified_time - timedelta(seconds=1)
+
+    logger.info(f"{model.__name__}: Using last_modified_time={last_modified_time}")
+
     return (
         #        last_modified_time.isoformat() if last_modified_time else "2024-01-01T00:00:00Z"
         last_modified_time.isoformat()
@@ -191,9 +196,9 @@ def sync_invoices(invoices):
                         )
 
                 if created:
-                    logger.info(f"New invoice added: {defaults['number']}")
+                    logger.info(f"New invoice added: {defaults['number']} updated_at={defaults['last_modified']}")
                 else:
-                    logger.info(f"Updated invoice: {defaults['number']}")
+                    logger.info(f"Updated invoice: {defaults['number']} updated_at={defaults['last_modified']}")
 
         except Exception as e:
             logger.error(f"Error processing invoice {inv.invoice_number}: {str(e)}")
@@ -248,12 +253,12 @@ def sync_bills(bills):
                         },
                     )
                 if created:
-                    logger.info(f"New bill added: {defaults['number']}")
+                    logger.info(f"New bill added: {defaults['number']} updated_at={defaults['last_modified']}")
                 else:
-                    logger.info(f"Updated bill: {defaults['number']}")
+                    logger.info(f"Updated bill: {defaults['number']} updated_at={defaults['last_modified']}")
 
         except Exception as e:
-            logger.error(f"Error processing bill {bill_obj.invoice_number}: {str(e)}")
+            logger.error(f"Error processing bill {bill.invoice_number}: {str(e)}")
             logger.error(f"Bill data: {defaults['raw_json']}")
             raise
 
