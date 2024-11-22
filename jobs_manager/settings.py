@@ -13,8 +13,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
 from concurrent_log_handler import ConcurrentRotatingFileHandler
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -98,7 +98,7 @@ LOGGING = {
 }
 
 INTERNAL_IPS = [
-    '127.0.0.1',
+    "127.0.0.1",
 ]
 
 ROOT_URLCONF = "jobs_manager.urls"
@@ -135,8 +135,8 @@ DATABASES = {
         "HOST": "localhost",
         "PORT": "3306",
     },
-    "TEST": {
-        "NAME": "test_msm_workflow",  # Optional, Django will create 'test_' + NAME by default
+    "TEST": {  # Optional, Django will create 'test_' + NAME by default
+        "NAME": "test_msm_workflow",
     },
 }
 

@@ -1,24 +1,47 @@
-import uuid
-import datetime
-from django.utils import timezone
 from django.core.management.base import BaseCommand
-from workflow.models import Job, Client
+
+from workflow.models import Client, Job
+
 
 class Command(BaseCommand):
-    help = 'Create shop jobs for internal purposes'
+    help = "Create shop jobs for internal purposes"
 
     def handle(self, *args, **kwargs):
         # Define shop job details
         shop_jobs = [
-            {"name": "Business Development", "description": "Sales without a specific client"},
-            {"name": "Bench - busy work", "description": "Bench work and other busy tasks not directly tied to client jobs"},
-            {"name": "Worker Admin", "description": "Mask fittings, meetings, and other worker-related admin"},
-            {"name": "Office Admin", "description": "General office administration tasks"},
+            {
+                "name": "Business Development",
+                "description": "Sales without a specific client",
+            },
+            {
+                "name": "Bench - busy work",
+                "description": (
+                    "Busy work not directly tied to client jobs. "
+                    "Could slip without significant issues"
+                ),
+            },
+            {
+                "name": "Worker Admin",
+                "description": (
+                    "Mask fittings, meetings, or other worker-related admin. "
+                    "Unlike bench, this cannot slip much"
+                ),
+            },
+            {
+                "name": "Office Admin",
+                "description": "General office administration tasks",
+            },
             {"name": "Annual Leave", "description": "Annual leave taken by workers"},
             {"name": "Sick Leave", "description": "Sick leave taken by workers"},
-            {"name": "Other Leave", "description": "Other types of leave taken by workers"},
+            {
+                "name": "Other Leave",
+                "description": "Other types of leave taken by workers",
+            },
             {"name": "Travel", "description": "Travel for work purposes"},
-            {"name": "Training", "description": "Training sessions for upskilling workers"},
+            {
+                "name": "Training",
+                "description": "Training sessions for upskilling workers",
+            },
         ]
 
         # Get the shop client
@@ -32,7 +55,9 @@ class Command(BaseCommand):
                 client=shop_client,
                 contact_person="Corrin Lakeland",
                 description="",
-                material_gauge_quantity=job_details["description"], # We put description here, so Kanban doesn't show it
+                material_gauge_quantity=job_details[
+                    "description"
+                ],  # We put description here, so Kanban doesn't show it
                 status="special",
                 shop_job=True,
                 job_is_valid=True,
@@ -41,4 +66,6 @@ class Command(BaseCommand):
             )
             job.save()
 
-        self.stdout.write(self.style.SUCCESS('Shop jobs have been successfully created.'))
+        self.stdout.write(
+            self.style.SUCCESS("Shop jobs have been successfully created.")
+        )

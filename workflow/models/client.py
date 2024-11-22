@@ -73,10 +73,11 @@ class Client(models.Model):
                     "address_type": "STREET",
                     "attention_to": self.name,
                     "address_line1": self.address if self.address else None,
-                    # Map additional address fields as needed, such as city, region, postal code, etc.
+                    # Map additional address fields as needed,
+                    # such as city, region, postal code, etc.
                 }
             ],
-            "is_customer": self.is_account_customer,  # If relevant to Xero, flag customer vs. cash
-            # Add more mappings if necessary, like financial details, account numbers, GST, etc.
+            "is_customer": self.is_account_customer,  # FIXME: Get this logic
+            # TODO: Add more mappings if necessary, like account numbers.
         }
         return client_dict

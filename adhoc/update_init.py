@@ -1,8 +1,8 @@
+import argparse
 import ast
+import logging
 import os
 import sys
-import argparse
-import logging
 
 
 def update_init_py(target_dir: str, verbose: bool = False) -> int:

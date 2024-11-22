@@ -1,7 +1,7 @@
 # workflow/views/xero_view.py
 import logging
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
@@ -61,8 +61,6 @@ def success_xero_connection(request: HttpRequest) -> HttpResponse:
 
 # Get Xero contacts
 def get_xero_contacts(request: HttpRequest) -> HttpResponse:
-    token: Dict[str, Any] = get_token()
-
     accounting_api: AccountingApi = AccountingApi(api_client)
     identity_api: IdentityApi = IdentityApi(api_client)
     connections = identity_api.get_connections()
@@ -76,6 +74,7 @@ def get_xero_contacts(request: HttpRequest) -> HttpResponse:
     return render(
         request, "workflow/xero_contacts.html", {"contacts": contacts.contacts}
     )
+
 
 def refresh_xero_data(request):
     try:
@@ -100,9 +99,7 @@ def refresh_xero_data(request):
         else:
             logger.error(f"Error while refreshing Xero data: {str(e)}")
             return render(
-                request,
-                "general/generic_error.html",
-                {"error_message": str(e)}
+                request, "general/generic_error.html", {"error_message": str(e)}
             )
 
     # After successful sync, redirect to the home page or wherever appropriate

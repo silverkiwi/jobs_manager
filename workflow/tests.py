@@ -1,13 +1,12 @@
 import os
 
 import django
-from django.test import TestCase, Client
+from django.core.management import call_command
+from django.test import Client, TestCase
 from django.urls import reverse
-from django.contrib.auth import get_user_model
-
-from workflow.models import Job, JobPricing, MaterialEntry, TimeEntry, AdjustmentEntry
 from dotenv import load_dotenv
 
+from workflow.models import AdjustmentEntry, Job, JobPricing, MaterialEntry, TimeEntry
 
 django.setup()  # Force initialization
 load_dotenv()
@@ -19,7 +18,15 @@ class SimpleTest(TestCase):
 
 
 class JobApiTests(TestCase):
+    fixtures = [
+        "company_defaults_fixture.json",
+        "logins.json",
+        "staff.json",
+    ]  # We can't even test without fixtures
+
     def setUp(self):
+        # Run the management command to set up shop jobs
+        call_command("create_shop_jobs")
         # Log in with the new test user (corrin+autotest)
         self.client = Client()
         login_successful = self.client.login(
@@ -64,7 +71,7 @@ class JobApiTests(TestCase):
             job_pricing=self.reality_pricing,
             description="Time entry description",
             items=2,
-            mins_per_item=60,
+            minutes_per_item=60,
             wage_rate=32.0,
             charge_out_rate=105.0,
         )

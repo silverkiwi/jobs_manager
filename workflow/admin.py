@@ -7,12 +7,12 @@ from simple_history.admin import SimpleHistoryAdmin
 from workflow.forms import StaffChangeForm, StaffCreationForm
 from workflow.models import (
     AdjustmentEntry,
+    CompanyDefaults,
     Job,
     JobPricing,
     MaterialEntry,
     Staff,
     TimeEntry,
-    CompanyDefaults,
 )
 
 
@@ -114,5 +114,3 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
     )
     search_fields = ("email", "first_name", "last_name")
     ordering = ("email",)
-
-

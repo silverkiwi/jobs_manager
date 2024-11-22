@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+
 from workflow.models import Job, JobPricing
 
 
@@ -28,23 +29,37 @@ class Command(BaseCommand):
             # Print Material Entries
             for material in job_pricing.material_entries.all():
                 self.stdout.write(
-                    f"Material - Description: {material.description}, Quantity: {material.quantity}, Unit Cost: {material.unit_cost}, Unit Revenue: {material.unit_revenue}"
+                    f"Material - "
+                    f"Description:   {material.description}, "
+                    f"Quantity:      {material.quantity}, "
+                    f"Unit Cost:     {material.unit_cost}, "
+                    f"Unit Revenue:  {material.unit_revenue}"
                 )
-
             # Print Time Entries
             for time in job_pricing.time_entries.all():
                 self.stdout.write(
-                    f"Time Entry - Description: {time.description}, Items: {time.items}, Minutes: {time.minutes}, Hours: {time.hours}, Cost: {time.cost}, Revenue: {time.revenue}"
+                    f"Time Entry - "
+                    f"Description: {time.description}, "
+                    f"Items:       {time.items}, "
+                    f"Minutes:     {time.minutes}, "
+                    f"Hours:       {time.hours}, "
+                    f"Cost:        {time.cost}, "
+                    f"Revenue:     {time.revenue}"
                 )
-
             # Print Adjustment Entries
             for adjustment in job_pricing.adjustments_entries.all():
                 self.stdout.write(
-                    f"Adjustment - Description: {adjustment.description}, Cost Adjustment: {adjustment.cost_adjustment}, Price Adjustment: {adjustment.price_adjustment}"
+                    f"Adjustment - "
+                    f"Description:       {adjustment.description}, "
+                    f"Cost Adjustment:   {adjustment.cost_adjustment}, "
+                    f"Price Adjustment: {adjustment.price_adjustment}"
                 )
 
         # General Job Information
-        self.stdout.write(f"\n=== General Job Information ===")
+        self.stdout.write("\n=== General Job Information ===")
         self.stdout.write(
-            f"Job: {job.name}, Job Number: {job.job_number}, Status: {job.status}, Paid: {job.paid}"
+            f"Job: {job.name}, "
+            f"Job Number: {job.job_number}, "
+            f"Status: {job.status}, "
+            f"Paid: {job.paid}"
         )

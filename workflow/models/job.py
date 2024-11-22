@@ -1,16 +1,19 @@
-import datetime
-import uuid
-from typing import Dict, List
 import logging
+import uuid
+from datetime import datetime
+from typing import Dict, List
 
 from django.db import models, transaction
-from django.apps import apps
-from django.utils import timezone
 from simple_history.models import HistoricalRecords  # type: ignore
 
 from workflow.models import CompanyDefaults
 
+# We say . rather than workflow.models to avoid going through init,
+# otherwise it would have a circular import
+from .job_pricing import JobPricing
+
 logger = logging.getLogger(__name__)
+
 
 class Job(models.Model):
     name = models.CharField(max_length=100, null=False, blank=False)  # type: ignore
@@ -51,17 +54,29 @@ class Job(models.Model):
         max_length=100, null=True, blank=True
     )  # type: ignore
     contact_person: str = models.CharField(max_length=100)  # type: ignore
-    contact_phone: str = models.CharField(max_length=15, null=True, blank=True)  # type: ignore
-    job_number = models.IntegerField(null=False, blank=False, unique=True)  # Job 1234
-    material_gauge_quantity: str = models.TextField(blank=True, null=True)  # type: ignore
-    description: str = models.TextField(blank=True, null=True)  # type: ignore
-    quote_acceptance_date: datetime.datetime = models.DateTimeField(null=True, blank=True)  # type: ignore
+    contact_phone: str = models.CharField(  # type: ignore
+        max_length=15,
+        null=True,
+        blank=True,
+    )
+    job_number: int = models.IntegerField(unique=True)  # Job 1234
+    material_gauge_quantity: str = models.TextField(  # type: ignore
+        blank=True,
+        help_text="Description of material gauge and quantity requirements",
+    )
+    description: str = models.TextField(blank=True)  # type: ignore
+
+    quote_acceptance_date: datetime = models.DateTimeField(  # type: ignore
+        null=True,
+        blank=True,
+    )
     delivery_date = models.DateField(null=True, blank=True)  # type: ignore
     status: str = models.CharField(
         max_length=30, choices=JOB_STATUS_CHOICES, default="quoting"
     )  # type: ignore
     # Decided not to bother with parent for now since we don't have a hierarchy of jobs.
-    # Can be restored.  Would also provide an alternative to historical records for tracking changes.
+    # Can be restored.
+    # Parent would provide an alternative to historical records for tracking changes.
     # parent: models.ForeignKey = models.ForeignKey(
     #     "self",
     #     null=True,
@@ -69,40 +84,42 @@ class Job(models.Model):
     #     related_name="revisions",
     #     on_delete=models.SET_NULL,
     # )
-    shop_job = models.BooleanField(default=False, null=False, blank=False)  # type: ignore  # Essentially true if and only if client_id is None
+    # Shop job has no client (client_id is None)
 
     job_is_valid = models.BooleanField(default=False)  # type: ignore
     paid: bool = models.BooleanField(default=False)  # type: ignore
-    charge_out_rate = models.DecimalField(               # TODO: This needs to be added to the edit job form
-        max_digits=10,
-        decimal_places=2,
-        null=False,  # Not nullable because save() ensures a value
-        blank=False  # Should be required in forms too
+    charge_out_rate = (
+        models.DecimalField(  # TODO: This needs to be added to the edit job form
+            max_digits=10,
+            decimal_places=2,
+            null=False,  # Not nullable because save() ensures a value
+            blank=False,  # Should be required in forms too
+        )
     )
 
     # Direct relationships for estimate, quote, reality
     latest_estimate_pricing = models.OneToOneField(
-        'JobPricing',
+        "JobPricing",
         on_delete=models.CASCADE,
-        null=False,
+        null=True,
         blank=False,
-        related_name='latest_estimate_for_job'
+        related_name="latest_estimate_for_job",
     )
 
     latest_quote_pricing = models.OneToOneField(
-        'JobPricing',
+        "JobPricing",
         on_delete=models.CASCADE,
-        null=False,
+        null=True,
         blank=False,
-        related_name='latest_quote_for_job'
+        related_name="latest_quote_for_job",
     )
 
     latest_reality_pricing = models.OneToOneField(
-        'JobPricing',
+        "JobPricing",
         on_delete=models.CASCADE,
-        null=False,
+        null=True,
         blank=False,
-        related_name='latest_reality_for_job'
+        related_name="latest_reality_for_job",
     )
 
     archived_pricings = models.ManyToManyField(
@@ -118,6 +135,11 @@ class Job(models.Model):
     class Meta:
         ordering = ["job_number"]
 
+    @property
+    def shop_job(self) -> bool:
+        """Indicates if this is a shop job (no client)."""
+        return self.client_id is None
+
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"
         job_name = self.name if self.name else "No Job Name"
@@ -128,35 +150,46 @@ class Job(models.Model):
 
     def save(self, *args, **kwargs):
         # Step 1: Check if this is a new instance (based on `self._state.adding`)
-        if self._state.adding:
-            # Step 2: Generate a unique job number if it's not set yet
-            if not self.job_number:
-                self.job_number = self.generate_unique_job_number()
+        if not self.job_number:
+            self.job_number = self.generate_unique_job_number()
+            logger.debug(f"Saving job with job number: {self.job_number}")
+        if self.charge_out_rate is None:
+            company_defaults = CompanyDefaults.objects.first()
+            self.charge_out_rate = company_defaults.charge_out_rate
 
-            if self.charge_out_rate is None:
-                # However you're getting CompanyDefaults
-                CompanyDefaults = apps.get_model('workflow', 'CompanyDefaults')
-                defaults = CompanyDefaults.objects.first()
-                self.charge_out_rate = defaults.charge_out_rate
+        if self._state.adding:
+            # Creating a new job is tricky because of the circular reference.
+            # We first save the job to the DB without any associated pricings, then we
+            super(Job, self).save(*args, **kwargs)
 
             # Lazy import JobPricing using Django's apps.get_model()
-            JobPricing = apps.get_model('workflow', 'JobPricing')
+            # We need to do this because of circular imports.  JobPricing imports Job
 
-            # Step 3: Create the initial JobPricing instances for estimate, quote, and reality
+            #  Create the initial JobPricing instances
             logger.debug("Creating related JobPricing entries.")
-            estimate_pricing = JobPricing.objects.create(pricing_stage="estimate",job=self)
-            quote_pricing = JobPricing.objects.create(pricing_stage="quote",job=self)
-            reality_pricing = JobPricing.objects.create(pricing_stage="reality",job=self)
+            self.latest_estimate_pricing = JobPricing.objects.create(
+                pricing_stage="estimate", job=self
+            )
+            self.latest_quote_pricing = JobPricing.objects.create(
+                pricing_stage="quote", job=self
+            )
+            self.latest_reality_pricing = JobPricing.objects.create(
+                pricing_stage="reality", job=self
+            )
             logger.debug("Initial pricings created successfully.")
 
-            # Step 4: Link the JobPricing objects to this job
-            self.latest_estimate_pricing = estimate_pricing
-            self.latest_quote_pricing = quote_pricing
-            self.latest_reality_pricing = reality_pricing
+            # Save the references back to the DB
+            super(Job, self).save(
+                update_fields=[
+                    "latest_estimate_pricing",
+                    "latest_quote_pricing",
+                    "latest_reality_pricing",
+                ]
+            )
 
         # Step 5: Save the Job to persist everything, including relationships
-        logger.debug(f"Saving job with job number: {self.job_number}")
-        super(Job, self).save(*args, **kwargs)
+        else:
+            super(Job, self).save(*args, **kwargs)
 
     @staticmethod
     def generate_unique_job_number():

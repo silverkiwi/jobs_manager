@@ -1,6 +1,5 @@
 import logging
 
-from django import forms
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView
 from django_tables2 import SingleTableView

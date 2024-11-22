@@ -1,17 +1,19 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.db.models import Sum
-from workflow.models import InvoiceLineItem, BillLineItem
-from workflow.models import XeroAccount
 from datetime import datetime, timedelta
+
+from django.db.models import Sum
 from django.views.generic import TemplateView
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from workflow.models import BillLineItem, InvoiceLineItem
+
 
 class ReportCompanyProfitAndLoss(APIView):
     def get(self, request):
         # Input parameters
-        start_date = request.query_params.get('start_date')
-        end_date = request.query_params.get('end_date')
-        compare_periods = int(request.query_params.get('compare', 0))
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+        compare_periods = int(request.query_params.get("compare", 0))
 
         # Generate date ranges
         date_ranges = []
@@ -29,21 +31,29 @@ class ReportCompanyProfitAndLoss(APIView):
             "cost_of_sales": {},
             "expenses": {},
             "unclassified": {},
-            "totals": {"gross_profit": []}
+            "totals": {"gross_profit": []},
         }
 
         for i, (period_start, period_end) in enumerate(reversed(date_ranges)):
             report["periods"].append(period_start.strftime("%b %Y"))
 
             # Invoices aggregation
-            invoices = InvoiceLineItem.objects.filter(
-                invoice__date__range=[period_start, period_end]
-            ).values("account__account_name", "account__account_type").annotate(total=Sum("line_amount"))
+            invoices = (
+                InvoiceLineItem.objects.filter(
+                    invoice__date__range=[period_start, period_end]
+                )
+                .values("account__account_name", "account__account_type")
+                .annotate(total=Sum("line_amount"))
+            )
 
             # Bills aggregation
-            bills = BillLineItem.objects.filter(
-                bill__date__range=[period_start, period_end]
-            ).values("account__account_name", "account__account_type").annotate(total=Sum("line_amount"))
+            bills = (
+                BillLineItem.objects.filter(
+                    bill__date__range=[period_start, period_end]
+                )
+                .values("account__account_name", "account__account_type")
+                .annotate(total=Sum("line_amount"))
+            )
 
             # Categorize
             for invoice in invoices:
@@ -54,10 +64,13 @@ class ReportCompanyProfitAndLoss(APIView):
                 if account_type == "AccountType.REVENUE":
                     report["income"].setdefault(account_name, []).append(total)
                 elif not account_type:  # Handle missing account type
-                    report["unclassified"].setdefault("Invoices", []).append({"name": account_name, "total": total})
+                    report["unclassified"].setdefault("Invoices", []).append(
+                        {"name": account_name, "total": total}
+                    )
                 else:
                     report["unexpected"].setdefault("Invoices", []).append(
-                        {"name": account_name, "type": account_type, "total": total})
+                        {"name": account_name, "type": account_type, "total": total}
+                    )
 
             for bill in bills:
                 account_type = bill.get("account__account_type")
@@ -69,14 +82,22 @@ class ReportCompanyProfitAndLoss(APIView):
                 elif account_type in ["AccountType.EXPENSE", "AccountType.OVERHEADS"]:
                     report["expenses"].setdefault(account_name, []).append(total)
                 elif not account_type:  # Handle missing account type
-                    report["unclassified"].setdefault("Bills", []).append({"name": account_name, "total": total})
+                    report["unclassified"].setdefault("Bills", []).append(
+                        {"name": account_name, "total": total}
+                    )
                 else:
                     report["unexpected"].setdefault("Bills", []).append(
-                        {"name": account_name, "type": account_type, "total": total})
+                        {"name": account_name, "type": account_type, "total": total}
+                    )
 
             # Gross Profit
-            total_income = sum(report["income"].get(account, [0])[i] for account in report["income"])
-            total_cogs = sum(report["cost_of_sales"].get(account, [0])[i] for account in report["cost_of_sales"])
+            total_income = sum(
+                report["income"].get(account, [0])[i] for account in report["income"]
+            )
+            total_cogs = sum(
+                report["cost_of_sales"].get(account, [0])[i]
+                for account in report["cost_of_sales"]
+            )
             gross_profit = total_income - total_cogs
             report["totals"]["gross_profit"].append(gross_profit)
 

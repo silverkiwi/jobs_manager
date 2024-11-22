@@ -4,16 +4,15 @@ import logging
 from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
-
 from workflow.models import (
     AdjustmentEntry,
     Client,
+    Invoice,
     Job,
     JobPricing,
     MaterialEntry,
     Staff,
     TimeEntry,
-    Invoice,
 )
 
 logger = logging.getLogger(__name__)

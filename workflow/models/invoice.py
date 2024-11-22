@@ -4,7 +4,6 @@ from decimal import Decimal
 from django.db import models
 
 from workflow.enums import InvoiceStatus
-from workflow.models.client import Client
 
 
 class XeroInvoiceOrBill(models.Model):

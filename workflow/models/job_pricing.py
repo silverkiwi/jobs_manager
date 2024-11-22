@@ -3,16 +3,14 @@ import logging
 import uuid
 from decimal import Decimal
 
-from django.db import models, transaction
 from django.apps import apps
-from django.db.models import Sum
+from django.db import models, transaction
 
 from workflow.enums import JobPricingStage, JobPricingType
 from workflow.models import CompanyDefaults
 
-
-
 logger = logging.getLogger(__name__)
+
 
 class JobPricing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -42,7 +40,10 @@ class JobPricing(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["created_at"]
+        ordering = [
+            "-created_at",
+            "pricing_stage",
+        ]  # Orders by newest entries first, and then by stage
 
     @property
     def material_entries(self):
@@ -111,13 +112,6 @@ class JobPricing(models.Model):
             + self.total_adjustment_revenue
         )
 
-
-    class Meta:
-        ordering = [
-            "-created_at",
-            "pricing_stage",
-        ]  # Orders by newest entries first, and then by stage
-
     def save(self, *args, **kwargs):
         if self._state.adding:
             company_defaults = CompanyDefaults.objects.first()
@@ -128,9 +122,9 @@ class JobPricing(models.Model):
                 charge_out_rate = 0.00
 
             # Get the models we need
-            TimeEntry = apps.get_model('workflow', 'TimeEntry')
-            MaterialEntry = apps.get_model('workflow', 'MaterialEntry')
-            AdjustmentEntry = apps.get_model('workflow', 'AdjustmentEntry')
+            TimeEntry = apps.get_model("workflow", "TimeEntry")
+            MaterialEntry = apps.get_model("workflow", "MaterialEntry")
+            AdjustmentEntry = apps.get_model("workflow", "AdjustmentEntry")
 
             self.revision_number = 1
 
@@ -139,18 +133,12 @@ class JobPricing(models.Model):
 
             # Create default entries
             TimeEntry.objects.create(
-                job_pricing=self,
-                wage_rate=wage_rate,
-                charge_out_rate=charge_out_rate
+                job_pricing=self, wage_rate=wage_rate, charge_out_rate=charge_out_rate
             )
 
-            MaterialEntry.objects.create(
-                job_pricing=self
-            )
+            MaterialEntry.objects.create(job_pricing=self)
 
-            AdjustmentEntry.objects.create(
-                job_pricing=self
-            )
+            AdjustmentEntry.objects.create(job_pricing=self)
         else:
             # Normal save for existing instances
             super().save(*args, **kwargs)
@@ -161,7 +149,8 @@ class JobPricing(models.Model):
         return sum(entry.hours for entry in self.time_entries.all())
 
     def display_entries(self):
-        """This is like a long form of __str___ - it gives a full list of all time/materials/adjustments."""
+        """This is like a long form of __str___ -
+        it gives a full list of all time/materials/adjustments."""
         time_entries = self.time_entries.all()
         material_entries = self.material_entries.all()
         adjustment_entries = self.adjustment_entries.all()
@@ -169,15 +158,36 @@ class JobPricing(models.Model):
         logger.debug(f"\nEntries for JobPricing {self.id} ({self.pricing_stage}):")
         logger.debug("\nTime Entries:")
         for entry in time_entries:
-            logger.debug(f"- {entry.description}: {entry.items} items, {entry.minutes_per_item} mins/item")
-
+            logger.debug(
+                "- %(desc)s: %(items)s items, %(mins)s mins/item",
+                {
+                    "desc": entry.description,
+                    "items": entry.items,
+                    "mins": entry.minutes_per_item,
+                }
+            )
         logger.debug("\nMaterial Entries:")
         for entry in material_entries:
-            logger.debug(f"- {entry.description}: {entry.quantity} @ {entry.unit_cost}/{entry.unit_revenue}")
+            logger.debug(
+                "- %(desc)s: %(qty)s @ %(cost)s/%(revenue)s",
+                {
+                    "desc": entry.description,
+                    "qty": entry.quantity,
+                    "cost": entry.unit_cost,
+                    "revenue": entry.unit_revenue,
+                }
+            )
 
         logger.debug("\nAdjustment Entries:")
         for entry in adjustment_entries:
-            logger.debug(f"- {entry.description}: cost {entry.cost_adjustment}, price {entry.price_adjustment}")
+            logger.debug(
+                "- %(desc)s: cost %(cost)s, price %(price)s",
+                {
+                    "desc": entry.description,
+                    "cost": entry.cost_adjustment,
+                    "price": entry.price_adjustment,
+                }
+            )
 
     def __str__(self):
         # Only bother displaying revision if there is one
@@ -188,19 +198,22 @@ class JobPricing(models.Model):
 
         job = self.job
         job_name = job.name if job else "No Job"
-        job_name_str = f"{job_name} - {self.get_pricing_stage_display()} ({self.get_pricing_type_display()}){revision_str}"
+        job_name_str = (
+            f"{job_name} - "
+            f"{self.get_pricing_stage_display()} "
+            f"({self.get_pricing_type_display()})"
+            f"{revision_str}"
+        )
         return job_name_str
-
-
 
 
 # Not implemented yet - just putting this here to add in future design thinking
 def snapshot_and_add_time_entry(job_pricing, hours_worked):
-    from workflow.models import (
-        TimeEntry,
-        MaterialEntry,
+    from workflow.models import (  # Import the necessary models to avoid ciruclar
         AdjustmentEntry,
-    )  # Import the necessary models to avoid ciruclar
+        MaterialEntry,
+        TimeEntry,
+    )
 
     # Create a snapshot of the current JobPricing before modifying it
     snapshot_pricing = JobPricing.objects.create(

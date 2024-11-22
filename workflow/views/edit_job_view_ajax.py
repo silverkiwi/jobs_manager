@@ -5,21 +5,27 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
+from workflow.helpers import DecimalEncoder, get_company_defaults
 from workflow.models import Job
-from workflow.serializers import JobSerializer, JobPricingSerializer
-from workflow.services.job_service import get_job_with_pricings, \
-    get_latest_job_pricings, get_historical_job_pricings
-
-from workflow.helpers import get_company_defaults, DecimalEncoder
+from workflow.serializers import JobPricingSerializer, JobSerializer
+from workflow.services.job_service import (
+    get_historical_job_pricings,
+    get_job_with_pricings,
+    get_latest_job_pricings,
+)
 
 logger = logging.getLogger(__name__)
+DEBUG_JSON = False  # Toggle for JSON debugging
+
 
 def create_job_view(request):
     return render(request, "jobs/create_job_and_redirect.html")
 
+
 def api_fetch_status_values(request):
     status_values = dict(Job.JOB_STATUS_CHOICES)
     return JsonResponse(status_values)
+
 
 @require_http_methods(["POST"])
 def create_job_api(request):
@@ -34,7 +40,7 @@ def create_job_api(request):
         return JsonResponse({"job_id": str(new_job.id)}, status=201)
 
     except Exception as e:
-        # Log the exception and return a JSON error response in case of unexpected failures
+        # Catch all exceptions to ensure API always returns JSON response
         logger.exception("Error creating job")
         return JsonResponse({"error": str(e)}, status=500)
 
@@ -50,14 +56,15 @@ def get_job_api(request):
         # Use the service layer to get the job and its related pricings
         job = get_job_with_pricings(job_id)
 
-        # Use the service layer to get the latest pricing for each stage
-        latest_pricings = get_latest_job_pricings(job)
-
         job_client = job.client.name if job.client else "No Client"
         logger.debug(
-            f"Retrieving job with Job Number: {job.job_number}, ID: {job.id}, Client Name: {job_client}"
+            "Retrieving job - Number: %(num)s, ID: %(id)s, Client: %(client)s",
+            {
+                "num": job.job_number,
+                "id": job.id,
+                "client": job_client,
+            }
         )
-
         # Prepare response data with job pricings using correct field names
         response_data = {
             "id": str(job.id),
@@ -65,16 +72,28 @@ def get_job_api(request):
             "updated_at": job.updated_at,
             "client": job_client,
             "latest_estimate_pricing": {
-                "pricing_stage": job.latest_estimate_pricing.pricing_stage if job.latest_estimate_pricing else None,
-                "pricing_type": job.latest_estimate_pricing.pricing_type if job.latest_estimate_pricing else None,
+                "pricing_stage": (
+                    job.latest_estimate_pricing.pricing_stage
+                ),
+                "pricing_type": (
+                    job.latest_estimate_pricing.pricing_type
+                ),
             },
             "latest_quote_pricing": {
-                "pricing_stage": job.latest_quote_pricing.pricing_stage if job.latest_quote_pricing else None,
-                "pricing_type": job.latest_quote_pricing.pricing_type if job.latest_quote_pricing else None,
+                "pricing_stage": (
+                    job.latest_quote_pricing.pricing_stage
+                ),
+                "pricing_type": (
+                    job.latest_quote_pricing.pricing_type
+                ),
             },
             "latest_reality_pricing": {
-                "pricing_stage": job.latest_reality_pricing.pricing_stage if job.latest_reality_pricing else None,
-                "pricing_type": job.latest_reality_pricing.pricing_type if job.latest_reality_pricing else None,
+                "pricing_stage": (
+                    job.latest_reality_pricing.pricing_stage
+                ),
+                "pricing_type": (
+                    job.latest_reality_pricing.pricing_type
+                ),
             },
         }
 
@@ -84,7 +103,7 @@ def get_job_api(request):
         return JsonResponse({"error": "Job not found"}, status=404)
 
     except Exception as e:
-        logger.exception("Unexpected error during get_job_api")
+        logger.exception(f"Unexpected error during get_job_api: {str(e)}")
         return JsonResponse({"error": "Unexpected error"}, status=500)
 
 
@@ -109,7 +128,7 @@ def fetch_job_pricing_api(request):
                 status=404,
             )
 
-        # Convert pricing data to a list since JsonResponse cannot serialize QuerySets directly
+        # Convert to a list since JsonResponse cannot serialize QuerySets
         return JsonResponse(list(pricing_data), safe=False)
 
     except Job.DoesNotExist:
@@ -127,6 +146,7 @@ def form_to_dict(form):
     else:
         return form.initial
 
+
 @require_http_methods(["GET", "POST"])
 def edit_job_view_ajax(request, job_id=None):
     if job_id:
@@ -134,15 +154,14 @@ def edit_job_view_ajax(request, job_id=None):
         job = get_job_with_pricings(job_id)
         logger.debug(f"Editing existing job with ID: {job.id}")
     else:
-       raise ValueError("Job ID is required to edit a job")
+        raise ValueError("Job ID is required to edit a job")
 
     # Fetch All Job Pricing Revisions for Each Pricing Stage
     historical_job_pricings = get_historical_job_pricings(job)
 
     # Serialize the historical pricings without sections
     historical_job_pricings_serialized = [
-        JobPricingSerializer(pricing).data
-        for pricing in historical_job_pricings
+        JobPricingSerializer(pricing).data for pricing in historical_job_pricings
     ]
 
     # Fetch the Latest Revision for Each Pricing Stage
@@ -155,8 +174,12 @@ def edit_job_view_ajax(request, job_id=None):
     }
 
     # Serialize the job pricings data to JSON
-    historical_job_pricings_json = json.dumps(historical_job_pricings_serialized, cls=DecimalEncoder)
-    latest_job_pricings_json = json.dumps(latest_job_pricings_serialized, cls=DecimalEncoder)
+    historical_job_pricings_json = json.dumps(
+        historical_job_pricings_serialized, cls=DecimalEncoder
+    )
+    latest_job_pricings_json = json.dumps(
+        latest_job_pricings_serialized, cls=DecimalEncoder
+    )
 
     # Get company defaults for any shared settings or values
     company_defaults = get_company_defaults()
@@ -170,14 +193,23 @@ def edit_job_view_ajax(request, job_id=None):
         "latest_job_pricings_json": latest_job_pricings_json,  # Latest version
     }
 
-    logger.debug(f"Rendering template for job {job.id} with job number {job.job_number}")
-    try:
-        pass
-        # Dump the context to JSON for logging
-        #logger.debug(f"Historical pricing being passed to template: {json.dumps(historical_job_pricings_json)}")
-        #logger.debug(f"Latest pricing being passed to template: {json.dumps(latest_job_pricings_json)}")
-    except Exception as e:
-        logger.error(f"Error while dumping context: {e}")
+    logger.debug(
+        f"Rendering template for job {job.id} with job number {job.job_number}"
+    )
+
+    if DEBUG_JSON:
+        try:
+            # Dump the context to JSON for logging
+            logger.debug(
+                "Historical pricing template data: %s",
+                json.dumps(historical_job_pricings_json)
+            )
+            logger.debug(
+                "Latest pricing being passed to template: %s",
+                json.dumps(latest_job_pricings_json)
+            )
+        except Exception as e:
+            logger.error(f"Error while dumping context: {e}")
 
     # Render the Template
     return render(request, "jobs/edit_job_ajax.html", context)
@@ -206,10 +238,7 @@ def autosave_job_view(request):
         # Step 3: Pass the job and incoming data to a dedicated serializer
         # Add context with request
         serializer = JobSerializer(
-            instance=job,
-            data=data,
-            partial=True,
-            context={'request': request}
+            instance=job, data=data, partial=True, context={"request": request}
         )
 
         logger.debug(f"Initial serializer data: {serializer.initial_data}")
@@ -223,21 +252,33 @@ def autosave_job_view(request):
             client_name = job.client.name if job.client else "No Client"
 
             logger.debug(
-                f"Job {job_id} successfully autosaved. Current Client: {client_name}, contact_person: {job.contact_person}"
+                "Job %(id)s successfully autosaved. "
+                "Current Client: %(client)s, "
+                "contact_person: %(contact)s",
+                {
+                    "id": job_id,
+                    "client": client_name,
+                    "contact": job.contact_person,
+                }
             )
             logger.debug(
-                f"job_name={job.name}, order_number={job.order_number}, contact_phone={job.contact_phone}"
+                "job_name=%(name)s, order_number=%(order)s, contact_phone=%(phone)s",
+                {"name": job.name,
+                 "order": job.order_number,
+                 "phone": job.contact_phone}
             )
 
             return JsonResponse({"success": True, "job_id": job.id})
         else:
             logger.error(f"Validation errors: {serializer.errors}")
-            return JsonResponse({"success": False, "errors": serializer.errors}, status=400)
+            return JsonResponse(
+                {"success": False, "errors": serializer.errors}, status=400
+            )
 
     except json.JSONDecodeError:
         logger.error("Failed to parse JSON")
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     except Exception as e:
-        logger.exception("Unexpected error during autosave")
+        logger.exception(f"Unexpected error during autosave: {str(e)}")
         return JsonResponse({"error": "Unexpected error"}, status=500)

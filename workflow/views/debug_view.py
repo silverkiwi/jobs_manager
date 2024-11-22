@@ -1,9 +1,11 @@
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from workflow.api.xero.sync import single_sync_invoice, single_sync_client
+
+# Imported but unused for future state debugging
+from workflow.api.xero.sync import single_sync_invoice  # noqa: F401
+from workflow.api.xero.sync import single_sync_client
 
 
 def debug_sync_invoice_view(request, invoice_number):

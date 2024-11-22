@@ -1,6 +1,7 @@
-from django.db import transaction
-from workflow.models import Invoice, InvoiceLineItem, XeroAccount
 from django.core.paginator import Paginator
+from django.db import transaction
+
+from workflow.models import Invoice, InvoiceLineItem, XeroAccount
 
 
 def sync_line_items_for_existing_invoices(batch_size=1000):

@@ -1,6 +1,8 @@
-from workflow.models import Bill, Invoice
-from django.db.models import Sum
 from datetime import datetime
+
+from django.db.models import Sum
+
+from workflow.models import Bill, Invoice
 
 
 def get_company_profit_loss_data():

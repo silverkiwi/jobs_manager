@@ -9,11 +9,11 @@ from .staff_serializer import StaffSerializer
 from .time_entry_serializer import TimeEntrySerializer
 
 __all__ = [
-    'AdjustmentEntrySerializer',
-    'ClientSerializer',
-    'JobPricingSerializer',
-    'JobSerializer',
-    'MaterialEntrySerializer',
-    'StaffSerializer',
-    'TimeEntrySerializer',
+    "AdjustmentEntrySerializer",
+    "ClientSerializer",
+    "JobPricingSerializer",
+    "JobSerializer",
+    "MaterialEntrySerializer",
+    "StaffSerializer",
+    "TimeEntrySerializer",
 ]

@@ -3,31 +3,31 @@
 from .adjustment_entry import AdjustmentEntry
 from .client import Client
 from .company_defaults import CompanyDefaults
-from .invoice import XeroInvoiceOrBill, Invoice, Bill, InvoiceLineItem, BillLineItem
+from .invoice import Bill, BillLineItem, Invoice, InvoiceLineItem, XeroInvoiceOrBill
 from .job import Job
 from .job_pricing import JobPricing, QuotePricing
 from .material_entry import MaterialEntry
-from .staff import StaffManager, Staff
+from .staff import Staff, StaffManager
 from .time_entry import TimeEntry
 from .xero_account import XeroAccount
 from .xero_token import XeroToken
 
 __all__ = [
-    'AdjustmentEntry',
-    'Client',
-    'CompanyDefaults',
-    'XeroInvoiceOrBill',
-    'Invoice',
-    'Bill',
-    'InvoiceLineItem',
-    'BillLineItem',
-    'Job',
-    'JobPricing',
-    'QuotePricing',
-    'MaterialEntry',
-    'StaffManager',
-    'Staff',
-    'TimeEntry',
-    'XeroAccount',
-    'XeroToken',
+    "AdjustmentEntry",
+    "Client",
+    "CompanyDefaults",
+    "XeroInvoiceOrBill",
+    "Invoice",
+    "Bill",
+    "InvoiceLineItem",
+    "BillLineItem",
+    "Job",
+    "JobPricing",
+    "QuotePricing",
+    "MaterialEntry",
+    "StaffManager",
+    "Staff",
+    "TimeEntry",
+    "XeroAccount",
+    "XeroToken",
 ]

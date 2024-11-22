@@ -2,7 +2,6 @@ import django_filters
 
 from workflow.enums import InvoiceStatus
 from workflow.models import Invoice
-from django import forms
 
 
 class InvoiceFilter(django_filters.FilterSet):

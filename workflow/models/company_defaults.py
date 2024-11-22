@@ -1,5 +1,5 @@
-from django.db import models
 from django.core.exceptions import ValidationError
+from django.db import models
 
 
 class CompanyDefaults(models.Model):
@@ -26,6 +26,8 @@ class CompanyDefaults(models.Model):
     thu_end = models.TimeField(default="15:00")
     fri_start = models.TimeField(default="07:00")
     fri_end = models.TimeField(default="15:00")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Company Defaults"

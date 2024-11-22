@@ -6,7 +6,7 @@ from workflow.models.company_defaults import CompanyDefaults
 
 
 def get_company_defaults():
-    """Retrieve the single CompanyDefaults instance, or create it if it doesn't exist."""
+    """Retrieve the single CompanyDefaults instance, or create if it doesn't exist."""
     defaults, created = CompanyDefaults.objects.get_or_create(
         defaults={
             "time_markup": 0.0,
@@ -17,11 +17,13 @@ def get_company_defaults():
     )
     return defaults
 
+
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         return super(DecimalEncoder, self).default(obj)
+
 
 def decimal_to_float(value):
     return float(value) if isinstance(value, Decimal) else value

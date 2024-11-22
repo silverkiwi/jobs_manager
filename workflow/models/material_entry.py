@@ -20,13 +20,19 @@ class MaterialEntry(models.Model):
     item_code = models.CharField(
         max_length=20, null=False, blank=True, default=""
     )  # Later a FK probably
-    description = models.CharField(max_length=200,null=False, blank=True, default="")
+    description = models.CharField(max_length=200, null=False, blank=True, default="")
     comments = models.CharField(
         max_length=200, null=False, blank=True, default=""
     )  # Freetext internal note
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, null=False, default=0) # Default comes up on the dummy row
-    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=False, default=0)
-    unit_revenue = models.DecimalField(max_digits=10, decimal_places=2, null=False, default=0)
+    quantity = models.DecimalField(
+        max_digits=10, decimal_places=2, null=False, default=0
+    )  # Default comes up on the dummy row
+    unit_cost = models.DecimalField(
+        max_digits=10, decimal_places=2, null=False, default=0
+    )
+    unit_revenue = models.DecimalField(
+        max_digits=10, decimal_places=2, null=False, default=0
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

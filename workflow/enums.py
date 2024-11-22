@@ -32,9 +32,9 @@ class RateType(models.TextChoices):
     @property
     def multiplier(self) -> Decimal:
         multipliers = {
-            self.ORDINARY: Decimal('1.0'),
-            self.TIME_AND_HALF: Decimal('1.5'),
-            self.DOUBLE_TIME: Decimal('2.0'),
-            self.UNPAID: Decimal('0.0')
+            self.ORDINARY: Decimal("1.0"),
+            self.TIME_AND_HALF: Decimal("1.5"),
+            self.DOUBLE_TIME: Decimal("2.0"),
+            self.UNPAID: Decimal("0.0"),
         }
         return multipliers[self]
