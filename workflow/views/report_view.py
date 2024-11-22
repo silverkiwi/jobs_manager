@@ -28,33 +28,51 @@ class ReportCompanyProfitAndLoss(APIView):
             "income": {},
             "cost_of_sales": {},
             "expenses": {},
+            "unclassified": {},
             "totals": {"gross_profit": []}
         }
 
         for i, (period_start, period_end) in enumerate(reversed(date_ranges)):
             report["periods"].append(period_start.strftime("%b %Y"))
+
+            # Invoices aggregation
             invoices = InvoiceLineItem.objects.filter(
                 invoice__date__range=[period_start, period_end]
-            ).values("account__account_name").annotate(total=Sum("line_amount"))
+            ).values("account__account_name", "account__account_type").annotate(total=Sum("line_amount"))
+
+            # Bills aggregation
             bills = BillLineItem.objects.filter(
                 bill__date__range=[period_start, period_end]
-            ).values("account__account_name").annotate(total=Sum("line_amount"))
+            ).values("account__account_name", "account__account_type").annotate(total=Sum("line_amount"))
 
-            # Group and aggregate
+            # Categorize
             for invoice in invoices:
-                account_type = invoice["account__account_type"]
+                account_type = invoice.get("account__account_type")
                 account_name = invoice["account__account_name"]
+                total = invoice["total"]
 
                 if account_type == "AccountType.REVENUE":
-                    report["income"].setdefault(account_name, []).append(invoice["total"])
+                    report["income"].setdefault(account_name, []).append(total)
+                elif not account_type:  # Handle missing account type
+                    report["unclassified"].setdefault("Invoices", []).append({"name": account_name, "total": total})
+                else:
+                    report["unexpected"].setdefault("Invoices", []).append(
+                        {"name": account_name, "type": account_type, "total": total})
+
             for bill in bills:
-                account_type = bill["account__account_type"]
+                account_type = bill.get("account__account_type")
                 account_name = bill["account__account_name"]
+                total = bill["total"]
 
                 if account_type == "AccountType.DIRECTCOSTS":
-                    report["cost_of_sales"].setdefault(account_name, []).append(bill["total"])
+                    report["cost_of_sales"].setdefault(account_name, []).append(total)
                 elif account_type in ["AccountType.EXPENSE", "AccountType.OVERHEADS"]:
-                    report["expenses"].setdefault(account_name, []).append(bill["total"])
+                    report["expenses"].setdefault(account_name, []).append(total)
+                elif not account_type:  # Handle missing account type
+                    report["unclassified"].setdefault("Bills", []).append({"name": account_name, "total": total})
+                else:
+                    report["unexpected"].setdefault("Bills", []).append(
+                        {"name": account_name, "type": account_type, "total": total})
 
             # Gross Profit
             total_income = sum(report["income"].get(account, [0])[i] for account in report["income"])

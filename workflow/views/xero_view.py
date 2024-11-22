@@ -77,7 +77,6 @@ def get_xero_contacts(request: HttpRequest) -> HttpResponse:
         request, "workflow/xero_contacts.html", {"contacts": contacts.contacts}
     )
 
-
 def refresh_xero_data(request):
     try:
         token = get_token()
@@ -95,9 +94,16 @@ def refresh_xero_data(request):
         logger.info("Xero data successfully refreshed")
 
     except Exception as e:
-        logger.error(f"Error while refreshing Xero data: {str(e)}")
-        return redirect("authenticate_xero")
-    #        return render(request, "xero/error_xero_sync.html", {"message": str(e)})
+        if "token" in str(e).lower():  # Or check for the specific error code
+            logger.error(f"Error while refreshing Xero data: {str(e)}")
+            return redirect("authenticate_xero")
+        else:
+            logger.error(f"Error while refreshing Xero data: {str(e)}")
+            return render(
+                request,
+                "general/generic_error.html",
+                {"error_message": str(e)}
+            )
 
     # After successful sync, redirect to the home page or wherever appropriate
     return redirect("/")

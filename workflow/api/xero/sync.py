@@ -1,4 +1,7 @@
+import json
 import logging
+import uuid
+
 import time
 from datetime import date, datetime, timedelta
 from uuid import UUID
@@ -17,6 +20,186 @@ from workflow.models.xero_account import XeroAccount
 
 logger = logging.getLogger(__name__)
 
+
+def set_invoice_fields(invoice):
+    if not invoice.raw_json:
+        raise ValueError("Invoice raw_json is empty.  We better not try to process it")
+
+    raw_data = invoice.raw_json
+
+    invoice.xero_id = raw_data.get('_invoice_id')
+    invoice.number = raw_data.get('_invoice_number')
+    invoice.date = raw_data.get('_date')
+    invoice.due_date = raw_data.get('_due_date')
+    invoice.status = raw_data.get('_status')
+    invoice.total = raw_data.get('_total')
+    invoice.amount_due = raw_data.get('_amount_due')
+    invoice.xero_last_modified = raw_data.get('_updated_date_utc')
+
+    # Set or create the client for the invoice
+    contact_data = raw_data.get('_contact', {})
+    contact_id = contact_data.get('_contact_id')
+    contact_name = contact_data.get('_name')
+    client = Client.objects.filter(xero_contact_id=contact_id).first()
+    if not client:
+        raise ValueError(f"Client not found for invoice {invoice.number}")
+    invoice.client = client
+
+    # Save the invoice after setting all fields
+    invoice.save()
+
+    # Update Invoice Line Items
+    line_items_data = raw_data.get('_line_items', [])
+    for line_item_data in line_items_data:
+        line_item_id = line_item_data.get('_line_item_id')  # Unique identifier from raw_json
+        xero_line_id = uuid.UUID(line_item_id)
+        description = line_item_data.get('_description') or "No description provided"
+        quantity = line_item_data.get('_quantity', 1)
+        unit_price = line_item_data.get('_unit_amount')
+        line_amount = line_item_data.get('_line_amount')
+        tax_amount = line_item_data.get('_tax_amount')
+
+        # Fetch the account code from the line item data itself
+        account_code = line_item_data.get('_account_code')
+
+        # Find the related XeroAccount by account code
+        account = XeroAccount.objects.filter(account_code=account_code).first()
+
+        # Sync the line item
+        InvoiceLineItem.objects.update_or_create(
+            invoice=invoice,
+            xero_line_id=xero_line_id,
+            defaults={
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "description": description,
+                "account": account,
+                "tax_amount": tax_amount,
+                "line_amount": line_amount,
+            },
+        )
+
+def set_bill_fields(bill):
+    if not bill.raw_json:
+        raise ValueError("Bill raw_json is empty. We better not try to process it")
+
+    raw_data = bill.raw_json
+
+    bill.xero_id = raw_data.get('_invoice_id')
+    bill.number = raw_data.get('_invoice_number')
+    bill.date = raw_data.get('_date')
+    bill.due_date = raw_data.get('_due_date')
+    bill.status = raw_data.get('_status')
+    bill.total = raw_data.get('_total')
+    bill.amount_due = raw_data.get('_amount_due')
+    bill.xero_last_modified = raw_data.get('_updated_date_utc')
+
+    # Set or create the supplier for the bill
+    contact_data = raw_data.get('_contact', {})
+    contact_id = contact_data.get('_contact_id')
+    contact_name = contact_data.get('_name')
+    supplier = Client.objects.filter(xero_contact_id=contact_id).first()
+    if not supplier:
+        raise ValueError(f"Supplier not found for bill {bill.number}")
+
+    bill.client = supplier
+
+    # Save the bill after setting all fields
+    bill.save()
+
+    # Update Bill Line Items
+    line_items_data = raw_data.get('_line_items', [])
+    for line_item_data in line_items_data:
+        line_item_id = line_item_data.get('_line_item_id')  # Unique identifier from raw_json
+        xero_line_id = uuid.UUID(line_item_id)
+        description = line_item_data.get('_description') or "No description provided"
+        quantity = line_item_data.get('_quantity', 1)
+        unit_price = line_item_data.get('_unit_amount')
+        line_amount = line_item_data.get('_line_amount')
+        tax_amount = line_item_data.get('_tax_amount')
+
+        # Fetch the account code from the line item data itself
+        account_code = line_item_data.get('_account_code')
+
+        # Find the related XeroAccount by account code
+        account = XeroAccount.objects.filter(account_code=account_code).first()
+
+        # Sync the line item
+        BillLineItem.objects.update_or_create(
+            bill=bill,
+            xero_line_id=xero_line_id,
+            defaults={
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "description": description,
+                "account": account,
+                "tax_amount": tax_amount,
+                "line_amount": line_amount,
+            },
+        )
+
+
+def set_client_fields(client):
+    # Extract relevant fields from raw_json
+    if not client.raw_json:
+        raise ValueError("Client raw_json is empty.  We better not try to process it")
+
+    raw_data = client.raw_json
+
+    # Extract basic client fields from raw JSON
+    client.name = raw_data.get('_name')
+    client.email = raw_data.get('_email_address')
+    # Handling the phone number
+    phones = raw_data.get('_phones', [])
+    client.phone = phones[0].get('phone_number', "") if phones else ""
+
+    # Handling the address
+    addresses = raw_data.get('addresses', [])
+    client.address = addresses[0].get('address_line1', "") if addresses else ""
+
+    # Handling payment terms (keeping the condition from old logic)
+    payment_terms = raw_data.get('payment_terms')
+    client.is_account_customer = payment_terms is not None and payment_terms.get('sales') is not None
+
+
+    # Save the updated client information
+    client.save()
+
+
+def reprocess_invoices():
+    """Reprocess all existing invoices to set fields based on raw JSON."""
+    for invoice in Invoice.objects.all():
+        try:
+            set_invoice_fields(invoice)
+            logger.info(f"Reprocessed invoice: {invoice.number}")
+        except Exception as e:
+            logger.error(f"Error reprocessing invoice {invoice.number}: {str(e)}")
+
+def reprocess_bills():
+    """Reprocess all existing bills to set fields based on raw JSON."""
+    for bill in Bill.objects.all():
+        try:
+            set_bill_fields(bill)
+            logger.info(f"Reprocessed invoice: {bill.number}")
+        except Exception as e:
+            logger.error(f"Error reprocessing invoice {bill.number}: {str(e)}")
+
+def reprocess_clients():
+    """Reprocess all existing clients to set fields based on raw JSON."""
+    for client in Client.objects.all():
+        try:
+            set_client_fields(client)
+            logger.info(f"Reprocessed client: {client.name}")
+        except Exception as e:
+            logger.error(f"Error reprocessing client {client.name}: {str(e)}")
+
+def reprocess_all():
+    """Reprocesses all data to set fields based on raw JSON."""
+    # NOte, we don't have a reprocess accounts because it just feels too weird.
+    # If you break accounts, you probably want to handle it manually
+    reprocess_clients()
+    reprocess_invoices()
+    reprocess_bills()
 
 def sync_xero_data(
     xero_entity_type,
@@ -125,181 +308,112 @@ def remove_currency_fields(data):
         return data  # Base case: return data as-is if it's not a dict or list
 
 
-def prepare_invoice_or_bill_defaults(doc_data, client):
-    """Prepare the default fields for both Invoices and Bills."""
-    raw_json_with_currency = serialise_xero_object(doc_data)
-    raw_json = remove_currency_fields(raw_json_with_currency)
-
-    defaults = {
-        "number": doc_data.invoice_number,
-        "client": client,
-        "date": doc_data.date,
-        "status": doc_data.status,
-        "total": doc_data.total,
-        "amount_due": doc_data.amount_due,
-        "xero_last_modified": doc_data.updated_date_utc,
-        "raw_json": raw_json,
-    }
-
-    if hasattr(doc_data, "due_date") and doc_data.due_date is not None:
-        defaults["due_date"] = doc_data.due_date
-
-    return defaults
-
-
 def sync_invoices(invoices):
     """Sync Xero invoices (ACCREC)."""
     for inv in invoices:
-        xero_id = getattr(inv, "invoice_id", None)
+        xero_id = getattr(inv, "invoice_id")
 
+        # Retrieve the client for the invoice first
         client = Client.objects.filter(xero_contact_id=inv.contact.contact_id).first()
-
         if not client:
             logger.warning(f"Client not found for invoice {inv.invoice_number}")
-            continue
+            raise ValueError(f"Client not found for invoice {inv.invoice_number}")
 
-        defaults = prepare_invoice_or_bill_defaults(inv, client)
+        raw_json = serialise_xero_object(inv)
 
+        # Retrieve or create the invoice (without saving initially)
         try:
-            with transaction.atomic():
-                invoice, created = Invoice.objects.update_or_create(
-                    xero_id=xero_id, defaults=defaults
-                )
-                invoice_status = getattr(inv, "status", None)
-                if invoice_status not in ("DELETED", "VOIDED", "DRAFT"):
-                    # Now sync the line items
-                    line_items_data = getattr(inv, "line_items", [])
+            invoice = Invoice.objects.get(xero_id=xero_id)
+            created = False
+        except Invoice.DoesNotExist:
+            invoice = Invoice(xero_id=xero_id, client=client)
+            created = True
 
-                    for line_item_data in line_items_data:
-                        description = getattr(line_item_data, "description", None)
-                        quantity = getattr(line_item_data, "quantity", 1)
-                        unit_price = getattr(line_item_data, "unit_amount", None)
-                        account_code = getattr(line_item_data, "account_code", None)
-                        tax_amount = getattr(line_item_data, "tax_amount", None)
-                        line_amount = getattr(line_item_data, "line_amount", None)
+        # Perform the rest of the operations
+        try:
+            # Update raw_json
+            invoice.raw_json = raw_json
 
-                        # Find the related XeroAccount
-                        account = XeroAccount.objects.filter(
-                            account_code=account_code
-                        ).first()
+            # Set other fields from raw_json using set_invoice_fields
+            set_invoice_fields(invoice)
 
-                        # Sync the line item
-                        InvoiceLineItem.objects.update_or_create(
-                            invoice=invoice,
-                            description=description,
-                            defaults={
-                                "quantity": quantity,
-                                "unit_price": unit_price,
-                                "account": account,
-                                "tax_amount": tax_amount,
-                                "line_amount": line_amount,
-                            },
-                        )
-
-                if created:
-                    logger.info(f"New invoice added: {defaults['number']} updated_at={defaults['xero_last_modified']}")
-                else:
-                    logger.info(f"Updated invoice: {defaults['number']} updated_at={defaults['xero_last_modified']}")
+            # Log whether the invoice was created or updated
+            if created:
+                logger.info(f"New invoice added: {invoice.number} updated_at={invoice.xero_last_modified}")
+            else:
+                logger.info(f"Updated invoice: {invoice.number} updated_at={invoice.xero_last_modified}")
 
         except Exception as e:
             logger.error(f"Error processing invoice {inv.invoice_number}: {str(e)}")
-            logger.error(f"Invoice data: {defaults['raw_json']}")
+            logger.error(f"Invoice data: {raw_json}")
             raise
 
 
 def sync_bills(bills):
     """Sync Xero bills (ACCPAY)."""
-    for bill in bills:
-        xero_id = getattr(bill, "invoice_id", None)
-
-        client = Client.objects.filter(xero_contact_id=bill.contact.contact_id).first()
-
+    for bill_data in bills:
+        xero_id = getattr(bill_data, "invoice_id")
+        raw_json = serialise_xero_object(bill_data)
+        bill_number = raw_json['_invoice_number']
+        # Retrieve the client for the bill first
+        client = Client.objects.filter(xero_contact_id=bill_data.contact.contact_id).first()
         if not client:
-            logger.warning(f"Client not found for bill {bill.invoice_number}")
+            logger.warning(f"Client not found for bill {bill_number}")
             continue
 
-        defaults = prepare_invoice_or_bill_defaults(bill, client)
-
+        # Retrieve or create the bill without saving immediately
         try:
-            with transaction.atomic():
-                bill_obj, created = Bill.objects.update_or_create(
-                    xero_id=xero_id, defaults=defaults
-                )
-                # Now sync the line items
-                line_items_data = defaults["raw_json"].get("line_items", [])
+            bill = Bill.objects.get(xero_id=xero_id)
+            created = False
+        except Bill.DoesNotExist:
+            bill = Bill(xero_id=xero_id, client=client)
+            created = True
 
-                for line_item_data in line_items_data:
-                    description = getattr(line_item_data, "description", None)
-                    quantity = getattr(line_item_data, "quantity", 1)
-                    unit_price = getattr(line_item_data, "unit_amount", None)
-                    account_code = getattr(line_item_data, "account_code", None)
-                    tax_amount = getattr(line_item_data, "tax_amount", None)
-                    line_amount = getattr(line_item_data, "line_amount", None)
+        # Now perform the rest of the operations, ensuring everything is set before saving
+        try:
+            # Update raw_json and other necessary fields
+            bill.raw_json = raw_json
 
-                    # Find the related XeroAccount
-                    account = XeroAccount.objects.filter(
-                        account_code=account_code
-                    ).first()
+            # Set other fields using set_bill_fields (which also saves the bill)
+            set_bill_fields(bill)
 
-                    # Sync the line item
-                    BillLineItem.objects.update_or_create(
-                        bill=bill_obj,
-                        description=description,
-                        defaults={
-                            "quantity": quantity,
-                            "unit_price": unit_price,
-                            "account": account,
-                            "tax_amount": tax_amount,
-                            "line_amount": line_amount,
-                        },
-                    )
-                if created:
-                    logger.info(f"New bill added: {defaults['number']} updated_at={defaults['xero_last_modified']}")
-                else:
-                    logger.info(f"Updated bill: {defaults['number']} updated_at={defaults['xero_last_modified']}")
+            # Log whether the bill was created or updated
+            if created:
+                logger.info(f"New bill added: {bill.number} updated_at={bill.xero_last_modified}")
+            else:
+                logger.info(f"Updated bill: {bill.number} updated_at={bill.xero_last_modified}")
 
         except Exception as e:
-            logger.error(f"Error processing bill {bill.invoice_number}: {str(e)}")
-            logger.error(f"Bill data: {defaults['raw_json']}")
+            logger.error(f"Error processing bill {bill_number}: {str(e)}")
+            logger.error(f"Bill data: {raw_json}")
             raise
+
 
 
 def sync_clients(xero_contacts):
     for contact_data in xero_contacts:
         xero_contact_id = getattr(contact_data, "contact_id", None)
-        payment_terms = getattr(contact_data, "payment_terms", None)
-        is_account_customer = (
-            payment_terms is not None
-            and getattr(payment_terms, "sales", None) is not None
-        )
 
         raw_json_with_currency = serialise_xero_object(contact_data)
         raw_json = remove_currency_fields(
             raw_json_with_currency
         )  # Client doesn't have any currency fields but kept for consistancy
 
-        phone = contact_data.phones[0].phone_number if contact_data.phones else ""
-        address = (
-            contact_data.addresses[0].address_line1 if contact_data.addresses else ""
-        )
+        try:
+            client = Client.objects.get(xero_contact_id=xero_contact_id)
+            created = False
+        except Client.DoesNotExist:
+            client = Client(xero_contact_id=xero_contact_id)
+            created = True
 
         try:
-            client, created = Client.objects.update_or_create(
-                xero_contact_id=xero_contact_id,
-                defaults={
-                    "name": contact_data.name,
-                    "email": contact_data.email_address,
-                    "phone": phone,
-                    "address": address,
-                    "is_account_customer": is_account_customer,
-                    "raw_json": raw_json,
-                },
-            )
+            client.raw_json = raw_json
+            set_client_fields(client)
 
             if created:
-                logger.info(f"New client added: {client.name}")
+                logger.info(f"New client added: {client.name} updated_at={client.xero_last_modified}")
             else:
-                logger.info(f"Updated client: {client.name}")
+                logger.info(f"Updated client: {client.name} updated_at={client.xero_last_modified}")
         except Exception as e:
             logger.error(f"Error processing client {contact_data.name}: {str(e)}")
             logger.error(f"Client data: {raw_json}")
@@ -581,11 +695,21 @@ def sync_all_xero_data():
     our_latest_account = get_last_modified_time(XeroAccount)
 
     sync_xero_data(
+        xero_entity_type="accounts",
+        xero_api_function=accounting_api.get_accounts,
+        sync_function=sync_accounts,
+        last_modified_time=our_latest_account,
+        supports_pagination=False,
+    )
+
+    sync_xero_data(
         xero_entity_type="contacts",
         xero_api_function=accounting_api.get_contacts,
         sync_function=sync_clients,
         last_modified_time=our_latest_contact,
     )
+
+
 
     sync_xero_data(
         xero_entity_type="invoices",
@@ -602,10 +726,3 @@ def sync_all_xero_data():
         additional_params={"where": 'Type=="ACCPAY"'},
     )
 
-    sync_xero_data(
-        xero_entity_type="accounts",
-        xero_api_function=accounting_api.get_accounts,
-        sync_function=sync_accounts,
-        last_modified_time=our_latest_account,
-        supports_pagination=False,
-    )

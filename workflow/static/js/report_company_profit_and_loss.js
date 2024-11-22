@@ -1,3 +1,61 @@
+document.addEventListener("DOMContentLoaded", function () {
+    const dateRanges = {
+        "This month": [moment().startOf("month"), moment().endOf("month")],
+        "Last month": [
+            moment().subtract(1, "month").startOf("month"),
+            moment().subtract(1, "month").endOf("month"),
+        ],
+        "This quarter": [moment().startOf("quarter"), moment().endOf("quarter")],
+        "Last quarter": [
+            moment().subtract(1, "quarter").startOf("quarter"),
+            moment().subtract(1, "quarter").endOf("quarter"),
+        ],
+        "This financial year": [
+            moment().month(3).startOf("month"),
+            moment().add(1, "year").month(2).endOf("month"),
+        ],
+        "Last financial year": [
+            moment().subtract(1, "year").month(3).startOf("month"),
+            moment().subtract(1, "year").month(2).endOf("month"),
+        ],
+    };
+
+    // Populate dropdown with options
+    const dropdown = document.getElementById("date-range-picker");
+    Object.keys(dateRanges).forEach((rangeName, index) => {
+        const option = document.createElement("option");
+        option.value = rangeName;
+        option.textContent = rangeName;
+
+        // Set "Last month" as the default selection
+        if (rangeName === "Last month") {
+            option.selected = true;
+        }
+
+        dropdown.appendChild(option);
+    });
+
+    // Set initial range for "Last month"
+    const defaultRange = dateRanges["Last month"];
+    document.getElementById("start_date").value = defaultRange[0].format("YYYY-MM-DD");
+    document.getElementById("end_date").value = defaultRange[1].format("YYYY-MM-DD");
+
+    // Update date picker on selection
+    dropdown.addEventListener("change", function () {
+        const selectedRange = dateRanges[this.value];
+        if (selectedRange) {
+            const startDate = selectedRange[0].format("YYYY-MM-DD");
+            const endDate = selectedRange[1].format("YYYY-MM-DD");
+
+            // Update hidden fields for the selected range
+            document.getElementById("start_date").value = startDate;
+            document.getElementById("end_date").value = endDate;
+
+            console.log(`Selected Range: ${startDate} to ${endDate}`);
+        }
+    });
+});
+
 // Fetch and render the Profit & Loss chart
 function fetchAndRenderPNLChart() {
     const startDate = document.getElementById('start_date').value;

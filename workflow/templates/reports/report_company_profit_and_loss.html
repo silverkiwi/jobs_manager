@@ -6,21 +6,27 @@
   <h1>Company Profit and Loss Report</h1>
 
   <!-- Filter inputs -->
-  <div>
-    <label for="start_date">Start Date:</label>
-    <input type="date" id="start_date">
-    <label for="end_date">End Date:</label>
-    <input type="date" id="end_date">
+<div>
+    <label for="date-range-picker">Date Range:</label>
+    <select id="date-range-picker">
+        <!-- Options will be populated dynamically by JavaScript -->
+    </select>
+
+    <!-- These hidden inputs store the actual date range for API calls -->
+    <input type="hidden" id="start_date">
+    <input type="hidden" id="end_date">
+
     <label for="compare">Compare Periods:</label>
     <input type="number" id="compare" value="7">
     <button id="update-chart">Update Chart</button>
-  </div>
+</div>
 
   <!-- Chart container -->
   <div id="pnl-chart"></div>
 {% endblock %}
 
 {% block extra_js %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
   <script src="https://code.highcharts.com/highcharts.js"></script>
   <script src="{% static 'js/report_company_profit_and_loss.js' %}"></script>
 {% endblock %}

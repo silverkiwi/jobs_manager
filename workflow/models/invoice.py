@@ -49,15 +49,21 @@ class Bill(XeroInvoiceOrBill):
         ordering = ["-date", "number"]
 
     @property
-    def vendor(self):
-        """Return the client as 'vendor' for bills."""
+    def supplier(self):
+        """Return the client as 'supplier' for bills."""
         return self.client
+
+    @supplier.setter
+    def supplier(self, value):
+        self.client = value
 
 
 class InvoiceLineItem(models.Model):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )  # Internal UUID
+    xero_line_id = models.UUIDField(default=uuid.uuid4, unique=True)
+
     invoice = models.ForeignKey(
         "Invoice", on_delete=models.CASCADE, related_name="line_items"
     )  # Link to Invoice
@@ -94,6 +100,8 @@ class BillLineItem(models.Model):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )  # Internal UUID
+    xero_line_id = models.UUIDField(default=uuid.uuid4, unique=True)
+
     bill = models.ForeignKey(
         "Bill", on_delete=models.CASCADE, related_name="line_items"
     )  # Link to Bill
@@ -116,6 +124,12 @@ class BillLineItem(models.Model):
     tax_type = models.CharField(
         max_length=50, null=True, blank=True
     )  # Optional, in case tax types vary in the future
+
+    # PResent in the Xero API but not used in the system.  Tracking is needed later
+    # _tax_type
+    # _discount_rate
+    # _discount_amount
+    # _tracking
 
     @property
     def total_price(self):
