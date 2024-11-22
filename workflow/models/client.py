@@ -21,10 +21,16 @@ class Client(models.Model):
     is_account_customer = models.BooleanField(
         default=False
     )  # Account vs cash customer flag
+    xero_last_modified = models.DateTimeField(null=False, blank=False)
+
     raw_json = models.JSONField(
         null=True, blank=True
     )  # For debugging, stores the raw JSON from Xero
-    last_modified = models.DateTimeField(auto_now=True)
+    django_created_at = models.DateTimeField(auto_now_add=True)
+    django_updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
 
     def __str__(self):
         return self.name

@@ -1,5 +1,6 @@
 import json
 
+from django.db.models import Sum
 from django.views.generic import TemplateView
 from django.http import JsonResponse
 from django.core.serializers.json import DjangoJSONEncoder
@@ -48,26 +49,29 @@ class TimesheetOverviewView(TemplateView):
 
         # Step 4: Get all open jobs and their hours
         job_data = []
-        open_jobs = Job.objects.filter(status='open')
+        open_jobs = Job.objects.filter(status__in=['quoting', 'approved', 'in_progress','special'])
+
+
         for job in open_jobs:
             # Get estimated hours, quoted hours, and actual hours
-            estimated_hours = job.latest_estimate_pricing.time_entries.get('hours', None)  #
-            quoted_hours = job.latest_quote_pricing.time_entries.get('hours', None)
-            actual_entries = job.latest_reality_pricing.time_entries
-            actual_hours = [entry.hours() for entry in actual_entries]
-            is_billable = any(entry.is_billable for entry in actual_entries)
-            charge_out_rates = [entry.charge_out_rate for entry in actual_entries]
-            wage_rates = [entry.wage_rate for entry in actual_entries]
+            reality = job.latest_reality_pricing
+            estimated_hours = job.latest_estimate_pricing.total_hours
+            quoted_hours = job.latest_quote_pricing.total_hours
+            actual_entries = job.latest_reality_pricing.time_entries.all()
+            actual_total_hours = sum(entry.hours for entry in actual_entries)
+            actual_billable_hours = sum(entry.hours for entry in actual_entries if entry.is_billable)
             job_data.append({
                 "job_id": job.id,
                 "job_name": job.name,
                 "estimated_hours": estimated_hours,
                 "quoted_hours": quoted_hours,
-                "actual_hours_to_date": actual_hours,  # Provide all hours without implying sequential order
-                "is_billable": is_billable,
-                "charge_out_rates": charge_out_rates,
-                "wage_rates": wage_rates,
-                "shop_job": job.shop_job  # Include flag to determine if this is a shop job
+                "actual_hours_to_date": actual_total_hours,
+                "actual_billable_hours_to_date": actual_billable_hours,
+                "actual_time_revenue_to_date": reality.total_time_revenue,
+                "actual_time_cost_to_date": reality.total_time_cost,
+                "actual_total_revenue_to_date": reality.total_revenue,
+                "actual_total_cost_to_date": reality.total_cost,
+                "shop_job": job.shop_job
             })
 
         # Step 5: Get all timesheets in that week
@@ -77,8 +81,8 @@ class TimesheetOverviewView(TemplateView):
             timesheet_entries.append({
                 "date": entry.date.strftime("%Y-%m-%d"),
                 "staff_member": entry.staff.get_display_name() if entry.staff else "Unknown",
-                "job_name": entry.job_pricing.related_job.name,
-                "hours_worked": entry.hours(),  # Use the decorator to get minutes and convert to hours
+                "job_name": entry.job_pricing.job.name,
+                "hours_worked": entry.hours,
                 "is_billable": entry.is_billable,
                 "wage_rate": entry.wage_rate,
                 "charge_out_rate": entry.charge_out_rate

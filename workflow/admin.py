@@ -103,7 +103,6 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
                     "last_name",
                     "preferred_name",
                     "wage_rate",
-                    "charge_out_rate",
                     "ims_payroll_id",
                     "password1",
                     "password2",
@@ -115,29 +114,5 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
     )
     search_fields = ("email", "first_name", "last_name")
     ordering = ("email",)
-
-
-@admin.register(Job)
-class JobAdmin(SimpleHistoryAdmin):
-    class JobAdmin(SimpleHistoryAdmin):
-        # Updated list_display to reference client via ForeignKey
-        list_display = (
-            "name",
-            "client",
-            "job_number",
-            "status",
-            "paid",
-            "date_created",
-        )
-
-        search_fields = (
-            "name",
-            "client__name",
-            "job_number",
-            "order_number",
-            "contact_person",
-        )
-
-        list_filter = ("status", "paid", "date_created")
 
 

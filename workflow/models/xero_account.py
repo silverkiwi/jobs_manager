@@ -21,10 +21,10 @@ class XeroAccount(models.Model):
     enable_payments = models.BooleanField(
         default=False
     )  # Boolean for enable payments to account
-    last_modified = models.DateTimeField(
-        null=False, blank=False
-    )  # Track when this was last updated, required
+    xero_last_modified = models.DateTimeField(null=False, blank=False)
     raw_json = models.JSONField()  # Store the raw API response for reference
+    django_created_at = models.DateTimeField(auto_now_add=True)
+    django_updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.account_name} ({self.account_code})"

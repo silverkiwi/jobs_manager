@@ -5,8 +5,10 @@ from decimal import Decimal
 
 from django.db import models, transaction
 from django.apps import apps
+from django.db.models import Sum
 
 from workflow.enums import JobPricingStage, JobPricingType
+from workflow.models import CompanyDefaults
 
 
 
@@ -14,6 +16,11 @@ logger = logging.getLogger(__name__)
 
 class JobPricing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job = models.ForeignKey(
+        "Job",
+        on_delete=models.CASCADE,
+        related_name="pricings",
+    )
 
     pricing_stage = models.CharField(
         max_length=20,
@@ -33,6 +40,9 @@ class JobPricing(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["created_at"]
 
     @property
     def material_entries(self):
@@ -110,6 +120,13 @@ class JobPricing(models.Model):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
+            company_defaults = CompanyDefaults.objects.first()
+            wage_rate = company_defaults.wage_rate
+            if not self.job.shop_job:  # Non-shop jobs
+                charge_out_rate = company_defaults.charge_out_rate
+            else:
+                charge_out_rate = 0.00
+
             # Get the models we need
             TimeEntry = apps.get_model('workflow', 'TimeEntry')
             MaterialEntry = apps.get_model('workflow', 'MaterialEntry')
@@ -123,8 +140,8 @@ class JobPricing(models.Model):
             # Create default entries
             TimeEntry.objects.create(
                 job_pricing=self,
-                wage_rate=Decimal('32.00'),
-                charge_out_rate=Decimal('105.00')
+                wage_rate=wage_rate,
+                charge_out_rate=charge_out_rate
             )
 
             MaterialEntry.objects.create(
@@ -139,12 +156,9 @@ class JobPricing(models.Model):
             super().save(*args, **kwargs)
 
     @property
-    def related_job(self):
-        """Get the associated job through reverse relationships."""
-        Job = apps.get_model('workflow', 'Job')
-        return (Job.objects.filter(latest_estimate_pricing=self).first() or
-                Job.objects.filter(latest_quote_pricing=self).first() or
-                Job.objects.filter(latest_reality_pricing=self).first())
+    def total_hours(self) -> Decimal:
+        """Calculate the total hours for all time entries."""
+        return sum(entry.hours for entry in self.time_entries.all())
 
     def display_entries(self):
         """This is like a long form of __str___ - it gives a full list of all time/materials/adjustments."""
@@ -155,7 +169,7 @@ class JobPricing(models.Model):
         logger.debug(f"\nEntries for JobPricing {self.id} ({self.pricing_stage}):")
         logger.debug("\nTime Entries:")
         for entry in time_entries:
-            logger.debug(f"- {entry.description}: {entry.items} items, {entry.mins_per_item} mins/item")
+            logger.debug(f"- {entry.description}: {entry.items} items, {entry.minutes_per_item} mins/item")
 
         logger.debug("\nMaterial Entries:")
         for entry in material_entries:
@@ -172,7 +186,7 @@ class JobPricing(models.Model):
         else:
             revision_str = ""
 
-        job = self.related_job
+        job = self.job
         job_name = job.name if job else "No Job"
         job_name_str = f"{job_name} - {self.get_pricing_stage_display()} ({self.get_pricing_type_display()}){revision_str}"
         return job_name_str

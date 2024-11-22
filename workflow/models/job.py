@@ -57,12 +57,6 @@ class Job(models.Model):
     description: str = models.TextField(blank=True, null=True)  # type: ignore
     quote_acceptance_date: datetime.datetime = models.DateTimeField(null=True, blank=True)  # type: ignore
     delivery_date = models.DateField(null=True, blank=True)  # type: ignore
-    date_created: datetime.datetime = models.DateTimeField(
-        default=timezone.now
-    )  # type: ignore
-    last_updated: datetime.datetime = models.DateTimeField(
-        auto_now=True
-    )  # type: ignore
     status: str = models.CharField(
         max_length=30, choices=JOB_STATUS_CHOICES, default="quoting"
     )  # type: ignore
@@ -116,8 +110,13 @@ class Job(models.Model):
         related_name="archived_pricings_for_job",
         blank=True,
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     history: HistoricalRecords = HistoricalRecords()
+
+    class Meta:
+        ordering = ["job_number"]
 
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"
@@ -145,9 +144,9 @@ class Job(models.Model):
 
             # Step 3: Create the initial JobPricing instances for estimate, quote, and reality
             logger.debug("Creating related JobPricing entries.")
-            estimate_pricing = JobPricing.objects.create(pricing_stage="estimate")
-            quote_pricing = JobPricing.objects.create(pricing_stage="quote")
-            reality_pricing = JobPricing.objects.create(pricing_stage="reality")
+            estimate_pricing = JobPricing.objects.create(pricing_stage="estimate",job=self)
+            quote_pricing = JobPricing.objects.create(pricing_stage="quote",job=self)
+            reality_pricing = JobPricing.objects.create(pricing_stage="reality",job=self)
             logger.debug("Initial pricings created successfully.")
 
             # Step 4: Link the JobPricing objects to this job

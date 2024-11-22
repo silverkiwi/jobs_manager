@@ -99,6 +99,9 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     is_staff: bool = models.BooleanField(default=False)  # type: ignore
     date_joined: datetime = models.DateTimeField(default=timezone.now)  # type: ignore
     raw_ims_data = models.JSONField(null=True, blank=True, default=dict)  # type: ignore
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     history: HistoricalRecords = HistoricalRecords()  # type: ignore
 
     objects = StaffManager()  # Use the custom manager
@@ -110,6 +113,9 @@ class Staff(AbstractBaseUser, PermissionsMixin):
         # "charge_out_rate",
         "ims_payroll_id",
     ]
+
+    class Meta:
+        ordering = ["first_name", "last_name"]
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"

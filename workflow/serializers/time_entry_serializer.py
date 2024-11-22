@@ -15,7 +15,7 @@ class TimeEntrySerializer(serializers.ModelSerializer):
             'id',
             'description',
             'items',
-            'mins_per_item',
+            'minutes_per_item',
             'wage_rate',
             'charge_out_rate',
             'total_minutes',  # Expose total as a calculated read-only field
@@ -23,7 +23,7 @@ class TimeEntrySerializer(serializers.ModelSerializer):
             'cost',
         ]
 
-    def get_total_minutes(self, obj):
+    def get_total_minutes(self, obj):   # I think this might be redundant now it's a model field
         return decimal_to_float(obj.minutes)
 
     def get_revenue(self, obj):

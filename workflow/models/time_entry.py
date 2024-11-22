@@ -40,22 +40,34 @@ class TimeEntry(models.Model):
     description = models.TextField(
         blank=False, null=False, default=""
     )
-    items = models.IntegerField(default=1)  # New field, defaulting to 1
-    mins_per_item = models.DecimalField(
-        max_digits=5, decimal_places=2, null=False, blank=True, default=0
-    )  # items * mins_per_item = minutes
+
+    # DATA MODEL WARNING
+    #
+    # Estimates (and quotes) have items and minutes per item.
+    # Actuals have hours.
+    # Be careful.  Save writes the property minutes and hours for estimates, so you can rely on them.
+    # This means that actuals do not have items or minutes_per_item
+
+    hours = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False)
+    items = models.IntegerField(null=True, blank=True)  # For quotes/estimates
+    minutes_per_item = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at']  # Default ordering by creation time
+
+    def save(self, *args, **kwargs):
+        # Ensure minutes and hours stay consistent
+        if self.items is not None and self.minutes_per_item is not None:
+            total_minutes = self.items * self.minutes_per_item
+            self.hours = total_minutes / Decimal(60)
+        super().save(*args, **kwargs)
 
     @property
     def minutes(self) -> Decimal:
-        # Calculate minutes dynamically
-        if self.items and self.mins_per_item:
-            return self.items * self.mins_per_item
-        return Decimal(0)
-
-    @property
-    def hours(self) -> Decimal:
-        # Use computed minutes to calculate hours
-        return self.minutes / Decimal(60)
+        """Compute minutes dynamically based on hours."""
+        return self.hours * Decimal(60)
 
     @property
     def cost(self) -> Decimal:
@@ -65,9 +77,6 @@ class TimeEntry(models.Model):
     def revenue(self) -> Decimal:
         return self.hours * self.charge_out_rate
 
-    @property
-    def hours(self) -> Decimal:
-        return self.minutes / Decimal(60)
 
     def __str__(self):
         staff_name = self.staff.get_display_name()

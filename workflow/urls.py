@@ -27,6 +27,11 @@ urlpatterns = [
         edit_job_view_ajax.autosave_job_view,
         name="autosave_job_api",
     ),
+    path(
+            "api/autosave-timesheet/",
+            time_entry_view.autosave_timesheet_view,
+            name="autosave_timesheet-api",
+    ),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
     path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
     path("api/create-job/", edit_job_view_ajax.create_job_api, name="create_job_api"),
@@ -36,11 +41,8 @@ urlpatterns = [
         name="fetch_job_pricing_api",
     ),
     # API URLs
-    path(
-        "api/report/company-profit-and-loss/",
-        ReportCompanyProfitAndLoss.as_view(),
-        name="report_company_profit_and_loss",
-    ),
+    path('api/company-profit-loss/', ReportCompanyProfitAndLoss.as_view(), name='api_company_profit_and_loss'),
+
     path(
         "api/fetch_status_values/",
         edit_job_view_ajax.api_fetch_status_values,
@@ -110,6 +112,8 @@ urlpatterns = [
     path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
     path("job/<uuid:job_id>/", edit_job_view_ajax.edit_job_view_ajax, name="edit_job"),
     path('jobs/<uuid:job_id>/update_status/', kanban_view.update_job_status, name='update_job_status'),
+
+    path('reports/profit-and-loss/', CompanyProfitAndLossView.as_view(), name='company_profit_and_loss'),
 
     path(
         "timesheets/day/<str:date>/<uuid:staff_id>/",

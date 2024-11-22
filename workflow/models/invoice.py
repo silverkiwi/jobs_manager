@@ -21,8 +21,10 @@ class XeroInvoiceOrBill(models.Model):
     )
     total = models.DecimalField(max_digits=10, decimal_places=2)
     amount_due = models.DecimalField(max_digits=10, decimal_places=2)
-    last_modified = models.DateTimeField()
+    xero_last_modified = models.DateTimeField(null=False, blank=False)
     raw_json = models.JSONField()
+    django_created_at = models.DateTimeField(auto_now_add=True)
+    django_updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         abstract = True
@@ -36,6 +38,7 @@ class Invoice(XeroInvoiceOrBill):
     class Meta:
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"
+        ordering = ["-date", "number"]
 
 
 class Bill(XeroInvoiceOrBill):
@@ -43,6 +46,7 @@ class Bill(XeroInvoiceOrBill):
     class Meta:
         verbose_name = "Bill"
         verbose_name_plural = "Bills"
+        ordering = ["-date", "number"]
 
     @property
     def vendor(self):

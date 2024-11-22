@@ -28,7 +28,8 @@ class JobSerializer(serializers.ModelSerializer):
             "contact_phone",
             "job_number",
             "order_number",
-            "date_created",
+            "created_at",
+            "updated_at",
             "material_gauge_quantity",
             "description",
             "latest_estimate_pricing",
@@ -75,7 +76,7 @@ class JobSerializer(serializers.ModelSerializer):
         for pricing_type, pricing_instance in pricing_types.items():
             pricing_data = validated_data.get(pricing_type)
             if pricing_data:
-                logger.debug(f"Creating serializer for {pricing_type} with data: {pricing_data}")
+                #logger.debug(f"Creating serializer for {pricing_type} with data: {pricing_data}")
                 pricing_serializer = JobPricingSerializer(
                     instance=pricing_instance,
                     data=pricing_data,

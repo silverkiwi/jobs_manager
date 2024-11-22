@@ -26,6 +26,8 @@ class MaterialEntrySerializer(serializers.ModelSerializer):
             'revenue',
             'cost',
             'comments',
+            'created_at',
+            'updated_at',
         ]
 
 

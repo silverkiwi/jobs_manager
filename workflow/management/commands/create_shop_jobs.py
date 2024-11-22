@@ -31,7 +31,8 @@ class Command(BaseCommand):
                 name=job_details["name"],
                 client=shop_client,
                 contact_person="Corrin Lakeland",
-                description=job_details["description"],
+                description="",
+                material_gauge_quantity=job_details["description"], # We put description here, so Kanban doesn't show it
                 status="special",
                 shop_job=True,
                 job_is_valid=True,

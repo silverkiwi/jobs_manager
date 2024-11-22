@@ -30,6 +30,8 @@ class JobPricingSerializer(serializers.ModelSerializer):
             'time_entries',
             'material_entries',
             'adjustment_entries',
+            'created_at',
+            'updated_at'
         ]
 
     def to_representation(self, instance):
@@ -54,19 +56,19 @@ class JobPricingSerializer(serializers.ModelSerializer):
         representation['adjustment_entries'] = AdjustmentEntrySerializer(instance.adjustment_entries.all(),
                                                                          many=True).data
 
-        logger.debug(f"Final representation: {representation}")
+        #logger.debug(f"Final representation: {representation}")
         return representation
 
     def to_internal_value(self, data):
-        logger.debug(f"JobPricingSerializer to_internal_value called with data: {data}")
+        #logger.debug(f"JobPricingSerializer to_internal_value called with data: {data}")
         # Extract the nested entries data before validation
         time_data = data.get('time_entries', [])
         material_data = data.get('material_entries', [])
         adjustment_data = data.get('adjustment_entries', [])
 
-        logger.debug(f"Time data received: {time_data}")
-        logger.debug(f"Material data received: {material_data}")
-        logger.debug(f"Adjustment data received: {adjustment_data}")
+        #logger.debug(f"Time data received: {time_data}")
+        #logger.debug(f"Material data received: {material_data}")
+        #logger.debug(f"Adjustment data received: {adjustment_data}")
 
         # Restructure data to match serializer fields
         restructured_data = {
@@ -75,13 +77,13 @@ class JobPricingSerializer(serializers.ModelSerializer):
             'adjustment_entries': adjustment_data,
         }
 
-        logger.debug(f"Restructured data for internal value: {restructured_data}")
+        #logger.debug(f"Restructured data for internal value: {restructured_data}")
         internal_value = super().to_internal_value(restructured_data)
-        logger.debug(f"JobPricingSerializer to_internal_value result: {internal_value}")
+        #logger.debug(f"JobPricingSerializer to_internal_value result: {internal_value}")
         return internal_value
 
     def validate(self, attrs):
-        logger.debug(f"JobPricingSerializer validate called with attrs: {attrs}")
+        #logger.debug(f"JobPricingSerializer validate called with attrs: {attrs}")
 
         # Validate nested components
         for field in ['time_entries', 'material_entries', 'adjustment_entries']:
@@ -99,12 +101,12 @@ class JobPricingSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({field: field_serializer.errors})
 
         validated = super().validate(attrs)
-        logger.debug(f"After super().validate, data is: {validated}")
+        #logger.debug(f"After super().validate, data is: {validated}")
         return validated
 
     def update(self, instance, validated_data):
-        logger.debug(f"JobPricingSerializer update called for instance {instance.id}")
-        logger.debug(f"JobPricingSerializer validated_data: {validated_data}")
+        #logger.debug(f"JobPricingSerializer update called for instance {instance.id}")
+        #logger.debug(f"JobPricingSerializer validated_data: {validated_data}")
 
         # Update time entries
         if 'time_entries' in validated_data:

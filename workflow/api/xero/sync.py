@@ -73,20 +73,21 @@ def sync_xero_data(
 
 def get_last_modified_time(model):
     """Fetch the latest 'last_modified' from the given model, or default to a far past date."""
-    last_modified_time = model.objects.aggregate(Max("last_modified"))[
-        "last_modified__max"
+    last_modified_time = model.objects.aggregate(Max("xero_last_modified"))[
+        "xero_last_modified__max"
     ]
     if last_modified_time:
+        # The handling of milliseconds differs between django and Xero.  This simplifies things by simply syncing them again
         last_modified_time = last_modified_time - timedelta(seconds=1)
 
-    logger.info(f"{model.__name__}: Using last_modified_time={last_modified_time}")
+    if last_modified_time:
+        last_modified_str = last_modified_time.isoformat()
+    else:
+        last_modified_str = "2000-01-01T00:00:00Z"
 
-    return (
-        #        last_modified_time.isoformat() if last_modified_time else "2024-01-01T00:00:00Z"
-        last_modified_time.isoformat()
-        if last_modified_time
-        else "2000-01-01T00:00:00Z"
-    )
+    logger.info(f"{model.__name__}: Using last_modified_time={last_modified_str}")
+
+    return last_modified_str
 
 
 def serialise_xero_object(obj):
@@ -136,7 +137,7 @@ def prepare_invoice_or_bill_defaults(doc_data, client):
         "status": doc_data.status,
         "total": doc_data.total,
         "amount_due": doc_data.amount_due,
-        "last_modified": doc_data.updated_date_utc,
+        "xero_last_modified": doc_data.updated_date_utc,
         "raw_json": raw_json,
     }
 
@@ -196,9 +197,9 @@ def sync_invoices(invoices):
                         )
 
                 if created:
-                    logger.info(f"New invoice added: {defaults['number']} updated_at={defaults['last_modified']}")
+                    logger.info(f"New invoice added: {defaults['number']} updated_at={defaults['xero_last_modified']}")
                 else:
-                    logger.info(f"Updated invoice: {defaults['number']} updated_at={defaults['last_modified']}")
+                    logger.info(f"Updated invoice: {defaults['number']} updated_at={defaults['xero_last_modified']}")
 
         except Exception as e:
             logger.error(f"Error processing invoice {inv.invoice_number}: {str(e)}")
@@ -253,9 +254,9 @@ def sync_bills(bills):
                         },
                     )
                 if created:
-                    logger.info(f"New bill added: {defaults['number']} updated_at={defaults['last_modified']}")
+                    logger.info(f"New bill added: {defaults['number']} updated_at={defaults['xero_last_modified']}")
                 else:
-                    logger.info(f"Updated bill: {defaults['number']} updated_at={defaults['last_modified']}")
+                    logger.info(f"Updated bill: {defaults['number']} updated_at={defaults['xero_last_modified']}")
 
         except Exception as e:
             logger.error(f"Error processing bill {bill.invoice_number}: {str(e)}")
@@ -314,7 +315,7 @@ def sync_accounts(xero_accounts):
         tax_type = getattr(account_data, "tax_type", None)
         description = getattr(account_data, "description", None)
         enable_payments = getattr(account_data, "eenable_payments_to_account", False)
-        last_modified = getattr(account_data, "_updated_date_utc", None)
+        xero_last_modified = getattr(account_data, "_updated_date_utc", None)
 
         raw_json = serialise_xero_object(account_data)
 
@@ -328,7 +329,7 @@ def sync_accounts(xero_accounts):
                     "account_type": account_type,
                     "tax_type": tax_type,
                     "enable_payments": enable_payments,
-                    "last_modified": last_modified,
+                    "xero_last_modified": xero_last_modified,
                     "raw_json": raw_json,
                 },
             )

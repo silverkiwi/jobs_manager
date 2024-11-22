@@ -27,6 +27,11 @@ class MaterialEntry(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2, null=False, default=0) # Default comes up on the dummy row
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=False, default=0)
     unit_revenue = models.DecimalField(max_digits=10, decimal_places=2, null=False, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["created_at"]
 
     @property
     def cost(self) -> Decimal:

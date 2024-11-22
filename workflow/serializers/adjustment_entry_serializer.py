@@ -17,8 +17,10 @@ class AdjustmentEntrySerializer(serializers.ModelSerializer):
             'cost_adjustment',
             'price_adjustment',
             'comments',
-            'revenue',  # Calculated as price_adjustment
-            'cost',     # Calculated as cost_adjustment
+            'revenue',
+            'cost',
+            'created_at',
+            'updated_at',
         ]
 
     def get_revenue(self, obj):
