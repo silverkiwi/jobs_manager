@@ -1,7 +1,7 @@
 # workflow/xero/xero.py
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
 import requests
@@ -37,7 +37,7 @@ def store_token(token: Dict[str, Any]) -> None:
         token["expires_at"] = int(expires_at.timestamp())  # Store as a timestamp
 
     expires_at = datetime.fromtimestamp(token["expires_at"], tz=timezone.utc)
-    xero_tenant_id = token.get("xero_tenant_id")
+    _ = token.get("xero_tenant_id")  # Tenant is important but we only sync one
     XeroToken.objects.update_or_create(
         tenant_id=get_tenant_id(),
         defaults={
@@ -96,8 +96,9 @@ def get_tenant_id() -> str:
     return xero_tenant_id
 
 
-def get_token() -> Dict[str, Any]:
-    """Gets Xero Tokens (by calling the internal function).  Handles auto-refreshing of expired tokens"""
+def get_token() -> Optional[Dict[str, Any]]:
+    """Gets Xero Tokens (by calling the internal function).
+    Handles auto-refreshing of expired tokens"""
     token = get_token_internal()
     if token is None:
         return None

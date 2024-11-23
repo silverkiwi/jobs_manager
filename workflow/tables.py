@@ -13,8 +13,8 @@ class ClientTable(tables.Table):
         template_code = (
             '<a href="{% url "update-client" record.pk %}" '
             'class="btn btn-sm btn-primary">'
-            'Edit'
-            '</a>'
+            "Edit"
+            "</a>"
         )
         template_name = (
             "django_tables2/bootstrap4.html"  # You can choose other templates

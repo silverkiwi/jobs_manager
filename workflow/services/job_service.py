@@ -29,14 +29,12 @@ def get_job_with_pricings(job_id):
         )
         # Prefetch material_entries
         prefetch_list.append(
-            Prefetch(f"{stage}__material_entries",
-                     queryset=MaterialEntry.objects.all())
+            Prefetch(f"{stage}__material_entries", queryset=MaterialEntry.objects.all())
         )
         # Prefetch adjustment_entries
         prefetch_list.append(
             Prefetch(
-                f"{stage}__adjustment_entries",
-                queryset=AdjustmentEntry.objects.all()
+                f"{stage}__adjustment_entries", queryset=AdjustmentEntry.objects.all()
             )
         )
 

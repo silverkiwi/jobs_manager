@@ -1,9 +1,13 @@
 ## 🐛 Bugs
 
-- **Add client crashes during the sync to Xero**.
+- **Ugliness on job entry**: The word 'Revenue' isn't printed
+
 - **Markup not working**: Jobs currently don't have markup functioning properly.  This means the link doesn't come up, or the client name
-- **JobPricing not fully justified**: It looks a bit ugly.
+- **JobPricing not fully justified**: You can see the trash cans are not vertically aligned.
 - **Autosave successful on failure**: You should only say successful if it passes
+- **Duplicate time entries**: Not quite sure what's happening but I've seen multiple identical rows.  Probably relates to timesheet entry
+- **Mins/item broke.**:  Estimate no longer saving it
+
 
 ## 🛤️ Roadmap (Must-Have Features)
 
@@ -12,18 +16,20 @@
 - **Revise quote**: Not yet implemented.
 - **Submit quote to client**: Not yet implemented.
 - **Check job as 'all fields complete'**: Feature not yet implemented.
-- **Need to handle timesheet entry**.
-- **Reporting: start with P&L**.
-- **Need to export timesheets for IMS**.
-- **Kanban should say job x of y**.
+- **Reporting: start with P&L**. Started.  Not working
+- **Need to export timesheets for IMS**. Not yet implemented
+- **Kanban should say job x of y**. Not yet implemented.
+- **Create invoices in Xero**. Not yet implemented.
+- **Timesheet week overview**. Not yet implemented.
+- **Adding drawings to jobs**. Not yet implemented.  Need to tie into files (Dropbox) and to images (Google Photos)
 
 ## 🚀 Future Enhancements (Nice-to-Have Ideas)
 
-- **Jobs don't support attachments**: Suggested fix – integrate with Dropbox AND Google PHOTOS for attachment support.
 - **Look up contacts on a client**: Not implemented. Do we care enough to prioritize this feature?
 - **Tie in Google Maps** Improve the client data.  Add place_id for dedupe, and look up industry 
+- **Phone Calls** Tie into phone calls 
+- **SMS** Useful? 
+- **Email** If this becomes the place we do everything, then it's easier to get all emails  
 
 ## ❓ Uncertainties/Decisions
 
-- **Solve the problem of shop jobs.  How do we easily say what particular shop job someone was working on.
-- **Markup is broken, especially for materials**: What's the difference between cost rate and 

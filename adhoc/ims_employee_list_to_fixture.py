@@ -71,8 +71,8 @@ def convert_ims_to_fixtures(input_file: str) -> None:
 
 
 if __name__ == "__main__":
-   input_file = (
-       r"C:\Users\User\Downloads\"
-       r"Morris Sheetmetal Works 2015 L_employee_list_2024_11_20.txt"
-   )
-   convert_ims_to_fixtures(input_file)
+    input_file = (
+        r"C:\Users\User\Downloads\""
+        r"Morris Sheetmetal Works 2015 L_employee_list_2024_11_20.txt"
+    )
+    convert_ims_to_fixtures(input_file)

@@ -164,7 +164,7 @@ class JobPricing(models.Model):
                     "desc": entry.description,
                     "items": entry.items,
                     "mins": entry.minutes_per_item,
-                }
+                },
             )
         logger.debug("\nMaterial Entries:")
         for entry in material_entries:
@@ -175,7 +175,7 @@ class JobPricing(models.Model):
                     "qty": entry.quantity,
                     "cost": entry.unit_cost,
                     "revenue": entry.unit_revenue,
-                }
+                },
             )
 
         logger.debug("\nAdjustment Entries:")
@@ -186,7 +186,7 @@ class JobPricing(models.Model):
                     "desc": entry.description,
                     "cost": entry.cost_adjustment,
                     "price": entry.price_adjustment,
-                }
+                },
             )
 
     def __str__(self):

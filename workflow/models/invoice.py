@@ -18,7 +18,9 @@ class XeroInvoiceOrBill(models.Model):
     status = models.CharField(
         max_length=50, choices=InvoiceStatus.choices, default=InvoiceStatus.DRAFT
     )
-    total = models.DecimalField(max_digits=10, decimal_places=2)
+    total_excl_tax = models.DecimalField(max_digits=10, decimal_places=2)
+    tax = models.DecimalField(max_digits=10, decimal_places=2)  # From _total_tax
+    total_incl_tax = models.DecimalField(max_digits=10, decimal_places=2)
     amount_due = models.DecimalField(max_digits=10, decimal_places=2)
     xero_last_modified = models.DateTimeField(null=False, blank=False)
     raw_json = models.JSONField()
@@ -73,9 +75,12 @@ class InvoiceLineItem(models.Model):
     unit_price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
     )  # Nullable unit price
-    line_amount = models.DecimalField(
+    line_amount_excl_tax = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
-    )  # Nullable total line amount (quantity * unit price)
+    )
+    line_amount_incl_tax = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
     account = models.ForeignKey(
         "XeroAccount", on_delete=models.SET_NULL, null=True, blank=True
     )  # Link to XeroAccount
@@ -111,9 +116,12 @@ class BillLineItem(models.Model):
     unit_price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
     )  # Nullable unit price
-    line_amount = models.DecimalField(
+    line_amount_excl_tax = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
-    )  # Nullable total line amount (quantity * unit price)
+    )
+    line_amount_incl_tax = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
     account = models.ForeignKey(
         "XeroAccount", on_delete=models.SET_NULL, null=True, blank=True
     )  # Link to XeroAccount

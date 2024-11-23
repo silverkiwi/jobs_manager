@@ -44,7 +44,7 @@ class TimeEntry(models.Model):
         help_text=(
             "Multiplier for hourly rate. Example: 2.0 for double time. "
             "0 means no paid. 1 means normal rate."
-        )
+        ),
     )
 
     description = models.TextField(blank=False, null=False, default="")

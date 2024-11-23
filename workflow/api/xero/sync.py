@@ -30,7 +30,9 @@ def set_invoice_fields(invoice):
     invoice.date = raw_data.get("_date")
     invoice.due_date = raw_data.get("_due_date")
     invoice.status = raw_data.get("_status")
-    invoice.total = raw_data.get("_total")
+    invoice.tax = raw_data.get("_total_tax")
+    invoice.total_excl_tax = raw_data.get("_sub_total")
+    invoice.total_incl_tax = raw_data.get("_total")
     invoice.amount_due = raw_data.get("_amount_due")
     invoice.xero_last_modified = raw_data.get("_updated_date_utc")
 
@@ -56,8 +58,19 @@ def set_invoice_fields(invoice):
         description = line_item_data.get("_description") or "No description provided"
         quantity = line_item_data.get("_quantity", 1)
         unit_price = line_item_data.get("_unit_amount")
-        line_amount = line_item_data.get("_line_amount")
-        tax_amount = line_item_data.get("_tax_amount")
+        line_amount_str = line_item_data.get("_line_amount")
+        tax_amount_str = line_item_data.get("_tax_amount")
+        try:
+            line_amount = float(line_amount_str)
+        except (TypeError, ValueError):
+            line_amount = 0
+
+        try:
+            tax_amount = float(tax_amount_str)
+        except (TypeError, ValueError):
+            tax_amount = 0
+
+        line_amount_excl_tax = line_amount - tax_amount
 
         # Fetch the account code from the line item data itself
         account_code = line_item_data.get("_account_code")
@@ -75,7 +88,8 @@ def set_invoice_fields(invoice):
                 "description": description,
                 "account": account,
                 "tax_amount": tax_amount,
-                "line_amount": line_amount,
+                "line_amount_excl_tax": line_amount_excl_tax,
+                "line_amount_incl_tax": line_amount,
             },
         )
 
@@ -91,7 +105,9 @@ def set_bill_fields(bill):
     bill.date = raw_data.get("_date")
     bill.due_date = raw_data.get("_due_date")
     bill.status = raw_data.get("_status")
-    bill.total = raw_data.get("_total")
+    bill.tax = raw_data.get("_total_tax")  # or sum up line_items tax
+    bill.total_excl_tax = raw_data.get("_sub_total")  # or total minus tax
+    bill.total_incl_tax = raw_data.get("_total")  # same as total
     bill.amount_due = raw_data.get("_amount_due")
     bill.xero_last_modified = raw_data.get("_updated_date_utc")
 
@@ -118,8 +134,19 @@ def set_bill_fields(bill):
         description = line_item_data.get("_description") or "No description provided"
         quantity = line_item_data.get("_quantity", 1)
         unit_price = line_item_data.get("_unit_amount")
-        line_amount = line_item_data.get("_line_amount")
-        tax_amount = line_item_data.get("_tax_amount")
+        line_amount_str = line_item_data.get("_line_amount")
+        tax_amount_str = line_item_data.get("_tax_amount")
+        try:
+            line_amount = float(line_amount_str)
+        except (TypeError, ValueError):
+            line_amount = 0
+
+        try:
+            tax_amount = float(tax_amount_str)
+        except (TypeError, ValueError):
+            tax_amount = 0
+
+        line_amount_excl_tax = line_amount - tax_amount
 
         # Fetch the account code from the line item data itself
         account_code = line_item_data.get("_account_code")
@@ -137,7 +164,8 @@ def set_bill_fields(bill):
                 "description": description,
                 "account": account,
                 "tax_amount": tax_amount,
-                "line_amount": line_amount,
+                "line_amount_excl_tax":line_amount_excl_tax,
+                "line_amount_incl_tax": line_amount,
             },
         )
 
@@ -185,9 +213,9 @@ def reprocess_bills():
     for bill in Bill.objects.all():
         try:
             set_bill_fields(bill)
-            logger.info(f"Reprocessed invoice: {bill.number}")
+            logger.info(f"Reprocessed bill: {bill.number}")
         except Exception as e:
-            logger.error(f"Error reprocessing invoice {bill.number}: {str(e)}")
+            logger.error(f"Error reprocessing bill {bill.number}: {str(e)}")
 
 
 def reprocess_clients():

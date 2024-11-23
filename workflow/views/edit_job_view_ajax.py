@@ -63,7 +63,7 @@ def get_job_api(request):
                 "num": job.job_number,
                 "id": job.id,
                 "client": job_client,
-            }
+            },
         )
         # Prepare response data with job pricings using correct field names
         response_data = {
@@ -72,28 +72,16 @@ def get_job_api(request):
             "updated_at": job.updated_at,
             "client": job_client,
             "latest_estimate_pricing": {
-                "pricing_stage": (
-                    job.latest_estimate_pricing.pricing_stage
-                ),
-                "pricing_type": (
-                    job.latest_estimate_pricing.pricing_type
-                ),
+                "pricing_stage": (job.latest_estimate_pricing.pricing_stage),
+                "pricing_type": (job.latest_estimate_pricing.pricing_type),
             },
             "latest_quote_pricing": {
-                "pricing_stage": (
-                    job.latest_quote_pricing.pricing_stage
-                ),
-                "pricing_type": (
-                    job.latest_quote_pricing.pricing_type
-                ),
+                "pricing_stage": (job.latest_quote_pricing.pricing_stage),
+                "pricing_type": (job.latest_quote_pricing.pricing_type),
             },
             "latest_reality_pricing": {
-                "pricing_stage": (
-                    job.latest_reality_pricing.pricing_stage
-                ),
-                "pricing_type": (
-                    job.latest_reality_pricing.pricing_type
-                ),
+                "pricing_stage": (job.latest_reality_pricing.pricing_stage),
+                "pricing_type": (job.latest_reality_pricing.pricing_type),
             },
         }
 
@@ -202,11 +190,11 @@ def edit_job_view_ajax(request, job_id=None):
             # Dump the context to JSON for logging
             logger.debug(
                 "Historical pricing template data: %s",
-                json.dumps(historical_job_pricings_json)
+                json.dumps(historical_job_pricings_json),
             )
             logger.debug(
                 "Latest pricing being passed to template: %s",
-                json.dumps(latest_job_pricings_json)
+                json.dumps(latest_job_pricings_json),
             )
         except Exception as e:
             logger.error(f"Error while dumping context: {e}")
@@ -241,10 +229,12 @@ def autosave_job_view(request):
             instance=job, data=data, partial=True, context={"request": request}
         )
 
-        logger.debug(f"Initial serializer data: {serializer.initial_data}")
+        if DEBUG_JSON:
+            logger.debug(f"Initial serializer data: {serializer.initial_data}")
 
         if serializer.is_valid():
-            logger.debug(f"Validated data: {serializer.validated_data}")
+            if DEBUG_JSON:
+                logger.debug(f"Validated data: {serializer.validated_data}")
             serializer.save()
             job.latest_estimate_pricing.display_entries()  # Just for debugging
 
@@ -259,13 +249,15 @@ def autosave_job_view(request):
                     "id": job_id,
                     "client": client_name,
                     "contact": job.contact_person,
-                }
+                },
             )
             logger.debug(
                 "job_name=%(name)s, order_number=%(order)s, contact_phone=%(phone)s",
-                {"name": job.name,
-                 "order": job.order_number,
-                 "phone": job.contact_phone}
+                {
+                    "name": job.name,
+                    "order": job.order_number,
+                    "phone": job.contact_phone,
+                },
             )
 
             return JsonResponse({"success": True, "job_id": job.id})

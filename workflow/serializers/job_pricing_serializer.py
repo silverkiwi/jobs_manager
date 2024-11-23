@@ -39,11 +39,11 @@ class JobPricingSerializer(serializers.ModelSerializer):
         if DEBUG_SERIALIZER:
             logger.debug(
                 "JobPricingSerializer to_representation called for instance %(id)s",
-                {"id": instance.id}
+                {"id": instance.id},
             )
             logger.debug(
                 "Raw material entries: %(entries)s",
-                {"entries": list(instance.material_entries.all().values())}
+                {"entries": list(instance.material_entries.all().values())},
             )
 
         representation = super().to_representation(instance)
@@ -75,7 +75,7 @@ class JobPricingSerializer(serializers.ModelSerializer):
         if DEBUG_SERIALIZER:
             logger.debug(
                 "JobPricingSerializer to_internal_value called with data: %(data)s",
-                {"data": data}
+                {"data": data},
             )
         # Extract the nested entries data before validation
         time_data = data.get("time_entries", [])
@@ -96,13 +96,13 @@ class JobPricingSerializer(serializers.ModelSerializer):
         if DEBUG_SERIALIZER:
             logger.debug(
                 "Restructured data for internal value: %(restructured_data)s",
-                {"restructured_data": restructured_data}
+                {"restructured_data": restructured_data},
             )
         internal_value = super().to_internal_value(restructured_data)
         if DEBUG_SERIALIZER:
             logger.debug(
                 "JobPricingSerializer to_internal_value result: %(internal_value)s",
-                {"internal_value": internal_value}
+                {"internal_value": internal_value},
             )
         return internal_value
 
@@ -163,7 +163,7 @@ class JobPricingSerializer(serializers.ModelSerializer):
                 else:
                     logger.error(
                         "Material entry validation failed: %(errors)s",
-                        {"errors": material_entry_serializer.errors}
+                        {"errors": material_entry_serializer.errors},
                     )
                     raise serializers.ValidationError(
                         {"material_entries": material_entry_serializer.errors}
@@ -183,7 +183,7 @@ class JobPricingSerializer(serializers.ModelSerializer):
                 else:
                     logger.error(
                         "Adjustment entry validation failed: %(errors)s",
-                        {"errors": adjustment_entry_serializer.errors}
+                        {"errors": adjustment_entry_serializer.errors},
                     )
                     raise serializers.ValidationError(
                         {"adjustment_entries": adjustment_entry_serializer.errors}

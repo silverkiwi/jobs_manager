@@ -5,15 +5,7 @@ from django.contrib.auth.admin import UserAdmin
 from simple_history.admin import SimpleHistoryAdmin
 
 from workflow.forms import StaffChangeForm, StaffCreationForm
-from workflow.models import (
-    AdjustmentEntry,
-    CompanyDefaults,
-    Job,
-    JobPricing,
-    MaterialEntry,
-    Staff,
-    TimeEntry,
-)
+from workflow.models import CompanyDefaults, Staff
 
 
 @admin.register(CompanyDefaults)

@@ -16,6 +16,7 @@ from workflow.models import (
 )
 
 logger = logging.getLogger(__name__)
+DEBUG_FORM = False  # Toggle form debugging
 
 
 class JobForm(forms.ModelForm):
@@ -138,12 +139,28 @@ class ClientForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["raw_json"].widget.attrs["readonly"] = True
 
-        # logger.debug(f"ClientForm initialized with args: {args}")
-        # logger.debug(f"ClientForm initialized with kwargs: {kwargs}")
-        # logger.debug(f"ClientForm instance: {self.instance.__dict__}")
-        #
-        # for field_name, field in self.fields.items():
-        #     logger.debug(f"Field {field_name}: initial={field.initial}, value={self.initial.get(field_name)}")
+        if DEBUG_FORM:
+            logger.debug(
+                "ClientForm init - args: %(args)s, kwargs: %(kwargs)s",
+                {
+                    "args": args,
+                    "kwargs": kwargs,
+                },
+            )
+            logger.debug(
+                "ClientForm instance: %(instance)s",
+                {"instance": self.instance.__dict__},
+            )
+
+            for field_name, field in self.fields.items():
+                logger.debug(
+                    "Field %(name)s: initial=%(initial)s, value=%(value)s",
+                    {
+                        "name": field_name,
+                        "initial": field.initial,
+                        "value": self.initial.get(field_name),
+                    },
+                )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -158,7 +175,7 @@ class InvoiceForm(forms.ModelForm):
             "number",
             "client",
             "date",
-            "total",
+            "total_excl_tax",
             "status",
             "raw_json",
         ]

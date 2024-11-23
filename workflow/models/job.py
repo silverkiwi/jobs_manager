@@ -62,9 +62,14 @@ class Job(models.Model):
     job_number: int = models.IntegerField(unique=True)  # Job 1234
     material_gauge_quantity: str = models.TextField(  # type: ignore
         blank=True,
-        help_text="Description of material gauge and quantity requirements",
+        null=True,
+        help_text="Internal notes such as the material to use.  Not shown on the invoice",
     )
-    description: str = models.TextField(blank=True)  # type: ignore
+    description: str = models.TextField(
+        blank=True,
+        null=True,
+        help_text="This becomes the first line item on the invoice"
+    )  # type: ignore
 
     quote_acceptance_date: datetime = models.DateTimeField(  # type: ignore
         null=True,

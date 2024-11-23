@@ -45,7 +45,8 @@ class JobSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        logger.debug(f"JobSerializer validate called with attrs: {attrs}")
+        if DEBUG_SERIALIZER:
+            logger.debug(f"JobSerializer validate called with attrs: {attrs}")
         # Validate nested pricing serializers
         nested_pricings = [
             "latest_estimate_pricing",
@@ -64,14 +65,15 @@ class JobSerializer(serializers.ModelSerializer):
                         {
                             "key": pricing_key,
                             "errors": pricing_serializer.errors,
-                        }
+                        },
                     )
                     raise serializers.ValidationError(
                         {pricing_key: pricing_serializer.errors}
                     )
 
         validated = super().validate(attrs)
-        logger.debug(f"After super().validate, data is: {validated}")
+        if DEBUG_SERIALIZER:
+            logger.debug(f"After super().validate, data is: {validated}")
         return validated
 
     def update(self, instance, validated_data):
@@ -102,7 +104,7 @@ class JobSerializer(serializers.ModelSerializer):
                         {
                             "type": pricing_type,
                             "data": pricing_data,
-                        }
+                        },
                     )
                 pricing_serializer = JobPricingSerializer(
                     instance=pricing_instance,
@@ -121,7 +123,7 @@ class JobSerializer(serializers.ModelSerializer):
                         {
                             "type": pricing_type,
                             "errors": pricing_serializer.errors,
-                        }
+                        },
                     )
                     raise serializers.ValidationError(
                         {pricing_type: pricing_serializer.errors}
