@@ -68,7 +68,7 @@ class ReportCompanyProfitAndLoss(APIView):
                     invoice__date__range=[period_start, period_end]
                 )
                 .values("account__account_name", "account__account_type")
-                .annotate(total=Sum("line_amount"))
+                .annotate(total=Sum("line_amount_excl_tax"))
             )
 
             # Bill rollup aggregation
@@ -77,7 +77,7 @@ class ReportCompanyProfitAndLoss(APIView):
                     bill__date__range=[period_start, period_end]
                 )
                 .values("account__account_name", "account__account_type")
-                .annotate(total=Sum("line_amount"))
+                .annotate(total=Sum("line_amount_excl_tax"))
             )
 
             # Initialize period arrays for all accounts
