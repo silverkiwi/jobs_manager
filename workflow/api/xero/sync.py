@@ -203,6 +203,14 @@ def reprocess_bills():
         except Exception as e:
             logger.error(f"Error reprocessing bill {bill.number}: {str(e)}")
 
+def reprocess_credit_notes():
+    """Reprocess all existing credit notes to set fields based on raw JSON."""
+    for credit_note in CreditNote.objects.all():
+        try:
+            set_invoice_or_bill_fields(credit_note,"CREDIT NOTE")
+            logger.info(f"Reprocessed credit note: {credit_note.number}")
+        except Exception as e:
+            logger.error(f"Error reprocessing credit note {credit_note.number}: {str(e)}")
 
 def reprocess_clients():
     """Reprocess all existing clients to set fields based on raw JSON."""
@@ -798,6 +806,7 @@ def sync_all_xero_data():
     # Just put here for lazy debugging since I can trigger this with a button
     # invoice = Invoice.objects.filter(number="INV-54021").first()
     # set_invoice_or_bill_fields(invoice, "INVOICE")
+    #reprocess_all()
 
     sync_xero_data(
         xero_entity_type="accounts",
