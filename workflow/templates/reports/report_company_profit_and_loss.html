@@ -1,32 +1,38 @@
 {% extends 'base.html' %}
-
 {% load static %}
 
 {% block content %}
-  <h1>Company Profit and Loss Report</h1>
+<h1 class="text-2xl font-bold mb-4">Company Profit and Loss Report</h1>
 
-  <!-- Filter inputs -->
-<div>
-    <label for="date-range-picker">Date Range:</label>
-    <select id="date-range-picker">
-        <!-- Options will be populated dynamically by JavaScript -->
-    </select>
+<div class="mb-4 flex space-x-4 items-center">
+    <div class="flex items-center space-x-2">
+        <label for="date-range-picker">Date Range:</label>
+        <select id="date-range-picker" class="border p-2">
+            <!-- Options populated by JS -->
+        </select>
+    </div>
 
-    <!-- These hidden inputs store the actual date range for API calls -->
-    <input type="hidden" id="start_date">
-    <input type="hidden" id="end_date">
+    <div id="compare-container" class="flex items-center space-x-2">
+        <!-- Compare periods input populated by JS -->
+    </div>
 
-    <label for="compare">Compare Periods:</label>
-    <input type="number" id="compare" value="7">
-    <button id="update-chart">Update Chart</button>
+    <button id="update-chart" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+        Update Report
+    </button>
 </div>
 
-  <!-- Chart container -->
-  <div id="pnl-chart"></div>
+<!-- Hidden date inputs used by the JS -->
+<input type="hidden" id="start_date">
+<input type="hidden" id="end_date">
+
+<div id="pnl-chart" class="mt-4">
+    <!-- Chart will be rendered here -->
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-  <script src="https://code.highcharts.com/highcharts.js"></script>
-  <script src="{% static 'js/report_company_profit_and_loss.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="{% static 'js/report_company_profit_and_loss.js' %}"></script>
 {% endblock %}

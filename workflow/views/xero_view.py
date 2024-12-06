@@ -38,7 +38,7 @@ def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
 
     if "error" in result:
         return render(
-            request, "workflow/xero_auth_error.html", {"error_message": result["error"]}
+            request, "xero/error_xero_auth.html", {"error_message": result["error"]}
         )
 
     return redirect("refresh_xero_data")

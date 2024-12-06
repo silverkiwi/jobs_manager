@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from workflow.api.reports.pnl import CompanyProfitAndLossReport
 from workflow.views import (
     client_view,
     debug_view,
@@ -15,8 +16,7 @@ from workflow.views import (
     xero_view,
 )
 from workflow.views.report_view import (
-    CompanyProfitAndLossView,
-    ReportCompanyProfitAndLoss,
+    CompanyProfitAndLossView, ReportsIndexView,
 )
 
 urlpatterns = [
@@ -41,11 +41,10 @@ urlpatterns = [
         name="fetch_job_pricing_api",
     ),
     # API URLs
-    path(
-        "api/company-profit-loss/",
-        ReportCompanyProfitAndLoss.as_view(),
-        name="api_company_profit_and_loss",
-    ),
+    path('api/reports/company-profit-loss/',
+         CompanyProfitAndLossReport.as_view(),
+         name='api-company-profit-loss'),
+
     path(
         "api/fetch_status_values/",
         edit_job_view_ajax.api_fetch_status_values,
@@ -115,11 +114,10 @@ urlpatterns = [
         kanban_view.update_job_status,
         name="update_job_status",
     ),
-    path(
-        "reports/profit-and-loss/",
-        CompanyProfitAndLossView.as_view(),
-        name="company_profit_and_loss",
-    ),
+    path('reports/', ReportsIndexView.as_view(), name='reports'),
+
+    path('reports/company-profit-loss/', CompanyProfitAndLossView.as_view(), name='company-profit-loss-report'),
+
     path(
         "timesheets/day/<str:date>/<uuid:staff_id>/",
         time_entry_view.TimesheetEntryView.as_view(),

@@ -19,69 +19,97 @@ from workflow.models.xero_account import XeroAccount
 logger = logging.getLogger(__name__)
 
 
-def set_invoice_fields(invoice):
-    if not invoice.raw_json:
-        raise ValueError("Invoice raw_json is empty.  We better not try to process it")
+def set_invoice_or_bill_fields(document, document_type):
+    """
+    Process either an invoice or bill from Xero.
 
-    raw_data = invoice.raw_json
+    Args:
+        document: Instance of XeroInvoiceOrBill
+        document_type: String either "INVOICE" or "BILL"
+    """
 
-    invoice.xero_id = raw_data.get("_invoice_id")
-    invoice.number = raw_data.get("_invoice_number")
-    invoice.date = raw_data.get("_date")
-    invoice.due_date = raw_data.get("_due_date")
-    invoice.status = raw_data.get("_status")
-    invoice.tax = raw_data.get("_total_tax")
-    invoice.total_excl_tax = raw_data.get("_sub_total")
-    invoice.total_incl_tax = raw_data.get("_total")
-    invoice.amount_due = raw_data.get("_amount_due")
-    invoice.xero_last_modified = raw_data.get("_updated_date_utc")
+    if not document.raw_json:
+        raise ValueError(
+            f"{document_type.title()} raw_json is empty. We better not try to process it")
 
-    # Set or create the client for the invoice
+    is_invoice = document.raw_json.get('_type') == 'ACCREC'
+    is_bill = document.raw_json.get('_type') == 'ACCPAY'
+
+
+    # Validate the document matches the type
+    if (document_type == "INVOICE" and not is_invoice) or (
+            document_type == "BILL" and not is_bill):
+        raise ValueError(
+            f"Document type mismatch. Got {document_type} but document appears to be a {('bill' if is_bill else 'invoice')}"
+        )
+
+
+    raw_data = document.raw_json
+
+    # Common fields that are identical between invoices and bills
+    document.xero_id = raw_data.get("_invoice_id")
+    document.number = raw_data.get("_invoice_number")
+    document.date = raw_data.get("_date")
+    document.due_date = raw_data.get("_due_date")
+    document.status = raw_data.get("_status")
+    document.tax = raw_data.get("_total_tax")
+    document.total_excl_tax = raw_data.get("_sub_total")
+    document.total_incl_tax = raw_data.get("_total")
+    document.amount_due = raw_data.get("_amount_due")
+    document.xero_last_modified = raw_data.get("_updated_date_utc")
+
+    # Set or create the client/supplier
     contact_data = raw_data.get("_contact", {})
     contact_id = contact_data.get("_contact_id")
     contact_name = contact_data.get("_name")
     client = Client.objects.filter(xero_contact_id=contact_id).first()
     if not client:
-        raise ValueError(f"Client not found for invoice {invoice.number}")
-    invoice.client = client
+        raise ValueError(f"Client not found for {document_type.lower()} {document.number}")
+    document.client = client
 
-    # Save the invoice after setting all fields
-    invoice.save()
+    document.save()
 
-    # Update Invoice Line Items
+    # Handle line items
     line_items_data = raw_data.get("_line_items", [])
+    amount_type = raw_data.get('_line_amount_types', {}).get('_value_')
+
+    # Determine which line item model to use
+    LineItemModel = InvoiceLineItem if is_invoice else BillLineItem
+    document_field = 'invoice' if is_invoice else 'bill'
+
     for line_item_data in line_items_data:
-        line_item_id = line_item_data.get(
-            "_line_item_id"
-        )  # Unique identifier from raw_json
+        line_item_id = line_item_data.get("_line_item_id")
         xero_line_id = uuid.UUID(line_item_id)
         description = line_item_data.get("_description") or "No description provided"
         quantity = line_item_data.get("_quantity", 1)
-        unit_price = line_item_data.get("_unit_amount")
-        line_amount_str = line_item_data.get("_line_amount")
-        tax_amount_str = line_item_data.get("_tax_amount")
+        unit_price = line_item_data.get("_unit_amount",1)
+
         try:
-            line_amount = float(line_amount_str)
+            line_amount = float(line_item_data.get("_line_amount", 0))
+            tax_amount = float(line_item_data.get("_tax_amount", 0))
         except (TypeError, ValueError):
             line_amount = 0
-
-        try:
-            tax_amount = float(tax_amount_str)
-        except (TypeError, ValueError):
             tax_amount = 0
 
-        line_amount_excl_tax = line_amount - tax_amount
+        # Fix for the GST calculation bug
+        if amount_type == 'Inclusive':
+            line_amount_excl_tax = line_amount - tax_amount
+            line_amount_incl_tax = line_amount
+        else:
+            line_amount_excl_tax = line_amount
+            line_amount_incl_tax = line_amount + tax_amount
 
-        # Fetch the account code from the line item data itself
+        # Fetch the account
         account_code = line_item_data.get("_account_code")
-
-        # Find the related XeroAccount by account code
         account = XeroAccount.objects.filter(account_code=account_code).first()
 
-        # Sync the line item
-        InvoiceLineItem.objects.update_or_create(
-            invoice=invoice,
-            xero_line_id=xero_line_id,
+        # Sync the line item using dynamic field name
+        kwargs = {
+            document_field: document,
+            "xero_line_id": xero_line_id
+        }
+        line_item, created = LineItemModel.objects.update_or_create(
+            **kwargs,
             defaults={
                 "quantity": quantity,
                 "unit_price": unit_price,
@@ -89,85 +117,12 @@ def set_invoice_fields(invoice):
                 "account": account,
                 "tax_amount": tax_amount,
                 "line_amount_excl_tax": line_amount_excl_tax,
-                "line_amount_incl_tax": line_amount,
+                "line_amount_incl_tax": line_amount_incl_tax,
             },
         )
-
-
-def set_bill_fields(bill):
-    if not bill.raw_json:
-        raise ValueError("Bill raw_json is empty. We better not try to process it")
-
-    raw_data = bill.raw_json
-
-    bill.xero_id = raw_data.get("_invoice_id")
-    bill.number = raw_data.get("_invoice_number")
-    bill.date = raw_data.get("_date")
-    bill.due_date = raw_data.get("_due_date")
-    bill.status = raw_data.get("_status")
-    bill.tax = raw_data.get("_total_tax")  # or sum up line_items tax
-    bill.total_excl_tax = raw_data.get("_sub_total")  # or total minus tax
-    bill.total_incl_tax = raw_data.get("_total")  # same as total
-    bill.amount_due = raw_data.get("_amount_due")
-    bill.xero_last_modified = raw_data.get("_updated_date_utc")
-
-    # Set or create the supplier for the bill
-    contact_data = raw_data.get("_contact", {})
-    contact_id = contact_data.get("_contact_id")
-    contact_name = contact_data.get("_name")
-    supplier = Client.objects.filter(xero_contact_id=contact_id).first()
-    if not supplier:
-        raise ValueError(f"Supplier not found for bill {bill.number}")
-
-    bill.client = supplier
-
-    # Save the bill after setting all fields
-    bill.save()
-
-    # Update Bill Line Items
-    line_items_data = raw_data.get("_line_items", [])
-    for line_item_data in line_items_data:
-        line_item_id = line_item_data.get(
-            "_line_item_id"
-        )  # Unique identifier from raw_json
-        xero_line_id = uuid.UUID(line_item_id)
-        description = line_item_data.get("_description") or "No description provided"
-        quantity = line_item_data.get("_quantity", 1)
-        unit_price = line_item_data.get("_unit_amount")
-        line_amount_str = line_item_data.get("_line_amount")
-        tax_amount_str = line_item_data.get("_tax_amount")
-        try:
-            line_amount = float(line_amount_str)
-        except (TypeError, ValueError):
-            line_amount = 0
-
-        try:
-            tax_amount = float(tax_amount_str)
-        except (TypeError, ValueError):
-            tax_amount = 0
-
-        line_amount_excl_tax = line_amount - tax_amount
-
-        # Fetch the account code from the line item data itself
-        account_code = line_item_data.get("_account_code")
-
-        # Find the related XeroAccount by account code
-        account = XeroAccount.objects.filter(account_code=account_code).first()
-
-        # Sync the line item
-        BillLineItem.objects.update_or_create(
-            bill=bill,
-            xero_line_id=xero_line_id,
-            defaults={
-                "quantity": quantity,
-                "unit_price": unit_price,
-                "description": description,
-                "account": account,
-                "tax_amount": tax_amount,
-                "line_amount_excl_tax":line_amount_excl_tax,
-                "line_amount_incl_tax": line_amount,
-            },
-        )
+        print(f"{'Created' if created else 'Updated'} Line Item: "
+              f"Amount Excl. Tax: {line_item.line_amount_excl_tax}, "
+              f"Tax Amount: {line_item.tax_amount}, Total Incl. Tax: {line_item.line_amount_incl_tax}")
 
 
 def set_client_fields(client):
@@ -194,6 +149,12 @@ def set_client_fields(client):
         payment_terms is not None and payment_terms.get("sales") is not None
     )
 
+    updated_date_utc = raw_data.get("_updated_date_utc")
+    if updated_date_utc:
+        client.xero_last_modified = updated_date_utc
+    else:
+        raise ValueError("Xero last modified date is missing from the raw JSON.")
+
     # Save the updated client information
     client.save()
 
@@ -202,7 +163,7 @@ def reprocess_invoices():
     """Reprocess all existing invoices to set fields based on raw JSON."""
     for invoice in Invoice.objects.all():
         try:
-            set_invoice_fields(invoice)
+            set_invoice_or_bill_fields(invoice,"INVOICE")
             logger.info(f"Reprocessed invoice: {invoice.number}")
         except Exception as e:
             logger.error(f"Error reprocessing invoice {invoice.number}: {str(e)}")
@@ -212,7 +173,7 @@ def reprocess_bills():
     """Reprocess all existing bills to set fields based on raw JSON."""
     for bill in Bill.objects.all():
         try:
-            set_bill_fields(bill)
+            set_invoice_or_bill_fields(bill,"BILL")
             logger.info(f"Reprocessed bill: {bill.number}")
         except Exception as e:
             logger.error(f"Error reprocessing bill {bill.number}: {str(e)}")
@@ -343,6 +304,24 @@ def remove_currency_fields(data):
     else:
         return data  # Base case: return data as-is if it's not a dict or list
 
+def clean_raw_json(data):
+    def is_unwanted_field(key, value):
+        unwanted_patterns = ["_value2member_map_", "_generate_next_value_", "_member_names_", "__objclass__"]
+        return any(pattern in key for pattern in unwanted_patterns)
+
+    def recursively_clean(data):
+        if isinstance(data, dict):
+            return {
+                k: recursively_clean(v) for k, v in data.items()
+                if not is_unwanted_field(k, v)
+            }
+        elif isinstance(data, list):
+            return [recursively_clean(i) for i in data]
+        else:
+            return data
+
+    return recursively_clean(data)
+
 
 def sync_invoices(invoices):
     """Sync Xero invoices (ACCREC)."""
@@ -355,7 +334,8 @@ def sync_invoices(invoices):
             logger.warning(f"Client not found for invoice {inv.invoice_number}")
             raise ValueError(f"Client not found for invoice {inv.invoice_number}")
 
-        raw_json = serialise_xero_object(inv)
+        dirty_raw_json = serialise_xero_object(inv)
+        raw_json = clean_raw_json(dirty_raw_json)
 
         # Retrieve or create the invoice (without saving initially)
         try:
@@ -371,7 +351,7 @@ def sync_invoices(invoices):
             invoice.raw_json = raw_json
 
             # Set other fields from raw_json using set_invoice_fields
-            set_invoice_fields(invoice)
+            set_invoice_or_bill_fields(invoice,"INVOICE")
 
             # Log whether the invoice was created or updated
             if created:
@@ -417,7 +397,7 @@ def sync_bills(bills):
             bill.raw_json = raw_json
 
             # Set other fields using set_bill_fields (which also saves the bill)
-            set_bill_fields(bill)
+            set_invoice_or_bill_fields(bill,"BILL")
 
             # Log whether the bill was created or updated
             if created:
@@ -742,6 +722,9 @@ def sync_all_xero_data():
     our_latest_invoice = get_last_modified_time(Invoice)
     our_latest_bill = get_last_modified_time(Bill)
     our_latest_account = get_last_modified_time(XeroAccount)
+
+    invoice = Invoice.objects.filter(number="INV-54021").first()
+    set_invoice_or_bill_fields(invoice, "INVOICE")
 
     sync_xero_data(
         xero_entity_type="accounts",
