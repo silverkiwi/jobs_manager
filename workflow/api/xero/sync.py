@@ -13,7 +13,8 @@ from xero_python.accounting import AccountingApi
 from workflow.api.xero.xero import api_client, get_tenant_id
 from workflow.models import BillLineItem
 from workflow.models.client import Client
-from workflow.models.invoice import Bill, Invoice, InvoiceLineItem
+from workflow.models.invoice import Bill, Invoice, InvoiceLineItem, CreditNote, \
+    CreditNoteLineItem
 from workflow.models.xero_account import XeroAccount
 
 logger = logging.getLogger(__name__)
@@ -32,30 +33,44 @@ def set_invoice_or_bill_fields(document, document_type):
         raise ValueError(
             f"{document_type.title()} raw_json is empty. We better not try to process it")
 
+
     is_invoice = document.raw_json.get('_type') == 'ACCREC'
     is_bill = document.raw_json.get('_type') == 'ACCPAY'
+    is_credit_note = document.raw_json.get('_type') in ['ACCRECCREDIT', 'ACCPAYCREDIT']
 
+    if is_invoice:
+        json_document_type = "INVOICE"
+    elif is_bill:
+        json_document_type = "BILL"
+    elif is_credit_note:
+        json_document_type = "CREDIT_NOTE"
 
     # Validate the document matches the type
-    if (document_type == "INVOICE" and not is_invoice) or (
-            document_type == "BILL" and not is_bill):
+    if document_type != json_document_type:
         raise ValueError(
-            f"Document type mismatch. Got {document_type} but document appears to be a {('bill' if is_bill else 'invoice')}"
+            f"Document type mismatch. Got {document_type} but document appears to be a {json_document_type}"
         )
 
 
     raw_data = document.raw_json
 
     # Common fields that are identical between invoices and bills
-    document.xero_id = raw_data.get("_invoice_id")
-    document.number = raw_data.get("_invoice_number")
+    if is_credit_note:
+        document.xero_id = raw_data.get("_credit_note_id")
+        document.number = raw_data.get("_credit_note_number")
+    else:
+        document.xero_id = raw_data.get("_invoice_id")
+        document.number = raw_data.get("_invoice_number")
     document.date = raw_data.get("_date")
     document.due_date = raw_data.get("_due_date")
     document.status = raw_data.get("_status")
     document.tax = raw_data.get("_total_tax")
     document.total_excl_tax = raw_data.get("_sub_total")
     document.total_incl_tax = raw_data.get("_total")
-    document.amount_due = raw_data.get("_amount_due")
+    if document_type == "CREDIT_NOTE":
+        document.amount_due = raw_data.get("_remaining_credit")
+    else:
+        document.amount_due = raw_data.get("_amount_due")
     document.xero_last_modified = raw_data.get("_updated_date_utc")
 
     # Set or create the client/supplier
@@ -74,8 +89,18 @@ def set_invoice_or_bill_fields(document, document_type):
     amount_type = raw_data.get('_line_amount_types', {}).get('_value_')
 
     # Determine which line item model to use
-    LineItemModel = InvoiceLineItem if is_invoice else BillLineItem
-    document_field = 'invoice' if is_invoice else 'bill'
+    LineItemModel = (
+        InvoiceLineItem if is_invoice else
+        BillLineItem if is_bill else
+        CreditNoteLineItem if is_credit_note else
+        None
+    )
+    document_field = (
+        'invoice' if is_invoice else
+        'bill' if is_bill else
+        'credit_note' if is_credit_note else
+        None
+    )
 
     for line_item_data in line_items_data:
         line_item_id = line_item_data.get("_line_item_id")
@@ -120,9 +145,9 @@ def set_invoice_or_bill_fields(document, document_type):
                 "line_amount_incl_tax": line_amount_incl_tax,
             },
         )
-        print(f"{'Created' if created else 'Updated'} Line Item: "
-              f"Amount Excl. Tax: {line_item.line_amount_excl_tax}, "
-              f"Tax Amount: {line_item.tax_amount}, Total Incl. Tax: {line_item.line_amount_incl_tax}")
+        # print(f"{'Created' if created else 'Updated'} Line Item: "
+        #       f"Amount Excl. Tax: {line_item.line_amount_excl_tax}, "
+        #       f"Tax Amount: {line_item.tax_amount}, Total Incl. Tax: {line_item.line_amount_incl_tax}")
 
 
 def set_client_fields(client):
@@ -287,20 +312,20 @@ def serialise_xero_object(obj):
         return str(obj)
 
 
-def remove_currency_fields(data):
+def remove_junk_json_fields(data):
     """We delete currency fields because they're really bulky and repeated on every invoice"""
     exclude_keys = {"_currency_code", "_currency_rate"}
 
     if isinstance(data, dict):
         # Recursively remove currency fields from the dictionary
         return {
-            key: remove_currency_fields(value)
+            key: remove_junk_json_fields(value)
             for key, value in data.items()
             if key not in exclude_keys
         }
     elif isinstance(data, list):
         # Recursively apply this function for lists of items
-        return [remove_currency_fields(item) for item in data]
+        return [remove_junk_json_fields(item) for item in data]
     else:
         return data  # Base case: return data as-is if it's not a dict or list
 
@@ -373,7 +398,8 @@ def sync_bills(bills):
     """Sync Xero bills (ACCPAY)."""
     for bill_data in bills:
         xero_id = getattr(bill_data, "invoice_id")
-        raw_json = serialise_xero_object(bill_data)
+        dirty_raw_json = serialise_xero_object(bill_data)
+        raw_json = clean_raw_json(dirty_raw_json)
         bill_number = raw_json["_invoice_number"]
         # Retrieve the client for the bill first
         client = Client.objects.filter(
@@ -414,13 +440,58 @@ def sync_bills(bills):
             logger.error(f"Bill data: {raw_json}")
             raise
 
+def sync_credit_notes(notes):
+    """Sync Xero credit notes."""
+    for note_data in notes:
+        xero_id = getattr(note_data, "credit_note_id")
+        dirty_raw_json = serialise_xero_object(note_data)
+        raw_json = clean_raw_json(dirty_raw_json)
+        note_number = raw_json["_credit_note_number"]
+        # Retrieve the client for the credit note first
+        client = Client.objects.filter(
+            xero_contact_id=note_data.contact.contact_id
+        ).first()
+        if not client:
+            logger.warning(f"Client not found for credit note {note_number}")
+            continue
+
+        # Retrieve or create the credit note without saving immediately
+        try:
+            note = CreditNote.objects.get(xero_id=xero_id)
+            created = False
+        except CreditNote.DoesNotExist:
+            note = CreditNote(xero_id=xero_id, client=client)
+            created = True
+
+        # Now perform the rest of the operations, ensuring everything is set before saving
+        try:
+            # Update raw_json and other necessary fields
+            note.raw_json = raw_json
+
+            # Set other fields using set_invoice_or_bill_fields
+            set_invoice_or_bill_fields(note,"CREDIT_NOTE")
+
+            # Log whether the credit note was created or updated
+            if created:
+                logger.info(
+                    f"New credit note added: {note.number} updated_at={note.xero_last_modified}"
+                )
+            else:
+                logger.info(
+                    f"Updated credit note: {note.number} updated_at={note.xero_last_modified}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error processing credit note {note_number}: {str(e)}")
+            logger.error(f"Note data: {raw_json}")
+            raise
 
 def sync_clients(xero_contacts):
     for contact_data in xero_contacts:
         xero_contact_id = getattr(contact_data, "contact_id", None)
 
         raw_json_with_currency = serialise_xero_object(contact_data)
-        raw_json = remove_currency_fields(
+        raw_json = remove_junk_json_fields(
             raw_json_with_currency
         )  # Client doesn't have any currency fields but kept for consistancy
 
@@ -721,10 +792,12 @@ def sync_all_xero_data():
     our_latest_contact = get_last_modified_time(Client)
     our_latest_invoice = get_last_modified_time(Invoice)
     our_latest_bill = get_last_modified_time(Bill)
+    our_latest_credit_note = get_last_modified_time(CreditNote)
     our_latest_account = get_last_modified_time(XeroAccount)
 
-    invoice = Invoice.objects.filter(number="INV-54021").first()
-    set_invoice_or_bill_fields(invoice, "INVOICE")
+    # Just put here for lazy debugging since I can trigger this with a button
+    # invoice = Invoice.objects.filter(number="INV-54021").first()
+    # set_invoice_or_bill_fields(invoice, "INVOICE")
 
     sync_xero_data(
         xero_entity_type="accounts",
@@ -754,4 +827,11 @@ def sync_all_xero_data():
         sync_function=sync_bills,
         last_modified_time=our_latest_bill,
         additional_params={"where": 'Type=="ACCPAY"'},
+    )
+
+    sync_xero_data(
+        xero_entity_type="credit_notes",
+        xero_api_function=accounting_api.get_credit_notes,
+        sync_function=sync_credit_notes,
+        last_modified_time=our_latest_credit_note,
     )

@@ -131,8 +131,10 @@ class Bill(BaseXeroInvoiceDocument):
         return self.line_items.all()
 
 class CreditNote(BaseXeroInvoiceDocument):
-    credit_note_number = models.CharField(max_length=20, unique=True)
-    reason = models.TextField(null=True, blank=True)
+    # Note that Xero has a few extra fields we don't have mapped
+    # allocations
+    # fully_paid_on_date
+    # maybe more.  We can add them as needed.
 
     class Meta:
         verbose_name = "Credit Note"
@@ -140,7 +142,7 @@ class CreditNote(BaseXeroInvoiceDocument):
         ordering = ["-date"]
 
     def __str__(self):
-        return f"Credit Note {self.credit_note_number} ({self.status})"
+        return f"Credit Note {self.number} ({self.status})"
 
     def get_line_items(self):
         return self.line_items.all()
@@ -169,7 +171,7 @@ class BillLineItem(BaseLineItem):
         verbose_name = "Bill Line Item"
         verbose_name_plural = "Bill Line Items"
 
-class CreditLineItem(BaseLineItem):
+class CreditNoteLineItem(BaseLineItem):
     credit_note = models.ForeignKey(
         CreditNote,
         on_delete=models.CASCADE,
