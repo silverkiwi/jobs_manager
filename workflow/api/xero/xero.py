@@ -94,33 +94,6 @@ def store_token(token: Dict[str, Any]) -> None:
     cache.set("xero_oauth2_token", token)
 
 
-def get_token_id_api_client(access_token: str) -> IdentityApi:
-    """Create a temporary API client for fetching tenant connections.
-    Uses update_token with known scopes and a fallback expires_in."""
-    temp_oauth2_token = OAuth2Token(
-        client_id=settings.XERO_CLIENT_ID,
-        client_secret=settings.XERO_CLIENT_SECRET,
-    )
-
-    # If we can't get actual expires_in for this temporary token, we fallback to DEFAULT_EXPIRES_IN.
-    temp_oauth2_token.update_token(
-        access_token=access_token,
-        scope=" ".join(XERO_SCOPES),
-        expires_in=DEFAULT_EXPIRES_IN,
-        token_type="Bearer"
-    )
-    temp_api_client = ApiClient(Configuration(oauth2_token=temp_oauth2_token))
-    return IdentityApi(temp_api_client)
-
-def get_tenant_id_from_connections(access_token: str) -> str:
-    """Fetch the tenant_id by calling get_connections using a temporary client."""
-    identity_api = get_token_id_api_client(access_token)
-    connections = identity_api.get_connections()
-    if not connections:
-        logger.error("No Xero tenants found for the given access_token.")
-        raise Exception("No Xero tenants found.")
-    return connections[0].tenant_id
-
 def get_tenant_id() -> str:
     """Retrieve the tenant_id from the DB. Assumes initial auth completed."""
     token_instance = XeroToken.objects.first()
@@ -139,25 +112,13 @@ def get_token() -> Optional[Dict[str, Any]]:
     if expires_at:
         expires_at_datetime = datetime.fromtimestamp(expires_at, tz=timezone.utc)
         if datetime.now(timezone.utc) > expires_at_datetime:
-            with _refresh_lock:
-                token = get_token_internal()
-                if token is None:
-                    return None
-                new_expires_at = token.get("expires_at")
-                if new_expires_at:
-                    new_expires_at_datetime = datetime.fromtimestamp(new_expires_at, tz=timezone.utc)
-                    if datetime.now(timezone.utc) > new_expires_at_datetime:
-                        # Token is still expired after re-check, attempt refresh
-                        refreshed = refresh_token()
-                        if refreshed:
-                            token = refreshed
-                        else:
-                            logger.error("Failed to refresh token after expiration.")
-                            return None
-                else:
-                    logger.error("Token missing expires_at after lock check, can't proceed.")
-                    return None
-    return token
+            # Token expired; attempt to refresh
+            token = refresh_token()
+            if not token:
+                logger.error("Failed to refresh token after expiration.")
+                raise Exception("Token refresh failed.")
+        return token
+
 
 def get_authentication_url(state: str) -> str:
     """Construct the URL to initiate the Xero OAuth flow."""
@@ -169,6 +130,15 @@ def get_authentication_url(state: str) -> str:
         "state": state,
     }
     return f"https://login.xero.com/identity/connect/authorize?{urlencode(query_params)}"
+
+def get_tenant_id_from_connections(access_token: str) -> str:
+    # Instead of creating a new ApiClient, just use the main api_client
+    identity_api = IdentityApi(api_client)  # uses the main api_client already configured
+    connections = identity_api.get_connections()
+    if not connections:
+        logger.error("No Xero tenants found for the given access_token.")
+        raise Exception("No Xero tenants found.")
+    return connections[0].tenant_id
 
 def exchange_code_for_token(
     code: str, state: Optional[str], session_state: str
@@ -196,16 +166,13 @@ def exchange_code_for_token(
 
     token_data.pop("xero_tenant_id", None)
 
-    # Store token in cache only
+    # Store token in cache
     store_token(token_data)
 
-    # Now that we have a valid access_token, fetch the tenant_id
+    # Now fetch tenant_id using the main api_client (no second client needed)
     xero_tenant_id = get_tenant_id_from_connections(token_data["access_token"])
-
-    # Calculate expires_at again for the DB record
     expires_at = datetime.now(timezone.utc) + timedelta(seconds=token_data["expires_in"])
 
-    # Now update or create the DB record with tenant_id
     XeroToken.objects.update_or_create(
         tenant_id=xero_tenant_id,
         defaults={
