@@ -5,7 +5,7 @@ from .client_view import ClientListView, ClientUpdateView
 from .dashboard_view import DashboardView
 from .invoice_view import InvoiceListView, InvoiceUpdateView
 from .material_entry_view import CreateMaterialEntryView, MaterialEntryUpdateView
-from .report_view import CompanyProfitAndLossView
+from .report_view import ReportsIndexView, CompanyProfitAndLossView
 from .staff_view import StaffListView, StaffCreateView, StaffUpdateView
 from .time_entry_view import TimesheetEntryView
 from .time_overview_view import TimesheetOverviewView, TimesheetDailyView
@@ -20,6 +20,7 @@ __all__ = [
     'InvoiceUpdateView',
     'CreateMaterialEntryView',
     'MaterialEntryUpdateView',
+    'ReportsIndexView',
     'CompanyProfitAndLossView',
     'StaffListView',
     'StaffCreateView',

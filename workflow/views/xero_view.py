@@ -1,12 +1,14 @@
 # workflow/views/xero_view.py
 import logging
 import uuid
+import traceback
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from xero_python.accounting import AccountingApi
 from xero_python.identity import IdentityApi
+
 
 from workflow.api.xero.sync import sync_all_xero_data
 from workflow.api.xero.xero import (
@@ -98,6 +100,7 @@ def refresh_xero_data(request):
             return redirect("authenticate_xero")
         else:
             logger.error(f"Error while refreshing Xero data: {str(e)}")
+            traceback.print_exc()
             return render(
                 request, "general/generic_error.html", {"error_message": str(e)}
             )

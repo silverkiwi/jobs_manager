@@ -1,7 +1,6 @@
-import json
+# workflow/xero/sync.py
 import logging
 import time
-import uuid
 from datetime import date, datetime, timedelta
 from uuid import UUID
 
@@ -10,225 +9,15 @@ from django.db import transaction
 from django.db.models import Max
 from xero_python.accounting import AccountingApi
 
-from workflow.api.xero.xero import api_client, get_tenant_id
-from workflow.models import BillLineItem
+from workflow.api.xero.reprocess_xero import set_invoice_or_bill_fields, \
+    set_journal_fields, set_client_fields
+from workflow.api.xero.xero import api_client, get_tenant_id, get_token
+from workflow.models import  XeroJournal
 from workflow.models.client import Client
-from workflow.models.invoice import Bill, Invoice, InvoiceLineItem, CreditNote, \
-    CreditNoteLineItem
+from workflow.models.invoice import Bill, Invoice,  CreditNote
 from workflow.models.xero_account import XeroAccount
 
 logger = logging.getLogger(__name__)
-
-
-def set_invoice_or_bill_fields(document, document_type):
-    """
-    Process either an invoice or bill from Xero.
-
-    Args:
-        document: Instance of XeroInvoiceOrBill
-        document_type: String either "INVOICE" or "BILL"
-    """
-
-    if not document.raw_json:
-        raise ValueError(
-            f"{document_type.title()} raw_json is empty. We better not try to process it")
-
-
-    is_invoice = document.raw_json.get('_type') == 'ACCREC'
-    is_bill = document.raw_json.get('_type') == 'ACCPAY'
-    is_credit_note = document.raw_json.get('_type') in ['ACCRECCREDIT', 'ACCPAYCREDIT']
-
-    if is_invoice:
-        json_document_type = "INVOICE"
-    elif is_bill:
-        json_document_type = "BILL"
-    elif is_credit_note:
-        json_document_type = "CREDIT_NOTE"
-
-    # Validate the document matches the type
-    if document_type != json_document_type:
-        raise ValueError(
-            f"Document type mismatch. Got {document_type} but document appears to be a {json_document_type}"
-        )
-
-
-    raw_data = document.raw_json
-
-    # Common fields that are identical between invoices and bills
-    if is_credit_note:
-        document.xero_id = raw_data.get("_credit_note_id")
-        document.number = raw_data.get("_credit_note_number")
-    else:
-        document.xero_id = raw_data.get("_invoice_id")
-        document.number = raw_data.get("_invoice_number")
-    document.date = raw_data.get("_date")
-    document.due_date = raw_data.get("_due_date")
-    document.status = raw_data.get("_status")
-    document.tax = raw_data.get("_total_tax")
-    document.total_excl_tax = raw_data.get("_sub_total")
-    document.total_incl_tax = raw_data.get("_total")
-    if document_type == "CREDIT_NOTE":
-        document.amount_due = raw_data.get("_remaining_credit")
-    else:
-        document.amount_due = raw_data.get("_amount_due")
-    document.xero_last_modified = raw_data.get("_updated_date_utc")
-
-    # Set or create the client/supplier
-    contact_data = raw_data.get("_contact", {})
-    contact_id = contact_data.get("_contact_id")
-    contact_name = contact_data.get("_name")
-    client = Client.objects.filter(xero_contact_id=contact_id).first()
-    if not client:
-        raise ValueError(f"Client not found for {document_type.lower()} {document.number}")
-    document.client = client
-
-    document.save()
-
-    # Handle line items
-    line_items_data = raw_data.get("_line_items", [])
-    amount_type = raw_data.get('_line_amount_types', {}).get('_value_')
-
-    # Determine which line item model to use
-    LineItemModel = (
-        InvoiceLineItem if is_invoice else
-        BillLineItem if is_bill else
-        CreditNoteLineItem if is_credit_note else
-        None
-    )
-    document_field = (
-        'invoice' if is_invoice else
-        'bill' if is_bill else
-        'credit_note' if is_credit_note else
-        None
-    )
-
-    for line_item_data in line_items_data:
-        line_item_id = line_item_data.get("_line_item_id")
-        xero_line_id = uuid.UUID(line_item_id)
-        description = line_item_data.get("_description") or "No description provided"
-        quantity = line_item_data.get("_quantity", 1)
-        unit_price = line_item_data.get("_unit_amount",1)
-
-        try:
-            line_amount = float(line_item_data.get("_line_amount", 0))
-            tax_amount = float(line_item_data.get("_tax_amount", 0))
-        except (TypeError, ValueError):
-            line_amount = 0
-            tax_amount = 0
-
-        # Fix for the GST calculation bug
-        if amount_type == 'Inclusive':
-            line_amount_excl_tax = line_amount - tax_amount
-            line_amount_incl_tax = line_amount
-        else:
-            line_amount_excl_tax = line_amount
-            line_amount_incl_tax = line_amount + tax_amount
-
-        # Fetch the account
-        account_code = line_item_data.get("_account_code")
-        account = XeroAccount.objects.filter(account_code=account_code).first()
-
-        # Sync the line item using dynamic field name
-        kwargs = {
-            document_field: document,
-            "xero_line_id": xero_line_id
-        }
-        line_item, created = LineItemModel.objects.update_or_create(
-            **kwargs,
-            defaults={
-                "quantity": quantity,
-                "unit_price": unit_price,
-                "description": description,
-                "account": account,
-                "tax_amount": tax_amount,
-                "line_amount_excl_tax": line_amount_excl_tax,
-                "line_amount_incl_tax": line_amount_incl_tax,
-            },
-        )
-        # print(f"{'Created' if created else 'Updated'} Line Item: "
-        #       f"Amount Excl. Tax: {line_item.line_amount_excl_tax}, "
-        #       f"Tax Amount: {line_item.tax_amount}, Total Incl. Tax: {line_item.line_amount_incl_tax}")
-
-
-def set_client_fields(client):
-    # Extract relevant fields from raw_json
-    if not client.raw_json:
-        raise ValueError("Client raw_json is empty.  We better not try to process it")
-
-    raw_data = client.raw_json
-
-    # Extract basic client fields from raw JSON
-    client.name = raw_data.get("_name")
-    client.email = raw_data.get("_email_address")
-    # Handling the phone number
-    phones = raw_data.get("_phones", [])
-    client.phone = phones[0].get("phone_number", "") if phones else ""
-
-    # Handling the address
-    addresses = raw_data.get("addresses", [])
-    client.address = addresses[0].get("address_line1", "") if addresses else ""
-
-    # Handling payment terms (keeping the condition from old logic)
-    payment_terms = raw_data.get("payment_terms")
-    client.is_account_customer = (
-        payment_terms is not None and payment_terms.get("sales") is not None
-    )
-
-    updated_date_utc = raw_data.get("_updated_date_utc")
-    if updated_date_utc:
-        client.xero_last_modified = updated_date_utc
-    else:
-        raise ValueError("Xero last modified date is missing from the raw JSON.")
-
-    # Save the updated client information
-    client.save()
-
-
-def reprocess_invoices():
-    """Reprocess all existing invoices to set fields based on raw JSON."""
-    for invoice in Invoice.objects.all():
-        try:
-            set_invoice_or_bill_fields(invoice,"INVOICE")
-            logger.info(f"Reprocessed invoice: {invoice.number}")
-        except Exception as e:
-            logger.error(f"Error reprocessing invoice {invoice.number}: {str(e)}")
-
-
-def reprocess_bills():
-    """Reprocess all existing bills to set fields based on raw JSON."""
-    for bill in Bill.objects.all():
-        try:
-            set_invoice_or_bill_fields(bill,"BILL")
-            logger.info(f"Reprocessed bill: {bill.number}")
-        except Exception as e:
-            logger.error(f"Error reprocessing bill {bill.number}: {str(e)}")
-
-def reprocess_credit_notes():
-    """Reprocess all existing credit notes to set fields based on raw JSON."""
-    for credit_note in CreditNote.objects.all():
-        try:
-            set_invoice_or_bill_fields(credit_note,"CREDIT NOTE")
-            logger.info(f"Reprocessed credit note: {credit_note.number}")
-        except Exception as e:
-            logger.error(f"Error reprocessing credit note {credit_note.number}: {str(e)}")
-
-def reprocess_clients():
-    """Reprocess all existing clients to set fields based on raw JSON."""
-    for client in Client.objects.all():
-        try:
-            set_client_fields(client)
-            logger.info(f"Reprocessed client: {client.name}")
-        except Exception as e:
-            logger.error(f"Error reprocessing client {client.name}: {str(e)}")
-
-
-def reprocess_all():
-    """Reprocesses all data to set fields based on raw JSON."""
-    # NOte, we don't have a reprocess accounts because it just feels too weird.
-    # If you break accounts, you probably want to handle it manually
-    reprocess_clients()
-    reprocess_invoices()
-    reprocess_bills()
 
 
 def sync_xero_data(
@@ -237,51 +26,89 @@ def sync_xero_data(
     sync_function,
     last_modified_time,
     additional_params=None,
-    supports_pagination=True,
+    pagination_mode="single",  # "single", "page", or "offset"
+    full_load = False
 ):
+    if pagination_mode not in ("single", "page", "offset"):
+        raise ValueError("pagination_mode must be 'single', 'page', or 'offset'")
+
+    if pagination_mode == "offset":
+        date_str = last_modified_time.split("T")[0]  # "2024-11-30"
+
+        # Parse just the date (this will create a naive datetime with no timezone)
+        year, month, day = date_str.split("-")
+        last_modified_dt = datetime(int(year), int(month), int(day))
+
+        app_released_dt = datetime(2024, 12, 1)
+
+        if last_modified_dt < app_released_dt:
+            # A bit hacky.  This is to distinguish between the initial big sync and subsequent incremental runs
+            # In incremental mode we don't use offset so we correctly identify all updates without relying on the journal numbers being monotonic
+            #
+            # The logic is that if we have data from after the app was released
+            # Then it must be incremental
+            full_load = True
+        else:
+            full_load = False
 
     logger.info(
-        f"Syncing Xero data... Entity: {xero_entity_type}, since {last_modified_time}"
+        f"Starting sync for {xero_entity_type}, mode={pagination_mode}, since={last_modified_time}"
     )
 
     xero_tenant_id = get_tenant_id()
-
+    offset = 0
     page = 1
     page_size = 100
+
+    base_params = {
+        "xero_tenant_id": xero_tenant_id,
+        "if_modified_since": last_modified_time,
+    }
+    if additional_params:
+        base_params.update(additional_params)
+
     while True:
-        params = {
-            "xero_tenant_id": xero_tenant_id,
-            "if_modified_since": last_modified_time,
-            "order": "UpdatedDateUTC ASC",
-        }
+        params = dict(base_params)
+        if pagination_mode == "page":
+            params["order"] = "UpdatedDateUTC ASC"
+            params["page"] = page
+            params["page_size"] = page_size
+        elif pagination_mode == "offset":
+            params["offset"] = offset
+        # single mode: no extra params
 
-        if supports_pagination:
-            params.update(
-                {
-                    "page": page,
-                    "page_size": page_size,
-                }
-            )
-
-        if additional_params:
-            params.update(additional_params)
-
+        token = get_token() # Ensure we refresh the token every call
+        if not token:
+            raise Exception("No valid token available for Xero API calls.")
         entities = xero_api_function(**params)
+        items = getattr(entities, xero_entity_type, [])
 
-        if not getattr(entities, xero_entity_type):
-            break  # No more entities to process
+        if not items:
+            # No items means done for all modes.
+            return
 
-        sync_function(getattr(entities, xero_entity_type))
+        # Process these items
+        sync_function(items)
 
-        if not supports_pagination:
-            break
+        if pagination_mode == "single":
+            # Single mode: one iteration only
+            return
 
-        # Check if we've processed all pages
-        if page >= entities.pagination.page_count:
-            break
+        if pagination_mode == "page":
+            # If we got items this time, try next page
+            page += 1
 
-        page += 1
-        time.sleep(5)  # Respect Xero's rate limits
+        elif pagination_mode == "offset":
+            if full_load == False:
+                offset = 0
+            elif xero_entity_type == "journals":
+                max_journal_number = max(item.journal_number for item in items)
+                offset = max_journal_number
+            else:
+                raise ValueError(f"New offset entity type: {xero_entity_type}.  Write new offset logic:")
+        time.sleep(5)
+
+
 
 
 def get_last_modified_time(model):
@@ -492,6 +319,49 @@ def sync_credit_notes(notes):
         except Exception as e:
             logger.error(f"Error processing credit note {note_number}: {str(e)}")
             logger.error(f"Note data: {raw_json}")
+            raise
+
+
+def sync_journals(journals):
+    """Sync Xero journals."""
+    for jrnl_data in journals:
+        xero_id = getattr(jrnl_data, "journal_id")
+        dirty_raw_json = serialise_xero_object(jrnl_data)
+        raw_json = clean_raw_json(dirty_raw_json)
+
+        # Retrieve the journal_number from raw_json
+        # Adjust key if needed, based on your raw JSON structure
+        journal_number = raw_json["_journal_number"]
+
+        # Retrieve or create the journal without saving immediately
+        try:
+            journal = XeroJournal.objects.get(xero_id=xero_id)
+            created = False
+        except XeroJournal.DoesNotExist:
+            journal = XeroJournal(xero_id=xero_id)
+            created = True
+
+        # Now perform the rest of the operations, ensuring everything is set before saving
+        try:
+            # Update raw_json
+            journal.raw_json = raw_json
+
+            # Set other fields using set_journal_fields
+            set_journal_fields(journal)
+
+            # Log whether the journal was created or updated
+            if created:
+                logger.info(
+                    f"New journal added: {journal_number} updated_at={journal.xero_last_modified}"
+                )
+            else:
+                logger.info(
+                    f"Updated journal: {journal_number} updated_at={journal.xero_last_modified}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error processing journal {journal_number}: {str(e)}")
+            logger.error(f"Journal data: {raw_json}")
             raise
 
 def sync_clients(xero_contacts):
@@ -802,6 +672,7 @@ def sync_all_xero_data():
     our_latest_bill = get_last_modified_time(Bill)
     our_latest_credit_note = get_last_modified_time(CreditNote)
     our_latest_account = get_last_modified_time(XeroAccount)
+    our_latest_journal = get_last_modified_time(XeroJournal)
 
     # Just put here for lazy debugging since I can trigger this with a button
     # invoice = Invoice.objects.filter(number="INV-54021").first()
@@ -813,7 +684,7 @@ def sync_all_xero_data():
         xero_api_function=accounting_api.get_accounts,
         sync_function=sync_accounts,
         last_modified_time=our_latest_account,
-        supports_pagination=False,
+        pagination_mode="single",
     )
 
     sync_xero_data(
@@ -821,6 +692,7 @@ def sync_all_xero_data():
         xero_api_function=accounting_api.get_contacts,
         sync_function=sync_clients,
         last_modified_time=our_latest_contact,
+        pagination_mode="page",
     )
 
     sync_xero_data(
@@ -829,6 +701,7 @@ def sync_all_xero_data():
         sync_function=sync_invoices,
         last_modified_time=our_latest_invoice,
         additional_params={"where": 'Type=="ACCREC"'},
+        pagination_mode="page",
     )
     sync_xero_data(
         xero_entity_type="invoices",
@@ -836,6 +709,7 @@ def sync_all_xero_data():
         sync_function=sync_bills,
         last_modified_time=our_latest_bill,
         additional_params={"where": 'Type=="ACCPAY"'},
+        pagination_mode="page",
     )
 
     sync_xero_data(
@@ -843,4 +717,13 @@ def sync_all_xero_data():
         xero_api_function=accounting_api.get_credit_notes,
         sync_function=sync_credit_notes,
         last_modified_time=our_latest_credit_note,
+        pagination_mode="page",
+    )
+
+    sync_xero_data(
+        xero_entity_type="journals",
+        xero_api_function=accounting_api.get_journals,
+        sync_function=sync_journals,
+        last_modified_time=our_latest_journal,
+        pagination_mode="offset",
     )
