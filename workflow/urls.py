@@ -75,11 +75,6 @@ urlpatterns = [
         xero_view.get_xero_contacts,
         name="list_xero_contacts",
     ),
-    path(
-        "api/xero/refresh_token/",
-        xero_view.refresh_xero_token,
-        name="refresh_token_xero",
-    ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
     path(
