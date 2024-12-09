@@ -21,35 +21,31 @@ logger = logging.getLogger(__name__)
 
 
 def sync_xero_data(
-    xero_entity_type,
-    xero_api_function,
-    sync_function,
-    last_modified_time,
-    additional_params=None,
-    pagination_mode="single",  # "single", "page", or "offset"
-    full_load = False
+        xero_entity_type,
+        xero_api_function,
+        sync_function,
+        last_modified_time,
+        additional_params=None,
+        pagination_mode="single"  # "single", "page", or "offset"
 ):
+    # Note, the logic here is gnarly.  Be careful
+    # There are six scenarios to handle - single/page/offset and partial/final
+    # So for example single is guaranteed to always be final - to select all records
+    # which means len(items) might be bigger than page_size
+    # For page we need to do one page at a time.  Which means we can't fiddle
+    # with the filter or the sort - otherwise the contents of each page might change
+    # For offset we do an offset by Journal Number. If we added another offset
+    # We'd need to pass a variable of what to offset by.
+    # This is theoretically a bug since we're ordering by journal number and so
+    # we might not get all changes.  But it's never going to happen because we get
+    # 100 records.  It would require having more than 100 journals change at once
+    # AND for the updates to be to the newer journals first
+    # Anyway point is, be careful
     if pagination_mode not in ("single", "page", "offset"):
         raise ValueError("pagination_mode must be 'single', 'page', or 'offset'")
 
-    if pagination_mode == "offset":
-        date_str = last_modified_time.split("T")[0]  # "2024-11-30"
-
-        # Parse just the date (this will create a naive datetime with no timezone)
-        year, month, day = date_str.split("-")
-        last_modified_dt = datetime(int(year), int(month), int(day))
-
-        app_released_dt = datetime(2024, 12, 1)
-
-        if last_modified_dt < app_released_dt:
-            # A bit hacky.  This is to distinguish between the initial big sync and subsequent incremental runs
-            # In incremental mode we don't use offset so we correctly identify all updates without relying on the journal numbers being monotonic
-            #
-            # The logic is that if we have data from after the app was released
-            # Then it must be incremental
-            full_load = True
-        else:
-            full_load = False
+    if  pagination_mode == "offset" and xero_entity_type != "journals":
+        raise TypeError("We only support journals for offset currently")
 
     logger.info(
         f"Starting sync for {xero_entity_type}, mode={pagination_mode}, since={last_modified_time}"
@@ -62,53 +58,51 @@ def sync_xero_data(
 
     base_params = {
         "xero_tenant_id": xero_tenant_id,
-        "if_modified_since": last_modified_time,
+        "if_modified_since": last_modified_time
     }
+
+    if pagination_mode == "page":
+        # Page mode uses UpdatedDateUTC ordering for consistent incremental fetching.
+        base_params.update({"page_size": page_size, "order": "UpdatedDateUTC ASC"})
+
     if additional_params:
         base_params.update(additional_params)
 
     while True:
+        # Prepare the API parameters for this iteration.
         params = dict(base_params)
-        if pagination_mode == "page":
-            params["order"] = "UpdatedDateUTC ASC"
-            params["page"] = page
-            params["page_size"] = page_size
-        elif pagination_mode == "offset":
+        if pagination_mode == "offset":
             params["offset"] = offset
-        # single mode: no extra params
+        elif pagination_mode == "page":
+            params["page"] = page
 
-        token = get_token() # Ensure we refresh the token every call
-        if not token:
-            raise Exception("No valid token available for Xero API calls.")
+        # Fetch the entities from the API based on the prepared parameters.
         entities = xero_api_function(**params)
-        items = getattr(entities, xero_entity_type, [])
+        items = getattr(entities, xero_entity_type, [])  # Extract the relevant data.
 
         if not items:
-            # No items means done for all modes.
+            logger.info("No items to sync.")
             return
 
-        # Process these items
+        # Process the current batch of items.
         sync_function(items)
 
-        if pagination_mode == "single":
-            # Single mode: one iteration only
-            return
-
+        # Update parameters to ensure progress in pagination.
         if pagination_mode == "page":
-            # If we got items this time, try next page
+            # Increment page for page mode.
             page += 1
-
         elif pagination_mode == "offset":
-            if full_load == False:
-                offset = 0
-            elif xero_entity_type == "journals":
-                max_journal_number = max(item.journal_number for item in items)
-                offset = max_journal_number
-            else:
-                raise ValueError(f"New offset entity type: {xero_entity_type}.  Write new offset logic:")
-        time.sleep(5)
+            # Use JournalNumber for offset progression for journals.
+            max_journal_number = max(item.journal_number for item in items)
+            offset = max_journal_number + 1
 
-
+        # Terminate if last batch was smaller than page size.
+        if len(items) < page_size or pagination_mode == "single":
+            logger.info("Finished processing all items.")
+            break
+        else:
+            # Avoid hitting API rate limits.
+            time.sleep(5)
 
 
 def get_last_modified_time(model):

@@ -83,16 +83,6 @@ urlpatterns = [
         name="update_client",
     ),
     path("client/add/", client_view.AddClient, name="add_client"),
-    path(
-        "debug/sync-invoice/",
-        debug_view.debug_sync_invoice_form,
-        name="debug_sync_invoice_form",
-    ),  # Form for input
-    path(
-        "debug/sync-invoice/<str:invoice_number>/",
-        debug_view.debug_sync_invoice_view,
-        name="debug_sync_invoice_view",
-    ),  # Process the sync
     path("invoices/", invoice_view.InvoiceListView.as_view(), name="list_invoices"),
     path(
         "invoices/<uuid:pk>",
