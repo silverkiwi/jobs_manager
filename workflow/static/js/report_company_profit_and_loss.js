@@ -2,242 +2,202 @@ document.addEventListener("DOMContentLoaded", function () {
     const dateRanges = {
         "This month": {
             dates: [moment().startOf("month"), moment().endOf("month")],
-            periodType: "month"
+            periodType: "month",
         },
         "Last month": {
             dates: [
                 moment().subtract(1, "month").startOf("month"),
                 moment().subtract(1, "month").endOf("month"),
             ],
-            periodType: "month"
+            periodType: "month",
         },
         "This quarter": {
             dates: [moment().startOf("quarter"), moment().endOf("quarter")],
-            periodType: "quarter"
+            periodType: "quarter",
         },
         "Last quarter": {
             dates: [
                 moment().subtract(1, "quarter").startOf("quarter"),
                 moment().subtract(1, "quarter").endOf("quarter"),
             ],
-            periodType: "quarter"
+            periodType: "quarter",
         },
         "This financial year": {
             dates: [
                 moment().month(3).startOf("month"),
                 moment().add(1, "year").month(2).endOf("month"),
             ],
-            periodType: "year"
+            periodType: "year",
         },
         "Last financial year": {
             dates: [
                 moment().subtract(1, "year").month(3).startOf("month"),
                 moment().month(2).endOf("month"),
             ],
-            periodType: "year"
+            periodType: "year",
         },
-        "Debug: Last Week Daily": {
-            dates: [
-                moment().subtract(1, "week").endOf("week"),  // Last Sunday
-                moment().subtract(1, "week").endOf("week")   // Same day for day-by-day comparison
-            ],
-            periodType: "day"
+        "Custom date range": {
+            dates: [null, null],
+            periodType: null,
+        },
+    };
+
+    const datePicker = document.getElementById("date-range-picker");
+    const fromDateField = document.getElementById("date-from");
+    const toDateField = document.getElementById("date-to");
+    const compareField = document.getElementById("compare-periods");
+    const periodTypeField = document.getElementById("period-type");
+
+    // Initialize the grid with default columns
+    const gridDiv = document.getElementById("pnl-grid");
+    const gridOptions = {
+        columnDefs: [
+            { field: "category", headerName: "Category", pinned: "left", flex: 1 },
+            { field: "subCategory", headerName: "Subcategory", pinned: "left", flex: 1 }
+        ],
+        defaultColDef: {
+            flex: 1,
+            sortable: true,
+            filter: true,
         }
     };
 
+    const api = agGrid.createGrid(gridDiv, gridOptions);
+
     // Populate dropdown with options
-    const dropdown = document.getElementById("date-range-picker");
-    Object.keys(dateRanges).forEach((rangeName, index) => {
+    Object.keys(dateRanges).forEach((rangeName) => {
         const option = document.createElement("option");
         option.value = rangeName;
         option.textContent = rangeName;
-
-        if (rangeName === "Last month") {
-            option.selected = true;
-        }
-
-        dropdown.appendChild(option);
+        datePicker.appendChild(option);
     });
 
-    // Set up compare periods input
-    const compareContainer = document.getElementById("compare-container");
-    compareContainer.innerHTML = `
-        <label for="compare">Compare Periods:</label>
-        <input type="number" id="compare" min="0" max="12" class="border p-2 w-20" value="1">
-    `;
+    function updateDateFields(rangeName) {
+        const selectedRange = dateRanges[rangeName];
+        if (selectedRange) {
+            const [start, end] = selectedRange.dates;
 
-    function setDefaultComparisonPeriods(dateRangeName) {
-        const compareInput = document.getElementById("compare");
-        if (dateRangeName === "Debug: Last Week Daily") {
-            compareInput.value = "6";  // For daily comparison, default to last 6 days
-        } else if (dateRangeName.includes("month")) {
-            compareInput.value = "2";  // For monthly ranges, default to 2 periods
-        } else if (dateRangeName.includes("quarter")) {
-            compareInput.value = "3";  // For quarterly, default to 3 periods
-        } else if (dateRangeName.includes("financial year")) {
-            compareInput.value = "1";  // For yearly, default to 1 period
+            if (start && end) {
+                fromDateField.value = start.format("YYYY-MM-DD");
+                toDateField.value = end.format("YYYY-MM-DD");
+                periodTypeField.value = selectedRange.periodType;
+                compareField.value = "0";
+            } else {
+                fromDateField.value = "";
+                toDateField.value = "";
+                periodTypeField.value = "month";
+            }
         }
     }
 
-    // Update date picker on selection
-    dropdown.addEventListener("change", function () {
-        const selectedRange = dateRanges[this.value];
-        if (selectedRange) {
-            const startDate = selectedRange.dates[0].format("YYYY-MM-DD");
-            const endDate = selectedRange.dates[1].format("YYYY-MM-DD");
-
-            // Update hidden fields for the selected range
-            document.getElementById("start_date").value = startDate;
-            document.getElementById("end_date").value = endDate;
-
-            // Set appropriate default comparison periods
-            setDefaultComparisonPeriods(this.value);
-
-            fetchAndRenderPNLChart();
-        }
+    datePicker.addEventListener("change", function () {
+        updateDateFields(this.value);
+        triggerUpdateReport();
     });
 
-    // Fetch and render the Profit & Loss chart
-    function fetchAndRenderPNLChart() {
-        const startDate = document.getElementById('start_date').value;
-        const endDate = document.getElementById('end_date').value;
-        const compare = document.getElementById('compare').value;
-        const selectedRange = dateRanges[document.getElementById('date-range-picker').value];
-        const periodType = selectedRange.periodType;
+    fromDateField.addEventListener("change", () => {
+        datePicker.value = "Custom date range";
+        triggerUpdateReport();
+    });
+    toDateField.addEventListener("change", () => {
+        datePicker.value = "Custom date range";
+        triggerUpdateReport();
+    });
 
-        if (!startDate || !endDate) {
-            alert("Please select both start and end dates.");
+    function triggerUpdateReport() {
+        const startDate = fromDateField.value;
+        const endDate = toDateField.value;
+        const comparePeriods = compareField.value;
+        const periodType = periodTypeField.value;
+
+        if (!startDate || !endDate || !comparePeriods) {
+            alert("Please ensure all fields are filled in.");
             return;
         }
 
         const params = new URLSearchParams({
             start_date: startDate,
             end_date: endDate,
-            compare: compare,
-            period_type: periodType
+            compare: comparePeriods,
+            period_type: periodType,
         });
 
         fetch(`/api/reports/company-profit-loss/?${params}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
+            .then((response) => response.json())
+            .then((data) => {
+                const rowData = [];
+                const categories = ["Trading Income", "Cost of Sales", "Operating Expenses", "Equity Movements", "Other Items"];
+
+                categories.forEach((category) => {
+                    Object.entries(data[category] || {}).forEach(([accountName, values]) => {
+                        rowData.push({
+                            category: category,
+                            subCategory: accountName,
+                            expanded: true,
+                            ...values.reduce((acc, value, idx) => {
+                                acc[`period${idx + 1}`] = parseFloat(value);
+                                return acc;
+                            }, {}),
+                        });
+                    });
+                });
+
+                Object.entries(data.totals).forEach(([key, values]) => {
+                    rowData.push({
+                        category: "TOTAL",
+                        subCategory: key.replace(/_/g, " ").toUpperCase(),
+                        ...values.reduce((acc, value, idx) => {
+                            acc[`period${idx + 1}`] = parseFloat(value);
+                            return acc;
+                        }, {}),
+                    });
+                });
+
+                const numPeriods = Math.max(...rowData.map(row =>
+                    Object.keys(row).filter(key => key.startsWith("period")).length));
+
+                const periodColumns = Array.from({ length: numPeriods }, (_, i) => ({
+                    field: `period${i + 1}`,
+                    headerName: `Period ${i + 1}`,
+                    valueFormatter: (params) => {
+                        if (params.value === undefined) return "";
+                        const formatted = Math.round(params.value).toString();
+                        return params.value < 0 ? formatted.replace("-", "-$") : "$" + formatted;
+                    },
+                    cellStyle: params => ({
+                        color: params.value < 0 ? 'red' : 'black',
+                        textAlign: 'right'
+                    })
+                }));
+
+                // Update grid columns
+                const newColumnDefs = [
+                    {
+                        field: "description",
+                        headerName: " ",
+                        pinned: "left",
+                        flex: 1,
+                        valueGetter: (params) => {
+                            if (params.data.category === "TOTAL") {
+                                return params.data.subCategory;
+                            }
+                            return params.data.category === params.data.subCategory ?
+                                params.data.category :
+                                `    ${params.data.subCategory}`;
+                        }
+                    },
+                    ...periodColumns,
+                ];
+                api.setGridOption('columnDefs', newColumnDefs);
+                api.setGridOption('rowData', rowData);
             })
-            .then(data => {
-                renderPNLChart(data);
-            })
-            .catch(error => {
-                console.error('Error fetching P&L data:', error);
-                alert('Failed to load report data.');
+            .catch((error) => {
+                console.error("Error fetching P&L data:", error);
+                alert("Failed to load report data. Please try again.");
             });
     }
 
-    // Render the Highcharts chart
-    function renderPNLChart(data) {
-        const periods = data.periods;
-
-        // Process data for charting
-        const incomeData = Object.entries(data.income).map(([name, values]) => ({
-            name,
-            data: values,
-            stack: 'income',
-            color: Highcharts.getOptions().colors[0] // Blue-ish
-        }));
-
-        const costOfSalesData = Object.entries(data.cost_of_sales).map(([name, values]) => ({
-            name,
-            data: values.map(v => -v), // Negative values for costs
-            stack: 'costs',
-            color: Highcharts.getOptions().colors[1] // Green-ish
-        }));
-
-        const expenseData = Object.entries(data.expenses).map(([name, values]) => ({
-            name,
-            data: values.map(v => -v), // Negative values for expenses
-            stack: 'expenses',
-            color: Highcharts.getOptions().colors[2] // Red-ish
-        }));
-
-        // Highcharts grouped column chart with improved styling
-        Highcharts.chart('pnl-chart', {
-            chart: {
-                type: 'column',
-                style: {
-                    fontFamily: 'Inter, system-ui, sans-serif'
-                }
-            },
-            title: { text: 'Profit & Loss Report' },
-            xAxis: {
-                categories: periods,
-                labels: {
-                    style: {
-                        fontSize: '12px'
-                    }
-                }
-            },
-            yAxis: {
-                title: { text: 'Amount ($)' },
-                labels: {
-                    formatter: function() {
-                        return new Intl.NumberFormat('en-NZ', {
-                            style: 'currency',
-                            currency: 'NZD',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(this.value);
-                    }
-                }
-            },
-            tooltip: {
-                shared: true,
-                formatter: function() {
-                    let tooltip = '<b>' + this.x + '</b><br/>';
-                    this.points.forEach(point => {
-                        tooltip += point.series.name + ': ' +
-                            new Intl.NumberFormat('en-NZ', {
-                                style: 'currency',
-                                currency: 'NZD'
-                            }).format(Math.abs(point.y)) + '<br/>';
-                    });
-                    return tooltip;
-                }
-            },
-            plotOptions: {
-                column: {
-                    stacking: 'normal',
-                    grouping: false
-                }
-            },
-            series: [
-                ...incomeData,
-                ...costOfSalesData,
-                ...expenseData,
-                {
-                    name: 'Gross Profit',
-                    data: data.totals.gross_profit,
-                    type: 'line',
-                    color: '#000000',
-                    lineWidth: 2,
-                    marker: {
-                        lineWidth: 2,
-                        lineColor: '#000000',
-                        fillColor: '#ffffff'
-                    }
-                }
-            ]
-        });
-    }
-
-    // Set initial range and trigger first load
-    const initialRange = dateRanges["Last month"];
-    document.getElementById("start_date").value = initialRange.dates[0].format("YYYY-MM-DD");
-    document.getElementById("end_date").value = initialRange.dates[1].format("YYYY-MM-DD");
-    setDefaultComparisonPeriods("Last month");
-
-    // Event listener for the update button
-    document.getElementById('update-chart').addEventListener('click', fetchAndRenderPNLChart);
-
-    // Initial data load
-    fetchAndRenderPNLChart();
+    // Initial load
+    updateDateFields("Last month");
+    triggerUpdateReport();
 });

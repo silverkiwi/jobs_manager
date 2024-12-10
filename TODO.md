@@ -7,7 +7,7 @@
 - **Autosave successful on failure**: You should only say successful if it passes
 - **Duplicate time entries**: Not quite sure what's happening but I've seen multiple identical rows.  Probably relates to timesheet entry
 - **Mins/item broke.**:  Estimate no longer saving it
-
+- **The P&L report is pretty broken.  It's not doing category/subcategory.  It's not getting column names right.  Formatting is awful.
 
 ## 🛤️ Roadmap (Must-Have Features)
 
@@ -16,7 +16,6 @@
 - **Revise quote**: Not yet implemented.
 - **Submit quote to client**: Not yet implemented.
 - **Check job as 'all fields complete'**: Feature not yet implemented.
-- **Reporting: start with P&L**. Started.  Not working
 - **Need to export timesheets for IMS**. Not yet implemented
 - **Kanban should say job x of y**. Not yet implemented.
 - **Create invoices in Xero**. Not yet implemented.
@@ -29,6 +28,7 @@
 - **Tie in Google Maps** Improve the client data.  Add place_id for dedupe, and look up industry 
 - **Phone Calls** Tie into phone calls 
 - **SMS** Useful? 
+- **Balance Sheet** Useful??
 - **Email** If this becomes the place we do everything, then it's easier to get all emails  
 
 ## ❓ Uncertainties/Decisions

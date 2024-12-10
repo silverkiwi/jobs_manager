@@ -65,15 +65,31 @@ body {
     border-radius: 3px;
     padding: 10px;
     margin-bottom: 8px;
-    box-shadow: 0 1px 0 rgba(9,30,66,.25);
+    box-shadow: 0 1px 3px rgba(9,30,66,0.12);
     cursor: grab;
-    transition: transform 0.2s ease, background-color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .job-card:hover {
-    background-color: #f9f9f9;
-    transform: scale(1.02);
+    box-shadow: 0 3px 6px rgba(9,30,66,0.2);
+    transform: translateY(-2px);
 }
+
+.job-card h3 {
+    font-size: 14px;
+    margin: 0 0 8px 0;
+}
+
+.job-card h3 a {
+    text-decoration: none;
+    color: #172B4D;
+    transition: color 0.2s ease;
+}
+
+.job-card:hover h3 a {
+    color: #0052CC;
+}
+
 
 .search-container {
     padding: 20px;

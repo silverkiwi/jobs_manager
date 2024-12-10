@@ -3,21 +3,18 @@ console.log('kanban.js load started');
 document.addEventListener('DOMContentLoaded', function () {
     console.log('Script loaded and DOM fully loaded');
 
-    fetchStatusValues();  // Fetch statuses dynamically
+    fetchStatusValues(); // Fetch statuses dynamically
 
     // Initialize search functionality
     document.getElementById('search').addEventListener('input', filterJobs);
 });
 
 function fetchStatusValues() {
-    // console.log('Fetching status values');
     fetch('/api/fetch_status_values/')
         .then(response => response.json())
         .then(statuses => {
-            // console.log('Received data:', statuses);
-            if (statuses && typeof statuses === 'object') {  // No need to check if it's an array
-                // console.log('Status choices:', statuses);
-                loadAllColumns(statuses);  // Pass the dictionary directly
+            if (statuses && typeof statuses === 'object') {
+                loadAllColumns(statuses);
             } else {
                 console.error('Unexpected data structure:', statuses);
             }
@@ -25,21 +22,17 @@ function fetchStatusValues() {
         .catch(error => console.error('Error fetching status values:', error));
 }
 
-
 function loadAllColumns(statuses) {
-    // console.log('Loading all columns with statuses:', statuses);
     if (!statuses || typeof statuses !== 'object') {
         console.error('Invalid statuses data:', statuses);
         return;
     }
     for (const status_key in statuses) {
         if (statuses.hasOwnProperty(status_key)) {
-            // console.log('Processing status:', status_key, 'with label:', statuses[status_key]);
             fetchJobs(status_key);
         }
     }
 }
-
 
 function fetchJobs(status) {
     fetch(`/kanban/fetch_jobs/${status}/`)
@@ -48,16 +41,17 @@ function fetchJobs(status) {
             const container = document.querySelector(`#${status} .job-list`);
             if (!container) {
                 console.error(`Container not found for status: ${status}`);
-                return;  // Exit if the container is null
+                return;
             }
 
             container.innerHTML = ''; // Clear existing cards
 
-            // Only add job cards if jobs are present
             data.jobs.forEach(job => {
                 let card = createJobCard(job);
                 container.appendChild(card);
             });
+
+            updateColumnHeader(status); // Update the header after fetching jobs
 
             // Initialize SortableJS for drag-and-drop functionality
             new Sortable(container, {
@@ -67,10 +61,21 @@ function fetchJobs(status) {
                 chosenClass: 'job-card-chosen',
                 dragClass: 'job-card-drag',
                 onEnd: function (evt) {
-                    const itemEl = evt.item;
-                    const newStatus = evt.to.closest('.kanban-column').id;
-                    const jobId = itemEl.getAttribute('data-id');
+                    const itemEl = evt.item; // The dragged element
+                    const oldStatus = evt.from.closest('.kanban-column').id; // Source column ID
+                    const newStatus = evt.to.closest('.kanban-column').id; // Destination column ID
+                    const jobId = itemEl.getAttribute('data-id'); // Job ID of the moved item
+
+                    if (!oldStatus || !newStatus) {
+                        console.error('Could not determine old or new column status for job move.');
+                        return;
+                    }
+
                     updateJobStatus(jobId, newStatus);
+
+                    // Update headers for both source and destination columns
+                    updateColumnHeader(oldStatus);
+                    updateColumnHeader(newStatus);
                 }
             });
         })
@@ -89,7 +94,7 @@ function createJobCard(job) {
     card.setAttribute('data-job-description', job.description || '');
     card.setAttribute('data-job-number', job.job_number);
     card.innerHTML = `
-        <h3><a href="/job/${job.id}/">#${job.job_number}: ${job.name}</a></h3>
+        <h3><a href="/job/${job.id}/">Job ${job.job_number}: ${job.name}</a></h3>
         <p>${job.description ?? ''}</p>
     `;
     return card;
@@ -119,24 +124,45 @@ function updateJobStatus(jobId, newStatus) {
 // Function to filter jobs based on search input
 function filterJobs() {
     const searchTerm = document.getElementById('search').value.toLowerCase();
-    document.querySelectorAll('.job-card').forEach(card => {
-        const jobName = card.dataset.jobName || '';
-        const jobDescription = card.dataset.jobDescription || '';
-        const client_name = card.dataset.client_name || '';
-        const jobNumber = card.dataset.jobNumber || '';
+    document.querySelectorAll('.kanban-column').forEach(column => {
+        const status = column.id;
+        const jobCards = column.querySelectorAll('.job-card');
+        jobCards.forEach(card => {
+            const jobName = card.dataset.jobName || '';
+            const jobDescription = card.dataset.jobDescription || '';
+            const clientName = card.dataset.clientName || '';
+            const jobNumber = card.dataset.jobNumber || '';
 
-        const combinedText = [jobName, jobDescription, client_name, jobNumber].join(' ').toLowerCase();
+            const combinedText = [jobName, jobDescription, clientName, jobNumber].join(' ').toLowerCase();
 
-        // Log the combined text
-        // console.log('Combined Text:', combinedText);
-
-        // Check if the combined text contains the search term
-        if (combinedText.includes(searchTerm)) {
-            card.style.display = '';
-        } else {
-            card.style.display = 'none';
-        }
+            if (combinedText.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        updateColumnHeader(status); // Update the header for each column after filtering
     });
+}
+
+// Function to update column headers with total and filtered job counts
+function updateColumnHeader(status) {
+    const column = document.getElementById(status);
+    if (!column) {
+        console.error(`Column not found for status: ${status}`);
+        return;
+    }
+
+    const jobCards = column.querySelectorAll('.job-card');
+    const visibleCards = Array.from(jobCards).filter(card => card.style.display !== 'none');
+
+    const header = column.querySelector('.column-header'); // Use the correct class name
+    if (header) {
+        const totalDisplayed = Math.min(visibleCards.length, 10); // Still limit visible jobs to 10
+        header.textContent = `${header.textContent.split('(')[0].trim()} (${totalDisplayed} of ${jobCards.length})`;
+    } else {
+        console.error(`Header not found in column: ${status}`);
+    }
 }
 
 // Helper function to get CSRF token

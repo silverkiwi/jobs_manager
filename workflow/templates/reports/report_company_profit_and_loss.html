@@ -4,35 +4,35 @@
 {% block content %}
 <h1 class="text-2xl font-bold mb-4">Company Profit and Loss Report</h1>
 
-<div class="mb-4 flex space-x-4 items-center">
-    <div class="flex items-center space-x-2">
-        <label for="date-range-picker">Date Range:</label>
-        <select id="date-range-picker" class="border p-2">
-            <!-- Options populated by JS -->
-        </select>
-    </div>
-
-    <div id="compare-container" class="flex items-center space-x-2">
-        <!-- Compare periods input populated by JS -->
-    </div>
-
-    <button id="update-chart" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-        Update Report
-    </button>
+<div>
+    <label for="date-range-picker">Date Range:</label>
+    <select id="date-range-picker" class="border p-2">
+        <!-- Options populated dynamically by JS -->
+    </select>
 </div>
-
-<!-- Hidden date inputs used by the JS -->
-<input type="hidden" id="start_date">
-<input type="hidden" id="end_date">
-
-<div id="pnl-chart" class="mt-4">
-    <!-- Chart will be rendered here -->
+<div class="flex items-center space-x-2 mt-2">
+    <label for="date-from">From:</label>
+    <input type="date" id="date-from" class="border p-2">
+    <label for="date-to">To:</label>
+    <input type="date" id="date-to" class="border p-2">
 </div>
+<div class="flex items-center space-x-2 mt-2">
+    <label for="compare-periods">Compare Periods:</label>
+    <input type="number" id="compare-periods" class="border p-2 w-20" value="0" min="0" max="12">
+    <label for="period-type">Period Type:</label>
+    <select id="period-type" class="border p-2">
+        <option value="day">Day</option>
+        <option value="month" selected>Month</option>
+        <option value="quarter">Quarter</option>
+        <option value="year">Year</option>
+    </select>
+</div>
+<div id="pnl-grid" class="ag-theme-alpine" style="height: 600px; width: 100%;"></div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
 <script src="{% static 'js/report_company_profit_and_loss.js' %}"></script>
 {% endblock %}
