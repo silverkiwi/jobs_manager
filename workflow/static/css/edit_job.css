@@ -1,16 +1,7 @@
-/* Static/css/job_edit.css */
-.container {
-    margin-top: 20px;
-}
+/* --- Relevant and Used Styles (with usage documentation) --- */
 
-form label {
-    font-weight: bold;
-}
-
-form .btn-link {
-    margin-top: 10px;
-}
-
+/* For autoresizing text areas in job details */
+/* Used in: edit_job_detail_section.html (Job Description and Material/Gauge fields) */
 .autoresizeTextarea {
     resize: none; /* Prevent manual resizing */
     overflow: hidden; /* Hide the scrollbar */
@@ -23,16 +14,8 @@ form .btn-link {
     transition: height 0.1s ease-out; /* Smooth height transition */
 }
 
-
-/* Table container: dynamic grid layout */
-.table-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
 /* Delete icon styling */
+/* Used in: edit_job_grid_logic.js (Most AG Grids for row deletion icons) */
 .delete-icon {
     font-size: 18px;
     color: #dc3545;
@@ -51,80 +34,29 @@ form .btn-link {
     cursor: not-allowed;
 }
 
-.delete-icon.disabled:hover {
-    color: #ccc;
+/* Styling for the grid sections */
+/* Used in: edit_job_ajax.html (Container for each pricing grid section, e.g., Estimate, Quote, Reality) */
+.job-grid-section {
+    margin-bottom: 20px;
 }
 
-/* Responsive design for smaller screens */
-@media (max-width: 768px) {
-    .table-container {
-        grid-template-columns: 1fr;
-    }
-}
-
-.job-grid-section button {
-    position: relative; /* Ensure the button's position is within its container context, not affected by collapsing or float issues */
-}
-
-.price-entry-table {
-        /* No entries.  Empty placeholder so it's easy to find again */
-}
-
+/* Styling for AG Grid theme */
+/* Used in: edit_job_ajax.html (All AG Grids, including Revenue and Costs grids) */
 .ag-theme-alpine {
     --ag-row-height: 28px;
     --ag-header-height: 32px;
     --ag-cell-horizontal-padding: 5px;
-    --ag-border-color: #dde2eb;
-
-    width: 100%;
-    max-height: none !important;  /* Remove maximum height restriction */
-    display: block;                /* Ensure block-level display */
-    height: auto;                  /* Allow height to adjust based on content */
-    overflow: visible;             /* Ensure no clipping of overflowing content */
+    overflow: hidden;
+    height: auto;
 }
 
-
-.ag-theme-alpine .ag-root-wrapper {
-    border: 1px solid var(--ag-border-color);
-}
-
-.ag-theme-alpine .ag-cell {
-    line-height: 26px;
-}
-
-/* Ensure the grid only shows one row by default */
-.ag-theme-alpine .ag-root-wrapper {
-    min-height: calc(var(--ag-row-height) + var(--ag-header-height)) !important;
-    height: auto !important;
-}
-
-
-/* Ensure grid body doesn't have a minimum height */
-.ag-theme-alpine .ag-body-viewport {
-    min-height: var(--ag-row-height) !important;
-}
-
-/* Adjust the height of the center container to fit content */
-.ag-theme-alpine .ag-center-cols-container {
-    min-height: var(--ag-row-height) !important;
-    height: auto !important;
-}
-
-/* Make it obvious what fields are required */
+/* Make required fields visually distinct */
+/* Used in: edit_job_detail_section.html and edit_job_workflow_section.html (Field labels for required fields) */
 .required-field .form-label::after {
     content: '*';
-    color: darkgrey;  /* Use a subtle color to indicate it's required, not red */
+    color: darkgrey; /* Use a subtle color to indicate it's required */
     margin-left: 5px;
     font-weight: normal;
 }
 
-/* Styling for an actual error (applied only when validation fails) */
-.is-invalid {
-    border-color: red;  /* Only use a red border when there's a validation error */
-}
-
-.invalid-feedback {
-    color: red;  /* The error message is red to indicate something is wrong */
-    font-size: 0.875em;
-    margin-top: 0.25em;
-}
+/* --- End of Used Styles --- */
