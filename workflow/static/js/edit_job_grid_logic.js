@@ -30,7 +30,9 @@
  *   API handling in `onGridReady`.
  */
 
-import { createNewRow, getGridData } from '/static/js/deseralise_job_pricing.js';
+import {createNewRow, getGridData} from '/static/js/deseralise_job_pricing.js';
+import {handlePrintJob} from '/static/js/edit_job_form_autosave.js';
+# import { Grid as agGrid } from 'ag-grid-community';
 
 // console.log('Grid logic script is running');
 
@@ -81,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const headerHeight = headerElement ? headerElement.offsetHeight : 32;
 
         return numRows * rowHeight + headerHeight;
-}
+    }
 
     function deleteIconCellRenderer(params) {
         const isLastRow = params.api.getDisplayedRowCount() === 1;
@@ -120,132 +122,163 @@ document.addEventListener('DOMContentLoaded', function () {
         return [createNewRow(gridType) || {}];  // Return the result of createNewRow as an array
     }
 
-function calculateTotalRevenue() {
-    const totals = {
-        time: {estimate: 0, quote: 0, reality: 0},
-        materials: {estimate: 0, quote: 0, reality: 0},
-        adjustments: {estimate: 0, quote: 0, reality: 0}
-    };
+    function calculateTotalRevenue() {
+        const totals = {
+            time: {estimate: 0, quote: 0, reality: 0},
+            materials: {estimate: 0, quote: 0, reality: 0},
+            adjustments: {estimate: 0, quote: 0, reality: 0}
+        };
 
-    const sections = ['estimate', 'quote', 'reality'];
-    const gridTypes = ['Time', 'Materials', 'Adjustments'];
+        const sections = ['estimate', 'quote', 'reality'];
+        const gridTypes = ['Time', 'Materials', 'Adjustments'];
 
-    sections.forEach(section => {
-        gridTypes.forEach(gridType => {
-            const gridKey = `${section}${gridType}Table`;
-            const gridData = window.grids[gridKey];
-            if (gridData && gridData.api) {
-                gridData.api.forEachNode(node => {
-                    const rowRevenue = parseFloat(node.data.revenue) || 0;
-                    const revenueType = gridType.toLowerCase();
-                    totals[revenueType][section] += rowRevenue;
-                });
-            }
+        sections.forEach(section => {
+            gridTypes.forEach(gridType => {
+                const gridKey = `${section}${gridType}Table`;
+                const gridData = window.grids[gridKey];
+                if (gridData && gridData.api) {
+                    gridData.api.forEachNode(node => {
+                        const rowRevenue = parseFloat(node.data.revenue) || 0;
+                        const revenueType = gridType.toLowerCase();
+                        totals[revenueType][section] += rowRevenue;
+                    });
+                }
+            });
         });
-    });
 
-    const revenueGrid = window.grids['revenueTable'];
-    if (revenueGrid && revenueGrid.api) {
-        revenueGrid.api.forEachNode((node, index) => {
-            const data = node.data;
-            switch (index) {
-                case 0: // Total Time
-                    data.estimate = totals.time.estimate;
-                    data.quote = totals.time.quote;
-                    data.reality = totals.time.reality;
-                    break;
-                case 1: // Total Materials
-                    data.estimate = totals.materials.estimate;
-                    data.quote = totals.materials.quote;
-                    data.reality = totals.materials.reality;
-                    break;
-                case 2: // Total Adjustments
-                    data.estimate = totals.adjustments.estimate;
-                    data.quote = totals.adjustments.quote;
-                    data.reality = totals.adjustments.reality;
-                    break;
-                case 3: // Total Project Cost
-                    data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
-                    data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
-                    data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
-                    break;
-            }
-        });
-        revenueGrid.api.refreshCells();
+        const revenueGrid = window.grids['revenueTable'];
+        if (revenueGrid && revenueGrid.api) {
+            revenueGrid.api.forEachNode((node, index) => {
+                const data = node.data;
+                switch (index) {
+                    case 0: // Total Time
+                        data.estimate = totals.time.estimate;
+                        data.quote = totals.time.quote;
+                        data.reality = totals.time.reality;
+                        break;
+                    case 1: // Total Materials
+                        data.estimate = totals.materials.estimate;
+                        data.quote = totals.materials.quote;
+                        data.reality = totals.materials.reality;
+                        break;
+                    case 2: // Total Adjustments
+                        data.estimate = totals.adjustments.estimate;
+                        data.quote = totals.adjustments.quote;
+                        data.reality = totals.adjustments.reality;
+                        break;
+                    case 3: // Total Project Cost
+                        data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
+                        data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
+                        data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
+                        break;
+                }
+            });
+            revenueGrid.api.refreshCells();
+        }
+
+        const costGrid = window.grids['costTable'];
+        if (costGrid && costGrid.api) {
+            costGrid.api.forEachNode((node, index) => {
+                const data = node.data;
+                switch (index) {
+                    case 0: // Total Time
+                        data.estimate = totals.time.estimate;
+                        data.quote = totals.time.quote;
+                        data.reality = totals.time.reality;
+                        break;
+                    case 1: // Total Materials
+                        data.estimate = totals.materials.estimate;
+                        data.quote = totals.materials.quote;
+                        data.reality = totals.materials.reality;
+                        break;
+                    case 2: // Total Adjustments
+                        data.estimate = totals.adjustments.estimate;
+                        data.quote = totals.adjustments.quote;
+                        data.reality = totals.adjustments.reality;
+                        break;
+                    case 3: // Total Project Cost
+                        data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
+                        data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
+                        data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
+                        break;
+                }
+            });
+            costGrid.api.refreshCells();
+        }
+
     }
-}
 
-function calculateTotalCost() {
-    const totals = {
-        time: {estimate: 0, quote: 0, reality: 0},
-        materials: {estimate: 0, quote: 0, reality: 0},
-        adjustments: {estimate: 0, quote: 0, reality: 0}
-    };
+    function calculateTotalCost() {
+        const totals = {
+            time: {estimate: 0, quote: 0, reality: 0},
+            materials: {estimate: 0, quote: 0, reality: 0},
+            adjustments: {estimate: 0, quote: 0, reality: 0}
+        };
 
-    const sections = ['estimate', 'quote', 'reality'];
-    const gridTypes = ['Time', 'Materials', 'Adjustments'];
+        const sections = ['estimate', 'quote', 'reality'];
+        const gridTypes = ['Time', 'Materials', 'Adjustments'];
 
-    sections.forEach(section => {
-        gridTypes.forEach(gridType => {
-            const gridKey = `${section}${gridType}Table`;
-            const gridData = window.grids[gridKey];
-            if (gridData && gridData.api) {
-                gridData.api.forEachNode(node => {
-                    let rowCost = 0;
+        sections.forEach(section => {
+            gridTypes.forEach(gridType => {
+                const gridKey = `${section}${gridType}Table`;
+                const gridData = window.grids[gridKey];
+                if (gridData && gridData.api) {
+                    gridData.api.forEachNode(node => {
+                        let rowCost = 0;
 
-                    // Different cost calculation for each type
-                    if (gridType === 'Time') {
-                        // Cost = (minutes * wage_rate) / 60
-                        const minutes = parseFloat(node.data.total_minutes) || 0;
-                        const wageRate = parseFloat(node.data.wage_rate) || 0;
-                        rowCost = (minutes * wageRate) / 60;
-                    } else if (gridType === 'Materials') {
-                        // Cost = quantity * unit_cost
-                        const quantity = parseFloat(node.data.quantity) || 0;
-                        const unitCost = parseFloat(node.data.unit_cost) || 0;
-                        rowCost = quantity * unitCost;
-                    } else if (gridType === 'Adjustments') {
-                        // Cost = cost_adjustment
-                        rowCost = parseFloat(node.data.cost_adjustment) || 0;
-                    }
+                        // Different cost calculation for each type
+                        if (gridType === 'Time') {
+                            // Cost = (minutes * wage_rate) / 60
+                            const minutes = parseFloat(node.data.total_minutes) || 0;
+                            const wageRate = parseFloat(node.data.wage_rate) || 0;
+                            rowCost = (minutes * wageRate) / 60;
+                        } else if (gridType === 'Materials') {
+                            // Cost = quantity * unit_cost
+                            const quantity = parseFloat(node.data.quantity) || 0;
+                            const unitCost = parseFloat(node.data.unit_cost) || 0;
+                            rowCost = quantity * unitCost;
+                        } else if (gridType === 'Adjustments') {
+                            // Cost = cost_adjustment
+                            rowCost = parseFloat(node.data.cost_adjustment) || 0;
+                        }
 
-                    const costType = gridType.toLowerCase();
-                    totals[costType][section] += rowCost;
-                });
-            }
+                        const costType = gridType.toLowerCase();
+                        totals[costType][section] += rowCost;
+                    });
+                }
+            });
         });
-    });
 
-    const costGrid = window.grids['costTable'];
-    if (costGrid && costGrid.api) {
-        costGrid.api.forEachNode((node, index) => {
-            const data = node.data;
-            switch (index) {
-                case 0: // Total Time
-                    data.estimate = totals.time.estimate;
-                    data.quote = totals.time.quote;
-                    data.reality = totals.time.reality;
-                    break;
-                case 1: // Total Materials
-                    data.estimate = totals.materials.estimate;
-                    data.quote = totals.materials.quote;
-                    data.reality = totals.materials.reality;
-                    break;
-                case 2: // Total Adjustments
-                    data.estimate = totals.adjustments.estimate;
-                    data.quote = totals.adjustments.quote;
-                    data.reality = totals.adjustments.reality;
-                    break;
-                case 3: // Total Project Cost
-                    data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
-                    data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
-                    data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
-                    break;
-            }
-        });
-        costGrid.api.refreshCells();
+        const costGrid = window.grids['costTable'];
+        if (costGrid && costGrid.api) {
+            costGrid.api.forEachNode((node, index) => {
+                const data = node.data;
+                switch (index) {
+                    case 0: // Total Time
+                        data.estimate = totals.time.estimate;
+                        data.quote = totals.time.quote;
+                        data.reality = totals.time.reality;
+                        break;
+                    case 1: // Total Materials
+                        data.estimate = totals.materials.estimate;
+                        data.quote = totals.materials.quote;
+                        data.reality = totals.materials.reality;
+                        break;
+                    case 2: // Total Adjustments
+                        data.estimate = totals.adjustments.estimate;
+                        data.quote = totals.adjustments.quote;
+                        data.reality = totals.adjustments.reality;
+                        break;
+                    case 3: // Total Project Cost
+                        data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
+                        data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
+                        data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
+                        break;
+                }
+            });
+            costGrid.api.refreshCells();
+        }
     }
-}
 
     const commonGridOptions = {
         rowHeight: 28,
@@ -314,10 +347,10 @@ function calculateTotalCost() {
         cellRenderer: deleteIconCellRenderer,
         onCellClicked: onDeleteIconClicked,
         cellStyle: {
-            display: 'flex',           // Use Flexbox for easier alignment
-            alignItems: 'center',      // Vertically center the icon
-            justifyContent: 'center',  // Horizontally center the icon
-            padding: 0                 // Remove any extra padding
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            padding: 0
         }
     };
 
@@ -510,7 +543,7 @@ function calculateTotalCost() {
         }
     };
 
-        const costGridOptions = { // Copy/paste from revenue
+    const costGridOptions = { // Copy/paste from revenue
         columnDefs: [
             {headerName: 'Category', field: 'category', editable: false},
             {headerName: 'Estimate', field: 'estimate', editable: false, valueFormatter: currencyFormatter},
@@ -556,7 +589,7 @@ function calculateTotalCost() {
     const costsTableEl = document.querySelector('#costsTable');
     if (costsTableEl) {
         try {
-            agGrid.createGrid(costsTableEl, revenueGridOptions);
+            agGrid.createGrid(costsTableEl, costGridOptions);
             // console.log('Revenue table initialized:', revenueGrid);
         } catch (error) {
             console.error('Error initializing costs table:', error);
@@ -566,74 +599,52 @@ function calculateTotalCost() {
     }
 
 
-    // Copy Estimate to Quote (stub)
-    const copyEstimateButton = document.getElementById('copyEstimateToQuote');
-    if (copyEstimateButton) {
-        copyEstimateButton.addEventListener('click', function () {
-            alert('Copy estimate feature coming soon!');
-            // console.log('Copying estimate to quote');
-            // Implement the actual copying logic here
-        });
-    }
-
-    // Submit Quote to Client (stub)
-    const submitQuoteButton = document.getElementById('submitQuoteToClient');
-    if (submitQuoteButton) {
-        submitQuoteButton.addEventListener('click', function () {
-            alert('Submit quote feature coming soon!');
-            // console.log('Submitting quote to client');
-            // Implement the actual submission logic here
-        });
-    }
-
-    const reviseQuoteButton = document.getElementById('reviseQuote');
-    if (reviseQuoteButton) {
-        reviseQuoteButton.addEventListener('click', function () {
-            alert('Revise Quote feature coming soon!');
-            // console.log('Revise the quote');
-            // Implement the actual submission logic here
-        });
-    }
-
-    const invoiceJobButton = document.getElementById('invoiceJobButton');
-    if (invoiceJobButton) {
-        invoiceJobButton.addEventListener('click', function () {
-            alert('Invoice Job feature coming soon!');
-            // console.log('Invoice Job');
-            // Implement the actual invoice logic here
-        });
-    }
-
-    const acceptQuoteButton = document.getElementById('acceptQuoteButton');
-    if (acceptQuoteButton) {
-        acceptQuoteButton.addEventListener('click', function () {
-            // Set the current date and time in ISO format to quote_acceptance_date_iso
-            const currentDateTimeISO = new Date().toISOString();
-            const quoteAcceptanceDateField = document.getElementById('quote_acceptance_date_iso');
-
-            if (quoteAcceptanceDateField) {
-                quoteAcceptanceDateField.value = currentDateTimeISO;
-                console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
-            }
-
-            // Trigger autosave to save the quote acceptance date change
-            autosaveData();
-        });
-    }
-
-
-
-    const contactClientButton = document.getElementById('contactClientButton');
-    if (contactClientButton) {
-        contactClientButton.addEventListener('click', function () {
-            alert('Contact Client feature coming soon!');
-            // console.log('Contact Client');
-            // Implement the actual contact logic here
-        });
-    }
-
     setTimeout(() => {
         // console.log('Calling initial calculateTotals');
         calculateTotalRevenue();
     }, 1000);
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.addEventListener('click', function (event) {
+        const buttonId = event.target.id;
+
+        switch (buttonId) {
+            case 'copyEstimateToQuote':
+                alert('Copy Estimate To Quote feature coming soon!');
+                break;
+
+            case 'submitQuoteToClient':
+                alert('Submit quote feature coming soon!');
+                break;
+
+            case 'reviseQuote':
+                alert('Revise Quote feature coming soon!');
+                break;
+
+            case 'invoiceJobButton':
+                alert('Invoice Job feature coming soon!');
+                break;
+
+            case 'printJobButton':
+                handlePrintJob();
+                break;
+
+            case 'acceptQuoteButton':
+                const currentDateTimeISO = new Date().toISOString();
+                document.getElementById('quote_acceptance_date_iso').value = currentDateTimeISO;
+                console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
+                autosaveData();
+                break;
+
+            case 'contactClientButton':
+                alert('Contact Client feature coming soon!');
+                break;
+
+            default:
+                // Optionally log unhandled buttons for debugging
+                console.warn(`Unhandled button click: ${buttonId}`);
+                break;
+        }
+    });
 });

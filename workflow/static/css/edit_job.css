@@ -23,6 +23,7 @@
     padding: 5px;
     transition: color 0.3s;
     display: inline-block;
+    vertical-align: middle
 }
 
 .delete-icon:hover {
@@ -61,11 +62,13 @@
 
 .table-container {
     display: flex;
-    gap: 20px;  /* Space between Revenue and Costs */
+    gap: 20px;
 }
 
-.table-container > div {
-    flex: 1;    /* Each takes equal width */
+.summary-table-section {
+    flex: 1;
 }
 
-/* --- End of Used Styles --- */
+.summary-table-section .ag-theme-alpine {
+    height: 144px !important;  /* Exact height: (4 rows × 28px) + 32px header */
+}

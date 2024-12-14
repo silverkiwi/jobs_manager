@@ -39,13 +39,13 @@
         </div>
 
         <div class="table-container">
-            <div>
+            <div class="summary-table-section">
                 <h2>Revenue</h2>
-                <div id="revenueTable" class="ag-theme-alpine"></div>
+                <div id="revenueTable" class="ag-theme-alpine summary-grid"></div>
             </div>
-            <div>
+            <div class="summary-table-section">
                 <h2>Costs</h2>
-                <div id="costsTable" class="ag-theme-alpine"></div>
+                <div id="costsTable" class="ag-theme-alpine summary-grid"></div>
             </div>
         </div>
     </div>
@@ -71,8 +71,8 @@
 
     <!-- Save/Cancel Buttons -->
     <div class="action-buttons">
-        <!-- <button class="btn btn-primary" id="saveButton">Save</button> -->
-        <button class="btn btn-secondary" id="closeButton" onclick="window.location.href='/'">Close</button>
+        <button type="button" class="btn btn-secondary" id="printJobButton">Print Job</button>
+        <button class="btn btn-primary" id="closeButton" onclick="window.location.href='/'">Close</button>
     </div>
 {% endblock %}
 

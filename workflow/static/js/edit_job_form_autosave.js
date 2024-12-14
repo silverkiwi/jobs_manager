@@ -1,4 +1,4 @@
-import { createNewRow } from '/static/js/deseralise_job_pricing.js';
+import {createNewRow} from '/static/js/deseralise_job_pricing.js';
 
 let dropboxToken = null;
 
@@ -29,7 +29,6 @@ function collectAllData() {
     });
 
     // Add job validity check
-    data.job_is_valid = checkJobValidity();
 
     // 2. Get all historical pricings that were passed in the initial context
     let historicalPricings = JSON.parse(JSON.stringify(window.historical_job_pricings_json));
@@ -42,19 +41,25 @@ function collectAllData() {
     // 4. Add the historical pricings to jobData
     data.historical_pricings = historicalPricings;
 
+    // console.log("Collected Data:", data);
+    data.job_is_valid = checkJobValidity(data);
+
     return data;
 
 }
 
-function checkJobValidity() {
-    // Check if all required fields are populated
-    const requiredFields = ['job_name', 'client_id', 'contact_person', 'job_number'];
-    const isValid = requiredFields.every(field => {
-        const value = document.getElementById(field)?.value;
-        return value !== null && value !== undefined && value.trim() !== '';
-    });
-
-    return isValid;
+function checkJobValidity(data) {
+    console.log("Checking job validity...");
+    console.log("Data:", data);
+    const requiredFields = ['name', 'client_id', 'contact_person', 'job_number'];
+    const invalidFields = requiredFields.filter(field => !data[field] || data[field].trim() === '');
+    if (invalidFields.length > 0) {
+        console.warn(`Invalid fields: ${invalidFields.join(', ')}`);
+        return false;;
+    }
+    else {
+        return true;
+    }
 }
 
 function isNonDefaultRow(data, gridName) {
@@ -162,6 +167,94 @@ async function uploadToDropbox(file, dropboxPath) {
     }
 }
 
+function exportJobToPDF(jobData) {
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF();
+    let startY = 10;
+
+    // **1. Add Isolated Fields (Job Details, Workflow Settings)**
+    doc.setFontSize(16);
+    doc.text("Job Details", 10, startY);
+    doc.setFontSize(12);
+    startY += 10;
+
+    const fields = [
+        {label: "Job Name", value: jobData.name},
+        {label: "Client", value: jobData.client_id},
+        {label: "Contact", value: jobData.contact_person},
+        {label: "Phone", value: jobData.contact_phone},
+        {label: "Order Number", value: jobData.order_number},
+        {label: "Material/Gauge/Quantity", value: jobData.material_gauge_quantity},
+        {label: "Description", value: jobData.description},
+    ];
+
+    fields.forEach((field) => {
+        doc.text(`${field.label}: ${field.value}`, 10, startY);
+        startY += 5;
+    });
+
+    startY += 10;
+
+    // **2. Add Grids**
+    const pricingSections = [
+        {section: "Estimate", grids: ["EstimateTimeTable", "EstimateMaterialsTable", "EstimateAdjustmentsTable"]},
+        {section: "Quote", grids: ["QuoteTimeTable", "QuoteMaterialsTable", "QuoteAdjustmentsTable"]},
+        {section: "Reality", grids: ["RealityTimeTable", "RealityMaterialsTable", "RealityAdjustmentsTable"]},
+    ];
+
+    pricingSections.forEach(({section, grids}) => {
+        doc.setFontSize(16);
+        doc.text(section, 10, startY);
+        doc.setFontSize(12);
+        startY += 10;
+
+        grids.forEach((gridKey) => {
+            const gridApi = window.grids[gridKey].api;
+            const csv = gridApi.getDataAsCsv();
+            const rows = csv.split("\n").map(row => row.split(","));
+
+            doc.text(gridKey.replace(/Table$/, ""), 10, startY); // Add grid title
+            startY += 5;
+
+            doc.autoTable({
+                head: [rows[0]], // Headers (first row)
+                body: rows.slice(1), // Data rows
+                startY: startY,
+            });
+
+            startY = doc.lastAutoTable.finalY + 10; // Update startY for the next grid
+        });
+    });
+
+    // **3. Add Revenue and Costs**
+    doc.setFontSize(16);
+    doc.text("Revenue and Costs", 10, startY);
+    doc.setFontSize(12);
+    startY += 10;
+
+    const revenueAndCostGrids = ["RevenueTable", "CostTable"];
+    revenueAndCostGrids.forEach((gridKey) => {
+        const gridApi = window.grids[gridKey].api; // Trust the contract
+        const csv = gridApi.getDataAsCsv();
+        const rows = csv.split("\n").map(row => row.split(","));
+
+        doc.text(gridKey.replace(/Table$/, ""), 10, startY); // Add grid title
+        startY += 5;
+
+        doc.autoTable({
+            head: [rows[0]], // Headers (first row)
+            body: rows.slice(1), // Data rows
+            startY: startY,
+        });
+
+        startY = doc.lastAutoTable.finalY + 10; // Update startY for the next grid
+    });
+
+    // **4. Return PDF as Blob**
+    return new Blob([doc.output("blob")], {type: "application/pdf"});
+}
+
+
 function addGridToPDF(doc, title, rowData, startY) {
     // Extract column headers from the first row's keys
     const columns = Object.keys(rowData[0] || {});
@@ -179,59 +272,74 @@ function addGridToPDF(doc, title, rowData, startY) {
     return doc.lastAutoTable.finalY + 10;
 }
 
-async function generateAndUploadPDF(jobData) {
-    const { jsPDF } = window.jspdf; // Access jsPDF globally
-    const doc = new jsPDF();
 
-    try {
-        // Add job details
-        doc.setFontSize(16);
-        doc.text(`Job Details: ${jobData.job_name}`, 10, 10);
-        doc.setFontSize(12);
-        doc.text(`Client: ${jobData.client_name}`, 10, 20);
+async function handlePDF(pdfBlob, mode, jobData) {
+    const pdfURL = URL.createObjectURL(pdfBlob);
 
-        // Add grids using collected data
-        const grids = [
-            { title: "Time Entries", data: jobData.latest_estimate_pricing.time_entries },
-            { title: "Material Entries", data: jobData.latest_estimate_pricing.material_entries },
-            { title: "Adjustment Entries", data: jobData.latest_estimate_pricing.adjustment_entries },
-        ];
-
-        let startY = 30; // Initial Y position
-        grids.forEach((grid) => {
-            if (grid.data && grid.data.length) {
-                startY = addGridToPDF(doc, grid.title, grid.data, startY);
+    switch (mode) {
+        case 'upload':
+            const dropboxPath = `/MSM Workflow/Job-${jobData.job_number}/JobSummary.pdf`;
+            if (!(await uploadToDropbox(pdfBlob, dropboxPath))) {
+                throw new Error(`Failed to upload PDF for Job ${jobData.job_number}`);
             }
-        });
+            break;
+        case 'print':
+            const newWindow = window.open(pdfURL, '_blank');
+            if (!newWindow) throw new Error("Popup blocked. Unable to print the PDF.");
+            newWindow.print();
+            break;
+        case 'preview':
+            window.open(pdfURL, '_blank');
+            break;
+        case 'download':
+            const link = document.createElement('a');
+            link.href = pdfURL;
+            link.download = `Job-${jobData.job_number}.pdf`;
+            link.click();
+            break;
+        default:
+            throw new Error(`Unsupported mode: ${mode}`);
+    }
+}
 
-        // Convert the PDF to a Blob
-        const pdfBlob = new Blob([doc.output("blob")], { type: "application/pdf" });
+export function handlePrintJob() {
+    try {
+        // Collect the current job data
+        const collectedData = collectAllData();
 
-        // Upload the PDF to Dropbox
-        const dropboxPath = `/MSM Workflow/Job-${jobData.job_number}/JobSummary.pdf`;
-        const success = await uploadToDropbox(pdfBlob, dropboxPath);
-        if (success) {
-            console.log(`PDF for Job ${jobData.job_number} successfully uploaded to Dropbox`);
-        } else {
-            console.error(`PDF upload for Job ${jobData.job_number} failed`);
+        // Validate the job before proceeding
+        if (!collectedData.job_is_valid) {
+            console.error("Job is not valid. Please complete all required fields before printing.");
+            return;
         }
+
+        // Generate the PDF (preview mode)
+        const pdfBlob = exportJobToPDF(collectedData);
+        handlePDF(pdfBlob, 'preview', collectedData); // Open the PDF in a new tab
     } catch (error) {
-        console.error("Error generating and uploading PDF:", error);
+        console.error("Error during Print Job process:", error);
     }
 }
 
 // Autosave function to send data to the server
 function autosaveData() {
     const collectedData = collectAllData();
-    if (Object.keys(collectedData).length === 0) {
-        console.error("No data collected for autosave.");
-        return;
+
+    // Skip autosave if the job is not yet ready for saving
+    if (collectedData.job_is_valid) {
+        saveDataToServer(collectedData);
+    } else {
+        console.log("Job is not valid. Skipping autosave.");
     }
-    saveDataToServer(collectedData);
 }
 
-// Function to make POST request to the API endpoint
+
 function saveDataToServer(collectedData) {
+    if (!checkJobValidity(collectedData)) {
+        console.error('Collected data is invalid. Skipping autosave.');
+        return;
+    }
+
     console.log('Autosaving data to /api/autosave-job/...', collectedData);
 
     fetch('/api/autosave-job/', {
@@ -240,28 +348,29 @@ function saveDataToServer(collectedData) {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCsrfToken(),
         },
-        body: JSON.stringify(collectedData)
+        body: JSON.stringify(collectedData),
     })
-    .then(response => {
-        if (!response.ok) {
-            // If the server response is not OK, it might contain validation errors.
-            return response.json().then(data => {
-                if (data.errors) {
-                    handleValidationErrors(data.errors);
-                }
-                throw new Error('Validation errors occurred');
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        generateAndUploadPDF(collectedData);
-        console.log('Autosave successful:', data);
-    })
-    .catch(error => {
-        console.error('Autosave failed:', error);
-    });
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    if (data.errors) {
+                        handleValidationErrors(data.errors);
+                    }
+                    throw new Error('Validation errors occurred');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            const pdfBlob = exportJobToPDF(collectedData);
+            handlePDF(pdfBlob, 'upload', collectedData);
+            console.log('Autosave successful:', data);
+        })
+        .catch(error => {
+            console.error('Autosave failed:', error);
+        });
 }
+
 
 function handleValidationErrors(errors) {
     // Clear previous error messages
@@ -284,7 +393,7 @@ function handleValidationErrors(errors) {
                 if (element.nextElementSibling && element.nextElementSibling.classList.contains('invalid-feedback')) {
                     element.nextElementSibling.remove();
                 }
-            }, { once: true });
+            }, {once: true});
         }
     }
 }
@@ -302,12 +411,12 @@ function removeValidationError(element) {
 }
 
 // Debounced version of the autosave function
-const debouncedAutosave = debounce(function() {
+const debouncedAutosave = debounce(function () {
     console.log("Debounced autosave called");
     autosaveData();
 }, 1000);
 
-const debouncedRemoveValidation = debounce(function(element) {
+const debouncedRemoveValidation = debounce(function (element) {
     console.log("Debounced validation removal called for element:", element);
     removeValidationError(element);
 }, 1000);
@@ -320,14 +429,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Attach change event listener to handle special input types like checkboxes
     autosaveInputs.forEach(fieldElement => {
-        fieldElement.addEventListener('blur', function() {
+        fieldElement.addEventListener('blur', function () {
             console.log("Blur event fired for:", fieldElement);
             debouncedRemoveValidation(fieldElement);
             debouncedAutosave();
         });
 
         if (fieldElement.type === 'checkbox') {
-            fieldElement.addEventListener('change', function() {
+            fieldElement.addEventListener('change', function () {
                 console.log("Change event fired for checkbox:", fieldElement);
                 debouncedRemoveValidation(fieldElement);
                 debouncedAutosave();
@@ -335,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (fieldElement.tagName === 'SELECT') {
-            fieldElement.addEventListener('change', function() {
+            fieldElement.addEventListener('change', function () {
                 console.log("Change event fired for select:", fieldElement);
                 debouncedRemoveValidation(fieldElement);
                 debouncedAutosave();
@@ -380,7 +489,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to remove validation error from an input
     // Unused?
-
 
 
 });
