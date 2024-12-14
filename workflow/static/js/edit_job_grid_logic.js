@@ -76,13 +76,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function calculateGridHeight(gridApi, numRows) {
-        const rowHeight = gridApi.getSizesForCurrentTheme().rowHeight || 28;  // Get row height from theme, fallback to 28
-        const headerElement = document.querySelector('.ag-header');  // Get the header DOM element
-        const headerHeight = headerElement ? headerElement.offsetHeight : 32;  // Fallback to 32 if not found
+        const rowHeight = gridApi.getSizesForCurrentTheme().rowHeight || 28;
+        const headerElement = document.querySelector('.ag-header');
+        const headerHeight = headerElement ? headerElement.offsetHeight : 32;
 
         return numRows * rowHeight + headerHeight;
-    }
-
+}
 
     function deleteIconCellRenderer(params) {
         const isLastRow = params.api.getDisplayedRowCount() === 1;

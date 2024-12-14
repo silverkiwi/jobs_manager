@@ -59,4 +59,13 @@
     font-weight: normal;
 }
 
+.table-container {
+    display: flex;
+    gap: 20px;  /* Space between Revenue and Costs */
+}
+
+.table-container > div {
+    flex: 1;    /* Each takes equal width */
+}
+
 /* --- End of Used Styles --- */
