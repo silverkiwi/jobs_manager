@@ -8,9 +8,10 @@
 - **Duplicate time entries**: Not quite sure what's happening but I've seen multiple identical rows.  Probably relates to timesheet entry
 - **Mins/item broke.**:  Estimate no longer saving it
 - **The P&L report is pretty broken.  It's not doing category/subcategory.  It's not getting column names right.  Formatting is awful.
-
+- 
 ## 🛤️ Roadmap (Must-Have Features)
 
+- **DROPBOX** NEXT UP.  We must integrate with Dropbox.  Jobs have images/etc and basically must auto-create a folder
 - **Suggested fix for markup**: Create a new 'markup' section to handle job markup properly. Example, time is normally marked up 30% while materials are normally marked up 20%.  This markup is **I think** a special TimeEntry, MaterialEntry, AdjustmentEntry, and it should be SHOWN in the table but should not be editable.
 - **Copy estimate to quote**: Not yet implemented.
 - **Revise quote**: Not yet implemented.
@@ -30,6 +31,7 @@
 - **SMS** Useful? 
 - **Balance Sheet** Useful??
 - **Email** If this becomes the place we do everything, then it's easier to get all emails  
+- **Delete** Since jobs autosave, it's very easy to get accidental jobs.  
 
 ## ❓ Uncertainties/Decisions
 

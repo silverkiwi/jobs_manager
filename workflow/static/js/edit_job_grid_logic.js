@@ -30,6 +30,7 @@
  *   API handling in `onGridReady`.
  */
 
+import { createNewRow, getGridData } from '/static/js/deseralise_job_pricing.js';
 
 // console.log('Grid logic script is running');
 

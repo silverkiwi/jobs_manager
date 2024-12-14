@@ -1,3 +1,7 @@
+import { createNewRow } from '/static/js/deseralise_job_pricing.js';
+
+let dropboxToken = null;
+
 // Debounce function to avoid frequent autosave calls
 function debounce(func, wait) {
     let timeout;
@@ -53,6 +57,19 @@ function checkJobValidity() {
     return isValid;
 }
 
+function isNonDefaultRow(data, gridName) {
+    const defaultRow = createNewRow(gridName);
+
+    // Compare data to the default row
+    for (const key in defaultRow) {
+        if (defaultRow[key] !== data[key]) {
+            return true; // Not a default row
+        }
+    }
+
+    return false; // Matches default row, so it's invalid
+}
+
 function collectGridData(section) {
     const grids = ['TimeTable', 'MaterialsTable', 'AdjustmentsTable'];
     const sectionData = {};
@@ -63,7 +80,11 @@ function collectGridData(section) {
 
         if (gridData && gridData.api) {
             const rowData = [];
-            gridData.api.forEachNode(node => rowData.push(node.data));
+            gridData.api.forEachNode(node => {
+                if (isNonDefaultRow(node.data, gridName)) {
+                    rowData.push(node.data);
+                }
+            });
 
             // Convert to the correct key name
             let entryKey = gridName.toLowerCase().replace('table', '')
@@ -80,6 +101,125 @@ function collectGridData(section) {
 
     return sectionData;
 }
+
+async function getDropboxToken() {
+    if (!dropboxToken) {
+        const response = await fetch('/api/get-env-variable/?var_name=DROPBOX_ACCESS_TOKEN');
+        if (response.ok) {
+            const data = await response.json();
+            dropboxToken = data.value; // Cache the token
+            console.log('Fetched and cached Dropbox token:', dropboxToken);
+        } else {
+            console.error('Failed to fetch Dropbox token');
+        }
+    }
+    return dropboxToken;
+}
+
+async function uploadToDropbox(file, dropboxPath) {
+    const accessToken = await getDropboxToken();
+    if (!accessToken) {
+        console.error("No Dropbox token available");
+        return false;
+    }
+
+    try {
+        const response = await fetch("https://content.dropboxapi.com/2/files/upload", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Dropbox-API-Arg": JSON.stringify({
+                    path: dropboxPath,
+                    mode: "overwrite",
+                    autorename: false,
+                    mute: false,
+                }),
+                "Content-Type": "application/octet-stream",
+            },
+            body: file,
+        });
+
+        if (!response.ok) {
+            // Check Content-Type to handle non-JSON errors
+            const contentType = response.headers.get("Content-Type");
+            if (contentType && contentType.includes("application/json")) {
+                const errorData = await response.json();
+                console.error("Dropbox API error:", errorData);
+            } else {
+                const errorText = await response.text(); // Handle non-JSON responses
+                console.error("Dropbox upload failed (non-JSON):", errorText);
+            }
+            return false;
+        }
+
+        // Parse and log the successful response
+        const data = await response.json();
+        console.log("File uploaded to Dropbox:", data);
+        return true;
+    } catch (error) {
+        console.error("Dropbox upload failed:", error);
+        return false;
+    }
+}
+
+function addGridToPDF(doc, title, rowData, startY) {
+    // Extract column headers from the first row's keys
+    const columns = Object.keys(rowData[0] || {});
+    const rows = rowData.map((row) => columns.map((col) => row[col] || ""));
+
+    // Add table to the PDF
+    doc.text(title, 10, startY);
+    doc.autoTable({
+        head: [columns],
+        body: rows,
+        startY: startY + 10,
+    });
+
+    // Return the new Y position after the table
+    return doc.lastAutoTable.finalY + 10;
+}
+
+async function generateAndUploadPDF(jobData) {
+    const { jsPDF } = window.jspdf; // Access jsPDF globally
+    const doc = new jsPDF();
+
+    try {
+        // Add job details
+        doc.setFontSize(16);
+        doc.text(`Job Details: ${jobData.job_name}`, 10, 10);
+        doc.setFontSize(12);
+        doc.text(`Client: ${jobData.client_name}`, 10, 20);
+
+        // Add grids using collected data
+        const grids = [
+            { title: "Time Entries", data: jobData.latest_estimate_pricing.time_entries },
+            { title: "Material Entries", data: jobData.latest_estimate_pricing.material_entries },
+            { title: "Adjustment Entries", data: jobData.latest_estimate_pricing.adjustment_entries },
+        ];
+
+        let startY = 30; // Initial Y position
+        grids.forEach((grid) => {
+            if (grid.data && grid.data.length) {
+                startY = addGridToPDF(doc, grid.title, grid.data, startY);
+            }
+        });
+
+        // Convert the PDF to a Blob
+        const pdfBlob = new Blob([doc.output("blob")], { type: "application/pdf" });
+
+        // Upload the PDF to Dropbox
+        const dropboxPath = `/MSM Workflow/Job-${jobData.job_number}/JobSummary.pdf`;
+        const success = await uploadToDropbox(pdfBlob, dropboxPath);
+        if (success) {
+            console.log(`PDF for Job ${jobData.job_number} successfully uploaded to Dropbox`);
+        } else {
+            console.error(`PDF upload for Job ${jobData.job_number} failed`);
+        }
+    } catch (error) {
+        console.error("Error generating and uploading PDF:", error);
+    }
+}
+
 // Autosave function to send data to the server
 function autosaveData() {
     const collectedData = collectAllData();
@@ -115,6 +255,7 @@ function saveDataToServer(collectedData) {
         return response.json();
     })
     .then(data => {
+        generateAndUploadPDF(collectedData);
         console.log('Autosave successful:', data);
     })
     .catch(error => {

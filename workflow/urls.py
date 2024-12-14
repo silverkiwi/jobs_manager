@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from workflow.api import server
 from workflow.api.reports.pnl import CompanyProfitAndLossReport
 from workflow.views import (
     client_view,
@@ -33,6 +34,8 @@ urlpatterns = [
         name="autosave_timesheet-api",
     ),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
+    path('api/get-env-variable/', server.get_env_variable, name='get_env_variable'),
+
     path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
     path("api/create-job/", edit_job_view_ajax.create_job_api, name="create_job_api"),
     path(

@@ -4,7 +4,6 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
     <link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
-    <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/styles/ag-grid.css">
     <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/styles/ag-theme-alpine.css">
 {% endblock %}
 
@@ -39,11 +38,15 @@
             <div id="realityAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
         </div>
 
-        <div class="job-grid-section">
-            <h2>Revenue</h2>
-            <div id="revenueTable" class="ag-theme-alpine"></div>
-            <h2>Costs</h2>
-            <div id="costsTable" class="ag-theme-alpine"></div>
+        <div class="table-container">
+            <div>
+                <h2>Revenue</h2>
+                <div id="revenueTable" class="ag-theme-alpine"></div>
+            </div>
+            <div>
+                <h2>Costs</h2>
+                <div id="costsTable" class="ag-theme-alpine"></div>
+            </div>
         </div>
     </div>
 
@@ -75,11 +78,13 @@
 
 {% block extra_js %}
     <script src="https://unpkg.com/ag-grid-community@32.2.0/dist/ag-grid-community.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script type="application/json" id="latestJobPricingsData" style="display:none;">{{ latest_job_pricings_json|safe }}</script>
     <script type="application/json" id="historicalJobPricingsData" style="display:none;">{{ historical_job_pricings_json|safe }}</script>
-    <script src="{% static 'js/deseralise_job_pricing.js' %}"></script>"
-    <script src="{% static 'js/edit_job_form_autosave.js' %}"></script>
-    <script src="{% static 'js/client_lookup.js' %}"></script>
-    <script src="{% static 'js/edit_job_grid_logic.js' %}"></script>
-    <script src="{% static 'js/time_conversion.js' %}"></script>
+    <script type="module" src="{% static 'js/deseralise_job_pricing.js' %}"></script>
+    <script type="module" src="{% static 'js/edit_job_form_autosave.js' %}"></script>
+    <script type="module" src="{% static 'js/client_lookup.js' %}"></script>
+    <script type="module" src="{% static 'js/edit_job_grid_logic.js' %}"></script>
+    <script type="module" src="{% static 'js/time_conversion.js' %}"></script>
 {% endblock %}

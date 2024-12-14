@@ -22,9 +22,11 @@ function collectGridData() {
 
     grid.forEachNode(node => {
         console.log('Processing node:', node);
-        if (node.data.job_number) {
-            console.log('Adding row with job_number:', node.data.job_number);
-            gridData.push(node.data);
+        if (data.job_number && (data.hours > 0 || (data.description && data.description.trim() !== ''))) {
+            console.log('Adding valid row:', data);
+            gridData.push(data);
+        } else {
+            console.log('Skipping dummy or invalid row:', data);
         }
     });
 

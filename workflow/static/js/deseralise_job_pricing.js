@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
-function getGridData(section, gridType) {
+export function getGridData(section, gridType) {
   console.log('Debug: getGridData called with:', { section, gridType });
 
   // Check if latest_job_pricings_json data is available globally
@@ -149,7 +149,7 @@ function loadExistingJobAdjustmentEntries(entries) {
   }));
 }
 
-function createNewRow(gridType) {
+export function createNewRow(gridType) {
   const companyDefaults = document.getElementById('companyDefaults');
   const defaultWageRate = parseFloat(companyDefaults.dataset.wageRate);
   const defaultChargeOutRate = parseFloat(

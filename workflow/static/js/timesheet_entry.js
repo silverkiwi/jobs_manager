@@ -47,7 +47,7 @@ class ActiveJobCellEditor {
             // If only one job matches, select it when pressing Enter
             if (filteredJobs.length === 1) {
                 this.input.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' || event.key === 'Tab') {
+                    if (event.key === 'Enter' || event.key === 'Tab') {
                         event.stopPropagation();
                         this.selectJob(filteredJobs[0]);
                     }
@@ -73,13 +73,13 @@ class ActiveJobCellEditor {
     }
 
     // Required AG Grid lifecycle methods
-    destroy() {}
+    destroy() {
+    }
 
     isPopup() {
         return true;
     }
 }
-
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -92,18 +92,43 @@ document.addEventListener('DOMContentLoaded', function () {
         return `<span class="delete-icon">🗑️</span>`;
     }
 
+    function triggerAutoCalculationForAllRows() {
+        const allNodes = [];
+        window.grid.forEachNode((node) => allNodes.push(node));
+
+        allNodes.forEach((node) => {
+            const jobNumber = node.data.job_number;
+            if (jobNumber) {
+                const job = window.timesheet_data.jobs.find(j => j.job_number === jobNumber);
+                if (job) {
+                    node.setDataValue('job_name', job.name);
+                    node.setDataValue('client', job.client_name);
+                    node.setDataValue('job_data', job);
+                }
+                calculateAmounts(node.data); // Reuse existing function
+            }
+        });
+
+        // Refresh affected grid cells
+        window.grid.refreshCells({
+            rowNodes: allNodes,
+            columns: ['job_name', 'client', 'wage_amount', 'bill_amount']
+        });
+    }
+
+
     function createNewRow() {
-    return {
-        id: null, // New rows start without an ID
-        job_number: null, // Placeholder for job number
-        timesheet_date: window.timesheet_data.timesheet_date, // Ensure timesheet_date is included
-        staff_id: window.timesheet_data.staff.id, // Ensure staff_id is included
-        is_billable: true, // Default value
-        rate_type: 'Ord', // Default rate type
-        hours: 0, // Default hours
-        description: '', // Default description
-    };
-}
+        return {
+            id: null, // New rows start without an ID
+            job_number: null, // Placeholder for job number
+            timesheet_date: window.timesheet_data.timesheet_date, // Ensure timesheet_date is included
+            staff_id: window.timesheet_data.staff.id, // Ensure staff_id is included
+            is_billable: true, // Default value
+            rate_type: 'Ord', // Default rate type
+            hours: 0, // Default hours
+            description: '', // Default description
+        };
+    }
 
     function calculateAmounts(data) {
         console.log('Calculating amounts for data:', data); // Log the data being processed
@@ -292,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (params.event.key === 'Enter') {
                 const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
                 if (isLastRow) {
-                    params.api.applyTransaction({ add: [createNewRow()] }); // Use centralized function
+                    params.api.applyTransaction({add: [createNewRow()]}); // Use centralized function
                     // Focus the first editable cell of the newly added row
                     const newRowIndex = params.api.getDisplayedRowCount() - 1;
                     params.api.setFocusedCell(newRowIndex, 'job_number');
@@ -306,10 +331,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize the grid
     const gridDiv = document.querySelector('#timesheet-grid');
     window.grid = agGrid.createGrid(gridDiv, gridOptions);
+    console.log('Grid object:', window.grid);
 
     // Load existing entries if any, otherwise add an empty row
     if (window.timesheet_data.time_entries?.length > 0) {
-        window.grid.applyTransaction({ add: window.timesheet_data.time_entries });
+        window.grid.applyTransaction({add: window.timesheet_data.time_entries});
+        triggerAutoCalculationForAllRows();
     } else {
         window.grid.applyTransaction({
             add: [createNewRow()] // Use centralized function
