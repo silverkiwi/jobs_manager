@@ -36,30 +36,26 @@ import {handlePrintJob} from '/static/js/edit_job_form_autosave.js';
 // console.log('Grid logic script is running');
 
 // This listener is for the entries towards the top.  The material and description fields, etc.
-document.addEventListener('DOMContentLoaded', function () {
-    const materialField = document.getElementById('materialGaugeQuantity');
-    const descriptionField = document.getElementById('description');
+document.addEventListener('DOMContentLoaded', () => {
+    const materialField = document.getElementById('material_gauge_quantity');
+    const descriptionField = document.getElementById('job_description');
 
-    function autoExpand(field) {
+    if (!materialField || !descriptionField) {
+        throw new Error('Required fields material_gauge_quantity and/or job_description are missing from page');
+    }
+
+    const autoExpand = field => {
         field.style.height = 'inherit';
         const computed = window.getComputedStyle(field);
-        const height = parseInt(computed.getPropertyValue('border-top-width'), 10)
-            + parseInt(computed.getPropertyValue('padding-top'), 10)
-            + field.scrollHeight
-            + parseInt(computed.getPropertyValue('padding-bottom'), 10)
-            + parseInt(computed.getPropertyValue('border-bottom-width'), 10);
+        const height = ['border-top-width', 'padding-top', 'padding-bottom', 'border-bottom-width']
+            .reduce((sum, prop) => sum + parseInt(computed.getPropertyValue(prop), 10), field.scrollHeight);
         field.style.height = `${height}px`;
-    }
+    };
 
-    function addAutoExpand(field) {
-        field.addEventListener('input', function () {
-            autoExpand(field);
-        });
+    [materialField, descriptionField].forEach(field => {
+        field.addEventListener('input', () => autoExpand(field));
         autoExpand(field);
-    }
-
-    if (materialField) addAutoExpand(materialField);
-    if (descriptionField) addAutoExpand(descriptionField);
+    });
 });
 
 // This listener is for the job pricing grid
@@ -220,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        const costGrid = window.grids['costTable'];
+        const costGrid = window.grids['costsTable'];
         if (costGrid && costGrid.api) {
             costGrid.api.forEachNode((node, index) => {
                 const data = node.data;
@@ -417,10 +413,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const gridKey = `${section}${gridType}`;  // Create the full key for identifying the grid
             const gridElement = document.querySelector(`#${gridKey}`);
 
-            if (!gridElement) {
-                console.error(`Grid element not found for ${gridKey}`);
-                return;
-            }
 
             let specificGridOptions;
             switch (gridType) {
@@ -436,9 +428,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (!latest_job_pricings_json) {
-                console.error('Error: latest_job_pricings_json data is not loaded.');
-                return;  // Exit early if latest_job_pricings_json is not loaded
+                throw new Error('latest_job_pricings_json must be loaded before grid initialization');
             }
+
 
             const sectionData = latest_job_pricings_json[`${section}_pricing`];
             if (!sectionData) {
@@ -457,18 +449,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             };
 
-            try {
-                const gridInstance = agGrid.createGrid(gridElement, gridOptions);
+            const gridInstance = agGrid.createGrid(gridElement, gridOptions);
 
-                // Set row data after initializing the grid
-                gridInstance.setGridOption("rowData", rowData);
+            // Set row data after initializing the grid
+            gridInstance.setGridOption("rowData", rowData);
 
-                // Optional console log for debugging purposes
-                // console.log(`Grid options for ${gridKey}:`, gridOptions);
-                // console.log(`Grid instance for ${gridKey}:`, gridInstance);
-            } catch (error) {
-                console.error(`Error initializing grid for ${gridKey}:`, error);
-            }
         });
     });
 
@@ -523,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function () {
         suppressPaginationPanel: true,
         suppressHorizontalScroll: true,
         onGridReady: params => {
-            window.grids['costTable'] = {gridInstance: params.api, api: params.api};
+            window.grids['costsTable'] = {gridInstance: params.api, api: params.api};
             params.api.sizeColumnsToFit();
         },
         onGridSizeChanged: params => {
@@ -561,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     setTimeout(() => {
-        const expectedGridCount = sections.length * workType.length + 1; // 3 secionds of 3 grids, plus revenue totals
+        const expectedGridCount = sections.length * workType.length + 2; // 3 secionds of 3 grids, plus revenue and costs totals
         const actualGridCount = Object.keys(window.grids).length;
 
         if (actualGridCount !== expectedGridCount) {
@@ -615,8 +600,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
 
             default:
-                // Optionally log unhandled buttons for debugging
-                console.warn(`Unhandled button click: ${buttonId}`);
+                // Random clicks not on buttons don't count - don't even log them
                 break;
         }
     });

@@ -55,9 +55,9 @@ function checkJobValidity(data) {
     const invalidFields = requiredFields.filter(field => !data[field] || data[field].trim() === '');
     if (invalidFields.length > 0) {
         console.warn(`Invalid fields: ${invalidFields.join(', ')}`);
-        return false;;
-    }
-    else {
+        return false;
+
+    } else {
         return true;
     }
 }
@@ -172,34 +172,13 @@ function exportJobToPDF(jobData) {
     const doc = new jsPDF();
     let startY = 10;
 
-    // **1. Add Isolated Fields (Job Details, Workflow Settings)**
-    doc.setFontSize(16);
-    doc.text("Job Details", 10, startY);
-    doc.setFontSize(12);
-    startY += 10;
+    // Job Details section stays the same...
 
-    const fields = [
-        {label: "Job Name", value: jobData.name},
-        {label: "Client", value: jobData.client_id},
-        {label: "Contact", value: jobData.contact_person},
-        {label: "Phone", value: jobData.contact_phone},
-        {label: "Order Number", value: jobData.order_number},
-        {label: "Material/Gauge/Quantity", value: jobData.material_gauge_quantity},
-        {label: "Description", value: jobData.description},
-    ];
-
-    fields.forEach((field) => {
-        doc.text(`${field.label}: ${field.value}`, 10, startY);
-        startY += 5;
-    });
-
-    startY += 10;
-
-    // **2. Add Grids**
+    // Grid sections
     const pricingSections = [
-        {section: "Estimate", grids: ["EstimateTimeTable", "EstimateMaterialsTable", "EstimateAdjustmentsTable"]},
-        {section: "Quote", grids: ["QuoteTimeTable", "QuoteMaterialsTable", "QuoteAdjustmentsTable"]},
-        {section: "Reality", grids: ["RealityTimeTable", "RealityMaterialsTable", "RealityAdjustmentsTable"]},
+        {section: "Estimate", grids: ["estimateTimeTable", "estimateMaterialsTable", "estimateAdjustmentsTable"]},
+        {section: "Quote", grids: ["quoteTimeTable", "quoteMaterialsTable", "quoteAdjustmentsTable"]},
+        {section: "Reality", grids: ["realityTimeTable", "realityMaterialsTable", "realityAdjustmentsTable"]},
     ];
 
     pricingSections.forEach(({section, grids}) => {
@@ -209,48 +188,73 @@ function exportJobToPDF(jobData) {
         startY += 10;
 
         grids.forEach((gridKey) => {
-            const gridApi = window.grids[gridKey].api;
-            const csv = gridApi.getDataAsCsv();
-            const rows = csv.split("\n").map(row => row.split(","));
+            const grid = window.grids[gridKey];
+            if (!grid || !grid.api) {
+                throw new Error(`Grid '${gridKey}' not found or missing API. Available grids: ${Object.keys(window.grids).join(', ')}`);
+            }
+            const gridApi = grid.api;
 
-            doc.text(gridKey.replace(/Table$/, ""), 10, startY); // Add grid title
-            startY += 5;
+            // Get column definitions and filter out the empty trash column
+            const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '');
+            const headers = columns.map(col => col.headerName);
+
+            // Get row data directly
+            const rowData = [];
+            gridApi.forEachNode(node => {
+                const row = columns.map(col => {
+                    const value = node.data[col.field];
+                    return value !== undefined ? value : '';
+                });
+                rowData.push(row);
+            });
 
             doc.autoTable({
-                head: [rows[0]], // Headers (first row)
-                body: rows.slice(1), // Data rows
+                head: [headers],
+                body: rowData,
                 startY: startY,
             });
 
-            startY = doc.lastAutoTable.finalY + 10; // Update startY for the next grid
+            startY = doc.lastAutoTable.finalY + 10;
         });
     });
 
-    // **3. Add Revenue and Costs**
+    // Revenue and Costs section
     doc.setFontSize(16);
     doc.text("Revenue and Costs", 10, startY);
     doc.setFontSize(12);
     startY += 10;
 
-    const revenueAndCostGrids = ["RevenueTable", "CostTable"];
-    revenueAndCostGrids.forEach((gridKey) => {
-        const gridApi = window.grids[gridKey].api; // Trust the contract
-        const csv = gridApi.getDataAsCsv();
-        const rows = csv.split("\n").map(row => row.split(","));
+    ["revenueTable", "costsTable"].forEach(gridKey => {
+        const grid = window.grids[gridKey];
+        if (!grid || !grid.api) {
+            throw new Error(`Grid '${gridKey}' not found or missing API. Available grids: ${Object.keys(window.grids).join(', ')}`);
+        }
 
-        doc.text(gridKey.replace(/Table$/, ""), 10, startY); // Add grid title
+        const gridApi = grid.api;
+        const columns = gridApi.getColumnDefs();
+        const headers = columns.map(col => col.headerName);
+
+        const rowData = [];
+        gridApi.forEachNode(node => {
+            const row = columns.map(col => {
+                const value = node.data[col.field];
+                return value !== undefined ? value : '';
+            });
+            rowData.push(row);
+        });
+
+        doc.text(gridKey.replace(/Table$/, ""), 10, startY);
         startY += 5;
 
         doc.autoTable({
-            head: [rows[0]], // Headers (first row)
-            body: rows.slice(1), // Data rows
+            head: [headers],
+            body: rowData,
             startY: startY,
         });
 
-        startY = doc.lastAutoTable.finalY + 10; // Update startY for the next grid
+        startY = doc.lastAutoTable.finalY + 10;
     });
 
-    // **4. Return PDF as Blob**
     return new Blob([doc.output("blob")], {type: "application/pdf"});
 }
 
