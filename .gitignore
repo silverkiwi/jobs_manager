@@ -99,7 +99,3 @@ dmypy.json
 /.__debug_sql.lock
 /node_modules/
 
-workflow/static/external/*
-
-# Allow the .gitkeep file to be tracked
-!workflow/static/external/README.md

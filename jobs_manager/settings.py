@@ -37,6 +37,7 @@ AUTH_USER_MODEL = "workflow.Staff"
 INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
+    "django_node_assets",
     "debug_toolbar",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -183,6 +184,37 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATICFILES_DIRS = [
+    # Bootstrap CSS and JS
+    ('bootstrap', 'node_modules/bootstrap/dist'),
+
+    # ag-Grid Community (CSS/JS)
+    ('ag-grid-community', 'node_modules/ag-grid-community/dist'),
+    ('ag-grid-styles', 'node_modules/@ag-grid-community/styles'),
+
+    # Highcharts (JS)
+    ('highcharts', 'node_modules/highcharts'),
+
+    # jQuery (JS)
+    ('jquery', 'node_modules/jquery/dist'),
+
+    # JSONEditor (CSS/JS)
+    ('jsoneditor', 'node_modules/jsoneditor/dist'),
+
+    # jsPDF (JS)
+    ('jspdf', 'node_modules/jspdf/dist'),
+
+    # jsPDF-AutoTable (JS)
+    ('jspdf-autotable', 'node_modules/jspdf-autotable/dist'),
+
+    # Moment.js (JS)
+    ('moment', 'node_modules/moment'),
+
+    # SortableJS (JS)
+    ('sortablejs', 'node_modules/sortablejs'),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

@@ -3,7 +3,7 @@
 
 {% block extra_css %}
 <!-- AG Grid Styles -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css"/>
+<link rel="stylesheet" href="{% static 'ag-grid-styles/ag-theme-alpine.css' %}">
 {% endblock %}
 
 
@@ -66,7 +66,7 @@
 
 {% block extra_js %}
 <!-- AG Grid Script -->
-<script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
+<script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
 <script src="{% static 'js/deserialize_timesheet.js' %}"></script>
 <script src="{% static 'js/timesheet_autosave.js' %}"></script>
 <script src="{% static 'js/timesheet_entry.js' %}"></script>

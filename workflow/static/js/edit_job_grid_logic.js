@@ -32,7 +32,6 @@
 
 import {createNewRow, getGridData} from '/static/js/deseralise_job_pricing.js';
 import {handlePrintJob} from '/static/js/edit_job_form_autosave.js';
-# import { Grid as agGrid } from 'ag-grid-community';
 
 // console.log('Grid logic script is running');
 
@@ -123,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function calculateTotalRevenue() {
-        const totals = {
+        const revenueTotals = {
             time: {estimate: 0, quote: 0, reality: 0},
             materials: {estimate: 0, quote: 0, reality: 0},
             adjustments: {estimate: 0, quote: 0, reality: 0}
@@ -138,9 +137,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 const gridData = window.grids[gridKey];
                 if (gridData && gridData.api) {
                     gridData.api.forEachNode(node => {
+                        const rowCost = parseFloat(node.data.cost) || 0;
                         const rowRevenue = parseFloat(node.data.revenue) || 0;
                         const revenueType = gridType.toLowerCase();
-                        totals[revenueType][section] += rowRevenue;
+                        revenueTotals[revenueType][section] += rowRevenue;
                     });
                 }
             });
@@ -152,61 +152,32 @@ document.addEventListener('DOMContentLoaded', function () {
                 const data = node.data;
                 switch (index) {
                     case 0: // Total Time
-                        data.estimate = totals.time.estimate;
-                        data.quote = totals.time.quote;
-                        data.reality = totals.time.reality;
+                        data.estimate = revenueTotals.time.estimate;
+                        data.quote = revenueTotals.time.quote;
+                        data.reality = revenueTotals.time.reality;
                         break;
                     case 1: // Total Materials
-                        data.estimate = totals.materials.estimate;
-                        data.quote = totals.materials.quote;
-                        data.reality = totals.materials.reality;
+                        data.estimate = revenueTotals.materials.estimate;
+                        data.quote = revenueTotals.materials.quote;
+                        data.reality = revenueTotals.materials.reality;
                         break;
                     case 2: // Total Adjustments
-                        data.estimate = totals.adjustments.estimate;
-                        data.quote = totals.adjustments.quote;
-                        data.reality = totals.adjustments.reality;
+                        data.estimate = revenueTotals.adjustments.estimate;
+                        data.quote = revenueTotals.adjustments.quote;
+                        data.reality = revenueTotals.adjustments.reality;
                         break;
                     case 3: // Total Project Cost
-                        data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
-                        data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
-                        data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
+                        data.estimate = revenueTotals.time.estimate + revenueTotals.materials.estimate + revenueTotals.adjustments.estimate;
+                        data.quote = revenueTotals.time.quote + revenueTotals.materials.quote + revenueTotals.adjustments.quote;
+                        data.reality = revenueTotals.time.reality + revenueTotals.materials.reality + revenueTotals.adjustments.reality;
                         break;
                 }
-            });
-            revenueGrid.api.refreshCells();
+            })
         }
 
-        const costGrid = window.grids['costTable'];
-        if (costGrid && costGrid.api) {
-            costGrid.api.forEachNode((node, index) => {
-                const data = node.data;
-                switch (index) {
-                    case 0: // Total Time
-                        data.estimate = totals.time.estimate;
-                        data.quote = totals.time.quote;
-                        data.reality = totals.time.reality;
-                        break;
-                    case 1: // Total Materials
-                        data.estimate = totals.materials.estimate;
-                        data.quote = totals.materials.quote;
-                        data.reality = totals.materials.reality;
-                        break;
-                    case 2: // Total Adjustments
-                        data.estimate = totals.adjustments.estimate;
-                        data.quote = totals.adjustments.quote;
-                        data.reality = totals.adjustments.reality;
-                        break;
-                    case 3: // Total Project Cost
-                        data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
-                        data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
-                        data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
-                        break;
-                }
-            });
-            costGrid.api.refreshCells();
-        }
-
+        revenueGrid.api.refreshCells();
     }
+
 
     function calculateTotalCost() {
         const totals = {
@@ -501,16 +472,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    setTimeout(() => {
-        const expectedGridCount = sections.length * workType.length + 1; // 3 secionds of 3 grids, plus revenue totals
-        const actualGridCount = Object.keys(window.grids).length;
-
-        if (actualGridCount !== expectedGridCount) {
-            console.error(`Not all grids were initialized. Expected: ${expectedGridCount}, Actual: ${actualGridCount}`);
-        } else {
-            console.log('All grids successfully initialized.');
-        }
-    }, 3000); // 3-second delay to allow all grids to finish initializing
 
     // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
     const revenueGridOptions = {
@@ -543,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    const costGridOptions = { // Copy/paste from revenue
+    const costGridOptions = {
         columnDefs: [
             {headerName: 'Category', field: 'category', editable: false},
             {headerName: 'Estimate', field: 'estimate', editable: false, valueFormatter: currencyFormatter},
@@ -597,6 +558,18 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         console.error('Costs table element not found');
     }
+
+
+    setTimeout(() => {
+        const expectedGridCount = sections.length * workType.length + 1; // 3 secionds of 3 grids, plus revenue totals
+        const actualGridCount = Object.keys(window.grids).length;
+
+        if (actualGridCount !== expectedGridCount) {
+            console.error(`Not all grids were initialized. Expected: ${expectedGridCount}, Actual: ${actualGridCount}`);
+        } else {
+            console.log('All grids successfully initialized.');
+        }
+    }, 3000); // 3-second delay to allow all grids to finish initializing
 
 
     setTimeout(() => {

@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_css %}
-<link href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.9.2/jsoneditor.min.css" rel="stylesheet" type="text/css">
+<link href="{% static 'jsoneditor/jsoneditor.min.css' %}" rel="stylesheet" type="text/css">
 {% endblock %}
 
 {% block content %}
@@ -87,6 +87,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.9.2/jsoneditor.min.js"></script>
+<script src="{% static 'jsoneditor/jsoneditor.min.js' %}"></script>
 <script src="{% static 'js/edit_json.js' %}"></script>
 {% endblock %}

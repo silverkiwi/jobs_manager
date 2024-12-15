@@ -506,6 +506,20 @@ files = [
 Django = ">=4.2"
 
 [[package]]
+name = "django-node-assets"
+version = "0.9.14"
+description = "The Django application that allows to install and serve assets via Node.js package manager infrastructure."
+optional = false
+python-versions = "*"
+files = [
+    {file = "django_node_assets-0.9.14-py3-none-any.whl", hash = "sha256:80cbe3d10521808309712b2aa5ef6d69799bbcafef844cf7f223d3c93f405768"},
+    {file = "django_node_assets-0.9.14.tar.gz", hash = "sha256:d5b5c472136084d533268f52ab77897327863a102e25c81f484aae85eb806987"},
+]
+
+[package.extras]
+dev = ["black", "build", "flake8", "isort", "twine"]
+
+[[package]]
 name = "django-simple-history"
 version = "3.7.0"
 description = "Store model history and view/revert changes from admin site."
@@ -1337,4 +1351,4 @@ urllib3 = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "d1def269086122d9713b4f0c8ef2c507806fac9b26954db9ea2282be74abd782"
+content-hash = "5dd2fa554ce02dc6809dc04728f4306c19bd628815236f8375b093bea52f43fd"

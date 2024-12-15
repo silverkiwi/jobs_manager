@@ -58,7 +58,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="{% static 'jquery/jquery.min.js' %}"></script>
+<script src="{% static 'highcharts/highcharts.js' %}"></script>
 <script src="{% static 'js/timesheet_overview.js' %}"></script>
 {% endblock %}

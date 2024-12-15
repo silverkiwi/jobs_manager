@@ -4,7 +4,7 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
     <link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
-    <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/styles/ag-theme-alpine.css">
+    <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -78,10 +78,10 @@
 
 {% block extra_js %}
     <!-- AG Grid -->
-    <script src="{% static 'external/ag-grid-community.min.js' %}"></script>
+    <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
     <!-- jsPDF -->
-    <script src="{% static 'external/jspdf.umd.min.js' %}"></script>
-    <script src="{% static 'external/jspdf.plugin.autotable.min.js' %}"></script>
+    <script src="{% static 'jspdf/jspdf.umd.min.js' %}"></script>
+    <script src="{% static 'jspdf-autotable/jspdf.plugin.autotable.min.js' %}"></script>
     <!-- Custom JS -->
     <script type="application/json" id="latestJobPricingsData" style="display:none;">{{ latest_job_pricings_json|safe }}</script>
     <script type="application/json" id="historicalJobPricingsData" style="display:none;">{{ historical_job_pricings_json|safe }}</script>

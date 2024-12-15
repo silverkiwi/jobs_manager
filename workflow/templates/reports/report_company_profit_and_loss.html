@@ -32,7 +32,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
+<script src="{% static 'moment/moment.min.js' %}"></script>
+<script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
 <script src="{% static 'js/report_company_profit_and_loss.js' %}"></script>
 {% endblock %}
