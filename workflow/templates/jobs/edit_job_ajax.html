@@ -77,9 +77,12 @@
 {% endblock %}
 
 {% block extra_js %}
-    <script src="https://unpkg.com/ag-grid-community@32.2.0/dist/ag-grid-community.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <!-- AG Grid -->
+    <script src="{% static 'external/ag-grid-community.min.js' %}"></script>
+    <!-- jsPDF -->
+    <script src="{% static 'external/jspdf.umd.min.js' %}"></script>
+    <script src="{% static 'external/jspdf.plugin.autotable.min.js' %}"></script>
+    <!-- Custom JS -->
     <script type="application/json" id="latestJobPricingsData" style="display:none;">{{ latest_job_pricings_json|safe }}</script>
     <script type="application/json" id="historicalJobPricingsData" style="display:none;">{{ historical_job_pricings_json|safe }}</script>
     <script type="module" src="{% static 'js/deseralise_job_pricing.js' %}"></script>
