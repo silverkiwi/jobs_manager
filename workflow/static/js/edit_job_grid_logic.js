@@ -438,6 +438,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             let rowData = getGridData(section, gridType);
+            if (rowData.length === 0) {
+                rowData = [createNewRow(gridType)];
+            }
+
             // console.log("Grid type: ", gridType, ", Section: ", section, ", Grid Key: ", gridKey);
             // console.log("First row of rowData during grid initialization:", rowData[0]);
 
