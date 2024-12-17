@@ -281,11 +281,26 @@ async function handlePDF(pdfBlob, mode, jobData) {
     const pdfURL = URL.createObjectURL(pdfBlob);
 
     switch (mode) {
-        case 'upload':
+        case 'dropbox': // Warning, hasn't been tested in a while
             const dropboxPath = `/MSM Workflow/Job-${jobData.job_number}/JobSummary.pdf`;
             if (!(await uploadToDropbox(pdfBlob, dropboxPath))) {
                 throw new Error(`Failed to upload PDF for Job ${jobData.job_number}`);
             }
+            break;
+        case 'upload':
+            const formData = new FormData();
+            formData.append('job_number', jobData.job_number);
+            formData.append('files', new File([pdfBlob], 'JobSummary.pdf', {type: 'application/pdf'}));
+
+            fetch('/api/upload-job-files/', {
+                method: 'POST',
+                headers: {'X-CSRFToken': getCsrfToken()},
+                body: formData
+            }).then(response => {
+                if (!response.ok) {
+                    console.error(`Failed to upload PDF for Job ${jobData.job_number}`);
+                }
+            });
             break;
         case 'print':
             const newWindow = window.open(pdfURL, '_blank');

@@ -5,6 +5,7 @@ from .client import Client
 from .company_defaults import CompanyDefaults
 from .invoice import BaseXeroInvoiceDocument, BaseLineItem, Invoice, Bill, CreditNote, InvoiceLineItem, BillLineItem, CreditNoteLineItem
 from .job import Job
+from .job_file import JobFile
 from .job_pricing import JobPricing, QuotePricing
 from .material_entry import MaterialEntry
 from .staff import StaffManager, Staff
@@ -26,6 +27,7 @@ __all__ = [
     'BillLineItem',
     'CreditNoteLineItem',
     'Job',
+    'JobFile',
     'JobPricing',
     'QuotePricing',
     'MaterialEntry',
