@@ -32,6 +32,8 @@ class TimesheetOverviewView(TemplateView):
         staff_data = []
         all_staff = Staff.objects.all()
         for staff_member in all_staff:
+            if staff_member.is_staff is True:
+                continue
             staff_hours = []
             for day in last_seven_days:
                 scheduled_hours = staff_member.get_scheduled_hours(
@@ -142,6 +144,8 @@ class TimesheetDailyView(TemplateView):
 
         staff_data = []
         for staff_member in Staff.objects.all():
+            if staff_member.is_staff is True:
+                continue
             scheduled_hours = staff_member.get_scheduled_hours(target_date)
             time_entries = TimeEntry.objects.filter(
                 date=target_date, staff=staff_member
@@ -152,7 +156,8 @@ class TimesheetDailyView(TemplateView):
             staff_data.append(
                 {
                     "staff_id": staff_member.id,
-                    "name": staff_member.get_display_name(),
+                    "name": staff_member.preferred_name if staff_member.preferred_name else staff_member.get_display_name(),
+                    "last_name": staff_member.last_name,
                     "scheduled_hours": scheduled_hours,
                     "actual_hours": actual_hours,
                     "entries": [

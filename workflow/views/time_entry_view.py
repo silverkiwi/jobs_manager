@@ -18,14 +18,26 @@ logger = logging.getLogger(__name__)
 class TimesheetEntryView(TemplateView):
     template_name = "time_entries/timesheet_entry.html"  # We'll need to create this
 
+    EXCLUDED_STAFF_IDS = [
+        "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
+        "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402"
+    ]
+
     def get(self, request, date, staff_id, *args, **kwargs):
+
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
         except ValueError:
             raise ValueError("Invalid date format. Expected YYYY-MM-DD.")
 
-        # Get the staff member
-        staff_member = Staff.objects.get(id=staff_id)
+        # Check if staff_id is in excluded list
+        if staff_id in self.EXCLUDED_STAFF_IDS:
+            raise PermissionError("Access denied for this staff member")
+
+        try:
+            staff_member = Staff.objects.get(id=staff_id)
+        except Staff.DoesNotExist:
+            raise Http404("Staff member not found")
         staff_data = {
             "id": staff_member.id,
             "name": staff_member.get_display_full_name(),
@@ -72,6 +84,28 @@ class TimesheetEntryView(TemplateView):
             for job in open_jobs
         ]
 
+        next_staff = Staff.objects.exclude(
+            id__in=self.EXCLUDED_STAFF_IDS
+        ).filter(
+            id__gt=staff_member.id
+        ).order_by("id").first()
+
+        if not next_staff:
+            next_staff = Staff.objects.exclude(
+                id__in=self.EXCLUDED_STAFF_IDS
+            ).order_by("id").first()
+        
+        prev_staff = Staff.objects.exclude(
+            id__in=self.EXCLUDED_STAFF_IDS
+        ).filter(
+            id__lt=staff_member.id
+        ).order_by("-id").first()
+
+        if not prev_staff:
+            prev_staff = Staff.objects.exclude(
+                id__in=self.EXCLUDED_STAFF_IDS
+            ).order_by("-id").first()   
+
         context = {
             "staff_member": staff_member,
             "staff_member_json": json.dumps(staff_data, cls=DjangoJSONEncoder),
@@ -79,6 +113,8 @@ class TimesheetEntryView(TemplateView):
             "scheduled_hours": float(staff_member.get_scheduled_hours(target_date)),
             "timesheet_entries_json": json.dumps(timesheet_data, cls=DjangoJSONEncoder),
             "jobs_json": json.dumps(jobs_data, cls=DjangoJSONEncoder),
+            "next_staff": next_staff,
+            "prev_staff": prev_staff,
         }
 
         return render(request, self.template_name, context)
