@@ -4,13 +4,17 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.core.serializers.json import DjangoJSONEncoder
-from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.http import JsonResponse, Http404
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
 
 from workflow.enums import RateType
 from workflow.models import Job, Staff, TimeEntry
+from workflow.forms import TimeEntryForm
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +28,6 @@ class TimesheetEntryView(TemplateView):
     ]
 
     def get(self, request, date, staff_id, *args, **kwargs):
-
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
         except ValueError:
@@ -120,9 +123,57 @@ class TimesheetEntryView(TemplateView):
         return render(request, self.template_name, context)
 
     def post(self, request, date, staff_id, *args, **kwargs):
-        # Handle saving time entries
-        # We'll implement this once we have the template/form structure defined
-        pass
+        # Validate date and staff_id similar to get method
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()                                              # Convert string date to datetime object
+        except ValueError:
+            raise ValueError("Invalid date format. Expected YYYY-MM-DD.")                                         # Return error if date format is invalid
+
+        try:
+            staff_member = Staff.objects.get(id=staff_id)                                                         # Get staff member instance
+        except Staff.DoesNotExist:
+            return JsonResponse({"error": "Staff member not found"}, status=404)                                  # Return error if staff not found
+
+        if staff_id in self.EXCLUDED_STAFF_IDS:                                                                   # Check if staff is in excluded list
+            return JsonResponse({"error": "Access denied"}, status=403)
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':                                           # Handle AJAX requests for modal form
+            if request.POST.get('action') == 'load_form':
+                # Return the form HTML for the modal
+                form = TimeEntryForm(staff_member=staff_member)                                                   # Create form instance with staff member
+                form_html = render_to_string(
+                    'time_entries/timesheet_form.html',                                                           # Template for the form
+                    {'form': form, 'staff_member': staff_member, 'target_date': target_date},
+                    request=request
+                )
+                return JsonResponse({'form_html': form_html})                                                     # Return form HTML for modal
+
+            elif request.POST.get('action') == 'submit_form':
+                # Handle form submission
+                form = TimeEntryForm(request.POST, staff_member=staff_member)                                     # Create form with POST data
+                if form.is_valid():
+                    time_entry = form.save(commit=False)                                                          # Create but don't save the instance yet
+                    time_entry.staff = staff_member                                                               # Set the staff member
+                    time_entry.date = target_date                                                                 # Set the date
+                    time_entry.save()                                                                             # Save the time entry
+
+                    # Return the new entry data for AG Grid
+                    entry_data = {
+                        "id": str(time_entry.id),
+                        "job_pricing_id": time_entry.job_pricing_id,
+                        "description": time_entry.description or "",
+                        "hours": float(time_entry.hours),
+                        "rate_multiplier": float(time_entry.wage_rate_multiplier),
+                        "is_billable": time_entry.is_billable,
+                        "timesheet_date": target_date.strftime("%Y-%m-%d"),
+                        "staff_id": staff_member.id,
+                    }
+                    return JsonResponse({"success": True, "entry": entry_data})                                   # Return success response with entry data
+                else:
+                    return JsonResponse({"success": False, "errors": form.errors}, status=400)                    # Return form errors if invalid
+
+        # Handle non-AJAX POST requests
+        return JsonResponse({"error": "Invalid request"}, status=400)        
 
 
 @require_http_methods(["POST"])
@@ -158,10 +209,10 @@ def autosave_timesheet_view(request):
                 job = Job.objects.get(id=job_id)
                 job_pricing = job.latest_reality_pricing
                 staff = Staff.objects.get(id=entry_data.get("staff_id"))
-
+                
                 wage_rate_multiplier = RateType(entry_data["rate_type"]).multiplier
                 wage_rate = staff.wage_rate  # From the staff member
-                charge_out_rate = entry_data["job_data"]["charge_out_rate"]
+                # charge_out_rate = entry_data["job_data"]["charge_out_rate"]
 
                 entry = TimeEntry.objects.create(
                     job_pricing=job_pricing,
@@ -173,7 +224,7 @@ def autosave_timesheet_view(request):
                     note=entry_data.get("notes", ""),
                     wage_rate_multiplier=wage_rate_multiplier,
                     wage_rate=wage_rate,
-                    charge_out_rate=charge_out_rate,
+                    # charge_out_rate=charge_out_rate,
                 )
                 logger.debug(f"Created new TimeEntry ID: {entry.id}")
 

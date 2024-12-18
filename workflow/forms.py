@@ -62,27 +62,55 @@ class AdjustmentEntryForm(forms.ModelForm):
         exclude = ["job_pricing"]
 
 
-class TimeEntryForm(forms.ModelForm):
+class TimeEntryForm(forms.ModelForm):                                                                      # Form for creating and editing TimeEntry instances
     class Meta:
         model = TimeEntry
-        widgets = {
-            "date": forms.DateInput(attrs={"type": "date"}),  # Keeps the date picker
+        
+        widgets = {                                                                                        # Configure form widgets for better user interface
+            "date": forms.DateInput(attrs={"type": "date"}),                                               # Use HTML5 date picker for better date selection
+            'description': forms.Textarea(attrs={'rows':3})                                                # Provide a larger text area for descriptions
         }
-        exclude = [
-            "job_pricing"
-        ]  # Exclude job_pricing because it's set programmatically
 
-    def __init__(self, *args, **kwargs):
+        fields = (
+            "staff",
+            "job_pricing",
+            "date",
+            "hours",
+            "items",
+            "minutes_per_item",
+            "description",
+            "wage_rate",
+            "charge_out_rate",
+        )
+
+    def __init__(self, *args, staff_member=None, **kwargs):                                                # Initialize the form with optional staff_member paramete
         super().__init__(*args, **kwargs)
+        if staff_member:
+            # Handle case when staff_member is provided
+            self.fields["staff"].initial = staff_member                                                    # Pre-select the staff field with provided staff member
+            self.fields["staff"].widget.attrs['disabled'] = True                                           # Disable staff field to prevent changes
+            self.fields["staff"].required = False                                                          # Make staff field not required as it's set automatically
 
-        # Drop-down for staff
-        self.fields["staff"].queryset = Staff.objects.all()
+            # Pre-populate rate fields
+            self.fields["wage_rate"].initial = staff_member.wage_rate                                      # Set initial wage rate from staff member
+            # self.fields["charge_out_rate"].initial = staff_member.charge_out_rate                          # Set initial charge-out rate from staff member
+        else:
+            # Handle case when no staff_member is provided
+            self.fields["staff"].queryset = Staff.objects.all()                                            # Load all staff members for selection
 
-        # Pre-populate wage_rate and charge_out_rate based on selected staff
-        if "instance" in kwargs and kwargs["instance"] and kwargs["instance"].staff:
-            staff = kwargs["instance"].staff
-            self.fields["wage_rate"].initial = staff.wage_rate
-            self.fields["charge_out_rate"].initial = staff.charge_out_rate
+            # Handle rate population for existing instances
+            if "instance" in kwargs and kwargs["instance"] and kwargs["instance"].staff:                   # Check if editing existing TimeEntry
+                staff = kwargs["instance"].staff
+                self.fields["wage_rate"].initial = staff.wage_rate                                         # Set wage rate from existing entry's staff
+                '''try:                                                                                        # Safely handle charge_out_rate for existing instances
+                    self.fields["charge_out_rate"].initial = (
+                        staff.charge_out_rate 
+                        if hasattr(staff, 'charge_out_rate') 
+                        else staff.wage_rate
+                    )
+                except AttributeError:
+                    self.fields["charge_out_rate"].initial = 0'''
+
 
 
 class StaffCreationForm(UserCreationForm):

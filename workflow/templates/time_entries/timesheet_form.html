@@ -1,0 +1,19 @@
+{% load crispy_forms_tags %}
+
+<form id="timesheet-form" method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="submit_form">
+    
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    {{ form|crispy }}
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="submit" class="btn btn-primary">Save Timesheet</button>
+    </div>
+</form>
