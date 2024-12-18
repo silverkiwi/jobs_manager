@@ -187,6 +187,20 @@ def autosave_timesheet_view(request):
         logger.debug("Timesheet autosave request received")
         data = json.loads(request.body)
         time_entries = data.get("time_entries", [])
+        deleted_entries = data.get("deleted_entries", [])
+
+        logger.debug(f"Number of time entries: {len(time_entries)}")
+        logger.debug(f"Number of entries to delete: {len(deleted_entries)}")
+
+        if deleted_entries:
+            for entry_id in deleted_entries:
+                logger.debug(f"Deleting entry with ID: {entry_id}")
+                try:
+                    entry = TimeEntry.objects.get(id=entry_id)
+                    entry.delete()
+                except TimeEntry.DoesNotExist:
+                    logger.error(f"TimeEntry with ID {entry_id} not found for deletion")
+                    return JsonResponse({"error": f"TimeEntry with ID {entry_id} not found"}, status=404)
 
         if not time_entries:
             logger.error("No time entries found in request")

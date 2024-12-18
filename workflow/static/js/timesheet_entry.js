@@ -272,12 +272,33 @@ const gridOptions = {
             cellRenderer: deleteIconCellRenderer,
             onCellClicked: (params) => {
                 const rowCount = params.api.getDisplayedRowCount();
-                if (rowCount > 1) {  // Only allow delete if we have more than one row
-                    params.api.applyTransaction({ remove: [params.node.data] });
+                const id = params.data.id;
+                
+                console.log('Delete clicked for row:', {
+                    id: id,
+                    rowCount: rowCount,
+                    data: params.node.data
+                });
+            
+                // Only proceed if we have more than one row
+                if (rowCount > 1) {
+                    // Mark for deletion first if it has an ID
+                    if (id) {
+                        console.log('Marking entry for deletion:', id);
+                        markEntryAsDeleted(id);
+                    }
+            
+                    // Then remove from grid
+                    params.api.applyTransaction({ 
+                        remove: [params.node.data] 
+                    });
+            
+                    console.log('Row removed from grid, triggering autosave');
+                    debouncedAutosave();
+                } else {
+                    console.log('Cannot delete last row');
                 }
-                console.log('Row deleted, triggering autosave');
-                debouncedAutosave(); 
-            }
+            }            
         }
     ],
     defaultColDef: {
@@ -318,7 +339,7 @@ const gridOptions = {
                 columns: ['wage_amount', 'bill_amount']
             });
         }
-        console.log(isUserEdit);
+        console.log('Is user edit? -> ', isUserEdit);
         if (isUserEdit) {
             debouncedAutosave();
         }

@@ -1,3 +1,13 @@
+let deletedEntries = [];
+
+function markEntryAsDeleted(entryId) {
+    if (entryId) {
+        console.log('Adding entry to deletion list:', entryId);
+        deletedEntries.push(entryId);
+        console.log('Current deletion list:', deletedEntries);
+    }
+}
+
 function debounce(func, wait) {
     let timeout;
     return function (...args) {
@@ -50,21 +60,32 @@ function collectGridData() {
     });
 
     console.log('Final collected data:', gridData);
-    return gridData;
+    return {time_entries: gridData, deleted_entries: deletedEntries};
 }
 
 function autosaveData() {
     const collectedData = collectGridData();
-    if (!collectedData.length) {
-        console.error("No timesheet data available for autosave.");
+    
+    // Changed validation - proceed if either we have entries to update or delete
+    if (collectedData.time_entries.length === 0 && collectedData.deleted_entries.length === 0) {
+        console.log("No data to save - no time entries or deletions");
         return;
     }
-    saveDataToServer({ time_entries: collectedData });
+
+    console.log('Saving data:', {
+        timeEntries: collectedData.time_entries.length,
+        deletedEntries: collectedData.deleted_entries.length
+    });
+
+    saveDataToServer(collectedData);
 }
 
 // Send data to the server
 function saveDataToServer(collectedData) {
-    console.log('Autosaving timesheet data to /api/autosave-timesheet/...', collectedData);
+    console.log('Autosaving timesheet data to /api/autosave-timesheet/...', {
+        time_entries: collectedData.time_entries.length,
+        deleted_entries: collectedData.deleted_entries.length
+    });
 
     fetch('/api/autosave-timesheet/', {
         method: 'POST',
@@ -83,6 +104,7 @@ function saveDataToServer(collectedData) {
             });
         }
         console.log('Autosave successful');
+        deletedEntries = [];
         return response.json();
     })
     .then(data => {
