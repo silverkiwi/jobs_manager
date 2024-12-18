@@ -93,7 +93,7 @@ class TimeEntryForm(forms.ModelForm):                                           
 
             # Pre-populate rate fields
             self.fields["wage_rate"].initial = staff_member.wage_rate                                      # Set initial wage rate from staff member
-            # self.fields["charge_out_rate"].initial = staff_member.charge_out_rate                          # Set initial charge-out rate from staff member
+            # self.fields["charge_out_rate"].initial = staff_member.charge_out_rate                        # Set initial charge-out rate from staff member - currently not working because TimeEntry model has not charge_out_rate property
         else:
             # Handle case when no staff_member is provided
             self.fields["staff"].queryset = Staff.objects.all()                                            # Load all staff members for selection
@@ -102,7 +102,7 @@ class TimeEntryForm(forms.ModelForm):                                           
             if "instance" in kwargs and kwargs["instance"] and kwargs["instance"].staff:                   # Check if editing existing TimeEntry
                 staff = kwargs["instance"].staff
                 self.fields["wage_rate"].initial = staff.wage_rate                                         # Set wage rate from existing entry's staff
-                '''try:                                                                                        # Safely handle charge_out_rate for existing instances
+                '''try:                                                                                    # Safely handle charge_out_rate for existing instances
                     self.fields["charge_out_rate"].initial = (
                         staff.charge_out_rate 
                         if hasattr(staff, 'charge_out_rate') 

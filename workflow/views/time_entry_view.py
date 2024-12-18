@@ -123,7 +123,6 @@ class TimesheetEntryView(TemplateView):
         return render(request, self.template_name, context)
 
     def post(self, request, date, staff_id, *args, **kwargs):
-        # Validate date and staff_id similar to get method
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()                                              # Convert string date to datetime object
         except ValueError:
@@ -184,25 +183,38 @@ def autosave_timesheet_view(request):
         logger.debug(f"Parsed data: {data}")
 
         time_entries = data.get("time_entries", [])
+        logger.debug(f"Number of time entries: {len(time_entries)}")
+
         if not time_entries:
             logger.error("No time entries found in request")
             return JsonResponse({"error": "No time entries provided"}, status=400)
 
+        updated_entries = []
         for entry_data in time_entries:
             entry_id = entry_data.get("id")
-            hours = Decimal(str(entry_data["hours"]))
+            logger.debug(f"Processing entry with ID: {entry_id}")
+            
+            try:
+                hours = Decimal(str(entry_data.get("hours", 0)))
+            except (TypeError, ValueError) as e:
+                logger.error(f"Invalid hours value: {entry_data.get('hours')}")
+                return JsonResponse({"error": f"Invalid hours value: {str(e)}"}, status=400)
 
             if entry_id:
-                # Update existing entry
-                entry = TimeEntry.objects.get(id=entry_id)
-                entry.description = entry_data.get("description", "")
-                entry.hours = hours
-                entry.is_billable = entry_data.get("is_billable", True)
-                entry.note = entry_data.get("notes", "")
-                rate_type = entry_data.get("rate_type", RateType.ORDINARY.value)
-                entry.wage_rate_multiplier = RateType(rate_type).multiplier
-                entry.save()
-                logger.debug(f"Updated TimeEntry ID: {entry.id}")
+                try:
+                    # Update existing entry
+                    entry = TimeEntry.objects.get(id=entry_id)
+                    entry.description = entry_data.get("description", "")
+                    entry.hours = hours
+                    entry.is_billable = entry_data.get("is_billable", True)
+                    entry.note = entry_data.get("notes", "")
+                    rate_type = entry_data.get("rate_type", RateType.ORDINARY.value)
+                    entry.wage_rate_multiplier = RateType(rate_type).multiplier
+                    entry.save()
+                    logger.debug(f"Successfully updated TimeEntry ID: {entry.id}")
+                except TimeEntry.DoesNotExist:
+                    logger.error(f"TimeEntry with ID {entry_id} not found")
+                    return JsonResponse({"error": f"TimeEntry with ID {entry_id} not found"}, status=404)
             else:
                 # Create new entry - need to get job_pricing
                 job_id = entry_data.get("job_data", {}).get("id")
@@ -228,7 +240,10 @@ def autosave_timesheet_view(request):
                 )
                 logger.debug(f"Created new TimeEntry ID: {entry.id}")
 
-        return JsonResponse({"success": True})
+        return JsonResponse({
+            "success": True,
+            "updated_entries": updated_entries
+        })
 
     except json.JSONDecodeError:
         logger.error("Failed to parse JSON")

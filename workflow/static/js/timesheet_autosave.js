@@ -11,7 +11,6 @@ function collectGridData() {
     console.log('collectGridData() called');
     const gridData = [];
 
-    // Instead of looking for grid on the element, use the window.grid we stored
     const grid = window.grid;
     console.log('Grid instance:', grid);
 
@@ -22,11 +21,36 @@ function collectGridData() {
 
     grid.forEachNode(node => {
         console.log('Processing node:', node);
-        if (data.job_number && (data.hours > 0 || (data.description && data.description.trim() !== ''))) {
-            console.log('Adding valid row:', data);
-            gridData.push(data);
+        // First check if node and node.data exist
+        if (!node || !node.data) {
+            console.log('Skipping invalid node');
+            return;
+        }
+
+        const rowData = node.data;  // Get data from the node
+        console.log('Row data:', rowData);
+
+        if (rowData.job_number && (rowData.hours > 0 || (rowData.description && rowData.description.trim() !== ''))) {          // It's fetching the data correctly
+            const entry = {
+                id: rowData.id,
+                job_number: rowData.job_number,
+                description: rowData.description,
+                hours: rowData.hours,
+                mins_per_item: rowData.mins_per_item,
+                items: rowData.items,
+                wage_amount: rowData.wage_amount,
+                bill_amount: rowData.bill_amount,
+                date: rowData.date,
+                job_data: rowData.job_data,
+                is_billable: rowData.is_billable || true,
+                notes: rowData.notes || '',
+                rate_type: rowData.rate_type || 'ORDINARY'
+            };
+            console.log('Hours: ', rowData.hours);                                                                               // It shows the changed hours correctly too. Why isn't it saving the hours correctly?
+            console.log('Adding valid row:', entry);
+            gridData.push(entry);
         } else {
-            console.log('Skipping dummy or invalid row:', data);
+            console.log('Skipping dummy or invalid row:', rowData);
         }
     });
 
@@ -59,9 +83,16 @@ function saveDataToServer(collectedData) {
     .then(response => {
         if (!response.ok) {
             console.error('Server responded with an error:', response.status);
-            return;
+            return response.json().then(data => {
+                console.error('Error details:', data);
+                throw new Error(data.error || 'Server error');
+            });
         }
         console.log('Autosave successful');
+        return response.json();
+    })
+    .then(data => {
+        console.log('Autosave successful:', data);
     })
     .catch(error => {
         console.error('Autosave failed:', error);
