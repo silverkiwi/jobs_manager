@@ -69,8 +69,8 @@ class TimeEntry(models.Model):
         ordering = ["created_at"]  # Default ordering by creation time
 
     def save(self, *args, **kwargs):
-        # Ensure minutes and hours stay consistent
-        if self.items is not None and self.minutes_per_item is not None:
+        # Only calculate hours from items/minutes if hours isn't explicitly set
+        if self.hours == 0 and self.items is not None and self.minutes_per_item is not None:
             total_minutes = self.items * self.minutes_per_item
             self.hours = total_minutes / Decimal(60)
         super().save(*args, **kwargs)

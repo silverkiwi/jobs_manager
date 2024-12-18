@@ -41,11 +41,17 @@ class TimesheetEntryView(TemplateView):
             staff_member = Staff.objects.get(id=staff_id)
         except Staff.DoesNotExist:
             raise Http404("Staff member not found")
+
         staff_data = {
             "id": staff_member.id,
             "name": staff_member.get_display_full_name(),
             "wage_rate": staff_member.wage_rate,
         }
+
+        timesheet_entries = TimeEntry.objects.filter(
+            staff=staff_member,
+            date=target_date
+        )
 
         # Get existing time entries for this staff member on this date
         time_entries = TimeEntry.objects.filter(
@@ -58,7 +64,7 @@ class TimesheetEntryView(TemplateView):
                 "job_pricing_id": entry.job_pricing_id,
                 "job_number": entry.job_pricing.job.job_number,
                 "job_name": entry.job_pricing.job.name,
-                "client_name": entry.job_pricing.job.client.name,
+                "client_name": entry.job_pricing.job.client.name if entry.job_pricing.job.client else "No client!?",
                 "description": entry.description or "",
                 "hours": float(
                     entry.hours
@@ -180,10 +186,7 @@ def autosave_timesheet_view(request):
     try:
         logger.debug("Timesheet autosave request received")
         data = json.loads(request.body)
-        logger.debug(f"Parsed data: {data}")
-
         time_entries = data.get("time_entries", [])
-        logger.debug(f"Number of time entries: {len(time_entries)}")
 
         if not time_entries:
             logger.error("No time entries found in request")
@@ -197,11 +200,15 @@ def autosave_timesheet_view(request):
             try:
                 hours = Decimal(str(entry_data.get("hours", 0)))
             except (TypeError, ValueError) as e:
-                logger.error(f"Invalid hours value: {entry_data.get('hours')}")
                 return JsonResponse({"error": f"Invalid hours value: {str(e)}"}, status=400)
 
             if entry_id:
                 try:
+                    entry = TimeEntry.objects.get(id=entry_id)
+                    
+                    # Store old values for logging
+                    old_hours = entry.hours
+
                     # Update existing entry
                     entry = TimeEntry.objects.get(id=entry_id)
                     entry.description = entry_data.get("description", "")
@@ -211,7 +218,7 @@ def autosave_timesheet_view(request):
                     rate_type = entry_data.get("rate_type", RateType.ORDINARY.value)
                     entry.wage_rate_multiplier = RateType(rate_type).multiplier
                     entry.save()
-                    logger.debug(f"Successfully updated TimeEntry ID: {entry.id}")
+                    
                 except TimeEntry.DoesNotExist:
                     logger.error(f"TimeEntry with ID {entry_id} not found")
                     return JsonResponse({"error": f"TimeEntry with ID {entry_id} not found"}, status=404)
@@ -221,24 +228,28 @@ def autosave_timesheet_view(request):
                 job = Job.objects.get(id=job_id)
                 job_pricing = job.latest_reality_pricing
                 staff = Staff.objects.get(id=entry_data.get("staff_id"))
+
+                date_str = entry_data.get("timesheet_date")
+                target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
                 
                 wage_rate_multiplier = RateType(entry_data["rate_type"]).multiplier
                 wage_rate = staff.wage_rate  # From the staff member
-                # charge_out_rate = entry_data["job_data"]["charge_out_rate"]
+                charge_out_rate = entry_data["job_data"]["charge_out_rate"]
 
                 entry = TimeEntry.objects.create(
                     job_pricing=job_pricing,
                     staff_id=entry_data.get("staff_id"),
-                    date=entry_data.get("timesheet_date"),
+                    date=target_date,
                     description=entry_data.get("description", ""),
                     hours=hours,
                     is_billable=entry_data.get("is_billable", True),
                     note=entry_data.get("notes", ""),
                     wage_rate_multiplier=wage_rate_multiplier,
                     wage_rate=wage_rate,
-                    # charge_out_rate=charge_out_rate,
+                    charge_out_rate=charge_out_rate,
                 )
-                logger.debug(f"Created new TimeEntry ID: {entry.id}")
+                
+                entry.save()
 
         return JsonResponse({
             "success": True,

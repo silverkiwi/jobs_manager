@@ -1,4 +1,3 @@
-// Debounce function to reduce frequent server calls
 function debounce(func, wait) {
     let timeout;
     return function (...args) {
@@ -21,24 +20,24 @@ function collectGridData() {
 
     grid.forEachNode(node => {
         console.log('Processing node:', node);
-        // First check if node and node.data exist
         if (!node || !node.data) {
             console.log('Skipping invalid node');
             return;
         }
 
-        const rowData = node.data;  // Get data from the node
-        console.log('Row data:', rowData);
-
+        const rowData = node.data; 
         if (rowData.job_number && (rowData.hours > 0 || (rowData.description && rowData.description.trim() !== ''))) {          // It's fetching the data correctly
             const entry = {
                 id: rowData.id,
+                staff_id: rowData.staff_id,
                 job_number: rowData.job_number,
                 description: rowData.description,
                 hours: rowData.hours,
                 mins_per_item: rowData.mins_per_item,
                 items: rowData.items,
                 wage_amount: rowData.wage_amount,
+                charge_out_rate: 1,
+                timesheet_date: window.timesheet_data.timesheet_date,
                 bill_amount: rowData.bill_amount,
                 date: rowData.date,
                 job_data: rowData.job_data,
@@ -46,11 +45,7 @@ function collectGridData() {
                 notes: rowData.notes || '',
                 rate_type: rowData.rate_type || 'ORDINARY'
             };
-            console.log('Hours: ', rowData.hours);                                                                               // It shows the changed hours correctly too. Why isn't it saving the hours correctly?
-            console.log('Adding valid row:', entry);
             gridData.push(entry);
-        } else {
-            console.log('Skipping dummy or invalid row:', rowData);
         }
     });
 
@@ -58,7 +53,6 @@ function collectGridData() {
     return gridData;
 }
 
-// Autosave function
 function autosaveData() {
     const collectedData = collectGridData();
     if (!collectedData.length) {

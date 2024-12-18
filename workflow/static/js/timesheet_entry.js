@@ -275,6 +275,8 @@ const gridOptions = {
                 if (rowCount > 1) {  // Only allow delete if we have more than one row
                     params.api.applyTransaction({ remove: [params.node.data] });
                 }
+                console.log('Row deleted, triggering autosave');
+                debouncedAutosave(); 
             }
         }
     ],
@@ -285,6 +287,8 @@ const gridOptions = {
         filter: false
     },
     onCellValueChanged: (params) => {
+        const isUserEdit = params.source === 'edit';
+
         console.log('onCellValueChanged triggered:', params);
         // If job number changes, update job name, client, and job_data
         if (params.column?.colId === 'job_number') {
@@ -314,18 +318,34 @@ const gridOptions = {
                 columns: ['wage_amount', 'bill_amount']
             });
         }
-        console.log('Triggering autosave after cell value change.');
-        debouncedAutosave();
+        console.log(isUserEdit);
+        if (isUserEdit) {
+            debouncedAutosave();
+        }
     },
     // Add new row when Enter is pressed on last row
     onCellKeyDown: (params) => {
         if (params.event.key === 'Enter') {
             const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
             if (isLastRow) {
-                params.api.applyTransaction({ add: [createNewRow()] }); // Use centralized function
+                const currentRowData = params.node.data;
+                
+                const shouldSave = Boolean(
+                    currentRowData.job_number && 
+                    (currentRowData.hours > 0 || 
+                     (currentRowData.description && currentRowData.description.trim() !== ''))
+                );
+    
+                params.api.applyTransaction({ add: [createNewRow()] });
+                
                 // Focus the first editable cell of the newly added row
                 const newRowIndex = params.api.getDisplayedRowCount() - 1;
                 params.api.setFocusedCell(newRowIndex, 'job_number');
+    
+                // Trigger autosave if necessary
+                if (shouldSave) {
+                    debouncedAutosave();
+                }
             }
         }
     }
