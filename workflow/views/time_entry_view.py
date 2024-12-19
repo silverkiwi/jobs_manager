@@ -71,6 +71,7 @@ class TimesheetEntryView(TemplateView):
                 ),  # Implicitly assumes one item, which is correct for reality
                 "rate_multiplier": float(entry.wage_rate_multiplier),
                 "is_billable": entry.is_billable,
+                "notes": entry.note or "",
                 "timesheet_date": target_date.strftime("%Y-%m-%d"),
                 "staff_id": staff_member.id,
             }
@@ -209,19 +210,27 @@ def autosave_timesheet_view(request):
         updated_entries = []
         for entry_data in time_entries:
             entry_id = entry_data.get("id")
-            logger.debug(f"Processing entry with ID: {entry_id}")
             
             try:
                 hours = Decimal(str(entry_data.get("hours", 0)))
             except (TypeError, ValueError) as e:
                 return JsonResponse({"error": f"Invalid hours value: {str(e)}"}, status=400)
 
+            try:
+                timesheet_date = entry_data.get("timesheet_date", None)
+                if not timesheet_date:
+                    logger.error("Missing timesheet_date in entry data")
+                    continue  # Ignore this entry and continue with the next one
+
+                target_date = datetime.strptime(timesheet_date, "%Y-%m-%d").date()
+            except (ValueError, TypeError) as e:
+                logger.error(f"Invalid timesheet_date format: {entry_data.get('timesheet_date')}")
+                continue  # Ignore this entry and continue with the next one
+
             if entry_id:
                 try:
+                    logger.debug(f"Processing entry with ID: {entry_id}")
                     entry = TimeEntry.objects.get(id=entry_id)
-                    
-                    # Store old values for logging
-                    old_hours = entry.hours
 
                     # Update existing entry
                     entry = TimeEntry.objects.get(id=entry_id)
@@ -237,8 +246,24 @@ def autosave_timesheet_view(request):
                     logger.error(f"TimeEntry with ID {entry_id} not found")
                     return JsonResponse({"error": f"TimeEntry with ID {entry_id} not found"}, status=404)
             else:
-                # Create new entry - need to get job_pricing
+                # Verify if there's already a registry with same data
                 job_id = entry_data.get("job_data", {}).get("id")
+                description = entry_data.get("description", "").strip()
+                hours = Decimal(str(entry_data.get("hours", 0)))
+
+                existing_entry = TimeEntry.objects.filter(
+                    job_pricing__job_id=job_id,
+                    staff_id=entry_data.get("staff_id"),
+                    date=target_date,
+                    description=description,
+                    hours=hours
+                ).first()
+
+                if existing_entry:
+                    logger.info(f"Entrada duplicada detectada: {existing_entry.id}")
+                    continue  # Ignore duplicated entry
+
+                # Create new entry - need to get job_pricing
                 job = Job.objects.get(id=job_id)
                 job_pricing = job.latest_reality_pricing
                 staff = Staff.objects.get(id=entry_data.get("staff_id"))
@@ -254,7 +279,7 @@ def autosave_timesheet_view(request):
                     job_pricing=job_pricing,
                     staff_id=entry_data.get("staff_id"),
                     date=target_date,
-                    description=entry_data.get("description", ""),
+                    description=description,
                     hours=hours,
                     is_billable=entry_data.get("is_billable", True),
                     note=entry_data.get("notes", ""),
