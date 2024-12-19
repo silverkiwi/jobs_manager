@@ -353,8 +353,9 @@ const gridOptions = {
                 
                 const shouldSave = Boolean(
                     currentRowData.job_number && 
-                    (currentRowData.hours > 0 || 
-                     (currentRowData.description && currentRowData.description.trim() !== ''))
+                    currentRowData.hours > 0 && 
+                    ((currentRowData.description && currentRowData.description.trim() !== '') ||
+                     (currentRowData.notes && currentRowData.notes.trim() !== ''))
                 );
     
                 params.api.applyTransaction({ add: [createNewRow()] });
