@@ -340,7 +340,15 @@ const gridOptions = {
             });
         }
         console.log('Is user edit? -> ', isUserEdit);
-        if (isUserEdit) {
+
+        const isValidRow = rowData.job_number && rowData.hours > 0 && (rowData.description.trim() !== '' || rowData.notes.trim() !== '');
+
+        if (!isValidRow) {
+            console.log('Insufficient data to save, ignoring autosave');
+            return;
+        }
+
+        if (isUserEdit && isValidRow) {
             debouncedAutosave();
         }
     },

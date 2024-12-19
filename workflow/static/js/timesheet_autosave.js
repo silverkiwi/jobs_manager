@@ -66,6 +66,8 @@ function collectGridData() {
 function autosaveData() {
     const collectedData = collectGridData();
     
+    collectedData.time_entries = collectedData.time_entries.filter(entry => entry.id || entry.job_number);
+
     // Changed validation - proceed if either we have entries to update or delete
     if (collectedData.time_entries.length === 0 && collectedData.deleted_entries.length === 0) {
         console.log("No data to save - no time entries or deletions");
