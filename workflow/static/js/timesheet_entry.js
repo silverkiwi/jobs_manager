@@ -339,7 +339,8 @@ const gridOptions = {
                 columns: ['wage_amount', 'bill_amount']
             });
         }
-        console.log('Is user edit? -> ', isUserEdit);
+        
+        const rowData = params.node.data;
 
         const isValidRow = rowData.job_number && rowData.hours > 0 && (rowData.description.trim() !== '' || rowData.notes.trim() !== '');
 
@@ -349,6 +350,7 @@ const gridOptions = {
         }
 
         if (isUserEdit && isValidRow) {
+            console.log('Is user edit? -> ', isUserEdit, 'Valid row? -> ', isValidRow);
             debouncedAutosave();
         }
     },
