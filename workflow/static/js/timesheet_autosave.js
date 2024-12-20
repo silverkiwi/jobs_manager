@@ -110,6 +110,9 @@ function saveDataToServer(collectedData) {
         return response.json();
     })
     .then(data => {
+        if (data.messages) {
+            renderMessages(data.messages); // Render dynamic messages
+        }
         console.log('Autosave successful:', data);
     })
     .catch(error => {

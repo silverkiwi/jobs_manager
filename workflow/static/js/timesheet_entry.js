@@ -472,6 +472,9 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             data: form.serialize(), // form.serialize() will include the CSRF token automatically
             success: function (response) {
+                if (response.messages) {
+                    renderMessages(response.messages); // Render dynamic messages
+                }
                 if (response.success) {
                     window.grid.applyTransaction({ add: [response.entry] });
                     modal.modal('hide');
@@ -483,7 +486,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     error: error,
                     response: xhr.responseText
                 });
-                // Handle form errors here
+
+                const response = JSON.parse(xhr.responseText);
+                if (response.messages) {
+                    renderMessages(response.messages); // Renderizar mensagens de erro
+                } else {
+                    renderMessages([{ level: 'error', message: 'An unexpected error occurred.' }]);
+                }
             }
         });
     });

@@ -37,6 +37,9 @@
         </div>
     </div>
 
+    <!-- Messages will be loaded here -->
+    <div class="alert-container"></div>
+
     <div class="header-actions d-flex justify-content-between mt-3 mb-5">
         <a href="{% url 'timesheet_entry' date=timesheet_date staff_id=prev_staff.id %}" class="btn btn-primary">
             {{ prev_staff.get_display_full_name }} <- Previous staff </a>

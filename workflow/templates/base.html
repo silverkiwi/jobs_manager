@@ -61,10 +61,14 @@
     </div>
 </nav>
 
+    
+
     <div class="container mt-4">
         {% block content %}{% endblock %}
     </div>
     <script src="{% static 'js/time_conversion.js' %}"></script>
+    <script src="{% static 'js/messages.js' %}"></script>
+
 
     <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
     {% block extra_js %}{% endblock %}
