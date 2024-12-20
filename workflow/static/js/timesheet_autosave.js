@@ -19,9 +19,7 @@ function debounce(func, wait) {
 function collectGridData() {
     console.log('collectGridData() called');
     const gridData = [];
-
     const grid = window.grid;
-    console.log('Grid instance:', grid);
 
     if (!grid) {
         console.error('Could not get grid instance');
@@ -29,34 +27,58 @@ function collectGridData() {
     }
 
     grid.forEachNode(node => {
-        console.log('Processing node:', node);
         if (!node || !node.data) {
             console.log('Skipping invalid node');
             return;
         }
 
+        console.log('Processing node:', node);
+
         const rowData = node.data; 
-        if (rowData.job_number && (rowData.hours > 0 || (rowData.description && rowData.description.trim() !== ''))) {          // It's fetching the data correctly
-            const entry = {
-                id: rowData.id,
-                staff_id: rowData.staff_id,
-                job_number: rowData.job_number,
-                description: rowData.description,
-                hours: rowData.hours,
-                mins_per_item: rowData.mins_per_item,
-                items: rowData.items,
-                wage_amount: rowData.wage_amount,
-                charge_out_rate: rowData.job_data.charge_out_rate,
-                timesheet_date: window.timesheet_data.timesheet_date,
-                bill_amount: rowData.bill_amount,
-                date: rowData.date,
-                job_data: rowData.job_data,
-                is_billable: rowData.is_billable || true,
-                notes: rowData.notes || '',
-                rate_type: rowData.rate_type || 'ORDINARY'
-            };
-            gridData.push(entry);
+
+        const isValidRow = rowData.hours > 0 &&
+            (rowData.description?.trim() !== '' || rowData.notes?.trim() !== '');
+
+        if (!isValidRow) {
+            console.log('Skipping invalid row:', rowData);
+            return;
         }
+
+        const previousRowData = rowStateTracker[node.id] || {};
+        const rowChanged = hasRowChanged(previousRowData, rowData);
+
+        if (!rowChanged) {
+            console.log('Skipping unchanged row:', rowData);
+            return;
+        }
+
+        if (rowData.id == null) {
+            rowData.id = 'tempId'; 
+        }
+    
+        const entry = {
+            id: rowData.id,
+            staff_id: rowData.staff_id,
+            job_number: rowData.job_number,
+            description: rowData.description,
+            hours: rowData.hours,
+            mins_per_item: rowData.mins_per_item,
+            items: rowData.items,
+            wage_amount: rowData.wage_amount,
+            charge_out_rate: rowData.job_data.charge_out_rate,
+            timesheet_date: window.timesheet_data.timesheet_date,
+            bill_amount: rowData.bill_amount,
+            date: rowData.date,
+            job_data: rowData.job_data,
+            is_billable: rowData.is_billable || true,
+            notes: rowData.notes || '',
+            rate_type: rowData.rate_type || 'ORDINARY'
+        };
+
+        rowStateTracker[node.id] = { ...rowData };
+        console.log('Updated row state:', rowStateTracker[node.id]);
+
+        gridData.push(entry);
     });
 
     console.log('Final collected data:', gridData);
@@ -113,6 +135,8 @@ function saveDataToServer(collectedData) {
         if (data.messages) {
             renderMessages(data.messages); // Render dynamic messages
         }
+
+        
         console.log('Autosave successful:', data);
     })
     .catch(error => {

@@ -155,18 +155,18 @@ class TimesheetEntryView(TemplateView):
                 "messages": message_list}, 
                 status=403)
 
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':                                           # Handle AJAX requests for modal form
-            if request.POST.get('action') == 'load_form':
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":                                           # Handle AJAX requests for modal form
+            if request.POST.get("action") == "load_form":
                 # Return the form HTML for the modal
                 form = TimeEntryForm(staff_member=staff_member)                                                   # Create form instance with staff member
                 form_html = render_to_string(
-                    'time_entries/timesheet_form.html',                                                           # Template for the form
-                    {'form': form, 'staff_member': staff_member, 'target_date': target_date},
+                    "time_entries/timesheet_form.html",                                                           # Template for the form
+                    {"form": form, "staff_member": staff_member, "target_date": target_date},
                     request=request
                 )
-                return JsonResponse({'form_html': form_html})                                                     # Return form HTML for modal
+                return JsonResponse({"form_html": form_html})                                                     # Return form HTML for modal
 
-            elif request.POST.get('action') == 'submit_form':
+            elif request.POST.get("action") == "submit_form":
                 # Handle form submission
                 form = TimeEntryForm(request.POST, staff_member=staff_member)                                     # Create form with POST data
                 if form.is_valid():
@@ -229,31 +229,36 @@ def autosave_timesheet_view(request):
         if deleted_entries:
             for entry_id in deleted_entries:
                 logger.debug(f"Deleting entry with ID: {entry_id}")
+
                 try:
                     entry = TimeEntry.objects.get(id=entry_id)
-                    entry.delete()
                     messages.success(request, f"Timesheet deleted successfully")
+                    entry.delete()
+                    logger.debug(f"Entry with ID {entry_id} deleted successfully")
+                    return JsonResponse({
+                        "success": True,
+                        "messages": extract_messages(request)
+                    }, status=200)
+
                 except TimeEntry.DoesNotExist:
                     logger.error(f"TimeEntry with ID {entry_id} not found for deletion")
-                    messages.error(request, f"TimeEntry with ID {entry_id} not found for deletion")
-                    message_list = extract_messages(request)
-                    return JsonResponse({
-                        "error": f"TimeEntry with ID {entry_id} not found", 
-                        "messages": message_list
-                        }, status=404)
 
-        if not time_entries:
-            logger.error("No time entries found in request")
-            messages.error(request, "No time entries found in request")
-            message_list = extract_messages(request)
+        if not time_entries and not deleted_entries:
+            logger.error("No valid entries to process")
+            messages.info(request, "No changes to save.")
             return JsonResponse({
                 "error": "No time entries provided", 
-                "messages": message_list
+                "messages": extract_messages(request)
                 }, status=400)
 
         updated_entries = []
         for entry_data in time_entries:
+            if not entry_data.get("job_number") or not entry_data.get("hours"):
+                logger.debug("Skipping incomplete entry: ", entry_data)
+                continue
+
             entry_id = entry_data.get("id")
+            logger.debug(f'Entry id: {entry_id}')
             
             try:
                 hours = Decimal(str(entry_data.get("hours", 0)))
@@ -273,10 +278,10 @@ def autosave_timesheet_view(request):
 
                 target_date = datetime.strptime(timesheet_date, "%Y-%m-%d").date()
             except (ValueError, TypeError) as e:
-                logger.error(f"Invalid timesheet_date format: {entry_data.get('timesheet_date')}")
+                logger.error(f"Invalid timesheet_date format: {entry_data.get("timesheet_date")}")
                 continue  # Ignore this entry and continue with the next one
 
-            if entry_id:
+            if entry_id and entry_id != 'tempId':
                 try:
                     logger.debug(f"Processing entry with ID: {entry_id}")
                     entry = TimeEntry.objects.get(id=entry_id)
@@ -289,18 +294,14 @@ def autosave_timesheet_view(request):
                     entry.note = entry_data.get("notes", "")
                     rate_type = entry_data.get("rate_type", RateType.ORDINARY.value)
                     entry.wage_rate_multiplier = RateType(rate_type).multiplier
-                    entry.save()
-                    messages.success(request, "Timesheet saved successfully.")
 
-                    
+                    entry.save()
+                    messages.success(request, "Existing timesheet saved successfully.")
+                    logger.debug("Existing timesheet saved successfully")
+
                 except TimeEntry.DoesNotExist:
                     logger.error(f"TimeEntry with ID {entry_id} not found")
-                    messages.error(request, f"TimeEntry with ID {entry_id} not found")
-                    message_list = extract_messages(request)
-                    return JsonResponse({
-                        "error": f"TimeEntry with ID {entry_id} not found", 
-                        "messages": message_list
-                        }, status=404)
+
             else:
                 # Verify if there's already a registry with same data
                 job_id = entry_data.get("job_data", {}).get("id")
@@ -344,8 +345,15 @@ def autosave_timesheet_view(request):
                     charge_out_rate=charge_out_rate,
                 )
                 
+                updated_entries.append(entry.id)
                 entry.save()
-                messages.success(request, "Timesheet saved successfully.")
+
+                messages.success(request, "Timesheet created successfully.")
+                logger.debug("Timesheet created successfully")
+                return JsonResponse({
+                    "success": True,
+                    "messages": extract_messages(request)
+                }, status=200)
 
         message_list = extract_messages(request)
         return JsonResponse({
@@ -362,6 +370,7 @@ def autosave_timesheet_view(request):
             "error": "Invalid JSON",
             "messages": message_list
             }, status=400)
+
     except Exception as e:
         messages.error(request, f"Unexpected error: {str(e)}")
         message_list = extract_messages(request)
