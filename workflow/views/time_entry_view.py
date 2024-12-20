@@ -258,7 +258,6 @@ def autosave_timesheet_view(request):
                 continue
 
             entry_id = entry_data.get("id")
-            logger.debug(f'Entry id: {entry_id}')
             
             try:
                 hours = Decimal(str(entry_data.get("hours", 0)))
@@ -352,7 +351,8 @@ def autosave_timesheet_view(request):
                 logger.debug("Timesheet created successfully")
                 return JsonResponse({
                     "success": True,
-                    "messages": extract_messages(request)
+                    "messages": extract_messages(request),
+                    "entry_id": entry.id
                 }, status=200)
 
         message_list = extract_messages(request)

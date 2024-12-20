@@ -283,10 +283,14 @@ const gridOptions = {
             cellRenderer: deleteIconCellRenderer,
             onCellClicked: (params) => {
                 const rowCount = params.api.getDisplayedRowCount();
-                const id = params.data.id;
+                console.log('node id: ', params.node.data.id);
+
+                if (params.node.data.id == null) {
+                    params.node.data.id = 'tempId';
+                }
 
                 console.log('Delete clicked for row:', {
-                    id: id,
+                    id: params.node.data.id,
                     rowCount: rowCount,
                     data: params.node.data
                 });
@@ -294,9 +298,8 @@ const gridOptions = {
                 // Only proceed if we have more than one row
                 if (rowCount > 1) {
                     // Mark for deletion first if it has an ID
-                    if (id) {
-                        console.log('Marking entry for deletion:', id);
-                        params.node.data.id = id;
+                    if (params.node.data.id) {
+                        console.log('Marking entry for deletion:', params.node.data.id);
                         markEntryAsDeleted(params.node.data.id);
                     }
 
@@ -305,7 +308,7 @@ const gridOptions = {
                         remove: [params.node.data]
                     });
 
-                    delete rowStateTracker[params.node.id];
+                    delete rowStateTracker[params.node.data.id];
                     localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
                     console.log('Row removed from grid, triggering autosave');
                     debouncedAutosave();

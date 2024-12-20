@@ -51,11 +51,11 @@ function collectGridData() {
             console.log('Skipping unchanged row:', rowData);
             return;
         }
-
-        if (rowData.id == null) {
-            rowData.id = 'tempId'; 
-        }
     
+        if (rowData.id == null) {
+            rowData.id = 'tempId';
+        }
+
         const entry = {
             id: rowData.id,
             staff_id: rowData.staff_id,
@@ -132,10 +132,19 @@ function saveDataToServer(collectedData) {
         return response.json();
     })
     .then(data => {
-        if (data.messages) {
-            renderMessages(data.messages); // Render dynamic messages
+        if (data.entry_id) {
+            grid.forEachNode(node => {
+                console.log('node: ', node.data.id)
+                if (node.data.id === 'tempId') {
+                    node.data.id = data.entry_id;
+                    console.log('Updated node id:', node.data.id);
+                }
+            });
+
+            console.log('data.entry_id: ', data.entry_id);
         }
 
+        renderMessages(data.messages || []);
         
         console.log('Autosave successful:', data);
     })
