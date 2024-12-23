@@ -32,6 +32,7 @@ class TimesheetOverviewView(TemplateView):
         staff_data = []
         all_staff = Staff.objects.all()
         for staff_member in all_staff:
+            # App users (Django admins, etc.) are not workers in the factory and so should not be having timesheet entries
             if staff_member.is_staff is True:
                 continue
             staff_hours = []
@@ -144,6 +145,7 @@ class TimesheetDailyView(TemplateView):
 
         staff_data = []
         for staff_member in Staff.objects.all():
+            # See TimesheetOverviewView, lines under "all_staff = ..." 
             if staff_member.is_staff is True:
                 continue
             scheduled_hours = staff_member.get_scheduled_hours(target_date)

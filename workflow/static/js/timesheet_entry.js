@@ -142,11 +142,12 @@ function calculateAmounts(data) {
     const hours = data.hours || 0;
     const minutes = hours * 60;
 
+    console.log(data.rate_type);
     const rateMultiplier = {
         'Unpaid': 0.0,
         'Ord': 1.0,
-        '1.5': 1.5,
-        '2.0': 2.0
+        'Ovt': 1.5,
+        'Dt': 2.0
     }[data.rate_type] || 1.0;
 
     // Use staff wage rate from timesheet_data
@@ -167,6 +168,7 @@ function calculateAmounts(data) {
 }
 
 function hasRowChanged(previousRowData, currentRowData) {
+    // Compares the row states converting them to JSON
     const hasRowChanged = JSON.stringify(previousRowData) !== JSON.stringify(currentRowData);
     if (!hasRowChanged) {
         console.log('No changes detected, ignoring autosave');
@@ -343,10 +345,6 @@ const gridOptions = {
         if (currentRowData.id == null) {
             currentRowData.id = 'tempId';
         }
-
-        rowStateTracker[params.node.id] = { ...currentRowData };
-        localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
-        console.log('Row state updated:', rowStateTracker[params.node.id]);
 
         const isUserEdit = params.source === 'edit';
 
@@ -534,11 +532,35 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             data: form.serialize(), // form.serialize() will include the CSRF token automatically
             success: function (response) {
+
                 if (response.messages) {
                     renderMessages(response.messages); // Render dynamic messages
                 }
                 if (response.success) {
-                    window.grid.applyTransaction({ add: [response.entry] });
+                    // Construct complete entry object with job data
+                    const gridEntry = {
+                        ...response.entry,
+                        job_number: response.job.job_number,
+                        job_name: response.job.name, 
+                        client: response.job.client_name,
+                        job_data: response.job,
+                        wage_amount: 0, // Will be calculated by calculateAmounts()
+                        bill_amount: 0  // Will be calculated by calculateAmounts()
+                    };
+            
+                    // Add new entry to grid
+                    window.grid.applyTransaction({ add: [gridEntry] });
+            
+                    // Calculate amounts for the new row
+                    const lastRowNode = window.grid.getDisplayedRowAtIndex(window.grid.getDisplayedRowCount() - 1);
+                    if (lastRowNode) {
+                        calculateAmounts(lastRowNode.data);
+                        window.grid.refreshCells({
+                            rowNodes: [lastRowNode],
+                            columns: ['wage_amount', 'bill_amount']
+                        });
+                    }
+            
                     modal.modal('hide');
                 }
             },

@@ -1,5 +1,10 @@
 let deletedEntries = [];
 
+/** 
+ * Marks an entry as deleted for synchronization purposes.
+ * This handles AG Grid's deleted rows separately from the form, 
+ * ensuring the backend correctly processes grid-level changes.
+ */
 function markEntryAsDeleted(entryId) {
     if (entryId) {
         console.log('Adding entry to deletion list:', entryId);
@@ -34,7 +39,7 @@ function collectGridData() {
 
         console.log('Processing node:', node);
 
-        const rowData = node.data; 
+        const rowData = node.data;
 
         const isValidRow = rowData.hours > 0 &&
             (rowData.description?.trim() !== '' || rowData.notes?.trim() !== '');
@@ -160,12 +165,3 @@ function getCsrfToken() {
 
 // Debounced autosave function
 const debouncedAutosave = debounce(autosaveData, 1000);
-
-// Removed.  We debounce explicitly from the grid
-// // Attach autosave to grid events
-// document.addEventListener('DOMContentLoaded', () => {
-//     window.gridOptions.api.addEventListener('cellValueChanged', () => {
-//         console.log('Grid value changed, triggering debounced autosave.');
-//         debouncedAutosave();
-//     });
-// });

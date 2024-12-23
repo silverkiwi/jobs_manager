@@ -16,7 +16,7 @@ from django.contrib import messages
 from workflow.enums import RateType
 from workflow.models import Job, Staff, TimeEntry
 from workflow.forms import TimeEntryForm
-from workflow.utils import extract_messages
+from workflow.utils import extract_messages, get_rate_type_label
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 class TimesheetEntryView(TemplateView):
     template_name = "time_entries/timesheet_entry.html" 
 
+    # Excluding app users ID's to avoid them being loaded in timesheet views because they do not have entries 
     EXCLUDED_STAFF_IDS = [
         "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
         "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402"
@@ -140,7 +141,20 @@ class TimesheetEntryView(TemplateView):
         try:
             staff_member = Staff.objects.get(id=staff_id)
         except Staff.DoesNotExist:
-            return JsonResponse({"error": "Staff member not found"}, status=404)
+            messages.error(request, "Staff member not found.")
+            message_list = extract_messages(request)
+            return JsonResponse({
+                "error": "Staff member not found",
+                "messages": message_list
+                }, status=404)
+
+        if staff_id in self.EXCLUDED_STAFF_IDS:
+            messages.error(request, "Access denied for this staff member.")
+            message_list = extract_messages(request)
+            return JsonResponse({
+                "error": "Access denied for this staff member",
+                "messages": message_list
+                }, status=403)
 
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
             if request.POST.get("action") == "load_form":
@@ -163,18 +177,54 @@ class TimesheetEntryView(TemplateView):
                     time_entry.staff = staff_member
                     time_entry.date = target_date
                     time_entry.save()
+
                     messages.success(request, "Timesheet saved successfully")
                     message_list = extract_messages(request)
+
+                    
+                   # Return the new entry data for AG Grid
+                    entry_data = {
+                        "id": str(time_entry.id),
+                        "description": time_entry.description or "",
+                        "hours": float(time_entry.hours),
+                        "rate_multiplier": float(time_entry.wage_rate_multiplier),
+                        "rate_type": get_rate_type_label(time_entry.wage_rate_multiplier),
+                        "is_billable": time_entry.is_billable,
+                        "notes": time_entry.note or "",
+                        "timesheet_date": target_date.strftime("%Y-%m-%d"),
+                        "staff_id": staff_member.id,
+                    }
+                    logger.debug("Rate multiplier: %s", entry_data["rate_type"])
+                    
+                    # Add job data to entry response
+                    job = time_entry.job_pricing.job
+                    job_data = {
+                        "id": str(job.id),
+                        "job_number": job.job_number, 
+                        "name": job.name,
+                        "job_display_name": str(job),
+                        "client_name": job.client.name if job.client else "NO CLIENT!?",
+                        "charge_out_rate": float(job.charge_out_rate),
+                    }
+
                     return JsonResponse({    
                         "success": True, 
-                        "messages": message_list
-                        }, status=200)
-                # Log form errors and POST data
-                logger.debug("Form errors: %s", form.errors.as_json())
-                logger.debug("POST Data: %s", dict(request.POST))
-                messages.error(request, "Invalid form data.")
+                        "entry": entry_data,
+                        "job": job_data,
+                        "messages": message_list,
+                    }, status=200)                    
+
+                messages.error(
+                    request, 
+                    "Please correct the following errors in your time entry submission: " + 
+                    ", ".join([f"{field}: {error[0]}" for field, error in form.errors.items()])
+                )
                 message_list = extract_messages(request)
-                return JsonResponse({"success": False, "messages": message_list}, status=400)
+                return JsonResponse({
+                    "success": False, 
+                    "errors": form.errors, 
+                    "messages": message_list
+                    }, status=400)                                          
 
         # Handle non-AJAX POST requests
         messages.error(request, "Invalid request.")

@@ -2,6 +2,7 @@
 import logging
 
 from django import forms
+from django.db.models import Q
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
 from workflow.models import (
@@ -64,10 +65,11 @@ class AdjustmentEntryForm(forms.ModelForm):
 
 class TimeEntryForm(forms.ModelForm):
     class Meta:
+        # Rate types to match with parsed types in timesheet_entry.js
         RATE_TYPE_CHOICES = [
-            (1.0, "Ordinary"),
-            (1.5, "Overtime"),
-            (2.0, "Double Time"),
+            (1.0, "Ord"),
+            (1.5, "Ovt"),
+            (2.0, "Dt"),
             (0.0, "Unpaid"),
         ]
 
@@ -106,6 +108,9 @@ class TimeEntryForm(forms.ModelForm):
         self.fields["date"].initial = timesheet_date
         self.fields["date"].widget = forms.HiddenInput()
 
+        self.fields["job_pricing"].queryset = JobPricing.objects.select_related('job').filter(
+            job__status__in=["quoting", "approved", "in_progress", "special"]
+        ).order_by("job__name")
         self.fields["job_pricing"].required = True
 
         self.fields["wage_rate"].initial = staff_member.wage_rate
@@ -113,7 +118,7 @@ class TimeEntryForm(forms.ModelForm):
 
         self.fields["wage_rate_multiplier"].initial = 1.0
         self.fields["wage_rate_multiplier"].help_text = (
-            "Multiplier for hourly rate. Ordinary is 1.0, Overtime is 1.5, Double Time and Unpaid are self-descriptive"
+            "Multiplier for hourly rate. Ord (1.0), Ovt (1.5), Dt (2.0), Unpaid (0.0)"
         )
 
         self.fields["charge_out_rate"].initial = 1.0
@@ -121,14 +126,12 @@ class TimeEntryForm(forms.ModelForm):
     
     def save(self, commit=True):
         """
-        Set charge_out_rate based on job_pricing before saving
+        Set charge_out_rate based on job_pricing before saving.
+        Charge-out rates are managed via JobPricing and CompanyDefaults.
+        Staff wage rates are set above for consistency, but charge-out rates depend on the job's context, as defined in JobPricing.
         """
         instance = super().save(commit=False)
         job_pricing = self.cleaned_data.get("job_pricing")
-        logger.debug(f"Job pricing received: {job_pricing}")
-        logger.debug(f"Job Pricing: {job_pricing}")
-        logger.debug(f"Related Job: {job_pricing.job}")
-        logger.debug(f"Charge Out Rate: {job_pricing.job.charge_out_rate}")
 
         if job_pricing:
             instance.charge_out_rate = job_pricing.job.charge_out_rate
