@@ -36,7 +36,6 @@ class TimesheetEntryView(TemplateView):
         except ValueError:
             raise ValueError("Invalid date format. Expected YYYY-MM-DD.")
 
-        # Check if staff_id is in excluded list
         if staff_id in self.EXCLUDED_STAFF_IDS:
             raise PermissionError("Access denied for this staff member")
 
@@ -56,7 +55,6 @@ class TimesheetEntryView(TemplateView):
             date=target_date
         )
 
-        # Get existing time entries for this staff member on this date
         time_entries = TimeEntry.objects.filter(
             date=target_date, staff=staff_member
         ).select_related("job_pricing__latest_reality_for_job__client")
@@ -158,7 +156,6 @@ class TimesheetEntryView(TemplateView):
 
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
             if request.POST.get("action") == "load_form":
-                # Pass pre-populated data to the form
                 form = TimeEntryForm(
                     staff_member=staff_member, 
                     timesheet_date=target_date
@@ -182,7 +179,7 @@ class TimesheetEntryView(TemplateView):
                     message_list = extract_messages(request)
 
                     
-                   # Return the new entry data for AG Grid
+                   # Return the new entry data for AG Grid with job data so the entry will be fully loaded by the grid
                     entry_data = {
                         "id": str(time_entry.id),
                         "description": time_entry.description or "",
@@ -196,7 +193,6 @@ class TimesheetEntryView(TemplateView):
                     }
                     logger.debug("Rate multiplier: %s", entry_data["rate_type"])
                     
-                    # Add job data to entry response
                     job = time_entry.job_pricing.job
                     job_data = {
                         "id": str(job.id),
@@ -293,12 +289,12 @@ def autosave_timesheet_view(request):
                 timesheet_date = entry_data.get("timesheet_date", None)
                 if not timesheet_date:
                     logger.error("Missing timesheet_date in entry data")
-                    continue  # Ignore this entry and continue with the next one
+                    continue  
 
                 target_date = datetime.strptime(timesheet_date, "%Y-%m-%d").date()
             except (ValueError, TypeError) as e:
                 logger.error(f"Invalid timesheet_date format: {entry_data.get("timesheet_date")}")
-                continue  # Ignore this entry and continue with the next one
+                continue  
 
             if entry_id and entry_id != 'tempId':
                 try:
@@ -322,7 +318,7 @@ def autosave_timesheet_view(request):
                     logger.error(f"TimeEntry with ID {entry_id} not found")
 
             else:
-                # Verify if there's already a registry with same data
+                # Verify if there's already a registry with same data to avoid creating multiple entries
                 job_id = entry_data.get("job_data", {}).get("id")
                 description = entry_data.get("description", "").strip()
                 hours = Decimal(str(entry_data.get("hours", 0)))
@@ -337,7 +333,7 @@ def autosave_timesheet_view(request):
 
                 if existing_entry:
                     logger.info(f"Found duplicated entry: {existing_entry.id}")
-                    continue  # Ignore duplicated entry
+                    continue 
 
                 # Create new entry - need to get job_pricing
                 job = Job.objects.get(id=job_id)
@@ -348,7 +344,7 @@ def autosave_timesheet_view(request):
                 target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
                 
                 wage_rate_multiplier = RateType(entry_data["rate_type"]).multiplier
-                wage_rate = staff.wage_rate  # From the staff member
+                wage_rate = staff.wage_rate 
                 charge_out_rate = entry_data["job_data"]["charge_out_rate"]
 
                 entry = TimeEntry.objects.create(

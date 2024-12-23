@@ -13,6 +13,23 @@ function markEntryAsDeleted(entryId) {
     }
 }
 
+/**
+ * Creates a debounced version of a function that delays its execution until after a period of inactivity.
+ * 
+ * @param {Function} func - The function to debounce
+ * @param {number} wait - The number of milliseconds to wait before executing the function
+ * @returns {Function} A debounced version of the input function
+ * 
+ * Purpose:
+ * - Prevents excessive function calls (e.g., during rapid user input or frequent events)
+ * - Useful for optimizing performance with autosave, search, or resize operations
+ * - Only executes the function after the specified delay has passed without new calls
+ * 
+ * Example Usage:
+ * const debouncedSave = debounce(saveFunction, 1000);
+ * // Will only save once, 1 second after the last call
+ */
+
 function debounce(func, wait) {
     let timeout;
     return function (...args) {
@@ -21,6 +38,21 @@ function debounce(func, wait) {
     };
 }
 
+/**
+ * Collects and processes data from an AG Grid instance for saving.
+ * 
+ * This function:
+ * - Iterates through all rows in the grid
+ * - Validates each row to ensure it has required data (hours > 0 and description/notes)
+ * - Checks if row data has changed from previous state (to avoid saving data unnecessarily)
+ * - Formats valid rows into entry objects with required fields
+ * - Tracks row state changes for future comparisons
+ * - Combines time entries with any deleted entries
+ * 
+ * @returns {Object} Object containing:
+ *   - time_entries: Array of valid grid row entries
+ *   - deleted_entries: Array of entry IDs marked for deletion
+ */
 function collectGridData() {
     console.log('collectGridData() called');
     const gridData = [];
@@ -90,6 +122,19 @@ function collectGridData() {
     return {time_entries: gridData, deleted_entries: deletedEntries};
 }
 
+/**
+ * Handles automatic saving of timesheet data to the server.
+ * 
+ * This function collects data from the grid, filters out invalid entries,
+ * and saves valid changes to the server. It only proceeds with saving if there 
+ * are either new/modified time entries or deleted entries to process.
+ * 
+ * Business Logic:
+ * - Only saves entries that have either an ID (existing entries) or a job number (new entries)
+ * - Skips saving if there are no valid entries to update and no entries to delete
+ * - Logs the number of entries being processed for debugging purposes
+ */
+
 function autosaveData() {
     const collectedData = collectGridData();
     
@@ -109,7 +154,29 @@ function autosaveData() {
     saveDataToServer(collectedData);
 }
 
-// Send data to the server
+/**
+ * Sends timesheet data to the server for automatic saving and handles the response.
+ * 
+ * @param {Object} collectedData - The timesheet data to be saved
+ * @param {Array} collectedData.time_entries - Array of time entries to save/update
+ * @param {Array} collectedData.deleted_entries - Array of entries to delete
+ * @returns {Promise} Resolves when save is complete
+ * 
+ * Business Logic:
+ * - Sends timesheet data to server via POST request
+ * - Updates temporary IDs with permanent ones from server
+ * - Clears deleted entries list after successful save
+ * - Displays any messages returned from the server
+ * - Includes security token (CSRF) for Django backend
+ * 
+ * Error Handling:
+ * - Logs detailed error information if save fails
+ * - Displays server-provided error messages when available
+ * - Maintains data consistency by only clearing deletions after successful save
+ * 
+ * Note: Requires an initialized grid variable and renderMessages function in scope
+ */
+
 function saveDataToServer(collectedData) {
     console.log('Autosaving timesheet data to /api/autosave-timesheet/...', {
         time_entries: collectedData.time_entries.length,

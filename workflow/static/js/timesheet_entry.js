@@ -1,3 +1,5 @@
+// - Used to track changes and compare previous vs current row states to avoid unnecessary/repeated saves
+// - Persisted to localStorage to maintain state between page refreshes
 const rowStateTracker = JSON.parse(localStorage.getItem('rowStateTracker')) || {};
 
 class ActiveJobCellEditor {
@@ -167,6 +169,23 @@ function calculateAmounts(data) {
     data.mins_per_item = minutes;
 }
 
+/**
+ * Determines if a row's data has been modified by comparing its previous and current states.
+ * 
+ * @param {Object} previousRowData - The original state of the row data
+ * @param {Object} currentRowData - The new state of the row data to compare against
+ * @returns {boolean} True if the row has changed, false if it remains the same
+ * 
+ * Purpose:
+ * - Prevents unnecessary autosaves when no actual changes have been made
+ * - Compares entire row states to catch all possible changes
+ * - Used as a validation step before triggering autosave operations
+ * 
+ * Note:
+ * The comparison is deep and includes all properties of the row data,
+ * ensuring that even nested changes are detected
+ */
+
 function hasRowChanged(previousRowData, currentRowData) {
     // Compares the row states converting them to JSON
     const hasRowChanged = JSON.stringify(previousRowData) !== JSON.stringify(currentRowData);
@@ -283,7 +302,34 @@ const gridOptions = {
             headerName: '',
             width: 50,
             cellRenderer: deleteIconCellRenderer,
-            onCellClicked: (params) => {
+            onCellClicked: 
+            /**
+             * Handles the deletion of a row when a cell is clicked in the grid.
+             * 
+             * @param {Object} params - The cell click event parameters from ag-Grid
+             * @param {Object} params.api - The grid API
+             * @param {Object} params.node - The row node that was clicked
+             * @param {Object} params.node.data - The data for the clicked row
+             * 
+             * Business Logic:
+             * - Prevents deletion of the last remaining row in the grid
+             * - Assigns temporary IDs to new rows that haven't been saved
+             * - Marks existing entries for deletion in the backend
+             * - Removes the row from the grid's display
+             * - Updates the row state tracking in localStorage
+             * - Triggers an autosave after deletion
+             * 
+             * Safety Features:
+             * - Maintains at least one row in the grid at all times
+             * - Preserves deletion history for backend synchronization
+             * - Handles both new (unsaved) and existing rows appropriately
+             * 
+             * Dependencies:
+             * - Requires markEntryAsDeleted function
+             * - Requires debouncedAutosave function
+             * - Requires rowStateTracker object
+             */
+            (params) => {
                 const rowCount = params.api.getDisplayedRowCount();
                 console.log('node id: ', params.node.data.id);
 
@@ -436,6 +482,25 @@ const gridOptions = {
 
 window.gridOptions = gridOptions;
 
+/**
+ * Retrieves the value of a specific cookie from the browser's cookies.
+ * 
+ * @param {string} name - The name of the cookie to retrieve
+ * @returns {string|null} The decoded value of the cookie if found, null otherwise
+ * 
+ * Purpose:
+ * - Commonly used to retrieve security tokens (like CSRF) from cookies
+ * - Handles URL-encoded cookie values automatically
+ * - Safely returns null if the cookie doesn't exist
+ * 
+ * Example Usage:
+ * const csrfToken = getCookie('csrftoken');
+ * 
+ * Note:
+ * - Searches through all browser cookies for an exact name match
+ * - Automatically decodes URI-encoded cookie values
+ * - Returns null if the cookie name is not found or cookies are disabled
+ */
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -486,13 +551,48 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    /**
+     * Manages the timesheet entry modal interactions and form submissions.
+     * 
+     * Modal Opening Handler:
+     * @listens click on #new-timesheet-btn
+     * @fires AJAX request to load the timesheet form
+     * 
+     * Form Submission Handler:
+     * @listens submit on #timesheet-form
+     * @fires AJAX request to save the timesheet entry
+     * 
+     * Business Logic:
+     * 1. Modal Opening:
+     *    - Loads the timesheet entry form via AJAX
+     *    - Displays the form in a modal dialog
+     *    - Handles loading errors with user feedback
+     * 
+     * 2. Form Submission:
+     *    - Submits form data to server
+     *    - Creates new grid entry with job details
+     *    - Updates wage and bill amounts automatically
+     *    - Handles validation messages and errors
+     *    - Closes modal on successful submission
+     * 
+     * Dependencies:
+     * - Requires jQuery and Bootstrap modal
+     * - Requires ag-Grid instance as window.grid
+     * - Requires calculateAmounts function
+     * - Requires renderMessages function
+     * 
+     * Data Flow:
+     * - Receives job data and entry details from server
+     * - Integrates new entries into the grid
+     * - Updates financial calculations
+     * - Manages error and success messages
+     */
     const modal = $('#timesheetModal');
 
-    // Handler for opening the modal
     $('#new-timesheet-btn').on('click', function (e) {
         e.preventDefault();
 
-        console.log('Sending AJAX request...'); // Debug log
+        console.log('Sending AJAX request...');
 
         $.ajax({
             url: window.location.pathname,
@@ -504,7 +604,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 action: 'load_form'
             }, // Remove csrfmiddlewaretoken from here since it's handled by ajaxSetup
             success: function (response) {
-                console.log('Success:', response); // Debug log
+                console.log('Success:', response);
                 modal.find('.modal-body').html(response.form_html);
                 modal.modal('show');
             },
@@ -519,7 +619,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Handler for form submission
     modal.on('submit', '#timesheet-form', function (e) {
         e.preventDefault();
         const form = $(this);
@@ -534,7 +633,7 @@ document.addEventListener('DOMContentLoaded', function () {
             success: function (response) {
 
                 if (response.messages) {
-                    renderMessages(response.messages); // Render dynamic messages
+                    renderMessages(response.messages); 
                 }
                 if (response.success) {
                     // Construct complete entry object with job data
@@ -544,11 +643,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         job_name: response.job.name, 
                         client: response.job.client_name,
                         job_data: response.job,
-                        wage_amount: 0, // Will be calculated by calculateAmounts()
-                        bill_amount: 0  // Will be calculated by calculateAmounts()
+                        // Both lines below will be calculated by calculateAmounts()
+                        wage_amount: 0, 
+                        bill_amount: 0  
                     };
             
-                    // Add new entry to grid
                     window.grid.applyTransaction({ add: [gridEntry] });
             
                     // Calculate amounts for the new row
@@ -573,7 +672,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const response = JSON.parse(xhr.responseText);
                 if (response.messages) {
-                    renderMessages(response.messages); // Renderizar mensagens de erro
+                    renderMessages(response.messages); 
                 } else {
                     renderMessages([{ level: 'error', message: 'An unexpected error occurred.' }]);
                 }
