@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class TimesheetEntryView(TemplateView):
-    template_name = "time_entries/timesheet_entry.html"  # We'll need to create this
+    template_name = "time_entries/timesheet_entry.html" 
 
     EXCLUDED_STAFF_IDS = [
         "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
@@ -133,78 +133,48 @@ class TimesheetEntryView(TemplateView):
 
     def post(self, request, date, staff_id, *args, **kwargs):
         try:
-            target_date = datetime.strptime(date, "%Y-%m-%d").date()                                              # Convert string date to datetime object
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
         except ValueError:
-            raise ValueError("Invalid date format. Expected YYYY-MM-DD.")                                         # Return error if date format is invalid
+            raise ValueError("Invalid date format. Expected YYYY-MM-DD.")
 
         try:
-            staff_member = Staff.objects.get(id=staff_id)                                                         # Get staff member instance
+            staff_member = Staff.objects.get(id=staff_id)
         except Staff.DoesNotExist:
-            messages.error(request, "Staff member not found.")
-            message_list = extract_messages(request)
-            return JsonResponse({
-                "error": "Staff member not found", 
-                "messages": message_list
-                }, status=404)                                                                                    # Return error if staff not found
+            return JsonResponse({"error": "Staff member not found"}, status=404)
 
-        if staff_id in self.EXCLUDED_STAFF_IDS:                                                                   # Check if staff is in excluded list
-            messages.error(request, "Access denied for this staff member.")
-            message_list = extract_messages(request)
-            return JsonResponse({
-                "error": "Access denied", 
-                "messages": message_list}, 
-                status=403)
-
-        if request.headers.get("x-requested-with") == "XMLHttpRequest":                                           # Handle AJAX requests for modal form
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
             if request.POST.get("action") == "load_form":
-                # Return the form HTML for the modal
-                form = TimeEntryForm(staff_member=staff_member)                                                   # Create form instance with staff member
-                form_html = render_to_string(
-                    "time_entries/timesheet_form.html",                                                           # Template for the form
-                    {"form": form, "staff_member": staff_member, "target_date": target_date},
-                    request=request
+                # Pass pre-populated data to the form
+                form = TimeEntryForm(
+                    staff_member=staff_member, 
+                    timesheet_date=target_date
                 )
-                return JsonResponse({"form_html": form_html})                                                     # Return form HTML for modal
+                form_html = render_to_string(
+                    "time_entries/timesheet_form.html",
+                    {"form": form, "staff_member": staff_member, "target_date": target_date},
+                    request=request,
+                )
+                return JsonResponse({"form_html": form_html})
 
             elif request.POST.get("action") == "submit_form":
-                # Handle form submission
-                form = TimeEntryForm(request.POST, staff_member=staff_member)                                     # Create form with POST data
+                form = TimeEntryForm(request.POST, staff_member=staff_member)
                 if form.is_valid():
-                    time_entry = form.save(commit=False)                                                          # Create but don't save the instance yet
-                    time_entry.staff = staff_member                                                               # Set the staff member
-                    time_entry.date = target_date                                                                 # Set the date
-                    time_entry.save()                                                                             # Save the time entry
-
-                    # Return the new entry data for AG Grid
-                    entry_data = {
-                        "id": str(time_entry.id),
-                        "job_pricing_id": time_entry.job_pricing_id,
-                        "description": time_entry.description or "",
-                        "hours": float(time_entry.hours),
-                        "rate_multiplier": float(time_entry.wage_rate_multiplier),
-                        "is_billable": time_entry.is_billable,
-                        "timesheet_date": target_date.strftime("%Y-%m-%d"),
-                        "staff_id": staff_member.id,
-                    }
-                    messages.success(request, "Time entry added successfully.")
+                    time_entry = form.save(commit=False)
+                    time_entry.staff = staff_member
+                    time_entry.date = target_date
+                    time_entry.save()
+                    messages.success(request, "Timesheet saved successfully")
                     message_list = extract_messages(request)
-                    return JsonResponse({
+                    return JsonResponse({    
                         "success": True, 
-                        "entry": entry_data, 
                         "messages": message_list
-                        }, status=200)                                                                            # Return success response with entry data
-                else:
-                    messages.error(
-                        request, 
-                        "Please correct the following errors in your time entry submission: " + 
-                        ", ".join([f"{field}: {error[0]}" for field, error in form.errors.items()])
-                    )
-                    message_list = extract_messages(request)
-                    return JsonResponse({
-                        "success": False, 
-                        "errors": form.errors, 
-                        "messages": message_list
-                        }, status=400)                                                                            # Return form errors if invalid
+                        }, status=200)
+                # Log form errors and POST data
+                logger.debug("Form errors: %s", form.errors.as_json())
+                logger.debug("POST Data: %s", dict(request.POST))
+                messages.error(request, "Invalid form data.")
+                message_list = extract_messages(request)
+                return JsonResponse({"success": False, "messages": message_list}, status=400)
 
         # Handle non-AJAX POST requests
         messages.error(request, "Invalid request.")

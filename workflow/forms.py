@@ -62,56 +62,85 @@ class AdjustmentEntryForm(forms.ModelForm):
         exclude = ["job_pricing"]
 
 
-class TimeEntryForm(forms.ModelForm):                                                                      # Form for creating and editing TimeEntry instances
+class TimeEntryForm(forms.ModelForm):
     class Meta:
+        RATE_TYPE_CHOICES = [
+            (1.0, "Ordinary"),
+            (1.5, "Overtime"),
+            (2.0, "Double Time"),
+            (0.0, "Unpaid"),
+        ]
+
         model = TimeEntry
-        
-        widgets = {                                                                                        # Configure form widgets for better user interface
-            "date": forms.DateInput(attrs={"type": "date"}),                                               # Use HTML5 date picker for better date selection
-            'description': forms.Textarea(attrs={'rows':3})                                                # Provide a larger text area for descriptions
+
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),  # Expand description field (with rows) for better readability
+            "wage_rate_multiplier": forms.Select(
+                choices=RATE_TYPE_CHOICES
+            ),  # Dropdown for rate type selection
         }
 
         fields = (
             "staff",
-            "job_pricing",
             "date",
+            "job_pricing",
             "hours",
-            "items",
-            "minutes_per_item",
-            "description",
             "wage_rate",
+            "wage_rate_multiplier",
             "charge_out_rate",
+            "is_billable",
+            "description",
+            "note",
+        )
+    
+    def __init__(self, *args, staff_member=None, timesheet_date=None, **kwargs):
+        """
+        Form constructor. Main function is to prepopulate certain fields (such as the staff and its information, alongside with the date, which are all provided by the view)
+        """
+        super().__init__(*args, **kwargs)
+
+        self.fields["staff"].initial = staff_member
+        self.fields["staff"].widget = forms.HiddenInput()
+        self.fields["staff"].required = False
+
+        self.fields["date"].initial = timesheet_date
+        self.fields["date"].widget = forms.HiddenInput()
+
+        self.fields["job_pricing"].required = True
+
+        self.fields["wage_rate"].initial = staff_member.wage_rate
+        self.fields["wage_rate"].widget = forms.HiddenInput()
+
+        self.fields["wage_rate_multiplier"].initial = 1.0
+        self.fields["wage_rate_multiplier"].help_text = (
+            "Multiplier for hourly rate. Ordinary is 1.0, Overtime is 1.5, Double Time and Unpaid are self-descriptive"
         )
 
-    def __init__(self, *args, staff_member=None, **kwargs):                                                # Initialize the form with optional staff_member paramete
-        super().__init__(*args, **kwargs)
-        if staff_member:
-            # Handle case when staff_member is provided
-            self.fields["staff"].initial = staff_member                                                    # Pre-select the staff field with provided staff member
-            self.fields["staff"].widget.attrs['disabled'] = True                                           # Disable staff field to prevent changes
-            self.fields["staff"].required = False                                                          # Make staff field not required as it's set automatically
+        self.fields["charge_out_rate"].initial = 1.0
+        self.fields["charge_out_rate"].widget = forms.HiddenInput()
+    
+    def save(self, commit=True):
+        """
+        Set charge_out_rate based on job_pricing before saving
+        """
+        instance = super().save(commit=False)
+        job_pricing = self.cleaned_data.get("job_pricing")
+        logger.debug(f"Job pricing received: {job_pricing}")
+        logger.debug(f"Job Pricing: {job_pricing}")
+        logger.debug(f"Related Job: {job_pricing.job}")
+        logger.debug(f"Charge Out Rate: {job_pricing.job.charge_out_rate}")
 
-            # Pre-populate rate fields
-            self.fields["wage_rate"].initial = staff_member.wage_rate                                      # Set initial wage rate from staff member
-            # self.fields["charge_out_rate"].initial = staff_member.charge_out_rate                        # Set initial charge-out rate from staff member - currently not working because TimeEntry model has not charge_out_rate property
+        if job_pricing:
+            instance.charge_out_rate = job_pricing.job.charge_out_rate
         else:
-            # Handle case when no staff_member is provided
-            self.fields["staff"].queryset = Staff.objects.all()                                            # Load all staff members for selection
+            logger.error("Job Pricing is missing")
+            raise ValueError("Job Pricing is required to set charge_out_rate")
 
-            # Handle rate population for existing instances
-            if "instance" in kwargs and kwargs["instance"] and kwargs["instance"].staff:                   # Check if editing existing TimeEntry
-                staff = kwargs["instance"].staff
-                self.fields["wage_rate"].initial = staff.wage_rate                                         # Set wage rate from existing entry's staff
-                '''try:                                                                                    # Safely handle charge_out_rate for existing instances
-                    self.fields["charge_out_rate"].initial = (
-                        staff.charge_out_rate 
-                        if hasattr(staff, 'charge_out_rate') 
-                        else staff.wage_rate
-                    )
-                except AttributeError:
-                    self.fields["charge_out_rate"].initial = 0'''
+        if commit:
+            instance.save()
 
-
+        return instance
+                      
 
 class StaffCreationForm(UserCreationForm):
     class Meta:
