@@ -128,19 +128,19 @@ function triggerAutoCalculationForAllRows() {
 
 function createNewRow() {
     return {
-        id: null, // New rows start without an ID
-        job_number: null, // Placeholder for job number
-        timesheet_date: window.timesheet_data.timesheet_date, // Ensure timesheet_date is included
-        staff_id: window.timesheet_data.staff.id, // Ensure staff_id is included
-        is_billable: true, // Default value
-        rate_type: 'Ord', // Default rate type
-        hours: 0, // Default hours
-        description: '', // Default description
+        id: null, 
+        job_number: null, 
+        timesheet_date: window.timesheet_data.timesheet_date, 
+        staff_id: window.timesheet_data.staff.id, 
+        is_billable: true, 
+        rate_type: 'Ord', 
+        hours: 0, 
+        description: '', 
     };
 }
 
 function calculateAmounts(data) {
-    console.log('Calculating amounts for data:', data); // Log the data being processed
+    console.log('Calculating amounts for data:', data); 
     const hours = data.hours || 0;
     const minutes = hours * 60;
 
@@ -152,17 +152,15 @@ function calculateAmounts(data) {
         'Dt': 2.0
     }[data.rate_type] || 1.0;
 
-    // Use staff wage rate from timesheet_data
     const wageRate = window.timesheet_data.staff.wage_rate;
     data.wage_amount = hours * wageRate * rateMultiplier;
     console.log('Calculated wage_amount:', data.wage_amount, 'with hours:', hours, 'wage_rate:', window.timesheet_data.staff.wage_rate, 'rateMultiplier:', rateMultiplier); // Log calculation details
 
-    // Use job_data from the row to calculate bill amount
     const jobData = data.job_data;
     if (jobData) {
         data.bill_amount = hours * jobData.charge_out_rate;
     } else {
-        data.bill_amount = 0; // Default to 0 if no matching job found
+        data.bill_amount = 0; 
     }
 
     data.items = 1;
@@ -704,6 +702,29 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    /**
+     * Handles the click event to load the Paid Absence form in a modal.
+     *
+     * Purpose:
+     * - Dynamically fetches and renders the Paid Absence form via AJAX.
+     * - Ensures the modal is populated with the correct form content.
+     * - Provides feedback to the user on errors during form loading.
+     *
+     * Workflow:
+     * 1. Prevents the default behavior of the click event.
+     * 2. Sends an AJAX POST request to the current page's URL with the action `load_paid_absence`.
+     * 3. On success:
+     *    - Injects the returned form HTML into the modal's body.
+     *    - Displays the modal to the user.
+     * 4. On error:
+     *    - Logs detailed error information to the console.
+     *    - Alerts the user of the issue.
+     *
+     * Dependencies:
+     * - jQuery for AJAX handling and DOM manipulation.
+     * - Bootstrap for modal functionality.
+     * - Server-side handling of the `load_paid_absence` action.
+     */
     $('#open-paid-absence-modal').on('click', function (e) {
         e.preventDefault();
 
@@ -734,6 +755,32 @@ document.addEventListener('DOMContentLoaded', function () {
         })
     });
 
+    /**
+     * Handles the submission of the Paid Absence form.
+     *
+     * Purpose:
+     * - Submits the form data for creating paid absence entries via AJAX.
+     * - Updates the timesheet grid with the new entries upon success.
+     * - Displays error messages for issues during the submission process.
+     *
+     * Workflow:
+     * 1. Prevents the default form submission behavior.
+     * 2. Serializes the form data for transmission.
+     * 3. Sends an AJAX POST request to the current page's URL with the form data.
+     * 4. On success:
+     *    - Hides the modal and displays success messages.
+     *    - Filters the returned entries to match the current page's date.
+     *    - Updates the grid with matching entries.
+     * 5. On error:
+     *    - Logs detailed error information to the console.
+     *    - Displays error messages to the user.
+     *
+     * Dependencies:
+     * - jQuery for AJAX handling and DOM manipulation.
+     * - `getCurrentDateFromURL` for filtering entries based on the current page's date.
+     * - Server-side handling of the `add_paid_absence` action.
+     * - Bootstrap for modal management.
+     */
     $('#paidAbsenceModal').on('submit', '#paid-absence-form', function (e) {
         e.preventDefault();
         const form = $(this).serialize();

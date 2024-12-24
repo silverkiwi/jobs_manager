@@ -21,6 +21,27 @@ from workflow.utils import extract_messages, get_rate_type_label
 logger = logging.getLogger(__name__)
 
 
+"""
+View to manage and display timesheet entries for a specific staff member and date.
+
+Purpose:
+- Centralizes the logic for rendering the timesheet entry page.
+- Dynamically loads staff, jobs, and timesheet data based on the provided date and staff ID.
+- Ensures access control and context consistency for the user interface.
+
+Key Features:
+- Excludes specific staff members (e.g., app/system users) from being displayed.
+- Prepares the context with data necessary for rendering the timesheet entry page.
+- Supports navigation between staff members for the same timesheet date.
+
+Attributes:
+- `template_name` (str): Path to the template used for rendering the view.
+- `EXCLUDED_STAFF_IDS` (list): List of Django staff IDs to be excluded from timesheet views.
+
+Usage:
+- Accessed via a URL pattern that includes the date and staff ID as parameters.
+- Provides the back-end logic for the `time_entries/timesheet_entry.html` template.
+"""
 class TimesheetEntryView(TemplateView):
     template_name = "time_entries/timesheet_entry.html" 
 
@@ -30,6 +51,49 @@ class TimesheetEntryView(TemplateView):
         "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402"
     ]
 
+    """
+    Handles GET requests to display the timesheet entry page for a given staff member and date.
+
+    Purpose:
+    - Retrieves and validates the date and staff member based on URL parameters.
+    - Fetches timesheet entries, open jobs, and navigation details for the UI.
+    - Ensures the context contains all data needed to render the page.
+
+    Workflow:
+    1. Validates the `date` parameter to ensure it is in the correct format (YYYY-MM-DD).
+    2. Checks if the `staff_id` is excluded. If so, denies access.
+    3. Retrieves the staff member and raises a 404 error if not found.
+    4. Queries:
+        - Timesheet entries for the specified date and staff member.
+        - Open jobs for potential assignment.
+    5. Prepares navigation details for moving between staff members.
+    6. Constructs the context for rendering the page.
+
+    Parameters:
+    - `request`: The HTTP GET request.
+    - `date` (str): The target date for the timesheet.
+    - `staff_id` (UUID): The ID of the staff member.
+
+    Returns:
+    - Rendered HTML template with the context for the timesheet entry page.
+
+    Error Handling:
+    - Raises `ValueError` for invalid date formats.
+    - Raises `PermissionError` if the staff member is excluded.
+    - Raises `Http404` if the staff member is not found.
+
+    Context:
+    - Includes data for the staff member, timesheet entries, open jobs, and navigation links.
+
+    Dependencies:
+    - `Staff`, `TimeEntry`, and `Job` models for querying database records.
+    - `json.dumps` for serializing data to JSON format.
+    - `DjangoJSONEncoder` for handling complex data types.
+    - Template: `time_entries/timesheet_entry.html`.
+
+    Notes:
+    - The `EXCLUDED_STAFF_IDS` attribute should be updated as needed to reflect changes in app/system users.
+    """
     def get(self, request, date, staff_id, *args, **kwargs):
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -125,6 +189,50 @@ class TimesheetEntryView(TemplateView):
 
         return render(request, self.template_name, context)
 
+    """
+    Handles POST requests to manage timesheet entries and related actions.
+
+    Purpose:
+    - Provides centralized logic for managing timesheet-related AJAX operations.
+    - Supports dynamic form loading and submission for timesheet entries.
+    - Enables actions for managing paid absences.
+
+    Workflow:
+    1. Validates and parses the date from the URL.
+    2. Ensures the staff member is authorized and exists in the database.
+    3. Determines the requested action (`action` parameter) and processes it:
+    - `load_paid_absence`: Renders the form for managing paid absences.
+    - `add_paid_absence`: Adds paid absence entries to the timesheet.
+    - `load_form`: Loads the timesheet entry form dynamically via AJAX.
+    - `submit_form`: Validates and saves the timesheet entry data.
+    4. Handles both success and failure responses with appropriate messages.
+
+    Parameters:
+    - `request`: The HTTP POST request containing action details and data.
+    - `date` (str): The target date for the timesheet, extracted from the URL.
+    - `staff_id` (UUID): The ID of the staff member, extracted from the URL.
+
+    Responses:
+    - Returns JSON responses for all actions:
+    - Success: Includes relevant data for UI updates (e.g., form HTML, entry/job data).
+    - Failure: Includes error messages to guide the user.
+    
+    Error Handling:
+    - Raises `ValueError` for invalid date formats.
+    - Returns 403 if the staff member is excluded.
+    - Returns 404 if the staff member is not found.
+    - Handles form validation errors gracefully, returning detailed messages.
+    - Handles non-AJAX requests with a general "Invalid request" error.
+
+    Dependencies:
+    - Django utilities for JSON and template rendering (`JsonResponse`, `render_to_string`).
+    - Custom utilities for extracting messages and formatting rate labels.
+    - `TimeEntryForm` and `PaidAbsenceForm` for handling specific actions.
+
+    Usage:
+    - Integrated with the timesheet UI to dynamically load forms and process user inputs.
+    - Handles backend logic for managing timesheet entries and paid absences.
+    """
     def post(self, request, date, staff_id, *args, **kwargs):
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -176,7 +284,6 @@ class TimesheetEntryView(TemplateView):
                     time_entry.save()
 
                     messages.success(request, "Timesheet saved successfully")
-
                     
                    # Return the new entry data for AG Grid with job data so the entry will be fully loaded by the grid
                     entry_data = {
@@ -228,6 +335,49 @@ class TimesheetEntryView(TemplateView):
             "messages": extract_messages(request)
             }, status=400)    
 
+    """
+    Adds paid absence entries to the timesheet.
+
+    Purpose:
+    - Automates the creation of time entries for a specified date range, excluding weekends.
+    - Associates entries with a predefined virtual job for paid absences.
+    - Ensures consistency and validation for staff-related absences.
+
+    Workflow:
+    1. Validates and parses the start and end dates from the request.
+    2. Excludes invalid ranges where the end date is earlier than the start date.
+    3. Iterates through each day in the range, skipping Saturdays and Sundays.
+    4. Retrieves the `JobPricing` for the virtual paid absence job.
+    5. Creates a `TimeEntry` for each valid weekday, linking it to the staff member and job.
+    6. Collects data for each entry to be returned to the front-end.
+    7. Returns success or error messages based on the outcome of the operation.
+
+    Parameters:
+    - `request`: The HTTP POST request containing the date range and staff details.
+    - `staff_member`: The `Staff` object representing the staff member for whom the entries are created.
+
+    Responses:
+    - Success: Returns a list of created entries, including their details for UI updates.
+    - Error: Returns validation or processing errors (e.g., invalid date range, missing job pricing).
+
+    Error Handling:
+    - Validates the date range to ensure `end_date >= start_date`.
+    - Skips weekends (Saturday and Sunday) during entry creation.
+    - Handles cases where `JobPricing` for the paid absence job cannot be found.
+    - Catches and reports errors during entry creation, ensuring partial failures don't halt the process entirely.
+
+    Dependencies:
+    - Django's models (`JobPricing`, `TimeEntry`) for database operations.
+    - Utility functions (`extract_messages`) for consistent error and success messaging.
+
+    Usage:
+    - Triggered via the `post` method in `TimesheetEntryView` when the action is `add_paid_absence`.
+    - Enables bulk creation of time entries for predefined absence scenarios, improving efficiency and consistency.
+
+    Notes:
+    - Weekends are automatically excluded to reflect typical work schedules.
+    - The virtual paid absence job ID (`job_id`) is hardcoded to match the Paid Absence Job, but the form can be updated to manage dynamic special jobs for paid leaves/absences
+    """
     def add_paid_absence(self, request, staff_member):
         start_date = request.POST.get("start_date")
         end_date = request.POST.get("end_date")
@@ -316,6 +466,43 @@ class TimesheetEntryView(TemplateView):
             "messages": extract_messages(request)
             }, status=200)
     
+    """
+    Loads the paid absence form for rendering in the front-end.
+
+    Purpose:
+    - Dynamically generates the HTML for the paid absence form.
+    - Provides a seamless user experience by enabling form rendering via AJAX.
+
+    Workflow:
+    1. Instantiates the `PaidAbsenceForm` with the data from the request.
+    2. Renders the form into an HTML string using the `render_to_string` utility.
+    3. Returns a JSON response containing:
+    - The rendered form HTML.
+    - Success status.
+    - Any messages to be displayed to the user.
+
+    Parameters:
+    - `request`: The HTTP POST request containing the form data.
+
+    Responses:
+    - Success:
+    - Includes the rendered HTML for the form (`form_html`).
+    - Provides feedback messages to the user if necessary.
+    - Error Handling: Assumes basic validation at the form level.
+
+    Dependencies:
+    - `PaidAbsenceForm`: The Django form used for capturing paid absence details.
+    - `render_to_string`: Utility for converting a template and context into HTML.
+    - `extract_messages`: Utility for extracting user feedback messages from the request.
+
+    Usage:
+    - Triggered via the `post` method in `TimesheetEntryView` when the action is `load_paid_absence`.
+    - Enables dynamic loading of the paid absence form in a modal or similar UI component.
+
+    Notes:
+    - Optimized for AJAX-based workflows to improve responsiveness and user experience.
+    - Any server-side validation should be handled when the form is submitted (at `add_paid_absence`), not at this stage.
+    """
     def load_paid_absence(self, request):
         form = PaidAbsenceForm(request.POST)
         form_html = render_to_string(
@@ -331,6 +518,55 @@ class TimesheetEntryView(TemplateView):
         }, status=200)
 
 
+"""
+Handles autosave requests for timesheet data.
+
+Purpose:
+- Automates the saving of timesheet changes, including updates, creations, and deletions.
+- Ensures data consistency by validating and processing entries before saving.
+- Provides a seamless experience by integrating with AJAX for real-time updates.
+
+Workflow:
+1. Parses and validates the request body as JSON.
+2. Separates entries to update/create (`time_entries`) and entries to delete (`deleted_entries`).
+3. Processes deletions:
+   - Removes entries by ID if they exist.
+   - Logs and ignores non-existent entries.
+4. Processes time entries:
+   - Skips incomplete or invalid entries.
+   - Updates existing entries by ID.
+   - Creates new entries while avoiding duplication.
+5. Returns success or error responses with detailed messages.
+
+Parameters:
+- `request`: The HTTP POST request containing timesheet data in JSON format.
+
+Responses:
+- Success:
+  - Includes IDs of updated or created entries.
+  - Provides user feedback messages for UI updates.
+- Error:
+  - Includes error details for invalid data, missing entries, or unexpected issues.
+
+Error Handling:
+- Validates JSON format and structure (`time_entries` and `deleted_entries`).
+- Handles invalid or missing data gracefully, skipping affected entries.
+- Catches unexpected exceptions, logging details for debugging.
+
+Dependencies:
+- Django models (`TimeEntry`, `Job`, `Staff`) for database operations.
+- Utility functions (`extract_messages`) for consistent user feedback.
+- `RateType` for managing wage rate multipliers.
+
+Usage:
+- Triggered via an AJAX POST request from the timesheet interface.
+- Supports real-time saving of user edits and deletions in the grid.
+
+Notes:
+- Designed for efficient bulk processing to minimize server load.
+- Prevents duplicate entries by checking for existing records with the same attributes.
+- Logs all operations for traceability and debugging.
+"""
 @require_http_methods(["POST"])
 def autosave_timesheet_view(request):
     try:

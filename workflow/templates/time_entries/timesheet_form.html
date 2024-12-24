@@ -1,10 +1,9 @@
-{# 
-    Form template for managing TimeEntry objects via modal. 
-    Loaded dynamically by AJAX in TimeEntryView. 
-#}
-
 {% load crispy_forms_tags %}
 
+<!--
+    Form template for managing TimeEntry objects via modal. 
+    Loaded dynamically by AJAX in TimesheetEntryView. 
+--> 
 <form id="timesheet-form" method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="submit_form">
@@ -13,6 +12,7 @@
     <div class="alert alert-danger">
         {{ form.non_field_errors }}
     </div>
+    <div>
     {% endif %}
 
     {{ form|crispy }}
