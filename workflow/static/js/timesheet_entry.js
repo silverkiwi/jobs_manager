@@ -516,14 +516,37 @@ function getCookie(name) {
     return cookieValue;
 }
 
-const csrftoken = getCookie('csrftoken')
+const csrftoken = getCookie('csrftoken');
+
+/**
+ * Extracts the current date from the URL pathname for paid absence processing.
+ * 
+ * @returns {string} The date string extracted from the URL path, expected to be in the format YYYY-MM-DD
+ * 
+ * Purpose:
+ * - Helper function for the paid absence modal to determine which date to process
+ * - Extracts date from URL path by splitting on '/' and getting second-to-last segment
+ * - Used when submitting paid absence requests to ensure correct entry load (only loads the entry whose date is equivalent to that in the URL)
+ * 
+ * Example URL format:
+ * /timesheets/day/2024-01-15/1234-567i8-903a/
+ * Would return: "2024-01-15"
+ * 
+ * Note:
+ * - Assumes date is always in penultimate position in URL path
+ * - URL structure must be maintained for function to work correctly. Current URL structure: /timesheets/day/<str:date>/<uuid:staff_id>/
+ * - Returns undefined if URL does not contain expected date segment
+ */
+function getCurrentDateFromURL() {
+    const urlParts = window.location.pathname.split('/').filter(Boolean);
+    return urlParts[urlParts.length - 2]; 
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize the grid
     const gridDiv = document.querySelector('#timesheet-grid');
     window.grid = agGrid.createGrid(gridDiv, gridOptions);
     console.log('Grid object:', window.grid);
-    console.log('localStorage: ', localStorage.getItem('rowStateTracker'));
 
     window.grid.forEachNode(node => {
         rowStateTracker[node.id] = { ...node.data };
@@ -587,6 +610,7 @@ document.addEventListener('DOMContentLoaded', function () {
      * - Updates financial calculations
      * - Manages error and success messages
      */
+
     const modal = $('#timesheetModal');
 
     $('#new-timesheet-btn').on('click', function (e) {
@@ -602,7 +626,7 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             data: {
                 action: 'load_form'
-            }, // Remove csrfmiddlewaretoken from here since it's handled by ajaxSetup
+            }, 
             success: function (response) {
                 console.log('Success:', response);
                 modal.find('.modal-body').html(response.form_html);
@@ -676,6 +700,77 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     renderMessages([{ level: 'error', message: 'An unexpected error occurred.' }]);
                 }
+            }
+        });
+    });
+
+    $('#open-paid-absence-modal').on('click', function (e) {
+        e.preventDefault();
+
+        console.log('Loading Paid Absence form...');
+
+        $.ajax({
+            url: window.location.pathname,
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: {
+                action: 'load_paid_absence'
+            },
+            success: function (response) {
+                console.log('Sucess: ', response);
+                $('#paidAbsenceModal .modal-body').html(response.form_html);
+                $('#paidAbsenceModal').modal('show');
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', {
+                    status: status,
+                    error: error,
+                    response: xhr.responseText
+                });
+                alert('Error loading form. Please check console for details.');
+            }
+        })
+    });
+
+    $('#paidAbsenceModal').on('submit', '#paid-absence-form', function (e) {
+        e.preventDefault();
+        const form = $(this).serialize();
+
+        console.log('Submitting Paid Absence form...');
+
+        $.ajax({
+            url: window.location.pathname,
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: form,
+            success: function (response) {
+                if (response.success) {
+                    console.log("Success: ", response.success);
+                    $('#paidAbsenceModal').modal('hide');
+                    renderMessages(response.messages);
+
+                    const currentDate = getCurrentDateFromURL();
+                    console.log("Current page date:", currentDate);
+    
+                    response.entries.forEach(entry => {
+                        if (entry.timesheet_date === currentDate) {
+                            console.log("Adding entry to grid:", entry);
+                            window.grid.applyTransaction({ add: [entry] });
+                        }
+                    });
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', {
+                    status: status,
+                    error: error,
+                    response: xhr.responseText
+                });
+                renderMessages([{ level: 'error', message: 'Error adding paid absences.'}]);
             }
         });
     });
