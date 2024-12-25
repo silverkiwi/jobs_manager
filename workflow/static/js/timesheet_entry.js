@@ -167,6 +167,36 @@ function calculateAmounts(data) {
     data.mins_per_item = minutes;
 }
 
+function updateJobsList(jobs) {
+    const jobsList = document.getElementById('jobs-list');
+    jobsList.innerHTML = '';
+    jobs.forEach(job => {
+      const jobItem = document.createElement('a');
+      jobItem.href = `/jobs/${job.id}/details/`;
+      jobItem.className = 'list-group-item list-group-item-action';
+      jobItem.innerHTML = `<strong>${job.job_display_name}</strong><br>${job.client_name}`;
+      jobsList.appendChild(jobItem);
+    });
+  }
+  
+function fetchJobs() {
+$.ajax({
+    url: window.location.pathname,
+    method: 'GET',
+    headers: {
+    'X-Requested-With': 'XMLHttpRequest'
+    },
+    success: function (response) {
+    if (response.jobs) {
+        updateJobsList(response.jobs);
+    }
+    },
+    error: function (xhr, status, error) {
+    console.error('Error fetching jobs:', error);
+    }
+});
+}
+  
 /**
  * Determines if a row's data has been modified by comparing its previous and current states.
  * 
@@ -358,6 +388,7 @@ const gridOptions = {
                     localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
                     console.log('Row removed from grid, triggering autosave');
                     debouncedAutosave();
+                    fetchJobs();
                 } else {
                     console.log('Cannot delete last row');
                 }
@@ -435,6 +466,8 @@ const gridOptions = {
             console.log('Row is valid and changed, triggering autosave');
             debouncedAutosave();
         }
+
+        fetchJobs();
     },
     // Add new row when Enter is pressed on last row
     onCellKeyDown: (params) => {
@@ -473,6 +506,8 @@ const gridOptions = {
                     console.log('onCellKeyDown triggered - new row - params: ', params)
                     debouncedAutosave();
                 }
+
+                fetchJobs();
             }
         }
     }
@@ -608,7 +643,6 @@ document.addEventListener('DOMContentLoaded', function () {
      * - Updates financial calculations
      * - Manages error and success messages
      */
-
     const modal = $('#timesheetModal');
 
     $('#new-timesheet-btn').on('click', function (e) {
@@ -683,6 +717,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
             
                     modal.modal('hide');
+                    fetchJobs();
                 }
             },
             error: function (xhr, status, error) {
@@ -809,6 +844,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             window.grid.applyTransaction({ add: [entry] });
                         }
                     });
+
+                    fetchJobs();
                 }
             },
             error: function (xhr, status, error) {

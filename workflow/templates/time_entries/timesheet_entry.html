@@ -83,25 +83,13 @@
     </script>
 
 
-    <!-- Debug context -->
-    <div id="debug-context" style="padding: 10px; border: 1px solid #ccc;">
-        <h3>Debug Context</h3>
-
-        <h4>Staff Member:</h4>
-        {{ staff_member_json|safe }}
-
-        <h4>Date:</h4>
-        <pre>{{ date }}</pre>
-
-        <h4>Scheduled Hours:</h4>
-        <pre>{{ scheduled_hours }}</pre>
-
-        <h4>Jobs Data:</h4>
-        <pre>{{ jobs_json|safe }}</pre>
-
-        <h4>Timesheet Entries:</h4>
-        <pre>{{ timesheet_entries_json|safe }}</pre>
-    </div>
+    <!-- Current jobs section -->
+    <div id="current-jobs" class="container mt-4">
+        <h4>Current Jobs</h4>
+        <div id="jobs-list" class="list-group">
+          <!-- Jobs will be dynamically loaded here -->
+        </div>
+      </div>
 </div>
 
 {% endblock %}
