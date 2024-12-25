@@ -84,20 +84,18 @@
 
 
     <!-- Current jobs section -->
-    <div id="current-jobs" class="container mt-4">
+    <div id="current-jobs" class="container mt-4 mb-4">
         <h4>Current Jobs</h4>
         <div id="jobs-list" class="list-group">
-          <!-- Jobs will be dynamically loaded here -->
         </div>
-      </div>
-</div>
+    </div>
 
-{% endblock %}
+    {% endblock %}
 
-{% block extra_js %}
-<!-- AG Grid Script -->
-<script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
-<script src="{% static 'js/deserialize_timesheet.js' %}"></script>
-<script src="{% static 'js/timesheet_autosave.js' %}"></script>
-<script src="{% static 'js/timesheet_entry.js' %}"></script>
-{% endblock %}
+    {% block extra_js %}
+    <!-- AG Grid Script -->
+    <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
+    <script src="{% static 'js/deserialize_timesheet.js' %}"></script>
+    <script src="{% static 'js/timesheet_autosave.js' %}"></script>
+    <script src="{% static 'js/timesheet_entry.js' %}"></script>
+    {% endblock %}

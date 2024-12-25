@@ -1,6 +1,3 @@
-from django.contrib.messages import get_messages
-
-
 def extract_messages(request):
     """
     Extracts messages from the request object and returns them as a list of dictionaries.
@@ -14,6 +11,7 @@ def extract_messages(request):
             - level (str): The message level tag (e.g. 'info', 'error')
             - message (str): The message text
    """
+    from django.contrib.messages import get_messages
    
     return [
         {"level": message.level_tag, "message": message.message}
@@ -95,3 +93,33 @@ def create_paid_absence_job():
 
     print(f"Job '{job.name}' created successfully!")
     print(f"ID: {job.id}, Number: {job.job_number}")    
+
+def get_jobs_data(related_jobs):
+    """
+    Retrieves and formats job data for the given related jobs.
+
+    Args:
+        related_jobs (set): A set of Job objects
+
+    Returns:
+        list: A list of dictionaries, where each dictionary contains job data:
+            - id (str): The job ID
+            - job_number (str): The job number
+            - name (str): The job name
+            - job_display_name (str): The job display name
+            - client_name (str): The client name
+            - charge_out_rate (float): The charge out rate
+    """
+    from workflow.models import Job
+
+    return [
+        {
+            "id": str(job_id),
+            "job_number": Job.objects.get(id=job_id).job_number,
+            "name": Job.objects.get(id=job_id).name,
+            "job_display_name": str(Job.objects.get(id=job_id)),
+            "client_name": Job.objects.get(id=job_id).client.name if Job.objects.get(id=job_id).client else "NO CLIENT!?",
+            "charge_out_rate": float(Job.objects.get(id=job_id).charge_out_rate),
+        }
+        for job_id in related_jobs
+    ]

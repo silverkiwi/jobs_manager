@@ -16,7 +16,7 @@ from django.contrib import messages
 from workflow.enums import RateType
 from workflow.models import Job, JobPricing, Staff, TimeEntry
 from workflow.forms import TimeEntryForm, PaidAbsenceForm
-from workflow.utils import extract_messages, get_rate_type_label
+from workflow.utils import extract_messages, get_rate_type_label, get_jobs_data
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +153,12 @@ class TimesheetEntryView(TemplateView):
             }
             for job in open_jobs
         ]
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                "time_entries": timesheet_data,
+                "jobs": jobs_data
+            })
 
         next_staff = Staff.objects.exclude(
             id__in=self.EXCLUDED_STAFF_IDS
@@ -463,6 +469,7 @@ class TimesheetEntryView(TemplateView):
         return JsonResponse({
             "success": True,
             "entries": entries,
+            "job": job,
             "messages": extract_messages(request)
             }, status=200)
     
@@ -523,49 +530,51 @@ Handles autosave requests for timesheet data.
 
 Purpose:
 - Automates the saving of timesheet changes, including updates, creations, and deletions.
-- Ensures data consistency by validating and processing entries before saving.
-- Provides a seamless experience by integrating with AJAX for real-time updates.
+- Dynamically updates related jobs and entries in the front-end.
+- Ensures data consistency and prevents duplication during processing.
 
 Workflow:
-1. Parses and validates the request body as JSON.
-2. Separates entries to update/create (`time_entries`) and entries to delete (`deleted_entries`).
-3. Processes deletions:
-   - Removes entries by ID if they exist.
-   - Logs and ignores non-existent entries.
-4. Processes time entries:
+1. **Parsing and Validation**:
+   - Parses the incoming request body as JSON.
+   - Separates entries into `time_entries` (to save or update) and `deleted_entries` (to remove).
+
+2. **Deletion Processing**:
+   - Deletes specified entries by ID if they exist.
+   - Removes related jobs from the current job list.
+   - Logs any missing entries without causing failures.
+
+3. **Time Entry Processing**:
    - Skips incomplete or invalid entries.
-   - Updates existing entries by ID.
-   - Creates new entries while avoiding duplication.
-5. Returns success or error responses with detailed messages.
+   - Updates existing entries or creates new ones while avoiding duplicates.
+   - Adds or updates jobs related to new or updated entries.
+
+4. **Response**:
+   - Returns success responses with related jobs, action type (`add` or `remove`), and feedback messages.
+   - Sends error responses for invalid data or unexpected issues.
 
 Parameters:
-- `request`: The HTTP POST request containing timesheet data in JSON format.
-
-Responses:
-- Success:
-  - Includes IDs of updated or created entries.
-  - Provides user feedback messages for UI updates.
-- Error:
-  - Includes error details for invalid data, missing entries, or unexpected issues.
+- `request` (HttpRequest): The HTTP POST request containing timesheet data in JSON format.
 
 Error Handling:
 - Validates JSON format and structure (`time_entries` and `deleted_entries`).
-- Handles invalid or missing data gracefully, skipping affected entries.
-- Catches unexpected exceptions, logging details for debugging.
+- Catches invalid data or missing fields gracefully, skipping problematic entries.
+- Logs unexpected exceptions and provides feedback for debugging.
 
 Dependencies:
-- Django models (`TimeEntry`, `Job`, `Staff`) for database operations.
-- Utility functions (`extract_messages`) for consistent user feedback.
-- `RateType` for managing wage rate multipliers.
+- Django Models (`TimeEntry`, `Job`, `Staff`) for database operations.
+- Utility Functions:
+  - `extract_messages`: Extracts feedback messages for the front-end.
+  - `get_jobs_data`: Retrieves data for jobs related to the processed entries.
+- `RateType`: Manages wage rate multipliers for time entries.
 
 Usage:
-- Triggered via an AJAX POST request from the timesheet interface.
-- Supports real-time saving of user edits and deletions in the grid.
+- Triggered via AJAX POST requests from the front-end grid.
+- Supports real-time autosaving and deletion of entries with minimal latency.
 
 Notes:
-- Designed for efficient bulk processing to minimize server load.
-- Prevents duplicate entries by checking for existing records with the same attributes.
-- Logs all operations for traceability and debugging.
+- Designed for efficient bulk processing to reduce server load.
+- Ensures traceability with extensive logging.
+- Prevents duplicate entries by verifying existing records with matching attributes.
 """
 @require_http_methods(["POST"])
 def autosave_timesheet_view(request):
@@ -574,6 +583,8 @@ def autosave_timesheet_view(request):
         data = json.loads(request.body)
         time_entries = data.get("time_entries", [])
         deleted_entries = data.get("deleted_entries", [])
+
+        related_jobs = set()
 
         logger.debug(f"Number of time entries: {len(time_entries)}")
         logger.debug(f"Number of entries to delete: {len(deleted_entries)}")
@@ -584,17 +595,20 @@ def autosave_timesheet_view(request):
 
                 try:
                     entry = TimeEntry.objects.get(id=entry_id)
+                    related_jobs.add(entry.job_pricing.job_id) 
                     messages.success(request, f"Timesheet deleted successfully")
                     entry.delete()
                     logger.debug(f"Entry with ID {entry_id} deleted successfully")
-                    return JsonResponse({
-                        "success": True,
-                        "messages": extract_messages(request)
-                    }, status=200)
 
                 except TimeEntry.DoesNotExist:
                     logger.error(f"TimeEntry with ID {entry_id} not found for deletion")
-
+            return JsonResponse({
+                        "success": True,
+                        "jobs": get_jobs_data(related_jobs),
+                        "action": "remove",
+                        "messages": extract_messages(request)
+                    }, status=200)
+        
         if not time_entries and not deleted_entries:
             logger.error("No valid entries to process")
             messages.info(request, "No changes to save.")
@@ -655,6 +669,7 @@ def autosave_timesheet_view(request):
             else:
                 # Verify if there's already a registry with same data to avoid creating multiple entries
                 job_id = entry_data.get("job_data", {}).get("id")
+                related_jobs.add(job_id)
                 description = entry_data.get("description", "").strip()
                 hours = Decimal(str(entry_data.get("hours", 0)))
 
@@ -700,15 +715,19 @@ def autosave_timesheet_view(request):
 
                 messages.success(request, "Timesheet created successfully.")
                 logger.debug("Timesheet created successfully")
+
                 return JsonResponse({
                     "success": True,
                     "messages": extract_messages(request),
-                    "entry_id": entry.id
+                    "entry_id": entry.id,
+                    "jobs": get_jobs_data(related_jobs),
+                    "action": "add"
                 }, status=200)
 
         return JsonResponse({
             "success": True,
-            "updated_entries": updated_entries,
+            "jobs": get_jobs_data(related_jobs),
+            "action": "add",
             "messages": extract_messages(request)
         }, status=200)
 

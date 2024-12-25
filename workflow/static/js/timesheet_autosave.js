@@ -130,15 +130,20 @@ function collectGridData() {
  * are either new/modified time entries or deleted entries to process.
  * 
  * Business Logic:
- * - Only saves entries that have either an ID (existing entries) or a job number (new entries)
+ * - Only saves entries that have an ID, job number, hours and description
  * - Skips saving if there are no valid entries to update and no entries to delete
  * - Logs the number of entries being processed for debugging purposes
  */
-
 function autosaveData() {
     const collectedData = collectGridData();
     
-    collectedData.time_entries = collectedData.time_entries.filter(entry => entry.id || entry.job_number);
+    collectedData.time_entries = collectedData.time_entries.filter(
+        entry => 
+            entry.id && 
+            entry.job_number && 
+            entry.hours > 0 && 
+            (entry.description.trim() !== '')
+    );
 
     // Changed validation - proceed if either we have entries to update or delete
     if (collectedData.time_entries.length === 0 && collectedData.deleted_entries.length === 0) {
@@ -157,26 +162,44 @@ function autosaveData() {
 /**
  * Sends timesheet data to the server for automatic saving and handles the response.
  * 
- * @param {Object} collectedData - The timesheet data to be saved
- * @param {Array} collectedData.time_entries - Array of time entries to save/update
- * @param {Array} collectedData.deleted_entries - Array of entries to delete
- * @returns {Promise} Resolves when save is complete
+ * @param {Object} collectedData - The timesheet data to be saved.
+ * @param {Array} collectedData.time_entries - Array of time entries to save/update.
+ * @param {Array} collectedData.deleted_entries - Array of entries to delete.
+ * @returns {Promise} Resolves when the save process is complete.
+ * 
+ * Purpose:
+ * - Automatically sync timesheet data with the server.
+ * - Handle updates and deletions of entries efficiently.
+ * - Maintain UI consistency by dynamically updating the grid and jobs list.
  * 
  * Business Logic:
- * - Sends timesheet data to server via POST request
- * - Updates temporary IDs with permanent ones from server
- * - Clears deleted entries list after successful save
- * - Displays any messages returned from the server
- * - Includes security token (CSRF) for Django backend
+ * - Sends collected timesheet data to the server via a POST request.
+ * - Updates temporary IDs (`tempId`) with permanent IDs returned by the server.
+ * - Clears the `deletedEntries` list after a successful save.
+ * - Updates the list of jobs (`currentJobs`) based on the server response.
+ * - Displays server-provided messages (e.g., success, errors).
  * 
  * Error Handling:
- * - Logs detailed error information if save fails
- * - Displays server-provided error messages when available
- * - Maintains data consistency by only clearing deletions after successful save
+ * - Logs detailed error information if the save operation fails.
+ * - Displays error messages returned by the server, when available.
+ * - Ensures data consistency by preserving `deletedEntries` in case of errors.
  * 
- * Note: Requires an initialized grid variable and renderMessages function in scope
+ * Dependencies:
+ * - Requires an initialized `grid` variable for updating grid entries.
+ * - Relies on `renderMessages` for displaying feedback to the user.
+ * - Requires `updateJobsList` to manage the list of jobs dynamically.
+ * - Requires `getCsrfToken` to provide the CSRF token for secure requests.
+ * 
+ * Example Usage:
+ * saveDataToServer({
+ *   time_entries: [{ id: 'tempId', job_number: 1, hours: 4 }],
+ *   deleted_entries: ['12345']
+ * });
+ * 
+ * Notes:
+ * - Updates the grid nodes with permanent IDs for newly created entries.
+ * - Dynamically adds or removes jobs in the UI based on the server's response.
  */
-
 function saveDataToServer(collectedData) {
     console.log('Autosaving timesheet data to /api/autosave-timesheet/...', {
         time_entries: collectedData.time_entries.length,
@@ -216,6 +239,12 @@ function saveDataToServer(collectedData) {
             console.log('data.entry_id: ', data.entry_id);
         }
 
+        if (data.jobs) {
+            console.log('Updating jobs from server responded:', data.jobs);
+            updateJobsList(data.jobs, data.action);
+        }
+
+        deletedEntries = [];
         renderMessages(data.messages || []);
         
         console.log('Autosave successful:', data);
