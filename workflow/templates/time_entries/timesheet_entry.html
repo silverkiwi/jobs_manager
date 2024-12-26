@@ -12,9 +12,8 @@
     <h2>Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ timesheet_date }}</h2>
 
     <div class="summary-section">
-        <p class="lead"><strong>Scheduled Hours: {{ scheduled_hours }}</strong></p>
-        <p class="lead actual-hours">Actual Hours: <!-- Loaded dynamically --></p>
-        <!-- We'll add more summary info here -->
+        <p class="alert alert-info"><strong>Scheduled Hours: {{ scheduled_hours }}</strong></p>
+        <p class="actual-hours">Actual Hours: <!-- Loaded dynamically --></p>
     </div>
 
     <!-- AG Grid will be initialized here -->
@@ -97,6 +96,6 @@
     <!-- AG Grid Script -->
     <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
     <script src="{% static 'js/timesheet/deserialize_timesheet.js' %}"></script>
-    <script src="{% static 'js/timesheet/timesheet_entry/timesheet_autosave.js' %}"></script>
+    <script type="module" src="{% static 'js/timesheet/timesheet_entry/timesheet_autosave.js' %}"></script>
     <script type="module" src="{% static 'js/timesheet/timesheet_entry/timesheet_entry.js' %}"></script>
     {% endblock %}

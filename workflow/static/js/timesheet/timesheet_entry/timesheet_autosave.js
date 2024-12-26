@@ -1,4 +1,5 @@
-import { rowStateTracker } from "./state.js";
+import { validateAndTrackRow } from "./utils.js";
+import { updateJobsList } from "./job_section.js";
 
 let deletedEntries = [];
 
@@ -7,7 +8,7 @@ let deletedEntries = [];
  * This handles AG Grid's deleted rows separately from the form, 
  * ensuring the backend correctly processes grid-level changes.
  */
-function markEntryAsDeleted(entryId) {
+export function markEntryAsDeleted(entryId) {
     if (entryId) {
         console.log('Adding entry to deletion list:', entryId);
         deletedEntries.push(entryId);
@@ -72,22 +73,11 @@ function collectGridData() {
         }
 
         console.log('Processing node:', node);
-
         const rowData = node.data;
-
-        const isValidRow = rowData.hours > 0 &&
-            (rowData.description?.trim() !== '' || rowData.notes?.trim() !== '');
-
-        if (!isValidRow) {
-            console.log('Skipping invalid row:', rowData);
-            return;
-        }
-
-        const previousRowData = rowStateTracker[node.id] || {};
-        const rowChanged = hasRowChanged(previousRowData, rowData);
-
-        if (!rowChanged) {
-            console.log('Skipping unchanged row:', rowData);
+        const rowId = node.id;
+        
+        if (!validateAndTrackRow(rowData, rowId)) {
+            console.log('Skipping invalid or unchanged row', rowData);
             return;
         }
     
@@ -113,9 +103,6 @@ function collectGridData() {
             notes: rowData.notes || '',
             rate_type: rowData.rate_type || 'ORDINARY'
         };
-
-        rowStateTracker[node.id] = { ...rowData };
-        console.log('Updated row state:', rowStateTracker[node.id]);
 
         gridData.push(entry);
     });
@@ -242,7 +229,7 @@ function saveDataToServer(collectedData) {
         }
 
         if (data.jobs) {
-            console.log('Updating jobs from server responded:', data.jobs);
+            console.log('Updating jobs from server response:', data.jobs);
             updateJobsList(data.jobs, data.action);
         }
 
@@ -262,4 +249,4 @@ function getCsrfToken() {
 }
 
 // Debounced autosave function
-const debouncedAutosave = debounce(autosaveData, 500);
+export const debouncedAutosave = debounce(autosaveData, 500);

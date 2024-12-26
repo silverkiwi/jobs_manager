@@ -1,8 +1,10 @@
 import { ActiveJobCellEditor } from './job_cell_editor.js'; 
 import { rowStateTracker, timesheet_data  } from './state.js';
-import { currencyFormatter, hasRowChanged } from './utils.js';
+import { currencyFormatter, hasRowChanged, validateAndTrackRow } from './utils.js';
 import { createNewRow, calculateAmounts } from './grid_manager.js';
 import { updateSummarySection } from './summary.js';
+import { debouncedAutosave, markEntryAsDeleted } from './timesheet_autosave.js'
+import { fetchJobs } from './job_section.js';
 
 
 function deleteIconCellRenderer() {
@@ -41,11 +43,14 @@ export const gridOptions = {
             },
             cellRenderer: params => {
                 const job = timesheet_data.jobs.find(j => j.job_number === params.value);
-                if (job.job_status === 'completed') {
-                    return `❓ <a href="/job/${job.id}">${params.value}</a>`;
-                }
-                if (job.job_status === 'quoting') {
-                    return `❓ <a href="/job/${job.id}">${params.value}</a>`;
+                console.log('Rendering job:', job);
+                if (job) {
+                    if (job.job_status === 'completed') {
+                        return `❓ <a href="/job/${job.id}">${params.value}</a>`;
+                    }
+                    if (job.job_status === 'quoting') {
+                        return `❓ <a href="/job/${job.id}">${params.value}</a>`;
+                    }
                 }
                 return params.value;
             }
@@ -70,7 +75,7 @@ export const gridOptions = {
                 if (params.data.hours > params.data.scheduled_hours) {
                     return { backgroundColor: '#fff3cd' };
                 }
-                return { backgroundColor: '#ffffff' };
+                return null;
             },
             cellRenderer: params => {
                 console.log('Rendering hours cell:', params.value, params.data);
@@ -181,39 +186,45 @@ export const gridOptions = {
              */
             (params) => {
                 const rowCount = params.api.getDisplayedRowCount();
-                console.log('node id: ', params.node.data.id);
-
-                if (params.node.data.id == null) {
-                    params.node.data.id = 'tempId';
-                }
+                const rowData = params.node.data;
 
                 console.log('Delete clicked for row:', {
-                    id: params.node.data.id,
+                    id: rowData.id,
                     rowCount: rowCount,
-                    data: params.node.data
+                    data: rowData
                 });
 
-                // Only proceed if we have more than one row
-                if (rowCount > 1) {
-                    // Mark for deletion first if it has an ID
-                    if (params.node.data.id) {
-                        console.log('Marking entry for deletion:', params.node.data.id);
-                        markEntryAsDeleted(params.node.data.id);
-                    }
+                const isEmptyRow = !rowData.job_number && !rowData.description?.trim() && rowData.hours <= 0;
 
-                    // Then remove from grid
-                    params.api.applyTransaction({
-                        remove: [params.node.data]
-                    });
-
-                    delete rowStateTracker[params.node.data.id];
-                    localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
-                    console.log('Row removed from grid, triggering autosave');
-                    debouncedAutosave();
-                    fetchJobs();
-                } else {
-                    console.log('Cannot delete last row');
+                if (isEmptyRow) {
+                    console.log('Skipping empty row:', rowData);
+                    return;
                 }
+
+                if (rowData.id == null) {
+                    console.log('Assigning temporary ID to new row:', rowData);
+                    rowData.id = 'tempId';
+                }
+
+                // Mark for deletion first if it has an ID
+                if (rowData.id) {
+                    console.log('Marking entry for deletion:', rowData.id);
+                    markEntryAsDeleted(rowData.id);
+                }
+
+                // Then remove from grid
+                params.api.applyTransaction({ remove: [rowData] });
+                delete rowStateTracker[rowData.id];
+                localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
+                console.log('Row removed from grid, triggering autosave');
+                debouncedAutosave();
+
+                if (rowCount === 1) {
+                    console.log('Adding a new row to keep the grid populated');
+                    params.api.applyTransaction({ add: [createNewRow()] })
+                } 
+
+                updateSummarySection();
             }
         }
     ],
@@ -225,25 +236,6 @@ export const gridOptions = {
     },
     onCellValueChanged: (params) => {
         console.log('onCellValueChanged triggered:', params);
-
-        const previousRowData = rowStateTracker[params.node.id] || {};
-        const currentRowData = { ...params.node.data };
-
-        console.log("previous row data: ", previousRowData);
-        console.log("current row data: ", currentRowData);
-
-        const rowChanged = hasRowChanged(previousRowData, currentRowData);
-        console.log('Row changed:', rowChanged);
-
-        if (!rowChanged) {
-            return;
-        }
-
-        if (currentRowData.id == null) {
-            currentRowData.id = 'tempId';
-        }
-
-        const isUserEdit = params.source === 'edit';
 
         // If job number changes, update job name, client, and job_data
         if (params.column?.colId === 'job_number') {
@@ -274,20 +266,12 @@ export const gridOptions = {
             });
         }
 
-        const rowData = params.node.data;
-
-        const isValidRow = rowData.job_number && rowData.hours > 0 && (rowData.description.trim() !== '' || rowData.notes.trim() !== '');
-
-        if (!isValidRow) {
-            console.log('Insufficient data to save, ignoring autosave');
-            return;
-        }
-
-        if (isUserEdit) {
-            console.log('Is user edit? -> ', isUserEdit, 'Valid row? -> ', isValidRow);
-            console.log('Row is valid and changed, triggering autosave');
+        // Verify if it's an user edition of the row
+        if (params.source === 'edit') {
             debouncedAutosave();
             updateSummarySection();
+        } else {
+            console.log('Skipping autosave due to invalid or unchanged row');
         }
     },
     // Add new row when Enter is pressed on last row
@@ -295,38 +279,12 @@ export const gridOptions = {
         if (params.event.key === 'Enter') {
             const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
             if (isLastRow) {
-                const currentRowData = params.node.data;
-
-                console.log("Job number? -> ", currentRowData.job_number);
-                console.log("Hours? -> ", currentRowData.hours);
-                console.log("Description? -> ", currentRowData.description && currentRowData.description.trim() !== '');
-                console.log("Notes? -> ", currentRowData.notes && currentRowData.notes.trim() !== '');
-
-                const isRowValid = Boolean(
-                    currentRowData.hours > 0 &&
-                    (currentRowData.description && currentRowData.description.trim() !== '')
-                );
-
                 params.api.applyTransaction({ add: [createNewRow()] });
-
                 // Focus the first editable cell of the newly added row
                 const newRowIndex = params.api.getDisplayedRowCount() - 1;
                 params.api.setFocusedCell(newRowIndex, 'job_number');
-
-                const previousRowData = rowStateTracker[params.node.id] || {};
-
-                const rowChanged = hasRowChanged(previousRowData, currentRowData);
-                if (!rowChanged) {
-                    return;
-                }
-
-                rowStateTracker[params.node.id] = { ...currentRowData };
-                localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
-
-                if (isRowValid) {
-                    debouncedAutosave();
-                    updateSummarySection();
-                }                
+                debouncedAutosave();
+                updateSummarySection();       
             }
         }
     }

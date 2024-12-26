@@ -1,3 +1,6 @@
+import { rowStateTracker } from "./state.js";
+
+
 /**
  * Retrieves the value of a specific cookie from the browser's cookies.
  * 
@@ -85,4 +88,40 @@ export function hasRowChanged(previousRowData, currentRowData) {
 export function currencyFormatter(params) {
     if (params.value === undefined) return '$0.00';
     return '$' + params.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Validates if a row is valid and checks if it has been modified.
+ * Updates the RowStateTracker if the row is valid.
+ *
+ * @param {Object} rowData - The data of the row to validate.
+ * @param {string} rowId - The unique ID of the row.
+ * @returns {boolean} - True if the row is valid and has been modified, otherwise false.
+ */
+export function validateAndTrackRow(rowData, rowId) {
+    const previousRowData = rowStateTracker[rowId] || {};
+
+    // Check if the row is valid
+    const isValidRow = rowData.job_number &&
+        rowData.hours > 0 &&
+        (rowData.description?.trim() !== '' || rowData.notes?.trim() !== '');
+
+    if (!isValidRow) {
+        console.log('Row is invalid:', rowData);
+        return false;
+    }
+
+    // Check if the row has been modified
+    const rowChanged = JSON.stringify(previousRowData) !== JSON.stringify(rowData);
+    if (!rowChanged) {
+        console.log('Row has not changed:', rowData);
+        return false;
+    }
+
+    // Update the RowStateTracker
+    rowStateTracker[rowId] = { ...rowData };
+    localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
+    console.log('RowStateTracker updated:', rowStateTracker);
+
+    return true;
 }

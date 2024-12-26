@@ -25,7 +25,7 @@ export function updateSummarySection() {
     if (!actualHoursElement) {
         const summarySection = document.querySelector(".summary-section");
         const newElement = document.createElement("p");
-        newElement.className = "lead actual-hours";
+        newElement.className = "actual-hours";
         summarySection.appendChild(newElement);
     }
 
@@ -36,7 +36,9 @@ export function updateSummarySection() {
     if (totalHours > scheduledHours) {
         actualHoursElementFinal.className = ("alert alert-danger actual-hours");
         renderMessages([{ level: "warning", message: "Total hours exceed scheduled hours!" }]);
+    } else if (totalHours === scheduledHours) {
+        actualHoursElementFinal.className = ("alert alert-success actual-hours");
     } else {
-        actualHoursElementFinal.className = ("lead actual-hours");
+        actualHoursElementFinal.className = ("alert alert-info actual-hours");
     }
 }

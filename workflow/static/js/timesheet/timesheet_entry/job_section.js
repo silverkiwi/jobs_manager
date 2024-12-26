@@ -112,7 +112,7 @@ export function updateJobsList(jobs, action) {
     jobsList.innerHTML = '';
 
     console.log('Number of jobs:', jobs.length);
-    if (jobs.length === 0) {
+    if (currentJobs.length === 0) {
         const noJobsAlert = document.createElement('div');
         noJobsAlert.id = 'no-jobs-alert';
         noJobsAlert.className = 'alert alert-info';
@@ -126,7 +126,7 @@ export function updateJobsList(jobs, action) {
       const jobItem = document.createElement('a');
       jobItem.href = `/job/${job.id}`; 
       jobItem.className = 'list-group-item list-group-item-action';
-      jobItem.innerHTML = `<strong>${job.job_display_name}</strong><br>${job.client_name}`;
+      jobItem.innerHTML = `<strong>${job.job_display_name}</strong><br>Client: ${job.client_name}`;
       jobsList.appendChild(jobItem);
     });
 }

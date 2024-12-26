@@ -9,9 +9,6 @@ function renderMessages(messages) {
         return;
     }
 
-    // Clear old messages
-    alertContainer.innerHTML = '';
-
     // Add new messages
     messages.forEach(msg => {
         const alertDiv = document.createElement('div');
