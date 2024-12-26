@@ -167,6 +167,49 @@ function calculateAmounts(data) {
 }
 
 /**
+ * Updates the summary section with the total hours worked and compares them with scheduled hours.
+ */
+function updateSummarySection() {
+    const grid = window.grid;
+    if (!grid) {
+        console.error("Grid instance not found.");
+        return;
+    }
+
+    let totalHours = 0;
+
+    // Sum all the hours in the grid
+    grid.forEachNode(node => {
+        if (node?.data?.hours > 0) {
+            totalHours += node.data.hours;
+        }
+    });
+
+    // Update the summary section dynamically
+    const actualHoursElement = document.querySelector(".summary-section .actual-hours");
+    const scheduledHours = window.timesheet_data.staff.scheduled_hours;
+
+    // If the actualHoursElement doesn't exist, create it
+    if (!actualHoursElement) {
+        const summarySection = document.querySelector(".summary-section");
+        const newElement = document.createElement("p");
+        newElement.className = "lead actual-hours";
+        summarySection.appendChild(newElement);
+    }
+
+    const actualHoursElementFinal = document.querySelector(".summary-section .actual-hours");
+    actualHoursElementFinal.innerHTML = `<strong>Actual Hours: ${totalHours.toFixed(2)}</strong>`;
+
+    // Check for inconsistency
+    if (totalHours > scheduledHours) {
+        actualHoursElementFinal.className = ("alert alert-danger actual-hours");
+        renderMessages([{ level: "warning", message: "Total hours exceed scheduled hours!" }]);
+    } else {
+        actualHoursElementFinal.className = ("lead actual-hours");
+    }
+}
+
+/**
  * Filters the list of jobs to include only those related to the given time entries.
  * 
  * @param {Array<Object>} jobs - The list of all jobs.
@@ -341,6 +384,29 @@ const gridOptions = {
             cellEditor: ActiveJobCellEditor,
             cellEditorParams: {
                 values: window.timesheet_data.jobs.map(job => job.job_display_name)
+            },
+            cellStyle: params => {
+                const job = window.timesheet_data.jobs.find(j => j.job_number === params.value);
+                if (job) {
+                    console.log('Job status:', job.job_status);
+                    if (job.job_status === 'completed') {
+                        return { backgroundColor: '#f8d7da' };
+                    }
+                    if (job.job_status === 'quoting') {
+                        return { backgroundColor: '#f8d7da' };
+                    }
+                }
+                return null;
+            },
+            cellRenderer: params => {
+                const job = window.timesheet_data.jobs.find(j => j.job_number === params.value);
+                if (job.job_status === 'completed') {
+                    return `❓ <a href="/job/${job.id}">${params.value}</a>`;
+                }
+                if (job.job_status === 'quoting') {
+                    return `❓ <a href="/job/${job.id}">${params.value}</a>`;
+                }
+                return params.value;
             }
         },
         {
@@ -358,7 +424,21 @@ const gridOptions = {
             editable: true,
             type: 'numericColumn',
             valueParser: params => Number(params.newValue),
-            valueFormatter: params => params.value?.toFixed(2)
+            valueFormatter: params => params.value?.toFixed(2),
+            cellStyle: params => {
+                if (params.data.hours > params.data.scheduled_hours) {
+                    return { backgroundColor: '#fff3cd' };
+                }
+                return { backgroundColor: '#ffffff' };
+            },
+            cellRenderer: params => {
+                console.log('Rendering hours cell:', params.value, params.data);
+
+                if (params.data.hours > params.data.scheduled_hours) {
+                    return `<div style="background-color: #fff3cd">⚠️ ${Number(params.value).toFixed(2)}</div>`
+                }
+                return Number(params.value).toFixed(2) || '';
+            }
         },
         {
             field: 'is_billable',
@@ -566,6 +646,7 @@ const gridOptions = {
             console.log('Is user edit? -> ', isUserEdit, 'Valid row? -> ', isValidRow);
             console.log('Row is valid and changed, triggering autosave');
             debouncedAutosave();
+            updateSummarySection();
         }
     },
     // Add new row when Enter is pressed on last row
@@ -603,6 +684,7 @@ const gridOptions = {
 
                 if (isRowValid) {
                     debouncedAutosave();
+                    updateSummarySection();
                 }                
             }
         }
@@ -677,6 +759,8 @@ document.addEventListener('DOMContentLoaded', function () {
     window.grid = agGrid.createGrid(gridDiv, gridOptions);
     console.log('Grid object:', window.grid);
 
+    
+
     console.log('Fetching initial jobs:', window.timesheet_data.jobs);
     fetchJobs();
 
@@ -697,6 +781,7 @@ document.addEventListener('DOMContentLoaded', function () {
             add: [createNewRow()] // Use centralized function
         });
     }
+    updateSummarySection();
 
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {

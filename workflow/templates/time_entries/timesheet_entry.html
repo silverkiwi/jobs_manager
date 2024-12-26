@@ -12,7 +12,8 @@
     <h2>Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ timesheet_date }}</h2>
 
     <div class="summary-section">
-        <p>Scheduled Hours: {{ scheduled_hours }}</p>
+        <p class="lead"><strong>Scheduled Hours: {{ scheduled_hours }}</strong></p>
+        <p class="lead actual-hours">Actual Hours: <!-- Loaded dynamically --></p>
         <!-- We'll add more summary info here -->
     </div>
 

@@ -15,6 +15,7 @@ function renderMessages(messages) {
     // Add new messages
     messages.forEach(msg => {
         const alertDiv = document.createElement('div');
+        msg.level = msg.level === 'error' ? 'danger' : msg.level;
         alertDiv.className = `alert alert-${msg.level} alert-dismissible fade show mt-1`;
         alertDiv.role = 'alert';
         alertDiv.innerHTML = `
@@ -23,14 +24,17 @@ function renderMessages(messages) {
         `;
         alertContainer.appendChild(alertDiv);
 
-        // Add fade out effect after 1 second
-        setTimeout(() => {
-            alertDiv.classList.remove('show');
-            alertDiv.classList.add('fade');
+        // Add fade out effect after 1 second if message level is success
+        console.log("Message level: ", msg.level);
+        if (msg.level === 'success') {
             setTimeout(() => {
-                alertDiv.remove();
-            }, 150); // Wait for fade animation to complete
-        }, 1500);
+                alertDiv.classList.remove('show');
+                alertDiv.classList.add('fade');
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 150); // Wait for fade animation to complete
+            }, 1500);
+        }
     });
 }
 
