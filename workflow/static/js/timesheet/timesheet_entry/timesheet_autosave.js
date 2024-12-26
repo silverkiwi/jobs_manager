@@ -1,3 +1,5 @@
+import { rowStateTracker } from "./state.js";
+
 let deletedEntries = [];
 
 /** 
