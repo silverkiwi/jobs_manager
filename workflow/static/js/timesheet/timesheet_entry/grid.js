@@ -1,5 +1,5 @@
-import { ActiveJobCellEditor } from './job_cell_editor.js'; 
-import { rowStateTracker, timesheet_data  } from './state.js';
+import { ActiveJobCellEditor } from './job_cell_editor.js';
+import { rowStateTracker, timesheet_data } from './state.js';
 import { currencyFormatter, hasRowChanged, validateAndTrackRow } from './utils.js';
 import { createNewRow, calculateAmounts } from './grid_manager.js';
 import { updateSummarySection } from './summary.js';
@@ -9,6 +9,20 @@ import { debouncedAutosave, markEntryAsDeleted } from './timesheet_autosave.js'
 function deleteIconCellRenderer() {
     return `<span class="delete-icon">🗑️</span>`;
 }
+
+function getStatusIcon(status) {
+    const icons = {
+        'quoting': '📝',
+        'approved': '✅',
+        'rejected': '❌', 
+        'in_progress': '🚧',
+        'on_hold': '⏸️',
+        'special': '⭐',
+        'completed': '✔️',
+        'archived': '📦'
+    };
+    return icons[status] || '';
+}  
 
 export const gridOptions = {
     columnDefs: [
@@ -29,29 +43,75 @@ export const gridOptions = {
             },
             cellStyle: params => {
                 const job = timesheet_data.jobs.find(j => j.job_number === params.value);
-                if (job) {
-                    console.log('Job status:', job.job_status);
-                    if (job.job_status === 'completed') {
-                        return { backgroundColor: '#f8d7da' };
-                    }
-                    if (job.job_status === 'quoting') {
-                        return { backgroundColor: '#f8d7da' };
-                    }
+
+                if (!job) return null;
+
+                const jobStatus = job.job_status;
+                const hoursSpent = job.hours_spent || 0;
+                const estimatedHours = job.estimated_hours || 0;
+
+                console.log('Job status:', job.job_status);
+                console.log('Hours spent:', hoursSpent);
+                console.log('Estimated hours:', estimatedHours);
+
+                if (jobStatus === 'completed' && hoursSpent > estimatedHours) {
+                    return { backgroundColor: '#f8d7da' };
                 }
+
+                if (jobStatus === 'quoting') {
+                    return { backgroundColor: '#fff3cd' };
+                }
+
+                if (hoursSpent > estimatedHours) {
+                    return { backgroundColor: '#f8d7da' };
+                }
+
+                if (hoursSpent > estimatedHours * 0.8) {
+                    return { backgroundColor: '#fff3cd' };
+                }
+
                 return null;
             },
             cellRenderer: params => {
                 const job = timesheet_data.jobs.find(j => j.job_number === params.value);
-                console.log('Rendering job:', job);
-                if (job) {
-                    if (job.job_status === 'completed') {
-                        return `❓ <a href="/job/${job.id}">${params.value}</a>`;
-                    }
-                    if (job.job_status === 'quoting') {
-                        return `❓ <a href="/job/${job.id}">${params.value}</a>`;
-                    }
+
+                if (!job) return params.value;
+
+                const { job_status, hours_spent, estimated_hours } = job;
+                console.log('Job status:', job_status);
+                console.log('Hours spent:', hours_spent);
+                console.log('Estimated hours:', estimated_hours);
+
+                let statusIcon = '';
+                statusIcon = getStatusIcon(job_status);
+
+                if (job_status === 'completed' && hours_spent >= estimated_hours) {
+                    renderMessages([{ level: 'warning', message: 'Adding hours to a job with status: "completed"!' }]); 
+                    renderMessages([{ level: 'warning', message: 'Job has met or exceeded its estimated hours!' }]);
+                    return `
+                        ${statusIcon} <a href="/job/${job.id}">${params.value}
+                        <small style="color: red">⚠ ${hours_spent}/${estimated_hours} hrs</small>
+                        <small><strong> Warning:</strong> Exceeds estimated hours on completed job!</small>
+                        </a>
+                    `;
                 }
-                return params.value;
+
+                if (job_status === 'quoting') {
+                    renderMessages([{ level: 'warning', message: 'Adding hours to a job with status: "quoting"!' }]);
+                    return `
+                        ${statusIcon} <a href="/job/${job.id}">${params.value}
+                        <small style="color: orange">⚠ ${hours_spent}/${estimated_hours} hrs</small>
+                        <small><strong>Note:</strong> Adding hours to quoting job.</small>
+                        </a>
+                    `;
+                }
+
+                return `
+                    ${statusIcon} <a href="/job/${job.id}">
+                    ${params.value}
+                    <small>Total: ${hours_spent}/${estimated_hours} hrs</small>
+                    </a>
+                `;
             }
         },
         {
@@ -156,75 +216,75 @@ export const gridOptions = {
             headerName: '',
             width: 50,
             cellRenderer: deleteIconCellRenderer,
-            onCellClicked: 
-            /**
-             * Handles the deletion of a row when a cell is clicked in the grid.
-             * 
-             * @param {Object} params - The cell click event parameters from ag-Grid
-             * @param {Object} params.api - The grid API
-             * @param {Object} params.node - The row node that was clicked
-             * @param {Object} params.node.data - The data for the clicked row
-             * 
-             * Business Logic:
-             * - Prevents deletion of the last remaining row in the grid
-             * - Assigns temporary IDs to new rows that haven't been saved
-             * - Marks existing entries for deletion in the backend
-             * - Removes the row from the grid's display
-             * - Updates the row state tracking in localStorage
-             * - Triggers an autosave after deletion
-             * 
-             * Safety Features:
-             * - Maintains at least one row in the grid at all times
-             * - Preserves deletion history for backend synchronization
-             * - Handles both new (unsaved) and existing rows appropriately
-             * 
-             * Dependencies:
-             * - Requires markEntryAsDeleted function
-             * - Requires debouncedAutosave function
-             * - Requires rowStateTracker object
-             */
-            (params) => {
-                const rowCount = params.api.getDisplayedRowCount();
-                const rowData = params.node.data;
+            onCellClicked:
+                /**
+                 * Handles the deletion of a row when a cell is clicked in the grid.
+                 * 
+                 * @param {Object} params - The cell click event parameters from ag-Grid
+                 * @param {Object} params.api - The grid API
+                 * @param {Object} params.node - The row node that was clicked
+                 * @param {Object} params.node.data - The data for the clicked row
+                 * 
+                 * Business Logic:
+                 * - Prevents deletion of the last remaining row in the grid
+                 * - Assigns temporary IDs to new rows that haven't been saved
+                 * - Marks existing entries for deletion in the backend
+                 * - Removes the row from the grid's display
+                 * - Updates the row state tracking in localStorage
+                 * - Triggers an autosave after deletion
+                 * 
+                 * Safety Features:
+                 * - Maintains at least one row in the grid at all times
+                 * - Preserves deletion history for backend synchronization
+                 * - Handles both new (unsaved) and existing rows appropriately
+                 * 
+                 * Dependencies:
+                 * - Requires markEntryAsDeleted function
+                 * - Requires debouncedAutosave function
+                 * - Requires rowStateTracker object
+                 */
+                (params) => {
+                    const rowCount = params.api.getDisplayedRowCount();
+                    const rowData = params.node.data;
 
-                console.log('Delete clicked for row:', {
-                    id: rowData.id,
-                    rowCount: rowCount,
-                    data: rowData
-                });
+                    console.log('Delete clicked for row:', {
+                        id: rowData.id,
+                        rowCount: rowCount,
+                        data: rowData
+                    });
 
-                const isEmptyRow = !rowData.job_number && !rowData.description?.trim() && rowData.hours <= 0;
+                    const isEmptyRow = !rowData.job_number && !rowData.description?.trim() && rowData.hours <= 0;
 
-                if (isEmptyRow) {
-                    console.log('Skipping empty row:', rowData);
-                    return;
+                    if (isEmptyRow) {
+                        console.log('Skipping empty row:', rowData);
+                        return;
+                    }
+
+                    if (rowData.id == null) {
+                        console.log('Assigning temporary ID to new row:', rowData);
+                        rowData.id = 'tempId';
+                    }
+
+                    // Mark for deletion first if it has an ID
+                    if (rowData.id) {
+                        console.log('Marking entry for deletion:', rowData.id);
+                        markEntryAsDeleted(rowData.id);
+                    }
+
+                    // Then remove from grid
+                    params.api.applyTransaction({ remove: [rowData] });
+                    delete rowStateTracker[rowData.id];
+                    localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
+                    console.log('Row removed from grid, triggering autosave');
+                    debouncedAutosave();
+
+                    if (rowCount === 1) {
+                        console.log('Adding a new row to keep the grid populated');
+                        params.api.applyTransaction({ add: [createNewRow()] })
+                    }
+
+                    updateSummarySection();
                 }
-
-                if (rowData.id == null) {
-                    console.log('Assigning temporary ID to new row:', rowData);
-                    rowData.id = 'tempId';
-                }
-
-                // Mark for deletion first if it has an ID
-                if (rowData.id) {
-                    console.log('Marking entry for deletion:', rowData.id);
-                    markEntryAsDeleted(rowData.id);
-                }
-
-                // Then remove from grid
-                params.api.applyTransaction({ remove: [rowData] });
-                delete rowStateTracker[rowData.id];
-                localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
-                console.log('Row removed from grid, triggering autosave');
-                debouncedAutosave();
-
-                if (rowCount === 1) {
-                    console.log('Adding a new row to keep the grid populated');
-                    params.api.applyTransaction({ add: [createNewRow()] })
-                } 
-
-                updateSummarySection();
-            }
         }
     ],
     defaultColDef: {
@@ -236,56 +296,59 @@ export const gridOptions = {
     onCellValueChanged: (params) => {
         console.log('onCellValueChanged triggered:', params);
 
-        const { colId, newValue } = params.column || {};
-
         // If job number changes, update job name, client, and job_data
-        if (colId === 'job_number') {
-            console.log('Job number changed:', newValue);
-            const job = timesheet_data.jobs.find(j => j.job_number === newValue);
-            if (job) {
-                params.node.setDataValue('job_name', job.name);
-                params.node.setDataValue('client', job.client_name);
-                params.node.setDataValue('job_data', job); // Store the whole job object as job_data
+        if (params.column?.colId === 'job_number') {
+            console.log('Job number changed:', params.newValue);
+            const job = timesheet_data.jobs.find(j => j.job_number === params.newValue);
 
-                calculateAmounts(params.node.data);
-                console.log('Refreshing cells for job_name, client, wage_amount, bill_amount');
-                params.api.refreshCells({
-                    rowNodes: [params.node],
-                    columns: ['job_name', 'client', 'wage_amount', 'bill_amount']
-                });
-            }
+            if (!job) return;
+
+            params.node.setDataValue('job_name', job.name);
+            params.node.setDataValue('client', job.client_name);
+            params.node.setDataValue('job_data', job);
+            params.node.setDataValue('hours_spent', job.hours_spent);
+            params.node.setDataValue('estimated_hours', job.estimated_hours);
+
+            calculateAmounts(params.node.data);
+            console.log('Refreshing cells for job_name, client, wage_amount, bill_amount');
+            params.api.refreshCells({
+                rowNodes: [params.node],
+                columns: ['job_name', 'client', 'wage_amount', 'bill_amount']
+            });
         }
 
         // Recalculate amounts if rate type or hours changes
-        if (['rate_type', 'hours'].includes(colId)) {
-            console.log('Rate type or hours changed:', colId, newValue);
+        if (['rate_type', 'hours'].includes(params.column?.colId)) {
+            console.log('Rate type or hours changed:', params.column?.colId, params.newValue);
+
             calculateAmounts(params.node.data);
             console.log('Refreshing cells for wage_amount, bill_amount');
             params.api.refreshCells({
                 rowNodes: [params.node],
                 columns: ['wage_amount', 'bill_amount']
             });
-        }
 
-        // Verify if it's an user edition of the row
-        if (params.source === 'edit') {
-            if (colId === 'hours') {
+            // Check for hours exceeding scheduled hours
+            if (params.column?.colId === 'hours') {
                 const totalHours = params.data.hours;
                 const scheduled_hours = timesheet_data.staff.scheduled_hours;
 
                 if (totalHours > scheduled_hours) {
-                    renderMessages([{level: 'warning', message: `Hours exceed scheduled (${totalHours} > ${scheduled_hours}).`}]);
+                    renderMessages([{ level: 'warning', message: `Hours exceed scheduled (${totalHours} > ${scheduled_hours}).` }]);
                     params.node.setDataValue('inconsistent', true);
                 } else {
                     params.node.setDataValue('inconsistent', false);
                 }
             }
-
-            debouncedAutosave();
-            updateSummarySection();
-        } else {
-            console.log('Skipping autosave due to invalid or unchanged row');
         }
+
+        if (!(params.source === 'edit')) {
+            console.log('Skipping autosave - not an edit event');
+            return;
+        }
+
+        debouncedAutosave();
+        updateSummarySection();
     },
     // Add new row when Enter is pressed on last row
     onCellKeyDown: (params) => {
@@ -297,14 +360,8 @@ export const gridOptions = {
                 const newRowIndex = params.api.getDisplayedRowCount() - 1;
                 params.api.setFocusedCell(newRowIndex, 'job_number');
                 debouncedAutosave();
-                updateSummarySection();       
+                updateSummarySection();
             }
         }
     },
-    cellStyle: (params) => {
-        if (params.data?.inconsistent) {
-            return { backgroundColor: '#fff3cd', color: '#856404' };
-        }
-        return null;
-    }
 };

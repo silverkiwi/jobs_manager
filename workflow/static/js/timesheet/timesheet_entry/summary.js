@@ -10,14 +10,21 @@ export function updateSummarySection() {
 
     let totalHours = 0;
     let hasInconsistencies = false;
+    const jobsWithIssues = [];
 
     // Sum all the hours in the grid
     grid.forEachNode(node => {
+        const jobData = node?.data?.job_data;
         if (node?.data?.hours > 0) {
             totalHours += node.data.hours;
         }
+
         if (node?.data?.inconsistent) {
             hasInconsistencies = true;
+        }
+
+        if (jobData && jobData.hours_spent >= jobData.estimated_hours) {
+            jobsWithIssues.push(jobData.name);
         }
     });
 
@@ -36,19 +43,28 @@ export function updateSummarySection() {
     const actualHoursElementFinal = document.querySelector(".summary-section .actual-hours");
     actualHoursElementFinal.innerHTML = `<strong>Actual Hours: ${totalHours.toFixed(1)}</strong>`;
 
-    // Check for inconsistency
+    // Check for inconsistency using guard clauses
     if (totalHours > scheduledHours) {
-        actualHoursElementFinal.className = ("alert alert-danger actual-hours");
+        actualHoursElementFinal.className = "alert alert-danger actual-hours";
         renderMessages([{ level: "warning", message: "Total hours exceed scheduled hours!" }]);
-    } else if (totalHours < scheduledHours && totalHours !== 0) { 
-        actualHoursElementFinal.className = ("alert alert-danger actual-hours");
+        return;
+    }
+
+    if (totalHours < scheduledHours && totalHours !== 0) {
+        actualHoursElementFinal.className = "alert alert-danger actual-hours"; 
         renderMessages([{ level: "warning", message: "Total hours do not match scheduled hours!" }]);
-    } else if (totalHours === scheduledHours && !hasInconsistencies) {
-        actualHoursElementFinal.className = ("alert alert-success actual-hours");
-    } else {
-        actualHoursElementFinal.className = ("alert alert-info actual-hours");
-        if (hasInconsistencies) {
-            renderMessages([{ level: "warning", message: "Some entries have inconsistencies. Please review." }]);
-        }
+        return;
+    }
+
+    if (totalHours === scheduledHours && !hasInconsistencies) {
+        actualHoursElementFinal.className = "alert alert-success actual-hours";
+        return;
+    }
+
+    actualHoursElementFinal.className = "alert alert-warning actual-hours";
+    if (hasInconsistencies) {
+        renderMessages([{ level: "warning", message: "Some entries have inconsistencies. Please review." }]);
+    } else if (jobsWithIssues.length > 0) {
+        renderMessages([{ level: "warning", message: `Some jobs have met or exceeded their estimated hours: ${jobsWithIssues.join(', ')}` }]);
     }
 }

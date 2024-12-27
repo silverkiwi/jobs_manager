@@ -94,7 +94,7 @@ function collectGridData() {
             mins_per_item: rowData.mins_per_item,
             items: rowData.items,
             wage_amount: rowData.wage_amount,
-            charge_out_rate: rowData.job_data.charge_out_rate,
+            charge_out_rate: rowData.job_data?.charge_out_rate || 105.00, // Company default charge out rate 
             timesheet_date: window.timesheet_data.timesheet_date,
             bill_amount: rowData.bill_amount,
             date: rowData.date,

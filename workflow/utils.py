@@ -74,8 +74,11 @@ def get_jobs_data(related_jobs):
             "job_number": Job.objects.get(id=job_id).job_number,
             "name": Job.objects.get(id=job_id).name,
             "job_display_name": str(Job.objects.get(id=job_id)),
+            "estimated_hours": Job.objects.get(id=job_id).latest_estimate_pricing.total_hours,
+            "hours_spent": Job.objects.get(id=job_id).latest_reality_pricing.total_hours,
             "client_name": Job.objects.get(id=job_id).client.name if Job.objects.get(id=job_id).client else "NO CLIENT!?",
             "charge_out_rate": float(Job.objects.get(id=job_id).charge_out_rate),
+            "job_status": Job.objects.get(id=job_id).status
         }
         for job_id in related_jobs
     ]

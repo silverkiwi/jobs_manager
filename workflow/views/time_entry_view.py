@@ -152,6 +152,8 @@ class TimesheetEntryView(TemplateView):
                 "job_number": job.job_number,
                 "name": job.name,
                 "job_display_name": str(job),
+                "estimated_hours": job.latest_estimate_pricing.total_hours,
+                "hours_spent": job.latest_reality_pricing.total_hours,
                 "client_name": job.client.name if job.client else "NO CLIENT!?",
                 "charge_out_rate": float(job.charge_out_rate),
                 "job_status": job.status,
@@ -454,8 +456,11 @@ class TimesheetEntryView(TemplateView):
                     "job_number": job.job_number, 
                     "name": job.name,
                     "job_display_name": str(job),
+                    "estimated_hours": job.latest_estimate_pricing.total_hours,
+                    "hours_spent": job.latest_reality_pricing.total_hours,
                     "client_name": job.client.name if job.client else "NO CLIENT!?",
                     "charge_out_rate": float(job.charge_out_rate),
+                    "job_status": job.job_status
                 }]
 
                 entries.append({
@@ -667,25 +672,47 @@ def autosave_timesheet_view(request):
                 logger.error(f"Invalid timesheet_date format: {entry_data.get("timesheet_date")}")
                 continue  
 
-            if entry_id and entry_id != 'tempId':
+            if entry_id and entry_id != "tempId":
                 try:
                     logger.debug(f"Processing entry with ID: {entry_id}")
                     entry = TimeEntry.objects.get(id=entry_id)
 
+                    job_data = entry_data.get("job_data", {})
+                    new_job_id = job_data.get("id")
+                    if new_job_id and str(entry.job_pricing.job.id) != new_job_id:
+                        logger.info(f"Job for entry {entry_id} changed to {new_job_id}")
+                        new_job = Job.objects.get(id=new_job_id)
+                        new_job_pricing = new_job.latest_reality_pricing
+                        entry.job_pricing = new_job_pricing
+                        entry.charge_out_rate = Decimal(str(job_data.get("charge_out_rate", 0)))
+
                     # Update existing entry
-                    entry = TimeEntry.objects.get(id=entry_id)
-                    entry.description = entry_data.get("description", "")
+                    entry.description = entry_data.get("description", "").strip()
                     entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
                     entry.note = entry_data.get("notes", "")
+
                     rate_type = entry_data.get("rate_type", RateType.ORDINARY.value)
                     entry.wage_rate_multiplier = RateType(rate_type).multiplier
+
+                    if not job_data:
+                        logger.error("Missing job_data in entry data")
+                        continue
+
+                    charge_out_rate = job_data.get("charge_out_rate", 0)
+
+                    if not charge_out_rate:
+                        logger.error("Missing charge_out_rate in job_data")
+                        continue
+
+                    charge_out_rate = Decimal(str(charge_out_rate))
+
+                    entry_job = Job.objects.get(id=entry.job_pricing.job_id)
 
                     related_jobs.add(entry.job_pricing.job_id)
                     entry.save()
 
                     scheduled_hours = entry.staff.get_scheduled_hours(target_date)
-                    entry_job = Job.objects.get(id=entry.job_pricing.job_id)
                     if scheduled_hours < hours:
                         messages.warning(request, f"Existing timesheet saved successfully, but hours exceed scheduled hours for {target_date}")
                     elif entry_job.status in ["completed", "quoting"]:
@@ -714,7 +741,7 @@ def autosave_timesheet_view(request):
 
                 if existing_entry:
                     logger.info(f"Found duplicated entry: {existing_entry.id}")
-                    continue 
+                    continue
 
                 # Create new entry - need to get job_pricing
                 job = Job.objects.get(id=job_id)
@@ -725,7 +752,7 @@ def autosave_timesheet_view(request):
                 target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
                 
                 wage_rate_multiplier = RateType(entry_data["rate_type"]).multiplier
-                wage_rate = staff.wage_rate 
+                wage_rate = staff.wage_rate
                 charge_out_rate = entry_data["job_data"]["charge_out_rate"]
 
                 entry = TimeEntry.objects.create(
