@@ -1,3 +1,8 @@
+import { getCurrentDateFromURL } from './utils.js'
+import { fetchJobs } from './job_section.js'
+import { updateSummarySection } from './summary.js'
+
+
 export function initializePaidAbsenceHandlers() {
     /**
      * Handles the click event to load the Paid Absence form in a modal.
@@ -108,6 +113,7 @@ export function initializePaidAbsenceHandlers() {
                     });
 
                     fetchJobs();
+                    updateSummarySection();
                 }
             },
             error: function (xhr, status, error) {

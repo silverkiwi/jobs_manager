@@ -50,50 +50,6 @@ def get_rate_type_label(multiplier):
     
     return rate_map.get(float(multiplier), 'Ord')  # Default to 'Ord' if not found
 
-
-def create_paid_absence_job():
-    """
-    Creates a job with a paid absence entry for the 'Paid Absence Client'.
-    This function is intended to be run once during the application's setup or initialization, but it's here to be reviewed later.
-    It checks if the client exists, and if not, creates it. Then, it creates a job for the client.
-    """
-    from workflow.models import Client, Job
-    from decimal import Decimal
-    from datetime import datetime
-
-    # Create new client
-    client = Client.objects.create(
-        name="Paid Absence Client",
-        email="paidabsenceclient@example.com", 
-        phone="123456789",
-        address="123 Main St",
-        is_account_customer=False,
-        xero_last_modified=datetime.now(),
-        raw_json=None
-    )
-
-    print(f"Client '{client.name}' created successfully!")
-
-    # Create job associated with client
-    job = Job.objects.create(
-        name="Paid Absence Job",
-        client=client,
-        order_number="00000",
-        contact_person="System", 
-        contact_phone="0000000000",
-        description="Virtual Job for Paid Absence",
-        material_gauge_quantity="",
-        quote_acceptance_date=None,
-        delivery_date=None,
-        status="completed", # Should it be something else? Anyway, it can be changed later 
-        job_is_valid=True,
-        paid=False,
-        charge_out_rate=Decimal("0.00")
-    )
-
-    print(f"Job '{job.name}' created successfully!")
-    print(f"ID: {job.id}, Number: {job.job_number}")    
-
 def get_jobs_data(related_jobs):
     """
     Retrieves and formats job data for the given related jobs.

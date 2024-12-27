@@ -390,22 +390,33 @@ class TimesheetEntryView(TemplateView):
         - Weekends are automatically excluded to reflect typical work schedules.
         - The virtual paid absence job ID (`job_id`) is hardcoded to match the Paid Absence Job, but the form can be updated to manage dynamic special jobs for paid leaves/absences
         """
+        leave_jobs = {
+            "annual": "eecdc751-0207-4f00-a47a-ca025a7cf935", 
+            "sick": "4dd8ec04-35a0-4c99-915f-813b6b8a3584", 
+            "other": "cd2085c7-0793-403e-b78d-63b3c134e59d"
+        }
+
         start_date = request.POST.get("start_date")
         end_date = request.POST.get("end_date")
-        job_id = "ce8f9015-2a25-45fe-8441-1749989add05" # Virtual absence job id
+        leave_type = request.POST.get("leave_type")
 
-        try:
-            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-            if end_date < start_date:
-                messages.error(request, "End date must be greater than or equal to start date.")
-                raise ValueError("End date must be greater than or equal to start date.")
-        except ValueError as e:
+        job_id = leave_jobs.get(leave_type, leave_jobs["other"])
+        if not job_id:
+            messages.error(request, "Invalid leave type provided")
             return JsonResponse({
-                "error": str(e),
+                "error": "Invalid leave type provided",
                 "messages": extract_messages(request)
-                }, status=400)
+            }, status=400)
         
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        if end_date < start_date:
+            messages.error(request, "End date must be greater than or equal to start date.")
+            return JsonResponse({
+            "error": str(e),
+            "messages": extract_messages(request)
+            }, status=400)
+            
         days = (end_date - start_date).days + 1
         entries = []
         for i in range(days):
@@ -429,7 +440,7 @@ class TimesheetEntryView(TemplateView):
                     staff=staff_member,
                     date=entry_date,
                     hours=8,
-                    description="Paid Absence",
+                    description=f"{leave_type.capitalize()} Leave",
                     is_billable=False,
                     note="Automatically created leave entry",
                     wage_rate=staff_member.wage_rate,
@@ -438,22 +449,21 @@ class TimesheetEntryView(TemplateView):
                 )
 
                 job = entry.job_pricing.job
-                job_data = {
+                jobs_data = [{
                     "id": str(job.id),
                     "job_number": job.job_number, 
                     "name": job.name,
                     "job_display_name": str(job),
                     "client_name": job.client.name if job.client else "NO CLIENT!?",
                     "charge_out_rate": float(job.charge_out_rate),
-                }
+                }]
 
                 entries.append({
                     "id": str(entry.id),
                     "job_pricing_id": str(entry.job_pricing_id),
                     "job_number": entry.job_pricing.job.job_number,
                     "job_name": entry.job_pricing.job.name,
-                    "job_data": job_data,
-                    "client": entry.job_pricing.job.client.name if entry.job_pricing.job.client else "Paid Absence",
+                    "client": entry.job_pricing.job.client.name,
                     "description": entry.description or "",
                     "hours": float(entry.hours),
                     "rate_multiplier": float(entry.wage_rate_multiplier),
@@ -474,7 +484,7 @@ class TimesheetEntryView(TemplateView):
         return JsonResponse({
             "success": True,
             "entries": entries,
-            "job": job,
+            "jobs": jobs_data,
             "messages": extract_messages(request)
             }, status=200)
     
@@ -515,8 +525,15 @@ class TimesheetEntryView(TemplateView):
         Notes:
         - Optimized for AJAX-based workflows to improve responsiveness and user experience.
         - Any server-side validation should be handled when the form is submitted (at `add_paid_absence`), not at this stage.
+        - Includes a dropdown for selecting the type of leave.
         """
-        form = PaidAbsenceForm(request.POST)
+        LEAVE_CHOICES = [
+            ("annual", "Annual Leave"),
+            ("sick", "Sick Leave"),
+            ("other", "Other Leave")
+        ]
+
+        form = PaidAbsenceForm(initial={"leave_type": "other"})
         form_html = render_to_string(
             "time_entries/paid_absence_form.html",
             {"form": form},

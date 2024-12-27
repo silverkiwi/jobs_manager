@@ -249,5 +249,23 @@ class InvoiceForm(forms.ModelForm):
 
 
 class PaidAbsenceForm(forms.Form):
-    start_date = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
-    end_date = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}))
+    LEAVE_CHOICES = [
+        ("annual", "Annual Leave"),
+        ("sick", "Sick Leave"),
+        ("other", "Other Leave"),
+    ]
+
+    leave_type = forms.ChoiceField(
+        choices=LEAVE_CHOICES,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        label="Leave Type"
+    )
+
+    start_date = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+        label="Start Date"
+    )
+    end_date = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+        label="End Date"    
+    )

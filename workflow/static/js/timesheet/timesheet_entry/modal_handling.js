@@ -1,3 +1,7 @@
+import { calculateAmounts } from "./grid_manager.js";
+import { fetchJobs } from "./job_section.js";
+import { updateSummarySection } from "./summary.js";
+
 /**
  * Manages the timesheet entry modal interactions and form submissions.
  * 
@@ -83,6 +87,7 @@ export function initializeModals() {
                 if (response.messages) {
                     renderMessages(response.messages);
                 }
+
                 if (response.success) {
                     // Construct complete entry object with job data
                     const gridEntry = {
@@ -110,6 +115,7 @@ export function initializeModals() {
 
                     modal.modal('hide');
                     fetchJobs();
+                    updateSummarySection();
                 }
             },
             error: function (xhr, status, error) {
