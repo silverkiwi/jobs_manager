@@ -4,7 +4,6 @@ import { currencyFormatter, hasRowChanged, validateAndTrackRow } from './utils.j
 import { createNewRow, calculateAmounts } from './grid_manager.js';
 import { updateSummarySection } from './summary.js';
 import { debouncedAutosave, markEntryAsDeleted } from './timesheet_autosave.js'
-import { fetchJobs } from './job_section.js';
 
 
 function deleteIconCellRenderer() {
@@ -237,10 +236,12 @@ export const gridOptions = {
     onCellValueChanged: (params) => {
         console.log('onCellValueChanged triggered:', params);
 
+        const { colId, newValue } = params.column || {};
+
         // If job number changes, update job name, client, and job_data
-        if (params.column?.colId === 'job_number') {
-            console.log('Job number changed:', params.newValue);
-            const job = timesheet_data.jobs.find(j => j.job_number === params.newValue);
+        if (colId === 'job_number') {
+            console.log('Job number changed:', newValue);
+            const job = timesheet_data.jobs.find(j => j.job_number === newValue);
             if (job) {
                 params.node.setDataValue('job_name', job.name);
                 params.node.setDataValue('client', job.client_name);
@@ -256,8 +257,8 @@ export const gridOptions = {
         }
 
         // Recalculate amounts if rate type or hours changes
-        if (['rate_type', 'hours'].includes(params.column?.colId)) {
-            console.log('Rate type or hours changed:', params.column.colId, params.newValue);
+        if (['rate_type', 'hours'].includes(colId)) {
+            console.log('Rate type or hours changed:', colId, newValue);
             calculateAmounts(params.node.data);
             console.log('Refreshing cells for wage_amount, bill_amount');
             params.api.refreshCells({
@@ -268,6 +269,18 @@ export const gridOptions = {
 
         // Verify if it's an user edition of the row
         if (params.source === 'edit') {
+            if (colId === 'hours') {
+                const totalHours = params.data.hours;
+                const scheduled_hours = timesheet_data.staff.scheduled_hours;
+
+                if (totalHours > scheduled_hours) {
+                    renderMessages([{level: 'warning', message: `Hours exceed scheduled (${totalHours} > ${scheduled_hours}).`}]);
+                    params.node.setDataValue('inconsistent', true);
+                } else {
+                    params.node.setDataValue('inconsistent', false);
+                }
+            }
+
             debouncedAutosave();
             updateSummarySection();
         } else {
@@ -287,5 +300,11 @@ export const gridOptions = {
                 updateSummarySection();       
             }
         }
+    },
+    cellStyle: (params) => {
+        if (params.data?.inconsistent) {
+            return { backgroundColor: '#fff3cd', color: '#856404' };
+        }
+        return null;
     }
 };

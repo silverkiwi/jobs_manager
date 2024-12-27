@@ -126,6 +126,9 @@ export function updateJobsList(jobs, action) {
       const jobItem = document.createElement('a');
       jobItem.href = `/job/${job.id}`; 
       jobItem.className = 'list-group-item list-group-item-action';
+
+      
+
       jobItem.innerHTML = `<strong>${job.job_display_name}</strong><br>Client: ${job.client_name}`;
       jobsList.appendChild(jobItem);
     });

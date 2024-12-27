@@ -9,11 +9,15 @@ export function updateSummarySection() {
     }
 
     let totalHours = 0;
+    let hasInconsistencies = false;
 
     // Sum all the hours in the grid
     grid.forEachNode(node => {
         if (node?.data?.hours > 0) {
             totalHours += node.data.hours;
+        }
+        if (node?.data?.inconsistent) {
+            hasInconsistencies = true;
         }
     });
 
@@ -30,15 +34,21 @@ export function updateSummarySection() {
     }
 
     const actualHoursElementFinal = document.querySelector(".summary-section .actual-hours");
-    actualHoursElementFinal.innerHTML = `<strong>Actual Hours: ${totalHours.toFixed(2)}</strong>`;
+    actualHoursElementFinal.innerHTML = `<strong>Actual Hours: ${totalHours.toFixed(1)}</strong>`;
 
     // Check for inconsistency
     if (totalHours > scheduledHours) {
         actualHoursElementFinal.className = ("alert alert-danger actual-hours");
         renderMessages([{ level: "warning", message: "Total hours exceed scheduled hours!" }]);
-    } else if (totalHours === scheduledHours) {
+    } else if (totalHours < scheduledHours && totalHours !== 0) { 
+        actualHoursElementFinal.className = ("alert alert-danger actual-hours");
+        renderMessages([{ level: "warning", message: "Total hours do not match scheduled hours!" }]);
+    } else if (totalHours === scheduledHours && !hasInconsistencies) {
         actualHoursElementFinal.className = ("alert alert-success actual-hours");
     } else {
         actualHoursElementFinal.className = ("alert alert-info actual-hours");
+        if (hasInconsistencies) {
+            renderMessages([{ level: "warning", message: "Some entries have inconsistencies. Please review." }]);
+        }
     }
 }
