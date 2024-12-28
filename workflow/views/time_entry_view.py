@@ -8,15 +8,13 @@ from django.template.loader import render_to_string
 from django.http import JsonResponse, Http404
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
 from django.contrib import messages
 
 from workflow.enums import RateType
 from workflow.models import Job, JobPricing, Staff, TimeEntry
 from workflow.forms import TimeEntryForm, PaidAbsenceForm
-from workflow.utils import extract_messages, get_rate_type_label, get_jobs_data
+from workflow.utils import extract_messages, get_rate_type_label, get_jobs_data, serialize_time_entry
 
 logger = logging.getLogger(__name__)
 
@@ -297,21 +295,7 @@ class TimesheetEntryView(TemplateView):
                     time_entry.save()
 
                     messages.success(request, "Timesheet saved successfully")
-                    
-                   # Return the new entry data for AG Grid with job data so the entry will be fully loaded by the grid
-                    entry_data = {
-                        "id": str(time_entry.id),
-                        "description": time_entry.description or "",
-                        "hours": float(time_entry.hours),
-                        "rate_multiplier": float(time_entry.wage_rate_multiplier),
-                        "rate_type": get_rate_type_label(time_entry.wage_rate_multiplier),
-                        "is_billable": time_entry.is_billable,
-                        "notes": time_entry.note or "",
-                        "timesheet_date": target_date.strftime("%Y-%m-%d"),
-                        "staff_id": staff_member.id,
-                    }
-                    logger.debug("Rate multiplier: %s", entry_data["rate_type"])
-                    
+                                       
                     job = time_entry.job_pricing.job
                     job_data = {
                         "id": str(job.id),
@@ -324,8 +308,9 @@ class TimesheetEntryView(TemplateView):
 
                     return JsonResponse({    
                         "success": True, 
-                        "entry": entry_data,
+                        "entry": serialize_time_entry(time_entry),
                         "job": job_data,
+                        "action": "add",
                         "messages": extract_messages(request),
                     }, status=200)                    
 
@@ -651,6 +636,15 @@ def autosave_timesheet_view(request):
                 continue
 
             entry_id = entry_data.get("id")
+            logger.debug(f"Entry: {entry_data}")
+            job_data = entry_data.get("job_data")
+            logger.debug(f"Job data: {job_data}")
+            job_id = job_data.get("id") if job_data else None
+            logger.debug(f"Job ID: {job_id}")
+
+            if not job_id:
+                logger.error("Missing job ID in entry data")
+                continue
             
             try:
                 hours = Decimal(str(entry_data.get("hours", 0)))
@@ -670,66 +664,58 @@ def autosave_timesheet_view(request):
                 target_date = datetime.strptime(timesheet_date, "%Y-%m-%d").date()
             except (ValueError, TypeError) as e:
                 logger.error(f"Invalid timesheet_date format: {entry_data.get("timesheet_date")}")
-                continue  
+                continue 
+                
+            description = entry_data.get("description", "").strip()
 
             if entry_id and entry_id != "tempId":
                 try:
                     logger.debug(f"Processing entry with ID: {entry_id}")
                     entry = TimeEntry.objects.get(id=entry_id)
 
-                    job_data = entry_data.get("job_data", {})
-                    new_job_id = job_data.get("id")
-                    if new_job_id and str(entry.job_pricing.job.id) != new_job_id:
-                        logger.info(f"Job for entry {entry_id} changed to {new_job_id}")
-                        new_job = Job.objects.get(id=new_job_id)
-                        new_job_pricing = new_job.latest_reality_pricing
-                        entry.job_pricing = new_job_pricing
-                        entry.charge_out_rate = Decimal(str(job_data.get("charge_out_rate", 0)))
+                    if job_id != str(entry.job_pricing.job.id):
+                        logger.info(f"Job for entry {entry_id} changed to {job_id}")
+                        new_job = Job.objects.get(id=job_id)
+                        entry.job_pricing = new_job.latest_reality_pricing
 
                     # Update existing entry
-                    entry.description = entry_data.get("description", "").strip()
+                    entry.description = description
                     entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
                     entry.note = entry_data.get("notes", "")
+                    entry.wage_rate_multiplier = RateType(entry_data.get("rate_type", RateType.ORDINARY.value)).multiplier
+                    entry.charge_out_rate = Decimal(str(job_data.get("charge_out_rate", 0)))
 
-                    rate_type = entry_data.get("rate_type", RateType.ORDINARY.value)
-                    entry.wage_rate_multiplier = RateType(rate_type).multiplier
-
-                    if not job_data:
-                        logger.error("Missing job_data in entry data")
-                        continue
-
-                    charge_out_rate = job_data.get("charge_out_rate", 0)
-
-                    if not charge_out_rate:
-                        logger.error("Missing charge_out_rate in job_data")
-                        continue
-
-                    charge_out_rate = Decimal(str(charge_out_rate))
-
-                    entry_job = Job.objects.get(id=entry.job_pricing.job_id)
-
-                    related_jobs.add(entry.job_pricing.job_id)
+                    related_jobs.add(job_id)
                     entry.save()
+                    updated_entries.append(entry)
+                    job = entry.job_pricing.job
 
                     scheduled_hours = entry.staff.get_scheduled_hours(target_date)
                     if scheduled_hours < hours:
                         messages.warning(request, f"Existing timesheet saved successfully, but hours exceed scheduled hours for {target_date}")
-                    elif entry_job.status in ["completed", "quoting"]:
-                        messages.error(request, f"Existing timesheet saved successfully, but current job is {entry_job.status}.")
+                    elif job.status in ["completed", "quoting"]:
+                        messages.error(request, f"Existing timesheet saved successfully, but current job is {job.status}.")
                     else:
                         messages.success(request, "Existing timesheet saved successfully.")
                     logger.debug("Existing timesheet saved successfully")
+
+                    return JsonResponse({
+                        "success": True,
+                        "entry": serialize_time_entry(entry),
+                        "jobs": get_jobs_data(related_jobs),
+                        "action": "add",
+                        "messages": extract_messages(request)
+                    }, status=200)
 
                 except TimeEntry.DoesNotExist:
                     logger.error(f"TimeEntry with ID {entry_id} not found")
 
             else:
                 # Verify if there's already a registry with same data to avoid creating multiple entries
-                job_id = entry_data.get("job_data", {}).get("id")
-                related_jobs.add(job_id)
-                description = entry_data.get("description", "").strip()
-                hours = Decimal(str(entry_data.get("hours", 0)))
+                job = Job.objects.get(id=job_id)
+                job_pricing = job.latest_reality_pricing
+                staff = Staff.objects.get(id=entry_data.get("staff_id"))
 
                 existing_entry = TimeEntry.objects.filter(
                     job_pricing__job_id=job_id,
@@ -743,33 +729,24 @@ def autosave_timesheet_view(request):
                     logger.info(f"Found duplicated entry: {existing_entry.id}")
                     continue
 
-                # Create new entry - need to get job_pricing
-                job = Job.objects.get(id=job_id)
-                job_pricing = job.latest_reality_pricing
-                staff = Staff.objects.get(id=entry_data.get("staff_id"))
-
                 date_str = entry_data.get("timesheet_date")
                 target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-                
-                wage_rate_multiplier = RateType(entry_data["rate_type"]).multiplier
-                wage_rate = staff.wage_rate
-                charge_out_rate = entry_data["job_data"]["charge_out_rate"]
 
                 entry = TimeEntry.objects.create(
                     job_pricing=job_pricing,
-                    staff_id=entry_data.get("staff_id"),
+                    staff=staff,
                     date=target_date,
                     description=description,
                     hours=hours,
                     is_billable=entry_data.get("is_billable", True),
                     note=entry_data.get("notes", ""),
-                    wage_rate_multiplier=wage_rate_multiplier,
-                    wage_rate=wage_rate,
-                    charge_out_rate=charge_out_rate,
+                    wage_rate_multiplier=RateType(entry_data["rate_type"]).multiplier,
+                    wage_rate=staff.wage_rate,
+                    charge_out_rate=Decimal(str(job_data.get("charge_out_rate", 0))),
                 )
                 
-                updated_entries.append(entry.id)
-                entry.save()
+                updated_entries.append(entry)
+                related_jobs.add(job_id)
 
                 scheduled_hours = entry.staff.get_scheduled_hours(target_date)
                 if scheduled_hours < hours:
@@ -783,17 +760,18 @@ def autosave_timesheet_view(request):
                 return JsonResponse({
                     "success": True,
                     "messages": extract_messages(request),
-                    "entry_id": entry.id,
+                    "entry": serialize_time_entry(entry),
                     "jobs": get_jobs_data(related_jobs),
                     "action": "add"
                 }, status=200)
-
+            
         return JsonResponse({
             "success": True,
+            "messages": extract_messages(request),
+            "entries": [serialize_time_entry(entry) for entry in updated_entries],
             "jobs": get_jobs_data(related_jobs),
-            "action": "add",
-            "messages": extract_messages(request)
-        }, status=200)
+            "action": "add"
+        })
 
     except json.JSONDecodeError:
         logger.error("Failed to parse JSON")

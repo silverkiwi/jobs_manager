@@ -68,17 +68,45 @@ def get_jobs_data(related_jobs):
     """
     from workflow.models import Job
 
-    return [
-        {
-            "id": str(job_id),
-            "job_number": Job.objects.get(id=job_id).job_number,
-            "name": Job.objects.get(id=job_id).name,
-            "job_display_name": str(Job.objects.get(id=job_id)),
-            "estimated_hours": Job.objects.get(id=job_id).latest_estimate_pricing.total_hours,
-            "hours_spent": Job.objects.get(id=job_id).latest_reality_pricing.total_hours,
-            "client_name": Job.objects.get(id=job_id).client.name if Job.objects.get(id=job_id).client else "NO CLIENT!?",
-            "charge_out_rate": float(Job.objects.get(id=job_id).charge_out_rate),
-            "job_status": Job.objects.get(id=job_id).status
-        }
-        for job_id in related_jobs
-    ]
+    jobs = Job.objects.filter(id__in=related_jobs).select_related('client', 'latest_estimate_pricing', 'latest_reality_pricing')
+
+    job_data = []
+    for job in jobs:
+        job_data.append({
+            "id": str(job.id),
+            "job_number": job.job_number,
+            "name": job.name,
+            "job_display_name": str(job),
+            "estimated_hours": job.latest_estimate_pricing.total_hours if job.latest_estimate_pricing else 0,
+            "hours_spent": job.latest_reality_pricing.total_hours if job.latest_reality_pricing else 0,
+            "client_name": job.client.name if job.client else "NO CLIENT!?",
+            "charge_out_rate": float(job.charge_out_rate),
+            "job_status": job.status
+        })
+    return job_data
+
+def serialize_time_entry(entry):
+    """
+    Serializes a time entry object into a dictionary format.
+
+    Args:
+        entry: The time entry object to serialize
+
+    Returns:
+        dict: A dictionary containing the serialized time entry data:
+    """
+    return {
+        "id": str(entry.id),
+        "job_pricing_id": str(entry.job_pricing.id),
+        "job_number": entry.job_pricing.job.job_number,
+        "job_name": entry.job_pricing.job.name,
+        "hours": float(entry.hours),
+        "description": entry.description,
+        "is_billable": entry.is_billable,
+        "notes": entry.note,
+        "rate_multiplier": float(entry.wage_rate_multiplier),
+        "charge_out_rate": float(entry.charge_out_rate),
+        "timesheet_date": entry.date.strftime("%Y-%m-%d"),
+        "hours_spent": entry.job_pricing.total_hours,
+        "estimated_hours": entry.job_pricing.job.latest_estimate_pricing.total_hours if entry.job_pricing.job.latest_estimate_pricing else 0
+    }

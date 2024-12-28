@@ -1,7 +1,32 @@
-import { validateAndTrackRow } from "./utils.js";
-import { updateJobsList } from "./job_section.js";
+import { validateAndTrackRow } from './utils.js';
+import { updateJobsList } from './job_section.js';
+import { renderMessages } from './messages.js';
 
 let deletedEntries = [];
+
+function updateGridEntries(entries) {
+    const grid = window.grid;
+    if (!grid) {
+        console.error('Could not get grid instance');
+        return;
+    }
+
+    entries.forEach(entry => {
+        grid.forEachNode(node => {
+            if (node.data.id === 'tempId' && entry.id) {
+                node.data.id = entry.id;
+                console.log(`Replaced tempId with server ID: %{entry.id}`)
+            }
+
+            if (node.data.id === entry.id) {
+                node.setData(entry);
+                console.log(`Updated entry: ${entry}`)
+            }
+        });
+    });
+
+    grid.refreshCells({ force: true });
+}
 
 /** 
  * Marks an entry as deleted for synchronization purposes.
@@ -32,7 +57,6 @@ export function markEntryAsDeleted(entryId) {
  * const debouncedSave = debounce(saveFunction, 1000);
  * // Will only save once, 1 second after the last call
  */
-
 function debounce(func, wait) {
     let timeout;
     return function (...args) {
@@ -103,6 +127,8 @@ function collectGridData() {
             notes: rowData.notes || '',
             rate_type: rowData.rate_type || 'ORDINARY'
         };
+
+        console.log('Entry created:', entry)
 
         gridData.push(entry);
     });
@@ -216,16 +242,14 @@ function saveDataToServer(collectedData) {
         return response.json();
     })
     .then(data => {
-        if (data.entry_id) {
-            grid.forEachNode(node => {
-                console.log('node: ', node.data.id)
-                if (node.data.id === 'tempId') {
-                    node.data.id = data.entry_id;
-                    console.log('Updated node id:', node.data.id);
-                }
-            });
+        if (data.entry) {
+            console.log('Single entry received:', data.entry);
+            updateGridEntries([data.entry]);
+        }
 
-            console.log('data.entry_id: ', data.entry_id);
+        if (data.entries) {
+            console.log('Multiple entries received', data.entries);
+            updateGridEntries(data.entries);
         }
 
         if (data.jobs) {

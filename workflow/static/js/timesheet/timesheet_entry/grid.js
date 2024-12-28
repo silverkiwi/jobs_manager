@@ -4,6 +4,7 @@ import { currencyFormatter, hasRowChanged, validateAndTrackRow } from './utils.j
 import { createNewRow, calculateAmounts } from './grid_manager.js';
 import { updateSummarySection } from './summary.js';
 import { debouncedAutosave, markEntryAsDeleted } from './timesheet_autosave.js'
+import { renderMessages } from './messages.js';
 
 
 function deleteIconCellRenderer() {
@@ -47,9 +48,8 @@ export const gridOptions = {
                 if (!job) return null;
 
                 const jobStatus = job.job_status;
-                const hoursSpent = job.hours_spent || 0;
-                const estimatedHours = job.estimated_hours || 0;
-
+                const hoursSpent = job.hours_spent;
+                const estimatedHours = job.estimated_hours;
                 console.log('Job status:', job.job_status);
                 console.log('Hours spent:', hoursSpent);
                 console.log('Estimated hours:', estimatedHours);
@@ -77,10 +77,14 @@ export const gridOptions = {
 
                 if (!job) return params.value;
 
-                const { job_status, hours_spent, estimated_hours } = job;
+                let { job_status, hours_spent, estimated_hours } = job;
+                console.log(`Job number: ${job.job_number} | Job:`, job);
                 console.log('Job status:', job_status);
                 console.log('Hours spent:', hours_spent);
                 console.log('Estimated hours:', estimated_hours);
+
+                hours_spent = Number(hours_spent).toFixed(1);
+                estimated_hours = Number(estimated_hours).toFixed(1);
 
                 let statusIcon = '';
                 statusIcon = getStatusIcon(job_status);
@@ -100,7 +104,7 @@ export const gridOptions = {
                     renderMessages([{ level: 'warning', message: 'Adding hours to a job with status: "quoting"!' }]);
                     return `
                         ${statusIcon} <a href="/job/${job.id}">${params.value}
-                        <small style="color: orange">⚠ ${hours_spent}/${estimated_hours} hrs</small>
+                        <small style="color: orange">⚠ ${hours_spent}/${estimated_hours}hrs</small>
                         <small><strong>Note:</strong> Adding hours to quoting job.</small>
                         </a>
                     `;
@@ -303,6 +307,7 @@ export const gridOptions = {
 
             if (!job) return;
 
+            job.hours_spent += Number(params.newValue || 0);
             params.node.setDataValue('job_name', job.name);
             params.node.setDataValue('client', job.client_name);
             params.node.setDataValue('job_data', job);
@@ -310,10 +315,10 @@ export const gridOptions = {
             params.node.setDataValue('estimated_hours', job.estimated_hours);
 
             calculateAmounts(params.node.data);
-            console.log('Refreshing cells for job_name, client, wage_amount, bill_amount');
+            console.log('Refreshing cells for job_name, job_number, client, wage_amount, bill_amount');
             params.api.refreshCells({
                 rowNodes: [params.node],
-                columns: ['job_name', 'client', 'wage_amount', 'bill_amount']
+                force: true 
             });
         }
 
@@ -325,7 +330,7 @@ export const gridOptions = {
             console.log('Refreshing cells for wage_amount, bill_amount');
             params.api.refreshCells({
                 rowNodes: [params.node],
-                columns: ['wage_amount', 'bill_amount']
+                force: true 
             });
 
             // Check for hours exceeding scheduled hours
@@ -339,6 +344,10 @@ export const gridOptions = {
                 } else {
                     params.node.setDataValue('inconsistent', false);
                 }
+                params.api.refreshCells({
+                    rowNodes: [params.node],
+                    force: true
+                });
             }
         }
 

@@ -8,3 +8,5 @@ export const timesheet_data = {
     time_entries: JSON.parse(document.getElementById('timesheet-entries-data').textContent),
     staff: JSON.parse(document.getElementById('staff-data').textContent)
 };
+
+export const sentMessages = new Set();

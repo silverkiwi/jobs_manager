@@ -1,3 +1,6 @@
+import { renderMessages } from './messages.js';
+
+
 /**
  * Updates the summary section with the total hours worked and compares them with scheduled hours.
  */
@@ -9,14 +12,25 @@ export function updateSummarySection() {
     }
 
     let totalHours = 0;
+    let shopHours = 0;
+    let billableCount = 0;
+    let nonBillableCount = 0;
     let hasInconsistencies = false;
     const jobsWithIssues = [];
 
     // Sum all the hours in the grid
     grid.forEachNode(node => {
         const jobData = node?.data?.job_data;
-        if (node?.data?.hours > 0) {
-            totalHours += node.data.hours;
+        const hours = node?.data?.hours || 0;
+
+        if (hours > 0) {
+            totalHours += hours;
+
+            node.data.is_billable ? billableCount++ : nonBillableCount++;
+        }
+
+        if (jobData && jobData.client_name === 'MSM (Shop)') {
+            shopHours += hours;
         }
 
         if (node?.data?.inconsistent) {
@@ -28,43 +42,52 @@ export function updateSummarySection() {
         }
     });
 
-    // Update the summary section dynamically
-    const actualHoursElement = document.querySelector(".summary-section .actual-hours");
-    const scheduledHours = window.timesheet_data.staff.scheduled_hours;
+    // Update the summary table dynamically
+    const scheduledHours = Number(window.timesheet_data.staff.scheduled_hours).toFixed(1);
 
-    // If the actualHoursElement doesn't exist, create it
-    if (!actualHoursElement) {
-        const summarySection = document.querySelector(".summary-section");
-        const newElement = document.createElement("p");
-        newElement.className = "actual-hours";
-        summarySection.appendChild(newElement);
-    }
-
-    const actualHoursElementFinal = document.querySelector(".summary-section .actual-hours");
-    actualHoursElementFinal.innerHTML = `<strong>Actual Hours: ${totalHours.toFixed(1)}</strong>`;
-
-    // Check for inconsistency using guard clauses
-    if (totalHours > scheduledHours) {
-        actualHoursElementFinal.className = "alert alert-danger actual-hours";
-        renderMessages([{ level: "warning", message: "Total hours exceed scheduled hours!" }]);
+    const summaryTableBody = document.getElementById('summary-table-body');
+    if (!summaryTableBody) {
+        console.error('Summary table not found');
         return;
     }
 
-    if (totalHours < scheduledHours && totalHours !== 0) {
-        actualHoursElementFinal.className = "alert alert-danger actual-hours"; 
-        renderMessages([{ level: "warning", message: "Total hours do not match scheduled hours!" }]);
-        return;
+    summaryTableBody.innerHTML = `
+         <tr>
+            <td>Total Hours</td>
+            <td>${totalHours.toFixed(1)} / ${scheduledHours}</td>
+        </tr>
+        <tr>
+            <td>Billable Entries</td>
+            <td>${((billableCount / (billableCount + nonBillableCount)) * 100).toFixed(1)}%</td>
+        </tr>
+        <tr>
+            <td>Non-Billable Entries</td>
+            <td>${((nonBillableCount / (billableCount + nonBillableCount)) * 100).toFixed(1)}%</td>
+        </tr>
+        <tr>
+            <td>Shop Hours</td>
+            <td>${shopHours.toFixed(1)} (${((shopHours / totalHours) * 100).toFixed(1)}%)</td>
+        </tr>
+    `;
+
+    if (hasInconsistencies || jobsWithIssues.length > 0) {
+        summaryTableBody.innerHTML += `
+            <tr class="table-warning">
+                <td>Inconsistencies</td>
+                <td>${hasInconsistencies ? "Yes" : "No"}</td>
+            </tr>
+        `;
+        if (jobsWithIssues.length > 0) {
+            summaryTableBody.innerHTML += `
+                <tr class="table-warning">
+                    <td>Jobs with Issues</td>
+                    <td>${jobsWithIssues.join(", ")}</td>
+                </tr>
+            `;
+        }
     }
 
-    if (totalHours === scheduledHours && !hasInconsistencies) {
-        actualHoursElementFinal.className = "alert alert-success actual-hours";
-        return;
-    }
-
-    actualHoursElementFinal.className = "alert alert-warning actual-hours";
-    if (hasInconsistencies) {
-        renderMessages([{ level: "warning", message: "Some entries have inconsistencies. Please review." }]);
-    } else if (jobsWithIssues.length > 0) {
-        renderMessages([{ level: "warning", message: `Some jobs have met or exceeded their estimated hours: ${jobsWithIssues.join(', ')}` }]);
+    if ((shopHours / totalHours) >= 0.5) {
+        renderMessages([{ level: "warning", message: "High shop time detected! More than 50% of hours are shop hours." }]);
     }
 }

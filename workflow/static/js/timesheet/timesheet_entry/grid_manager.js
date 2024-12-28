@@ -62,7 +62,7 @@ export function createNewRow() {
     };
 }
 
-export function initializeGrid(gridDiv) {
+export function initializeGrid(gridDiv, gridOptions) {
     window.grid = agGrid.createGrid(gridDiv, gridOptions);
     console.log('Grid initialized:', window.grid);
 }

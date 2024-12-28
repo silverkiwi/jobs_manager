@@ -3,17 +3,21 @@ import { gridOptions } from "./grid.js";
 import { getCookie } from "./utils.js";
 import { initializeModals } from "./modal_handling.js";
 import { initializePaidAbsenceHandlers } from "./paid_absence.js";
-import { timesheet_data, rowStateTracker } from './state.js';
-import { fetchJobs, updateJobsList } from "./job_section.js";
+import { timesheet_data, rowStateTracker, sentMessages } from './state.js';
+import { fetchJobs } from "./job_section.js";
 import { updateSummarySection } from "./summary.js";
+
 
 window.timesheet_data = timesheet_data;
 const csrftoken = getCookie('csrftoken');
 
+const gridDiv = document.querySelector('#timesheet-grid');
+initializeGrid(gridDiv, gridOptions);
+
 document.addEventListener('DOMContentLoaded', function () {
-    // Initialize the grid
-    const gridDiv = document.querySelector('#timesheet-grid');
-    initializeGrid(gridDiv, gridOptions);
+    // Clear sent messages
+    console.log(sentMessages);
+    sentMessages.clear();
 
     console.log('Fetching initial jobs:', window.timesheet_data.jobs);
     fetchJobs();
