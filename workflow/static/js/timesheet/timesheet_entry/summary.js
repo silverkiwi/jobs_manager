@@ -20,6 +20,7 @@ export function updateSummarySection() {
 
     // Sum all the hours in the grid
     grid.forEachNode(node => {
+        console.log('Node:', node);
         const jobData = node?.data?.job_data;
         const hours = node?.data?.hours || 0;
 
@@ -30,6 +31,7 @@ export function updateSummarySection() {
         }
 
         if (jobData && jobData.client_name === 'MSM (Shop)') {
+            console.log(`Job: ${jobData.name} Hours: ${hours}`);
             shopHours += hours;
         }
 
@@ -38,7 +40,7 @@ export function updateSummarySection() {
         }
 
         if (jobData && jobData.hours_spent >= jobData.estimated_hours) {
-            jobsWithIssues.push(jobData.name);
+            jobsWithIssues.push(jobData.name ? jobData.name : 'No Job Name');
         }
     });
 
@@ -52,7 +54,7 @@ export function updateSummarySection() {
     }
 
     summaryTableBody.innerHTML = `
-         <tr>
+        <tr class="${totalHours < scheduledHours ? 'table-danger' : totalHours > scheduledHours ? 'table-warning' : 'table-success'}">
             <td>Total Hours</td>
             <td>${totalHours.toFixed(1)} / ${scheduledHours}</td>
         </tr>
