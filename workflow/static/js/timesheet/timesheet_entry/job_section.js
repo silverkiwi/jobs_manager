@@ -124,7 +124,7 @@ export function updateJobsList(jobs, action) {
 
     currentJobs.forEach(job => {
       const jobItem = document.createElement('a');
-      jobItem.href = `/job/${job.id}`; 
+      jobItem.href = `/job/${job.id}#quoteTimeTable`; 
       jobItem.className = 'list-group-item list-group-item-action';      
 
       jobItem.innerHTML = `

@@ -108,5 +108,6 @@ def serialize_time_entry(entry):
         "charge_out_rate": float(entry.charge_out_rate),
         "timesheet_date": entry.date.strftime("%Y-%m-%d"),
         "hours_spent": entry.job_pricing.total_hours,
-        "estimated_hours": entry.job_pricing.job.latest_estimate_pricing.total_hours if entry.job_pricing.job.latest_estimate_pricing else 0
+        "estimated_hours": entry.job_pricing.job.latest_estimate_pricing.total_hours if entry.job_pricing.job.latest_estimate_pricing else 0,
+        "staff_id": str(entry.staff.id)
     }

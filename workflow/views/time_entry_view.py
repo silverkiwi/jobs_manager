@@ -636,9 +636,9 @@ def autosave_timesheet_view(request):
                 continue
 
             entry_id = entry_data.get("id")
-            logger.debug(f"Entry: {entry_data}")
-            job_data = entry_data.get("job_data")
-            logger.debug(f"Job data: {job_data}")
+            logger.debug(f"Entry: {json.dumps(entry_data, indent=2)}")
+            job_data = entry_data.get("job_data") 
+            logger.debug(f"Job data: {json.dumps(job_data, indent=2)}")
             job_id = job_data.get("id") if job_data else None
             logger.debug(f"Job ID: {job_id}")
 

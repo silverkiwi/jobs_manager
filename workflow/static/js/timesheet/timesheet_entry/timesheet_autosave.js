@@ -273,4 +273,4 @@ function getCsrfToken() {
 }
 
 // Debounced autosave function
-export const debouncedAutosave = debounce(autosaveData, 500);
+export const debouncedAutosave = debounce(autosaveData, 1500);

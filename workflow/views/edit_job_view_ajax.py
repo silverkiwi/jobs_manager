@@ -14,6 +14,8 @@ from workflow.services.job_service import (
     get_latest_job_pricings,
 )
 
+from workflow.utils import serialize_time_entry
+
 logger = logging.getLogger(__name__)
 DEBUG_JSON = False  # Toggle for JSON debugging
 
@@ -173,7 +175,12 @@ def edit_job_view_ajax(request, job_id=None):
     # Serialize the job files data to JSO
     # Include the Latest Revision Data
     latest_job_pricings_serialized = {
-        section_name: JobPricingSerializer(latest_pricing).data
+        section_name: {
+            **JobPricingSerializer(latest_pricing).data,
+            "time_entries": [
+                serialize_time_entry(entry) for entry in latest_pricing.time_entries.all()
+            ],
+        }
         for section_name, latest_pricing in latest_job_pricings.items()
     }
 

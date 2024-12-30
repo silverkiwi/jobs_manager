@@ -329,6 +329,16 @@ document.addEventListener('DOMContentLoaded', function () {
             {headerName: 'Mins/Item', field: 'mins_per_item', editable: true, valueParser: numberParser},
             {headerName: 'Total Minutes', field: 'total_minutes', editable: false},
             {
+                headerName: 'Actions',
+                field: 'link',
+                cellRenderer: (params) => {
+                    if (params.value) {
+                        return `<a href="${params.value}" target="_blank">View Timesheet</a>`;
+                    }
+                    return 'N/A';
+                }
+            },
+            {
                 headerName: 'Wage Rate',
                 field: 'wage_rate',
                 editable: true,

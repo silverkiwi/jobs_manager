@@ -122,6 +122,7 @@ function loadExistingJobTimeEntries(entries) {
     charge_out_rate: entry.charge_out_rate,
     total_minutes: entry.total_minutes,
     revenue: entry.revenue,
+    link: `/timesheets/day/${entry.timesheet_date}/${entry.staff_id}`
   }));
 }
 
