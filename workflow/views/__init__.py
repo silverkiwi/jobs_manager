@@ -4,7 +4,7 @@ from .adjustment_entry_view import CreateAdjustmentEntryView, UpdateAdjustmentEn
 from .client_view import ClientListView, ClientUpdateView
 from .dashboard_view import DashboardView
 from .invoice_view import InvoiceListView, InvoiceUpdateView
-from .job_file_upload import JobFileUploadView
+from .job_file_view import JobFileView
 from .material_entry_view import CreateMaterialEntryView, MaterialEntryUpdateView
 from .report_view import ReportsIndexView, CompanyProfitAndLossView
 from .staff_view import StaffListView, StaffCreateView, StaffUpdateView

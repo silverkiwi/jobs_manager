@@ -21,5 +21,5 @@ class JobFile(models.Model):
     @property
     def url(self):
         """URL to serve the file (if using Django to serve media)."""
-        relative_path = os.path.relpath(self.full_path, settings.MEDIA_ROOT)
-        return f"{settings.MEDIA_URL}{relative_path}"
+        return f"/jobs/files/{self.file_path}"  # We'll need to add this URL pattern
+
