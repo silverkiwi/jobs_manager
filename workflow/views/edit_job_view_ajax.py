@@ -45,54 +45,56 @@ def create_job_api(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@require_http_methods(["GET"])
-def get_job_api(request):
-    job_id = request.GET.get("job_id")
-
-    if not job_id:
-        return JsonResponse({"error": "Missing job_id"}, status=400)
-
-    try:
-        # Use the service layer to get the job and its related pricings
-        job = get_job_with_pricings(job_id)
-
-        job_client = job.client.name if job.client else "No Client"
-        logger.debug(
-            "Retrieving job - Number: %(num)s, ID: %(id)s, Client: %(client)s",
-            {
-                "num": job.job_number,
-                "id": job.id,
-                "client": job_client,
-            },
-        )
-        # Prepare response data with job pricings using correct field names
-        response_data = {
-            "id": str(job.id),
-            "created_at": job.created_at,
-            "updated_at": job.updated_at,
-            "client": job_client,
-            "latest_estimate_pricing": {
-                "pricing_stage": (job.latest_estimate_pricing.pricing_stage),
-                "pricing_type": (job.latest_estimate_pricing.pricing_type),
-            },
-            "latest_quote_pricing": {
-                "pricing_stage": (job.latest_quote_pricing.pricing_stage),
-                "pricing_type": (job.latest_quote_pricing.pricing_type),
-            },
-            "latest_reality_pricing": {
-                "pricing_stage": (job.latest_reality_pricing.pricing_stage),
-                "pricing_type": (job.latest_reality_pricing.pricing_type),
-            },
-        }
-
-        return JsonResponse(response_data, safe=False)
-
-    except Job.DoesNotExist:
-        return JsonResponse({"error": "Job not found"}, status=404)
-
-    except Exception as e:
-        logger.exception(f"Unexpected error during get_job_api: {str(e)}")
-        return JsonResponse({"error": "Unexpected error"}, status=500)
+# Unused: we are only using edit_job_view_ajax
+# Deletion candidate
+# @require_http_methods(["GET"])
+# def get_job_api(request):
+#     job_id = request.GET.get("job_id")
+#
+#     if not job_id:
+#         return JsonResponse({"error": "Missing job_id"}, status=400)
+#
+#     try:
+#         # Use the service layer to get the job and its related pricings
+#         job = get_job_with_pricings(job_id)
+#
+#         job_client = job.client.name if job.client else "No Client"
+#         logger.debug(
+#             "Retrieving job - Number: %(num)s, ID: %(id)s, Client: %(client)s",
+#             {
+#                 "num": job.job_number,
+#                 "id": job.id,
+#                 "client": job_client,
+#             },
+#         )
+#         # Prepare response data with job pricings using correct field names
+#         response_data = {
+#             "id": str(job.id),
+#             "created_at": job.created_at,
+#             "updated_at": job.updated_at,
+#             "client": job_client,
+#             "latest_estimate_pricing": {
+#                 "pricing_stage": (job.latest_estimate_pricing.pricing_stage),
+#                 "pricing_type": (job.latest_estimate_pricing.pricing_type),
+#             },
+#             "latest_quote_pricing": {
+#                 "pricing_stage": (job.latest_quote_pricing.pricing_stage),
+#                 "pricing_type": (job.latest_quote_pricing.pricing_type),
+#             },
+#             "latest_reality_pricing": {
+#                 "pricing_stage": (job.latest_reality_pricing.pricing_stage),
+#                 "pricing_type": (job.latest_reality_pricing.pricing_type),
+#             },
+#         }
+#
+#         return JsonResponse(response_data, safe=False)
+#
+#     except Job.DoesNotExist:
+#         return JsonResponse({"error": "Job not found"}, status=404)
+#
+#     except Exception as e:
+#         logger.exception(f"Unexpected error during get_job_api: {str(e)}")
+#         return JsonResponse({"error": "Unexpected error"}, status=500)
 
 
 @require_http_methods(["GET"])
@@ -155,6 +157,20 @@ def edit_job_view_ajax(request, job_id=None):
     # Fetch the Latest Revision for Each Pricing Stage
     latest_job_pricings = get_latest_job_pricings(job)
 
+    job_files = job.files.all()
+    # job_files_json = json.dumps(
+    #     [
+    #         {
+    #             "id": str(file.id),  # UUID of the file
+    #             "filename": file.filename,
+    #             "url": f"/media/{file.file_path}",  # File URL
+    #             "uploaded_at": file.uploaded_at.isoformat(),
+    #         }
+    #         for file in job_files
+    #     ],
+    # )
+
+    # Serialize the job files data to JSO
     # Include the Latest Revision Data
     latest_job_pricings_serialized = {
         section_name: JobPricingSerializer(latest_pricing).data
@@ -177,6 +193,7 @@ def edit_job_view_ajax(request, job_id=None):
         "job": job,
         "job_id": job.id,
         "company_defaults": company_defaults,
+        "files": job_files,
         "historical_job_pricings_json": historical_job_pricings_json,  # Revisions
         "latest_job_pricings_json": latest_job_pricings_json,  # Latest version
     }

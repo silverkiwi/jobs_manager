@@ -28,8 +28,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
 AUTH_USER_MODEL = "workflow.Staff"
 
 # Application definition
@@ -225,7 +223,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "False") == "True"
+# DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 CSRF_TRUSTED_ORIGINS = [
@@ -242,3 +240,8 @@ CSRF_TRUSTED_ORIGINS += [
 XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID")
 XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET")
 XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI")
+
+# ===========================
+# CUSTOM SETTINGS
+# ===========================
+DROPBOX_WORKFLOW_FOLDER = os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow")

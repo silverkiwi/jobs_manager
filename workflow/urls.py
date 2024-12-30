@@ -16,6 +16,7 @@ from workflow.views import (
     time_overview_view,
     xero_view,
 )
+from workflow.views.job_file_upload import JobFileUploadView
 from workflow.views.report_view import (
     CompanyProfitAndLossView, ReportsIndexView,
 )
@@ -36,7 +37,7 @@ urlpatterns = [
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
     path('api/get-env-variable/', server.get_env_variable, name='get_env_variable'),
 
-    path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
+    #path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
     path("api/create-job/", edit_job_view_ajax.create_job_api, name="create_job_api"),
     path(
         "api/fetch_job_pricing/",
@@ -53,6 +54,8 @@ urlpatterns = [
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
     ),
+    path("api/upload-job-files/", JobFileUploadView.as_view(), name="upload-job-files"),
+
     path(
         "api/xero/authenticate/",
         xero_view.xero_authenticate,
