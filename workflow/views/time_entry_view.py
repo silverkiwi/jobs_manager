@@ -14,7 +14,8 @@ from django.contrib import messages
 from workflow.enums import RateType
 from workflow.models import Job, JobPricing, Staff, TimeEntry
 from workflow.forms import TimeEntryForm, PaidAbsenceForm
-from workflow.utils import extract_messages, get_rate_type_label, get_jobs_data, serialize_time_entry
+from workflow.serializers.time_entry_serializer import TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer
+from workflow.utils import extract_messages, get_jobs_data
 
 logger = logging.getLogger(__name__)
 
@@ -308,7 +309,7 @@ class TimesheetEntryView(TemplateView):
 
                     return JsonResponse({    
                         "success": True, 
-                        "entry": serialize_time_entry(time_entry),
+                        "entry": TimeEntrySerializer(time_entry).data,
                         "job": job_data,
                         "action": "add",
                         "messages": extract_messages(request),
@@ -702,7 +703,7 @@ def autosave_timesheet_view(request):
 
                     return JsonResponse({
                         "success": True,
-                        "entry": serialize_time_entry(entry),
+                        "entry": TimeEntrySerializer(entry).data,
                         "jobs": get_jobs_data(related_jobs),
                         "action": "add",
                         "messages": extract_messages(request)
@@ -760,7 +761,7 @@ def autosave_timesheet_view(request):
                 return JsonResponse({
                     "success": True,
                     "messages": extract_messages(request),
-                    "entry": serialize_time_entry(entry),
+                    "entry": TimeEntrySerializer(entry).data,
                     "jobs": get_jobs_data(related_jobs),
                     "action": "add"
                 }, status=200)
@@ -768,7 +769,7 @@ def autosave_timesheet_view(request):
         return JsonResponse({
             "success": True,
             "messages": extract_messages(request),
-            "entries": [serialize_time_entry(entry) for entry in updated_entries],
+            "entries": TimeEntrySerializer(updated_entries, many=True).data(),
             "jobs": get_jobs_data(related_jobs),
             "action": "add"
         })
