@@ -22,3 +22,4 @@ class JobFile(models.Model):
     def url(self):
         """URL to serve the file (if using Django to serve media)."""
         return f"/jobs/files/{self.file_path}"  # We'll need to add this URL pattern
+
