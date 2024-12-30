@@ -16,7 +16,7 @@ from workflow.views import (
     time_overview_view,
     xero_view,
 )
-from workflow.views.job_file_upload import JobFileUploadView
+from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import (
     CompanyProfitAndLossView, ReportsIndexView,
 )
@@ -54,7 +54,9 @@ urlpatterns = [
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
     ),
-    path("api/upload-job-files/", JobFileUploadView.as_view(), name="upload-job-files"),
+    path("api/job-files/", JobFileView.as_view(), name="job-files"),  # For POST/upload
+    path("api/job-files/<path:file_path>", JobFileView.as_view(),
+         name="serve-job-file"),  # For GET/download
 
     path(
         "api/xero/authenticate/",

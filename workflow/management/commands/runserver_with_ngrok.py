@@ -11,7 +11,7 @@ class Command(BaseCommand):
 
     def handle(self, *args: Any, **kwargs: Any) -> None:
         ngrok_domain = os.environ.get(
-            "NGROK_DOMAIN", "measured-enormously-man.ngrok-free.app"
+            "NGROK_DOMAIN", "msm-workflow.ngrok-free.app "
         )
         django_port = os.environ.get("DJANGO_PORT", "8000")
 

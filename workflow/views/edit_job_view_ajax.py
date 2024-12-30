@@ -158,6 +158,7 @@ def edit_job_view_ajax(request, job_id=None):
     latest_job_pricings = get_latest_job_pricings(job)
 
     job_files = job.files.all()
+    logger.debug(f"Found {job_files.count()} files for job {job.id}")  # Add logging
     # job_files_json = json.dumps(
     #     [
     #         {
@@ -193,7 +194,7 @@ def edit_job_view_ajax(request, job_id=None):
         "job": job,
         "job_id": job.id,
         "company_defaults": company_defaults,
-        "files": job_files,
+        "job_files": job_files,
         "historical_job_pricings_json": historical_job_pricings_json,  # Revisions
         "latest_job_pricings_json": latest_job_pricings_json,  # Latest version
     }

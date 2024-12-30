@@ -72,3 +72,64 @@
 .summary-table-section .ag-theme-alpine {
     height: 144px !important;  /* Exact height: (4 rows × 28px) + 32px header */
 }
+
+/* File upload area styling */
+/* Used in: edit_job_ajax.html (File upload/drag-drop zone) */
+.file-upload-area {
+    margin: 20px 0;
+}
+
+.file-drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    display: block;
+    background-color: #f8f9fa;  /* Matching your alpine theme */
+}
+
+.file-drop-zone:hover {
+    border-color: #666;
+}
+
+.file-drop-zone.drag-over {
+    border-color: var(--ag-alpine-active-color);  /* Match AG Grid Alpine theme */
+    background-color: rgba(var(--ag-alpine-active-color-rgb), 0.1);
+}
+
+.file-input {
+    opacity: 0;
+    position: absolute;
+    width: 0.1px;
+    height: 0.1px;
+}
+
+/* File list styling */
+.job-files-list {
+    list-style: none;
+    padding: 0;
+}
+
+.job-files-list li {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.job-files-list li:last-child {
+    border-bottom: none;
+}
+
+.job-files-list .file-info {
+    flex-grow: 1;
+}
+
+.job-files-list .timestamp {
+    color: #6c757d;
+    font-size: 0.875em;
+}
