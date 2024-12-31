@@ -60,15 +60,15 @@ export function updateSummarySection() {
         </tr>
         <tr>
             <td>Billable Entries</td>
-            <td>${((billableCount / (billableCount + nonBillableCount)) * 100).toFixed(1)}%</td>
+            <td>${billableCount > 0 ? ((billableCount / (billableCount + nonBillableCount)) * 100).toFixed(1) + '%' : 'No billable entries detected.'}</td>
         </tr>
         <tr>
             <td>Non-Billable Entries</td>
-            <td>${((nonBillableCount / (billableCount + nonBillableCount)) * 100).toFixed(1)}%</td>
+            <td>${nonBillableCount > 0 ? ((nonBillableCount / (billableCount + nonBillableCount)) * 100).toFixed(1) + '%' : 'No non-billable entries detected.'}</td>
         </tr>
         <tr>
             <td>Shop Hours</td>
-            <td>${shopHours.toFixed(1)} (${((shopHours / totalHours) * 100).toFixed(1)}%)</td>
+            <td>${shopHours.toFixed(1)} (${shopHours > 0 ? ((shopHours / totalHours) * 100).toFixed(1) + '%' : 'No shop hours detected'})</td>
         </tr>
     `;
 

@@ -769,7 +769,7 @@ def autosave_timesheet_view(request):
         return JsonResponse({
             "success": True,
             "messages": extract_messages(request),
-            "entries": TimeEntrySerializer(updated_entries, many=True).data(),
+            "entries": TimeEntrySerializer(updated_entries, many=True).data,
             "jobs": get_jobs_data(related_jobs),
             "action": "add"
         })

@@ -261,6 +261,7 @@ export const gridOptions = {
 
                     if (isEmptyRow) {
                         console.log('Skipping empty row:', rowData);
+                        params.api.applyTransaction({ remove: [rowData] });
                         return;
                     }
 
