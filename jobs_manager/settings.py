@@ -109,11 +109,11 @@ load_dotenv(BASE_DIR / ".env")
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "msm_workflow",
-        "USER": os.getenv("MSM_DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "abcde"),
-        "HOST": "localhost",
-        "PORT": os.getenv("DB_PORT"),
+        "NAME": os.getenv("MYSQL_DATABASE", "msm_workflow"),
+        "USER": os.getenv("MSM_DB_USER", "root"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "password"),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", 3306),
     },
     "TEST": {  # Optional, Django will create 'test_' + NAME by default
         "NAME": "test_msm_workflow",
