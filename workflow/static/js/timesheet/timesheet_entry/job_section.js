@@ -67,6 +67,20 @@ export function fetchJobs() {
     });
 }
 
+function getStatusIcon(status) {
+    const icons = {
+        'quoting': '📝',
+        'approved': '✅',
+        'rejected': '❌', 
+        'in_progress': '🚧',
+        'on_hold': '⏸️',
+        'special': '⭐',
+        'completed': '✔️',
+        'archived': '📦'
+    };
+    return icons[status] || '';
+}
+
 /**
  * Updates the current list of jobs displayed on the page based on the specified action.
  * 
@@ -111,28 +125,37 @@ export function updateJobsList(jobs, action) {
 
     jobsList.innerHTML = '';
 
-    console.log('Number of jobs:', jobs.length);
     if (currentJobs.length === 0) {
-        const noJobsAlert = document.createElement('div');
-        noJobsAlert.id = 'no-jobs-alert';
-        noJobsAlert.className = 'alert alert-info';
-        noJobsAlert.role = 'alert';
-        noJobsAlert.textContent = 'No jobs are currently loaded.';
-        jobsList.appendChild(noJobsAlert);
+        jobsList.innerHTML = `
+            <div id="no-jobs-alert" class="alert alert-info" role="alert">
+                No jobs are currently loaded.
+            </div>`;
         return;
     }
 
     currentJobs.forEach(job => {
-      const jobItem = document.createElement('a');
-      jobItem.href = `/job/${job.id}#quoteTimeTable`; 
-      jobItem.className = 'list-group-item list-group-item-action';      
+        const statusIcon = getStatusIcon(job.job_status);
+        const hoursExceeded = job.hours_spent > job.estimated_hours;
+        const warningMessage = hoursExceeded ? `<small style="color: red">⚠ Exceeds estimated hours</small>` : '';
 
-      jobItem.innerHTML = `
-        <strong>${job.job_display_name}</strong>
-        <br>Estimated: ${job.estimated_hours}hrs
-        <br>Spent: ${job.hours_spent}hrs
-      `;
-
-      jobsList.appendChild(jobItem);
+        const jobItem = document.createElement('div');
+        jobItem.className = 'accordion-item';
+        jobItem.innerHTML = `
+            <h2 class="accordion-header" id="heading-${job.id}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${job.id}">
+                    ${statusIcon} <strong>${job.job_display_name}</strong>
+                </button>
+            </h2>
+            <div id="collapse-${job.id}" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                    <p><strong>Status:</strong> ${job.job_status.charAt(0).toUpperCase() + job.job_status.slice(1)}</p>
+                    <hr>
+                    <p><strong>Estimated Hours:</strong> ${job.estimated_hours}</p>
+                    <hr>
+                    <p><strong>Hours Spent:</strong> ${job.hours_spent} ${warningMessage}</p>
+                </div>
+            </div>
+        `;
+        jobsList.appendChild(jobItem);
     });
 }

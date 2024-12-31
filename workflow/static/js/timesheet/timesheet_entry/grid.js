@@ -1,6 +1,6 @@
 import { ActiveJobCellEditor } from './job_cell_editor.js';
 import { rowStateTracker, timesheet_data } from './state.js';
-import { currencyFormatter, hasRowChanged, validateAndTrackRow } from './utils.js';
+import { currencyFormatter } from './utils.js';
 import { createNewRow, calculateAmounts } from './grid_manager.js';
 import { updateSummarySection } from './summary.js';
 import { debouncedAutosave, markEntryAsDeleted } from './timesheet_autosave.js'
@@ -9,20 +9,6 @@ import { renderMessages } from './messages.js';
 
 function deleteIconCellRenderer() {
     return `<span class="delete-icon">🗑️</span>`;
-}
-
-function getStatusIcon(status) {
-    const icons = {
-        'quoting': '📝',
-        'approved': '✅',
-        'rejected': '❌', 
-        'in_progress': '🚧',
-        'on_hold': '⏸️',
-        'special': '⭐',
-        'completed': '✔️',
-        'archived': '📦'
-    };
-    return icons[status] || '';
 }  
 
 export const gridOptions = {
@@ -41,81 +27,6 @@ export const gridOptions = {
             cellEditor: ActiveJobCellEditor,
             cellEditorParams: {
                 values: timesheet_data.jobs.map(job => job.job_display_name)
-            },
-            cellStyle: params => {
-                const job = timesheet_data.jobs.find(j => j.job_number === params.value);
-
-                if (!job) return null;
-
-                const jobStatus = job.job_status;
-                const hoursSpent = job.hours_spent;
-                const estimatedHours = job.estimated_hours;
-                console.log('Job status:', job.job_status);
-                console.log('Hours spent:', hoursSpent);
-                console.log('Estimated hours:', estimatedHours);
-
-                if (jobStatus === 'completed' && hoursSpent > estimatedHours) {
-                    return { backgroundColor: '#f8d7da' };
-                }
-
-                if (jobStatus === 'quoting') {
-                    return { backgroundColor: '#fff3cd' };
-                }
-
-                if (hoursSpent > estimatedHours) {
-                    return { backgroundColor: '#f8d7da' };
-                }
-
-                if (hoursSpent > estimatedHours * 0.8) {
-                    return { backgroundColor: '#fff3cd' };
-                }
-
-                return null;
-            },
-            cellRenderer: params => {
-                const job = timesheet_data.jobs.find(j => j.job_number === params.value);
-
-                if (!job) return params.value;
-
-                let { job_status, hours_spent, estimated_hours } = job;
-                console.log(`Job number: ${job.job_number} | Job:`, job);
-                console.log('Job status:', job_status);
-                console.log('Hours spent:', hours_spent);
-                console.log('Estimated hours:', estimated_hours);
-
-                hours_spent = Number(hours_spent).toFixed(1);
-                estimated_hours = Number(estimated_hours).toFixed(1);
-
-                let statusIcon = '';
-                statusIcon = getStatusIcon(job_status);
-
-                if (job_status === 'completed' && hours_spent >= estimated_hours) {
-                    renderMessages([{ level: 'warning', message: 'Adding hours to a job with status: "completed"!' }]); 
-                    renderMessages([{ level: 'warning', message: 'Job has met or exceeded its estimated hours!' }]);
-                    return `
-                        ${statusIcon} <a href="/job/${job.id}">${params.value}
-                        <small style="color: red">⚠ ${hours_spent}/${estimated_hours} hrs</small>
-                        <small><strong> Warning:</strong> Exceeds estimated hours on completed job!</small>
-                        </a>
-                    `;
-                }
-
-                if (job_status === 'quoting') {
-                    renderMessages([{ level: 'warning', message: 'Adding hours to a job with status: "quoting"!' }]);
-                    return `
-                        ${statusIcon} <a href="/job/${job.id}">${params.value}
-                        <small style="color: orange">⚠ ${hours_spent}/${estimated_hours}hrs</small>
-                        <small><strong>Note:</strong> Adding hours to quoting job.</small>
-                        </a>
-                    `;
-                }
-
-                return `
-                    ${statusIcon} <a href="/job/${job.id}">
-                    ${params.value}
-                    <small>Total: ${hours_spent}/${estimated_hours} hrs</small>
-                    </a>
-                `;
             }
         },
         {
