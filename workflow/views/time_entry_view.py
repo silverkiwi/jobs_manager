@@ -684,7 +684,7 @@ def autosave_timesheet_view(request):
                     entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
                     entry.note = entry_data.get("notes", "")
-                    entry.wage_rate_multiplier = RateType(entry_data.get("rate_type", RateType.ORDINARY.value)).multiplier
+                    entry.wage_rate_multiplier = RateType(entry_data.get("rate_type", "Ord")).multiplier                    
                     entry.charge_out_rate = Decimal(str(job_data.get("charge_out_rate", 0)))
 
                     related_jobs.add(job_id)

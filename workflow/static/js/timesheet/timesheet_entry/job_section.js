@@ -150,9 +150,13 @@ export function updateJobsList(jobs, action) {
                 <div class="accordion-body">
                     <p><strong>Status:</strong> ${job.job_status.charAt(0).toUpperCase() + job.job_status.slice(1)}</p>
                     <hr>
+                    <p><strong>Client:</strong> ${job.client_name}</p>
+                    <hr>
                     <p><strong>Estimated Hours:</strong> ${job.estimated_hours}</p>
                     <hr>
                     <p><strong>Hours Spent:</strong> ${job.hours_spent} ${warningMessage}</p>
+                    <hr>
+                    <p><a href="/job/${job.id}" class="btn btn-primary btn-lg">View Job Details</a></p>
                 </div>
             </div>
         `;

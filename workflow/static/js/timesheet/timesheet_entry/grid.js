@@ -9,7 +9,7 @@ import { renderMessages } from './messages.js';
 
 function deleteIconCellRenderer() {
     return `<span class="delete-icon">🗑️</span>`;
-}  
+}
 
 export const gridOptions = {
     columnDefs: [
@@ -230,7 +230,7 @@ export const gridOptions = {
             console.log('Refreshing cells for job_name, job_number, client, wage_amount, bill_amount');
             params.api.refreshCells({
                 rowNodes: [params.node],
-                force: true 
+                force: true
             });
         }
 
@@ -242,7 +242,7 @@ export const gridOptions = {
             console.log('Refreshing cells for wage_amount, bill_amount');
             params.api.refreshCells({
                 rowNodes: [params.node],
-                force: true 
+                force: true
             });
 
             // Check for hours exceeding scheduled hours
@@ -271,15 +271,29 @@ export const gridOptions = {
         debouncedAutosave();
         updateSummarySection();
     },
-    // Add new row when Enter is pressed on last row
+    // Add new row when Enter is pressed on last row or stop editing if ESC is pressed
     onCellKeyDown: (params) => {
-        if (params.event.key === 'Enter') {
-            const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
+        const { event, api, node, column } = params;
+
+        if (event.key === 'Escape') {            
+            console.log('ESC pressed:', { node, column });
+
+            if (!column.colDef.editable) {
+                console.log('Column is not editable, skipping');
+                return;
+            }
+
+            api.stopEditing(true); 
+            console.log('Editing canceled for column:', column.colId);
+        }
+
+        if (event.key === 'Enter') {
+            const isLastRow = api.getDisplayedRowCount() - 1 === params.rowIndex;
             if (isLastRow) {
-                params.api.applyTransaction({ add: [createNewRow()] });
+                api.applyTransaction({ add: [createNewRow()] });
                 // Focus the first editable cell of the newly added row
-                const newRowIndex = params.api.getDisplayedRowCount() - 1;
-                params.api.setFocusedCell(newRowIndex, 'job_number');
+                const newRowIndex = api.getDisplayedRowCount() - 1;
+                api.setFocusedCell(newRowIndex, 'job_number');
                 debouncedAutosave();
                 updateSummarySection();
             }

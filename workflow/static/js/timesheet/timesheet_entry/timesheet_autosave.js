@@ -125,7 +125,7 @@ function collectGridData() {
             job_data: rowData.job_data,
             is_billable: rowData.is_billable || true,
             notes: rowData.notes || '',
-            rate_type: rowData.rate_type || 'ORDINARY'
+            rate_type: rowData.rate_type || 'Ord'
         };
 
         console.log('Entry created:', entry)
