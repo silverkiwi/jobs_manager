@@ -160,7 +160,6 @@ def edit_job_view_ajax(request, job_id=None):
 
     sync_job_folder(job)
     job_files = job.files.all()
-    logger.debug(f"Found {job_files.count()} files for job {job.id}")  # Add logging
     # job_files_json = json.dumps(
     #     [
     #         {
