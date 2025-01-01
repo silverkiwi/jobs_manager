@@ -674,6 +674,10 @@ def autosave_timesheet_view(request):
                     logger.debug(f"Processing entry with ID: {entry_id}")
                     entry = TimeEntry.objects.get(id=entry_id)
 
+                    # Identify old job before changing
+                    old_job_id = entry.job_pricing.job.id if entry.job_pricing.job else None
+                    old_job = Job.objects.get(id=old_job_id) if old_job_id else None
+
                     if job_id != str(entry.job_pricing.job.id):
                         logger.info(f"Job for entry {entry_id} changed to {job_id}")
                         new_job = Job.objects.get(id=job_id)
@@ -705,7 +709,8 @@ def autosave_timesheet_view(request):
                         "success": True,
                         "entry": TimeEntrySerializer(entry).data,
                         "jobs": get_jobs_data(related_jobs),
-                        "action": "add",
+                        "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
+                        "action": "update",
                         "messages": extract_messages(request)
                     }, status=200)
 
@@ -771,7 +776,8 @@ def autosave_timesheet_view(request):
             "messages": extract_messages(request),
             "entries": TimeEntrySerializer(updated_entries, many=True).data,
             "jobs": get_jobs_data(related_jobs),
-            "action": "add"
+            "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
+            "action": "update"
         })
 
     except json.JSONDecodeError:

@@ -1,6 +1,7 @@
 import { validateAndTrackRow } from './utils.js';
 import { updateJobsList } from './job_section.js';
 import { renderMessages } from './messages.js';
+import { timesheet_data } from './state.js';
 
 let deletedEntries = [];
 
@@ -122,7 +123,7 @@ function collectGridData() {
             timesheet_date: window.timesheet_data.timesheet_date,
             bill_amount: rowData.bill_amount,
             date: rowData.date,
-            job_data: rowData.job_data,
+            job_data: rowData.job_data || timesheet_data.jobs.find(job => job.job_number === rowData.job_number),
             is_billable: rowData.is_billable || true,
             notes: rowData.notes || '',
             rate_type: rowData.rate_type || 'Ord'
@@ -252,9 +253,11 @@ function saveDataToServer(collectedData) {
             updateGridEntries(data.entries);
         }
 
-        if (data.jobs) {
-            console.log('Updating jobs from server response:', data.jobs);
-            updateJobsList(data.jobs, data.action);
+        const jobs = data.jobs || [];
+        const removeJobs = (data.remove_jobs || []).flat();
+        if (jobs.length > 0) {
+            console.log('Updating jobs from server response:', { jobs, removeJobs });
+            updateJobsList(jobs, data.action, removeJobs);
         }
 
         deletedEntries = [];

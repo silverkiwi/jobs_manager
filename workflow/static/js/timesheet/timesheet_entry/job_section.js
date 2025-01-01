@@ -100,8 +100,8 @@ function getStatusIcon(status) {
  * updateJobsList([{ id: 1, job_display_name: "Job A", client_name: "Client A" }], 'load');
  */
 let currentJobs = [];
-export function updateJobsList(jobs, action) {
-    console.log('Updating jobs list with:', jobs);
+export function updateJobsList(jobs, action, removeJobs = []) {
+    console.log(`Updating jobs list with ${action}`, { jobs, removeJobs });
 
     const jobsList = document.getElementById('jobs-list');
     if (!jobsList) {
@@ -109,18 +109,42 @@ export function updateJobsList(jobs, action) {
         return;
     }
 
-    if (action === 'load') {
-        currentJobs = jobs;
-    } else if (action === 'add') {
-        jobs.forEach(job => {
-            if (!currentJobs.some(currentJob => currentJob.id === job.id)) {
+    switch (action) {
+        case 'load':
+            // Called when loading the page, replace the jobs section completely with all related jobs from fetchJobs()
+            currentJobs = jobs;
+            break;
+
+        case 'add':
+            jobs.forEach(job => {
+                if (currentJobs.some(currentJob => currentJob.id === job.id)) return;
                 currentJobs.push(job);
-            }
-        });
-    } else if (action === 'remove') {
-        jobs.forEach(job => {
-            currentJobs = currentJobs.filter(currentJob => currentJob.id !== job.id);
-        });
+            });
+            break;
+
+        case 'remove':
+            jobs.forEach(job => {
+                currentJobs = currentJobs.filter(currentJob => currentJob.id !== job.id);
+            });
+            break;
+
+        case 'update':
+            removeJobs.forEach(jobToRemove => {
+                currentJobs = currentJobs.filter(currentJob => currentJob.id !== jobToRemove.id);
+            });
+
+            jobs.forEach(job => {
+                if (!currentJobs.some(currentJob => currentJob.id === job.id)) {
+                    currentJobs.push(job);
+                }
+            });
+
+            console.log('Current jobs after update:', currentJobs);
+        
+            break;
+
+        default:
+            console.warn(`Unknown action: ${action}`);
     }
 
     jobsList.innerHTML = '';
