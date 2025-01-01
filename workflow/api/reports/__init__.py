@@ -3,5 +3,5 @@
 from .pnl import CompanyProfitAndLossReport
 
 __all__ = [
-    'CompanyProfitAndLossReport',
+    "CompanyProfitAndLossReport",
 ]

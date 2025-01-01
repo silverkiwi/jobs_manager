@@ -10,9 +10,9 @@ def extract_messages(request):
         list: A list of dictionaries, where each dictionary has:
             - level (str): The message level tag (e.g. 'info', 'error')
             - message (str): The message text
-   """
+    """
     from django.contrib.messages import get_messages
-   
+
     return [
         {"level": message.level_tag, "message": message.message}
         for message in get_messages(request)
@@ -29,7 +29,7 @@ def get_rate_type_label(multiplier):
     Returns:
         str: The label corresponding to the multiplier:
             - 'Unpaid' for 0.0
-            - 'Ord' (Ordinary) for 1.0 
+            - 'Ord' (Ordinary) for 1.0
             - 'Ovt' (Overtime) for 1.5
             - 'Dt' (Double Time) for 2.0
             - 'Ord' as default for any other value
@@ -37,18 +37,14 @@ def get_rate_type_label(multiplier):
     Examples:
         >>> get_rate_type_label(1.5)
         'Ovt'
-        >>> get_rate_type_label(0.0) 
+        >>> get_rate_type_label(0.0)
         'Unpaid'
     """
 
-    rate_map = {
-        0.0: 'Unpaid',
-        1.0: 'Ord',
-        1.5: 'Ovt',
-        2.0: 'Dt'
-    }
-    
-    return rate_map.get(float(multiplier), 'Ord')  # Default to 'Ord' if not found
+    rate_map = {0.0: "Unpaid", 1.0: "Ord", 1.5: "Ovt", 2.0: "Dt"}
+
+    return rate_map.get(float(multiplier), "Ord")  # Default to 'Ord' if not found
+
 
 def get_jobs_data(related_jobs):
     """
@@ -68,22 +64,35 @@ def get_jobs_data(related_jobs):
     """
     from workflow.models import Job
 
-    jobs = Job.objects.filter(id__in=related_jobs).select_related('client', 'latest_estimate_pricing', 'latest_reality_pricing')
+    jobs = Job.objects.filter(id__in=related_jobs).select_related(
+        "client", "latest_estimate_pricing", "latest_reality_pricing"
+    )
 
     job_data = []
     for job in jobs:
-        job_data.append({
-            "id": str(job.id),
-            "job_number": job.job_number,
-            "name": job.name,
-            "job_display_name": str(job),
-            "estimated_hours": job.latest_estimate_pricing.total_hours if job.latest_estimate_pricing else 0,
-            "hours_spent": job.latest_reality_pricing.total_hours if job.latest_reality_pricing else 0,
-            "client_name": job.client.name if job.client else "NO CLIENT!?",
-            "charge_out_rate": float(job.charge_out_rate),
-            "job_status": job.status
-        })
+        job_data.append(
+            {
+                "id": str(job.id),
+                "job_number": job.job_number,
+                "name": job.name,
+                "job_display_name": str(job),
+                "estimated_hours": (
+                    job.latest_estimate_pricing.total_hours
+                    if job.latest_estimate_pricing
+                    else 0
+                ),
+                "hours_spent": (
+                    job.latest_reality_pricing.total_hours
+                    if job.latest_reality_pricing
+                    else 0
+                ),
+                "client_name": job.client.name if job.client else "NO CLIENT!?",
+                "charge_out_rate": float(job.charge_out_rate),
+                "job_status": job.status,
+            }
+        )
     return job_data
+
 
 def serialize_time_entry(entry):
     """
@@ -108,5 +117,9 @@ def serialize_time_entry(entry):
         "charge_out_rate": float(entry.charge_out_rate),
         "timesheet_date": entry.date.strftime("%Y-%m-%d"),
         "hours_spent": entry.job_pricing.total_hours,
-        "estimated_hours": entry.job_pricing.job.latest_estimate_pricing.total_hours if entry.job_pricing.job.latest_estimate_pricing else 0
+        "estimated_hours": (
+            entry.job_pricing.job.latest_estimate_pricing.total_hours
+            if entry.job_pricing.job.latest_estimate_pricing
+            else 0
+        ),
     }

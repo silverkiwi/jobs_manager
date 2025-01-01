@@ -10,7 +10,6 @@ from workflow.forms import StaffChangeForm, StaffCreationForm
 Staff = get_user_model()
 
 
-
 class StaffListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Staff
     template_name = "list_staff.html"

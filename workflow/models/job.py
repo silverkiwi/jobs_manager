@@ -1,4 +1,6 @@
 import logging
+import mimetypes
+import os
 import uuid
 from datetime import datetime
 from typing import Dict, List
@@ -6,6 +8,7 @@ from typing import Dict, List
 from django.db import models, transaction
 from simple_history.models import HistoricalRecords  # type: ignore
 
+from jobs_manager import settings
 from workflow.models import CompanyDefaults
 
 # We say . rather than workflow.models to avoid going through init,
@@ -68,7 +71,7 @@ class Job(models.Model):
     description: str = models.TextField(
         blank=True,
         null=True,
-        help_text="This becomes the first line item on the invoice"
+        help_text="This becomes the first line item on the invoice",
     )  # type: ignore
 
     quote_acceptance_date: datetime = models.DateTimeField(  # type: ignore

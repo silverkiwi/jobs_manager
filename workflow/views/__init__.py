@@ -4,7 +4,7 @@ from .adjustment_entry_view import CreateAdjustmentEntryView, UpdateAdjustmentEn
 from .client_view import ClientListView, ClientUpdateView
 from .dashboard_view import DashboardView
 from .invoice_view import InvoiceListView, InvoiceUpdateView
-from .job_file_view import JobFileView
+from .job_file_view import BinaryFileRenderer, JobFileView
 from .material_entry_view import CreateMaterialEntryView, MaterialEntryUpdateView
 from .report_view import ReportsIndexView, CompanyProfitAndLossView
 from .staff_view import StaffListView, StaffCreateView, StaffUpdateView
@@ -12,22 +12,23 @@ from .time_entry_view import TimesheetEntryView
 from .time_overview_view import TimesheetOverviewView, TimesheetDailyView
 
 __all__ = [
-    'CreateAdjustmentEntryView',
-    'UpdateAdjustmentEntryView',
-    'ClientListView',
-    'ClientUpdateView',
-    'DashboardView',
-    'InvoiceListView',
-    'InvoiceUpdateView',
-    'JobFileUploadView',
-    'CreateMaterialEntryView',
-    'MaterialEntryUpdateView',
-    'ReportsIndexView',
-    'CompanyProfitAndLossView',
-    'StaffListView',
-    'StaffCreateView',
-    'StaffUpdateView',
-    'TimesheetEntryView',
-    'TimesheetOverviewView',
-    'TimesheetDailyView',
+    "CreateAdjustmentEntryView",
+    "UpdateAdjustmentEntryView",
+    "ClientListView",
+    "ClientUpdateView",
+    "DashboardView",
+    "InvoiceListView",
+    "InvoiceUpdateView",
+    "BinaryFileRenderer",
+    "JobFileView",
+    "CreateMaterialEntryView",
+    "MaterialEntryUpdateView",
+    "ReportsIndexView",
+    "CompanyProfitAndLossView",
+    "StaffListView",
+    "StaffCreateView",
+    "StaffUpdateView",
+    "TimesheetEntryView",
+    "TimesheetOverviewView",
+    "TimesheetDailyView",
 ]

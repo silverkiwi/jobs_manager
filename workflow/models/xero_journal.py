@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 
+
 class XeroJournal(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     xero_id = models.UUIDField(unique=True)
@@ -8,7 +9,7 @@ class XeroJournal(models.Model):
     journal_date = models.DateField()
     # CreatedDateUTC is typically a datetime from Xero
     created_date_utc = models.DateTimeField()
-    journal_number = models.IntegerField(null=False, blank=False,unique=True)
+    journal_number = models.IntegerField(null=False, blank=False, unique=True)
     reference = models.CharField(max_length=255, null=True, blank=True)
     source_id = models.UUIDField(null=True, blank=True)
     source_type = models.CharField(max_length=50, null=True, blank=True)
@@ -26,17 +27,12 @@ class XeroJournalLineItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Each journal can have multiple line items
     journal = models.ForeignKey(
-        XeroJournal,
-        on_delete=models.CASCADE,
-        related_name="line_items"
+        XeroJournal, on_delete=models.CASCADE, related_name="line_items"
     )
     xero_line_id = models.UUIDField(unique=True)
     # Link to XeroAccount if possible. If it gets deleted or not found, we keep the line item as historical data.
     account = models.ForeignKey(
-        "XeroAccount",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+        "XeroAccount", on_delete=models.SET_NULL, null=True, blank=True
     )
     description = models.TextField(null=True, blank=True)
     # Typically journals contain both credit and debit lines. Net/Gross/Tax amounts might be needed.

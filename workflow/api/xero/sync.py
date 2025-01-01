@@ -9,24 +9,27 @@ from django.db import transaction
 from django.db.models import Max
 from xero_python.accounting import AccountingApi
 
-from workflow.api.xero.reprocess_xero import set_invoice_or_bill_fields, \
-    set_journal_fields, set_client_fields
-from workflow.api.xero.xero import api_client, get_tenant_id, get_token
-from workflow.models import  XeroJournal
+from workflow.api.xero.reprocess_xero import (
+    set_invoice_or_bill_fields,
+    set_journal_fields,
+    set_client_fields,
+)
+from workflow.api.xero.xero import api_client, get_tenant_id
+from workflow.models import XeroJournal
 from workflow.models.client import Client
-from workflow.models.invoice import Bill, Invoice,  CreditNote
+from workflow.models.invoice import Bill, Invoice, CreditNote
 from workflow.models.xero_account import XeroAccount
 
 logger = logging.getLogger(__name__)
 
 
 def sync_xero_data(
-        xero_entity_type,
-        xero_api_function,
-        sync_function,
-        last_modified_time,
-        additional_params=None,
-        pagination_mode="single"  # "single", "page", or "offset"
+    xero_entity_type,
+    xero_api_function,
+    sync_function,
+    last_modified_time,
+    additional_params=None,
+    pagination_mode="single",  # "single", "page", or "offset"
 ):
     # Note, the logic here is gnarly.  Be careful
     # There are six scenarios to handle - single/page/offset and partial/final
@@ -44,7 +47,7 @@ def sync_xero_data(
     if pagination_mode not in ("single", "page", "offset"):
         raise ValueError("pagination_mode must be 'single', 'page', or 'offset'")
 
-    if  pagination_mode == "offset" and xero_entity_type != "journals":
+    if pagination_mode == "offset" and xero_entity_type != "journals":
         raise TypeError("We only support journals for offset currently")
 
     logger.info(
@@ -58,7 +61,7 @@ def sync_xero_data(
 
     base_params = {
         "xero_tenant_id": xero_tenant_id,
-        "if_modified_since": last_modified_time
+        "if_modified_since": last_modified_time,
     }
 
     if pagination_mode == "page":
@@ -158,15 +161,22 @@ def remove_junk_json_fields(data):
     else:
         return data  # Base case: return data as-is if it's not a dict or list
 
+
 def clean_raw_json(data):
     def is_unwanted_field(key, value):
-        unwanted_patterns = ["_value2member_map_", "_generate_next_value_", "_member_names_", "__objclass__"]
+        unwanted_patterns = [
+            "_value2member_map_",
+            "_generate_next_value_",
+            "_member_names_",
+            "__objclass__",
+        ]
         return any(pattern in key for pattern in unwanted_patterns)
 
     def recursively_clean(data):
         if isinstance(data, dict):
             return {
-                k: recursively_clean(v) for k, v in data.items()
+                k: recursively_clean(v)
+                for k, v in data.items()
                 if not is_unwanted_field(k, v)
             }
         elif isinstance(data, list):
@@ -205,7 +215,7 @@ def sync_invoices(invoices):
             invoice.raw_json = raw_json
 
             # Set other fields from raw_json using set_invoice_fields
-            set_invoice_or_bill_fields(invoice,"INVOICE")
+            set_invoice_or_bill_fields(invoice, "INVOICE")
 
             # Log whether the invoice was created or updated
             if created:
@@ -252,7 +262,7 @@ def sync_bills(bills):
             bill.raw_json = raw_json
 
             # Set other fields using set_bill_fields (which also saves the bill)
-            set_invoice_or_bill_fields(bill,"BILL")
+            set_invoice_or_bill_fields(bill, "BILL")
 
             # Log whether the bill was created or updated
             if created:
@@ -268,6 +278,7 @@ def sync_bills(bills):
             logger.error(f"Error processing bill {bill_number}: {str(e)}")
             logger.error(f"Bill data: {raw_json}")
             raise
+
 
 def sync_credit_notes(notes):
     """Sync Xero credit notes."""
@@ -298,7 +309,7 @@ def sync_credit_notes(notes):
             note.raw_json = raw_json
 
             # Set other fields using set_invoice_or_bill_fields
-            set_invoice_or_bill_fields(note,"CREDIT_NOTE")
+            set_invoice_or_bill_fields(note, "CREDIT_NOTE")
 
             # Log whether the credit note was created or updated
             if created:
@@ -357,6 +368,7 @@ def sync_journals(journals):
             logger.error(f"Error processing journal {journal_number}: {str(e)}")
             logger.error(f"Journal data: {raw_json}")
             raise
+
 
 def sync_clients(xero_contacts):
     for contact_data in xero_contacts:
@@ -671,7 +683,7 @@ def sync_all_xero_data():
     # Just put here for lazy debugging since I can trigger this with a button
     # invoice = Invoice.objects.filter(number="INV-54021").first()
     # set_invoice_or_bill_fields(invoice, "INVOICE")
-    #reprocess_all()
+    # reprocess_all()
 
     sync_xero_data(
         xero_entity_type="accounts",
