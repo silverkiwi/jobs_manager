@@ -1,14 +1,16 @@
 import uuid
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from decimal import Decimal
 from django.db import models
 from workflow.enums import InvoiceStatus
+
 
 class BaseXeroInvoiceDocument(models.Model):
     """
     Abstract base class for Xero invoice-like documents (Invoices, Bills, Credit Notes).
     This represents financial documents that have line items and tax calculations.
     """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     xero_id = models.UUIDField(unique=True)
     number = models.CharField(max_length=255)
@@ -16,9 +18,7 @@ class BaseXeroInvoiceDocument(models.Model):
     date = models.DateField()
     due_date = models.DateField(null=True, blank=True)
     status = models.CharField(
-        max_length=50,
-        choices=InvoiceStatus.choices,
-        default=InvoiceStatus.DRAFT
+        max_length=50, choices=InvoiceStatus.choices, default=InvoiceStatus.DRAFT
     )
     total_excl_tax = models.DecimalField(max_digits=10, decimal_places=2)
     tax = models.DecimalField(max_digits=10, decimal_places=2)
@@ -45,49 +45,32 @@ class BaseXeroInvoiceDocument(models.Model):
         """Calculate the total amount by summing up the related line items."""
         return sum(item.line_amount_excl_tax for item in self.get_line_items())
 
+
 class BaseLineItem(models.Model):
     """
     Abstract base class for all line items (Invoice, Bill, Credit Note items).
     """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     xero_line_id = models.UUIDField(unique=True, default=uuid.uuid4)
     description = models.TextField()
     quantity = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        default=Decimal("1.00")
+        max_digits=10, decimal_places=2, null=True, blank=True, default=Decimal("1.00")
     )
     unit_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
+        max_digits=10, decimal_places=2, null=True, blank=True
     )
     line_amount_excl_tax = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
+        max_digits=10, decimal_places=2, null=True, blank=True
     )
     line_amount_incl_tax = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
+        max_digits=10, decimal_places=2, null=True, blank=True
     )
     account = models.ForeignKey(
-        "XeroAccount",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+        "XeroAccount", on_delete=models.SET_NULL, null=True, blank=True
     )
     tax_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
+        max_digits=10, decimal_places=2, null=True, blank=True
     )
 
     class Meta:
@@ -101,7 +84,9 @@ class BaseLineItem(models.Model):
         """Compute the total price of the line item including tax."""
         return (self.unit_price or Decimal("0.00")) * (self.quantity or Decimal("1.00"))
 
+
 # Concrete Document Classes
+
 
 class Invoice(BaseXeroInvoiceDocument):
     class Meta:
@@ -111,6 +96,7 @@ class Invoice(BaseXeroInvoiceDocument):
 
     def get_line_items(self):
         return self.line_items.all()
+
 
 class Bill(BaseXeroInvoiceDocument):
     class Meta:
@@ -130,6 +116,7 @@ class Bill(BaseXeroInvoiceDocument):
     def get_line_items(self):
         return self.line_items.all()
 
+
 class CreditNote(BaseXeroInvoiceDocument):
     # Note that Xero has a few extra fields we don't have mapped
     # allocations
@@ -147,35 +134,31 @@ class CreditNote(BaseXeroInvoiceDocument):
     def get_line_items(self):
         return self.line_items.all()
 
+
 # Concrete Line Item Classes
+
 
 class InvoiceLineItem(BaseLineItem):
     invoice = models.ForeignKey(
-        Invoice,
-        on_delete=models.CASCADE,
-        related_name="line_items"
+        Invoice, on_delete=models.CASCADE, related_name="line_items"
     )
 
     class Meta:
         verbose_name = "Invoice Line Item"
         verbose_name_plural = "Invoice Line Items"
 
+
 class BillLineItem(BaseLineItem):
-    bill = models.ForeignKey(
-        Bill,
-        on_delete=models.CASCADE,
-        related_name="line_items"
-    )
+    bill = models.ForeignKey(Bill, on_delete=models.CASCADE, related_name="line_items")
 
     class Meta:
         verbose_name = "Bill Line Item"
         verbose_name_plural = "Bill Line Items"
 
+
 class CreditNoteLineItem(BaseLineItem):
     credit_note = models.ForeignKey(
-        CreditNote,
-        on_delete=models.CASCADE,
-        related_name="line_items"
+        CreditNote, on_delete=models.CASCADE, related_name="line_items"
     )
 
     class Meta:

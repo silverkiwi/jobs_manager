@@ -145,7 +145,7 @@ class TimesheetDailyView(TemplateView):
 
         staff_data = []
         for staff_member in Staff.objects.all():
-            # See TimesheetOverviewView, lines under "all_staff = ..." 
+            # See TimesheetOverviewView, lines under "all_staff = ..."
             if staff_member.is_staff is True:
                 continue
             scheduled_hours = staff_member.get_scheduled_hours(target_date)
@@ -158,7 +158,11 @@ class TimesheetDailyView(TemplateView):
             staff_data.append(
                 {
                     "staff_id": staff_member.id,
-                    "name": staff_member.preferred_name if staff_member.preferred_name else staff_member.get_display_name(),
+                    "name": (
+                        staff_member.preferred_name
+                        if staff_member.preferred_name
+                        else staff_member.get_display_name()
+                    ),
                     "last_name": staff_member.last_name,
                     "scheduled_hours": scheduled_hours,
                     "actual_hours": actual_hours,

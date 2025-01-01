@@ -76,7 +76,9 @@ class TimeEntryForm(forms.ModelForm):
         model = TimeEntry
 
         widgets = {
-            "description": forms.Textarea(attrs={"rows": 3}),  # Expand description field (with rows) for better readability
+            "description": forms.Textarea(
+                attrs={"rows": 3}
+            ),  # Expand description field (with rows) for better readability
             "wage_rate_multiplier": forms.Select(
                 choices=RATE_TYPE_CHOICES
             ),  # Dropdown for rate type selection
@@ -94,7 +96,7 @@ class TimeEntryForm(forms.ModelForm):
             "description",
             "note",
         )
-    
+
     def __init__(self, *args, staff_member=None, timesheet_date=None, **kwargs):
         """
         Form constructor. Main function is to prepopulate certain fields (such as the staff and its information, alongside with the date, which are all provided by the view)
@@ -108,9 +110,11 @@ class TimeEntryForm(forms.ModelForm):
         self.fields["date"].initial = timesheet_date
         self.fields["date"].widget = forms.HiddenInput()
 
-        self.fields["job_pricing"].queryset = JobPricing.objects.select_related('job').filter(
-            job__status__in=["quoting", "approved", "in_progress", "special"]
-        ).order_by("job__name")
+        self.fields["job_pricing"].queryset = (
+            JobPricing.objects.select_related("job")
+            .filter(job__status__in=["quoting", "approved", "in_progress", "special"])
+            .order_by("job__name")
+        )
         self.fields["job_pricing"].required = True
 
         self.fields["wage_rate"].initial = staff_member.wage_rate
@@ -123,7 +127,7 @@ class TimeEntryForm(forms.ModelForm):
 
         self.fields["charge_out_rate"].initial = 1.0
         self.fields["charge_out_rate"].widget = forms.HiddenInput()
-    
+
     def save(self, commit=True):
         """
         Set charge_out_rate based on job_pricing before saving.
@@ -143,7 +147,7 @@ class TimeEntryForm(forms.ModelForm):
             instance.save()
 
         return instance
-                      
+
 
 class StaffCreationForm(UserCreationForm):
     class Meta:
@@ -258,14 +262,14 @@ class PaidAbsenceForm(forms.Form):
     leave_type = forms.ChoiceField(
         choices=LEAVE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
-        label="Leave Type"
+        label="Leave Type",
     )
 
     start_date = forms.DateField(
         widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
-        label="Start Date"
+        label="Start Date",
     )
     end_date = forms.DateField(
         widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
-        label="End Date"    
+        label="End Date",
     )

@@ -38,19 +38,19 @@ api_client = ApiClient(
 @api_client.oauth2_token_getter
 def get_token() -> Optional[Dict[str, Any]]:
     """Get token from cache."""
-    return cache.get('xero_token')
+    return cache.get("xero_token")
 
 
 @api_client.oauth2_token_saver
 def store_token(token: Dict[str, Any]) -> None:
     """Store token in cache with 29 minute timeout."""
-    cache.set('xero_token', token, timeout=1740)  # 29 minutes
+    cache.set("xero_token", token, timeout=1740)  # 29 minutes
 
 
 def refresh_token() -> Optional[Dict[str, Any]]:
     """Refresh the token using the refresh_token."""
     token = get_token()
-    if not token or 'refresh_token' not in token:
+    if not token or "refresh_token" not in token:
         logger.error("No valid token to refresh")
         return None
 
@@ -67,7 +67,7 @@ def get_valid_token() -> Optional[Dict[str, Any]]:
     if not token:
         return None
 
-    expires_at = token.get('expires_at')
+    expires_at = token.get("expires_at")
     if expires_at:
         expires_at_datetime = datetime.fromtimestamp(expires_at, tz=timezone.utc)
         if datetime.now(timezone.utc) > expires_at_datetime:
@@ -95,22 +95,23 @@ def get_tenant_id_from_connections() -> str:
     return connections[0].tenant_id
 
 
-def exchange_code_for_token(code: str, state: str, session_state: str) -> Dict[
-    str, Any]:
+def exchange_code_for_token(
+    code: str, state: str, session_state: str
+) -> Dict[str, Any]:
     """Exchange OAuth code for token and store it."""
     if state != session_state:
         raise ValueError("OAuth state mismatch")
 
     # Get initial token
     response = requests.post(
-        'https://identity.xero.com/connect/token',
+        "https://identity.xero.com/connect/token",
         data={
-            'grant_type': 'authorization_code',
-            'code': code,
-            'redirect_uri': settings.XERO_REDIRECT_URI,
-            'client_id': settings.XERO_CLIENT_ID,
-            'client_secret': settings.XERO_CLIENT_SECRET,
-        }
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": settings.XERO_REDIRECT_URI,
+            "client_id": settings.XERO_CLIENT_ID,
+            "client_secret": settings.XERO_CLIENT_SECRET,
+        },
     )
     response.raise_for_status()
     token_data = response.json()
@@ -120,19 +121,20 @@ def exchange_code_for_token(code: str, state: str, session_state: str) -> Dict[
 
     # Get and store tenant ID separately
     tenant_id = get_tenant_id_from_connections()
-    cache.set('xero_tenant_id', tenant_id)
+    cache.set("xero_tenant_id", tenant_id)
 
     return {"success": True}
 
 
 def get_tenant_id() -> str:
     """Get the tenant ID from cache."""
-    tenant_id = cache.get('xero_tenant_id')
+    tenant_id = cache.get("xero_tenant_id")
     if not tenant_id:
         if get_token():
             tenant_id = get_tenant_id_from_connections()
-            cache.set('xero_tenant_id', tenant_id)
+            cache.set("xero_tenant_id", tenant_id)
         else:
             raise Exception(
-                "No Xero token found. Please complete initial authorization.")
+                "No Xero token found. Please complete initial authorization."
+            )
     return tenant_id

@@ -5,10 +5,8 @@ from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import Sum, F
-from workflow.models.invoice import BillLineItem, InvoiceLineItem, CreditNoteLineItem
+from django.db.models import Sum
 from workflow.models.xero_journal import XeroJournalLineItem
-from workflow.api.reports.utils import format_period_label
 
 
 class CompanyProfitAndLossReport(APIView):
@@ -23,8 +21,9 @@ class CompanyProfitAndLossReport(APIView):
     def __init__(self):
         self.data = defaultdict(Decimal)
 
-    def categorize_transaction(self, account_name, account_type, total, report,
-                               compare_periods, period_index):
+    def categorize_transaction(
+        self, account_name, account_type, total, report, compare_periods, period_index
+    ):
         if account_name in self.EQUITY_MOVEMENT_ACCOUNTS:
             category = "Equity Movements"
         elif account_type == "AccountType.REVENUE":
@@ -45,9 +44,13 @@ class CompanyProfitAndLossReport(APIView):
         """
         Roll up line items for all document types into a single dictionary.
         """
-        journal_rollup = XeroJournalLineItem.objects.filter(
-            journal__journal_date__range=[period_start, period_end]
-        ).values("account__account_type", "account__account_name").annotate(total=Sum("net_amount"))
+        journal_rollup = (
+            XeroJournalLineItem.objects.filter(
+                journal__journal_date__range=[period_start, period_end]
+            )
+            .values("account__account_type", "account__account_name")
+            .annotate(total=Sum("net_amount"))
+        )
 
         consolidated_rollup = {}
         for item in journal_rollup:
@@ -58,14 +61,25 @@ class CompanyProfitAndLossReport(APIView):
 
     def calculate_totals(self, report, compare_periods, period_index):
         """
-        Calculate totals for sales, COGS, gross profit, operating expenses, equity movements, and profits.
+        Calculate totals for sales, COGS, gross profit, operating expenses,
+        equity movements, and profits.
         """
-        total_sales = sum(report["Trading Income"].get(account, [0])[period_index] for account in report["Trading Income"])
-        total_cogs = sum(report["Cost of Sales"].get(account, [0])[period_index] for account in report["Cost of Sales"])
+        total_sales = sum(
+            report["Trading Income"].get(account, [0])[period_index]
+            for account in report["Trading Income"]
+        )
+        total_cogs = sum(
+            report["Cost of Sales"].get(account, [0])[period_index]
+            for account in report["Cost of Sales"]
+        )
         gross_profit = total_sales - total_cogs
-        total_expenses = sum(report["Operating Expenses"].get(account, [0])[period_index] for account in report["Operating Expenses"])
+        total_expenses = sum(
+            report["Operating Expenses"].get(account, [0])[period_index]
+            for account in report["Operating Expenses"]
+        )
         total_equity_movements = sum(
-            report["Equity Movements"].get(account, [0])[period_index] for account in report["Equity Movements"]
+            report["Equity Movements"].get(account, [0])[period_index]
+            for account in report["Equity Movements"]
         )
         net_profit = gross_profit - total_expenses
         accounting_profit = net_profit - total_equity_movements
@@ -81,7 +95,9 @@ class CompanyProfitAndLossReport(APIView):
         }
 
     def get(self, request):
-        start_date = datetime.strptime(request.query_params.get("start_date"), "%Y-%m-%d")
+        start_date = datetime.strptime(
+            request.query_params.get("start_date"), "%Y-%m-%d"
+        )
         end_date = datetime.strptime(request.query_params.get("end_date"), "%Y-%m-%d")
         compare_periods = int(request.query_params.get("compare", 0))
         period_type = request.query_params.get("period_type", "month")
@@ -90,7 +106,9 @@ class CompanyProfitAndLossReport(APIView):
         for i in range(compare_periods + 1):
             if period_type == "month":
                 period_start = (start_date - relativedelta(months=i)).replace(day=1)
-                period_end = (period_start + relativedelta(months=1)) - timedelta(days=1)
+                period_end = (period_start + relativedelta(months=1)) - timedelta(
+                    days=1
+                )
             elif period_type == "year":
                 period_start = start_date - relativedelta(years=i)
                 period_end = end_date - relativedelta(years=i)
@@ -102,14 +120,32 @@ class CompanyProfitAndLossReport(APIView):
             "Operating Expenses": {},
             "Equity Movements": {},
             "Other Items": {},
-            "totals": {key: [] for key in ["Trading Income", "Cost of Sales", "Gross Profit", "Operating Expenses", "Equity Movements", "Net Profit", "Accounting Profit"]},
+            "totals": {
+                key: []
+                for key in [
+                    "Trading Income",
+                    "Cost of Sales",
+                    "Gross Profit",
+                    "Operating Expenses",
+                    "Equity Movements",
+                    "Net Profit",
+                    "Accounting Profit",
+                ]
+            },
         }
 
         for period_index, (period_start, period_end) in enumerate(date_ranges):
             consolidated_rollup = self.rollup_line_items(period_start, period_end)
 
             for (account_type, account_name), total in consolidated_rollup.items():
-                self.categorize_transaction(account_name, account_type, total, report, compare_periods, period_index)
+                self.categorize_transaction(
+                    account_name,
+                    account_type,
+                    total,
+                    report,
+                    compare_periods,
+                    period_index,
+                )
 
             totals = self.calculate_totals(report, compare_periods, period_index)
             for key, value in totals.items():

@@ -1,7 +1,10 @@
 import decimal
 import json
+import mimetypes
+import os
 from decimal import Decimal
 
+from jobs_manager.settings import DROPBOX_WORKFLOW_FOLDER
 from workflow.models.company_defaults import CompanyDefaults
 
 
@@ -27,3 +30,8 @@ class DecimalEncoder(json.JSONEncoder):
 
 def decimal_to_float(value):
     return float(value) if isinstance(value, Decimal) else value
+
+
+def get_job_folder_path(job_number):
+    """Get the absolute filesystem path for a job's folder."""
+    return os.path.join(DROPBOX_WORKFLOW_FOLDER, f"Job-{job_number}")
