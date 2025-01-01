@@ -104,7 +104,8 @@ export function validateAndTrackRow(rowData, rowId) {
     // Check if the row is valid
     const isValidRow = rowData.job_number &&
         rowData.hours > 0 &&
-        (rowData.description?.trim() !== '' || rowData.notes?.trim() !== '');
+        (rowData.description?.trim() !== '' || rowData.notes?.trim() !== '')
+        && typeof rowData.is_billable === 'boolean';
 
     if (!isValidRow) {
         console.log('Row is invalid:', rowData);

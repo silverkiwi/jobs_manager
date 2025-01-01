@@ -124,7 +124,7 @@ function collectGridData() {
             bill_amount: rowData.bill_amount,
             date: rowData.date,
             job_data: rowData.job_data || timesheet_data.jobs.find(job => job.job_number === rowData.job_number),
-            is_billable: rowData.is_billable || true,
+            is_billable: rowData.is_billable === undefined ? true : rowData.is_billable, 
             notes: rowData.notes || '',
             rate_type: rowData.rate_type || 'Ord'
         };
