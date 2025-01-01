@@ -5,6 +5,11 @@ My plan is to go live with the app.  Ideally on the 13th of January.  That means
 The app will be used for ALL data entry: estimates, quotes, timesheets, purchases, invoice generation, payroll export
 The app will be the permanent archive of jobs from this release.  We will no longer store paper jobs
 
+### Regressions
+
+Functionality that used to work doesn't any more.  E.g. selecting the client for a job
+
+
 ### Estimate Entry
 
 Probably sorted from a MVP perspective
@@ -56,6 +61,12 @@ Note the weekly view may be perfect for this
 # Stuff that didn't make the first release
 
 ## Email quotes: (generates PDF, creates draft email containing PDF, launches Chrome)
+## Testing
+
+I'm not happy with the number of regressions.  Ideally I'd have some sort of test that ensured the app continues to work.  
+My experience with automated testing is you end up spending longer maintaining the tests than you do writing software
+
+
 ## Budgeting
 
 * Revenue targets/forecasts
