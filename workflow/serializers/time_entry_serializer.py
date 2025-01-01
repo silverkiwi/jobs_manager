@@ -2,6 +2,10 @@ from rest_framework import serializers
 from workflow.helpers import decimal_to_float
 from workflow.models import TimeEntry
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
     """
@@ -41,11 +45,11 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
         return obj.cost
 
     def get_staff_id(self, obj):
-        return str(obj.staff.id)
+        logger.warning(f"TimeEntry {obj.id} has no associated staff.")
+        return str(obj.staff.id) if obj.staff else None
 
     def get_timesheet_date(self, obj):
-        return obj.date.strftime("%Y-%m-%d")
-
+        return obj.date.strftime("%Y-%m-%d") if obj.date else None
 
 class TimeEntryForTimeEntryViewSerializer(serializers.ModelSerializer):
     """
