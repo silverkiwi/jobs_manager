@@ -16,12 +16,12 @@ function updateGridEntries(entries) {
         grid.forEachNode(node => {
             if (node.data.id === 'tempId' && entry.id) {
                 node.data.id = entry.id;
-                console.log(`Replaced tempId with server ID: %{entry.id}`)
+                console.log(`Replaced tempId with server ID: ${entry.id}`)
             }
 
             if (node.data.id === entry.id) {
                 node.setData(entry);
-                console.log(`Updated entry: ${entry}`)
+                console.log('Updated entry:', entry);
             }
         });
     });

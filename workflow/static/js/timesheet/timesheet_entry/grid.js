@@ -168,7 +168,7 @@ export const gridOptions = {
                         data: rowData
                     });
 
-                    const isEmptyRow = !rowData.job_number && !rowData.description?.trim() && rowData.hours <= 0;
+                    const isEmptyRow = rowData.hours <= 0 && (!rowData.description?.trim() || !rowData.job_number || !rowData.notes);
 
                     if (isEmptyRow) {
                         console.log('Skipping empty row:', rowData);
