@@ -6,14 +6,15 @@ from .job_pricing_serializer import JobPricingSerializer
 from .job_serializer import JobSerializer
 from .material_entry_serializer import MaterialEntrySerializer
 from .staff_serializer import StaffSerializer
-from .time_entry_serializer import TimeEntrySerializer
+from .time_entry_serializer import TimeEntryForJobPricingSerializer, TimeEntryForTimeEntryViewSerializer
 
 __all__ = [
-    "AdjustmentEntrySerializer",
-    "ClientSerializer",
-    "JobPricingSerializer",
-    "JobSerializer",
-    "MaterialEntrySerializer",
-    "StaffSerializer",
-    "TimeEntrySerializer",
+    'AdjustmentEntrySerializer',
+    'ClientSerializer',
+    'JobPricingSerializer',
+    'JobSerializer',
+    'MaterialEntrySerializer',
+    'StaffSerializer',
+    'TimeEntryForJobPricingSerializer',
+    'TimeEntryForTimeEntryViewSerializer',
 ]

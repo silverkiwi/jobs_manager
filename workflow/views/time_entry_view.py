@@ -14,11 +14,8 @@ from django.contrib import messages
 from workflow.enums import RateType
 from workflow.models import Job, JobPricing, Staff, TimeEntry
 from workflow.forms import TimeEntryForm, PaidAbsenceForm
-from workflow.utils import (
-    extract_messages,
-    get_jobs_data,
-    serialize_time_entry,
-)
+from workflow.serializers.time_entry_serializer import TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer
+from workflow.utils import extract_messages, get_jobs_data
 
 logger = logging.getLogger(__name__)
 
@@ -328,16 +325,13 @@ class TimesheetEntryView(TemplateView):
                         "charge_out_rate": float(job.charge_out_rate),
                     }
 
-                    return JsonResponse(
-                        {
-                            "success": True,
-                            "entry": serialize_time_entry(time_entry),
-                            "job": job_data,
-                            "action": "add",
-                            "messages": extract_messages(request),
-                        },
-                        status=200,
-                    )
+                    return JsonResponse({    
+                        "success": True, 
+                        "entry": TimeEntrySerializer(time_entry).data,
+                        "job": job_data,
+                        "action": "add",
+                        "messages": extract_messages(request),
+                    }, status=200)                    
 
                 messages.error(
                     request,
@@ -696,9 +690,9 @@ def autosave_timesheet_view(request):
                 continue
 
             entry_id = entry_data.get("id")
-            logger.debug(f"Entry: {entry_data}")
-            job_data = entry_data.get("job_data")
-            logger.debug(f"Job data: {job_data}")
+            logger.debug(f"Entry: {json.dumps(entry_data, indent=2)}")
+            job_data = entry_data.get("job_data") 
+            logger.debug(f"Job data: {json.dumps(job_data, indent=2)}")
             job_id = job_data.get("id") if job_data else None
             logger.debug(f"Job ID: {job_id}")
 
@@ -738,6 +732,10 @@ def autosave_timesheet_view(request):
                     logger.debug(f"Processing entry with ID: {entry_id}")
                     entry = TimeEntry.objects.get(id=entry_id)
 
+                    # Identify old job before changing
+                    old_job_id = entry.job_pricing.job.id if entry.job_pricing.job else None
+                    old_job = Job.objects.get(id=old_job_id) if old_job_id else None
+
                     if job_id != str(entry.job_pricing.job.id):
                         logger.info(f"Job for entry {entry_id} changed to {job_id}")
                         new_job = Job.objects.get(id=job_id)
@@ -748,12 +746,8 @@ def autosave_timesheet_view(request):
                     entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
                     entry.note = entry_data.get("notes", "")
-                    entry.wage_rate_multiplier = RateType(
-                        entry_data.get("rate_type", RateType.ORDINARY.value)
-                    ).multiplier
-                    entry.charge_out_rate = Decimal(
-                        str(job_data.get("charge_out_rate", 0))
-                    )
+                    entry.wage_rate_multiplier = RateType(entry_data.get("rate_type", "Ord")).multiplier                    
+                    entry.charge_out_rate = Decimal(str(job_data.get("charge_out_rate", 0)))
 
                     related_jobs.add(job_id)
                     entry.save()
@@ -777,16 +771,14 @@ def autosave_timesheet_view(request):
                         )
                     logger.debug("Existing timesheet saved successfully")
 
-                    return JsonResponse(
-                        {
-                            "success": True,
-                            "entry": serialize_time_entry(entry),
-                            "jobs": get_jobs_data(related_jobs),
-                            "action": "add",
-                            "messages": extract_messages(request),
-                        },
-                        status=200,
-                    )
+                    return JsonResponse({
+                        "success": True,
+                        "entry": TimeEntrySerializer(entry).data,
+                        "jobs": get_jobs_data(related_jobs),
+                        "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
+                        "action": "update",
+                        "messages": extract_messages(request)
+                    }, status=200)
 
                 except TimeEntry.DoesNotExist:
                     logger.error(f"TimeEntry with ID {entry_id} not found")
@@ -843,26 +835,23 @@ def autosave_timesheet_view(request):
                     messages.success(request, "Timesheet created successfully.")
                 logger.debug("Timesheet created successfully")
 
-                return JsonResponse(
-                    {
-                        "success": True,
-                        "messages": extract_messages(request),
-                        "entry": serialize_time_entry(entry),
-                        "jobs": get_jobs_data(related_jobs),
-                        "action": "add",
-                    },
-                    status=200,
-                )
+                return JsonResponse({
+                    "success": True,
+                    "messages": extract_messages(request),
+                    "entry": TimeEntrySerializer(entry).data,
+                    "jobs": get_jobs_data(related_jobs),
+                    "action": "add"
+                }, status=200)
+            
+        return JsonResponse({
+            "success": True,
+            "messages": extract_messages(request),
+            "entries": TimeEntrySerializer(updated_entries, many=True).data,
+            "jobs": get_jobs_data(related_jobs),
+            "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
+            "action": "update"
+        })
 
-        return JsonResponse(
-            {
-                "success": True,
-                "messages": extract_messages(request),
-                "entries": [serialize_time_entry(entry) for entry in updated_entries],
-                "jobs": get_jobs_data(related_jobs),
-                "action": "add",
-            }
-        )
 
     except json.JSONDecodeError:
         logger.error("Failed to parse JSON")

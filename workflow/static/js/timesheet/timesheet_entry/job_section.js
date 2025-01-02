@@ -67,72 +67,143 @@ export function fetchJobs() {
     });
 }
 
-/**
- * Updates the current list of jobs displayed on the page based on the specified action.
- * 
- * @param {Array<Object>} jobs - The list of jobs to update or modify.
- * @param {string} action - The action to perform: 'load', 'add', or 'remove'.
- * 
- * Purpose:
- * - 'load': Replaces the current job list entirely.
- * - 'add': Adds new jobs to the current list, avoiding duplicates.
- * - 'remove': Removes specified jobs from the current list.
- * 
- * Business Logic:
- * - Ensures the UI reflects the current state of jobs, showing a message if the list is empty.
- * - Dynamically updates the DOM by rendering job items or an alert message.
- * 
- * Example:
- * updateJobsList([{ id: 1, job_display_name: "Job A", client_name: "Client A" }], 'load');
- */
-let currentJobs = [];
-export function updateJobsList(jobs, action) {
-    console.log('Updating jobs list with:', jobs);
+function getStatusIcon(status) {
+    const icons = {
+        'quoting': '📝',
+        'approved': '✅',
+        'rejected': '❌', 
+        'in_progress': '🚧',
+        'on_hold': '⏸️',
+        'special': '⭐',
+        'completed': '✔️',
+        'archived': '📦'
+    };
+    return icons[status] || '';
+}
 
+/**
+ * Merges new jobs into an existing jobs list or adds them if they don't exist.
+ * If a job with the same ID exists, its properties are merged with the new job.
+ * If a job doesn't exist, it is added to the list.
+ * 
+ * @param {Array<Object>} jobsToProcess - Array of new jobs to be processed
+ * @param {Array<Object>} currentJobsList - Array of existing jobs
+ * @param {number} jobsToProcess[].id - Unique identifier for each job
+ * @param {number} currentJobsList[].id - Unique identifier for each existing job
+ * @returns {Array<Object>} Updated array of jobs with merged or added items
+ */
+function mergeOrAddJobs(jobsToProcess, currentJobsList) {
+    jobsToProcess.forEach(job => {
+        const existingJobIndex = currentJobsList.findIndex(currentJob => currentJob.id === job.id);
+        existingJobIndex !== -1 
+            ? currentJobsList[existingJobIndex] = { ...currentJobsList[existingJobIndex], ...job }
+            : currentJobsList.push(job);
+    });
+    return currentJobsList;
+}
+
+let currentJobs = [];
+/**
+ * Updates the jobs list and renders the updated section dynamically.
+ * @param {Array<Object>} jobs - Jobs to be added or updated.
+ * @param {string} action - Action type: 'load', 'add', 'remove', 'update'.
+ * @param {Array<Object>} removeJobs - Jobs to be removed (for 'update' action).
+ */
+export function updateJobsList(jobs, action, removeJobs = []) {
+    console.log(`Updating jobs list with ${action}`, { jobs, removeJobs });
+
+    switch (action) {
+        case 'load':
+            currentJobs = jobs; // Replace the list completely
+            break;
+
+        case 'add':
+            currentJobs = mergeOrAddJobs(jobs, currentJobs);
+            break;
+
+        case 'remove':
+            currentJobs = currentJobs.filter(
+                currentJob => !jobs.some(job => job.id === currentJob.id)
+            );
+            break;
+
+        case 'update':
+            // Remove outdated jobs
+            currentJobs = currentJobs.filter(
+                currentJob => !removeJobs.some(job => job.id === currentJob.id)
+            );
+            // Add or update jobs
+            currentJobs = mergeOrAddJobs(jobs, currentJobs);
+            console.log('Current jobs after update:', currentJobs);
+            break;
+
+        default:
+            console.warn(`Unknown action: ${action}`);
+    }
+
+    renderJobsSection(currentJobs);
+}
+
+
+/**
+ * Renders the jobs section in the DOM based on the current jobs list.
+ * @param {Array<Object>} currentJobs - Current list of jobs to render.
+ */
+function renderJobsSection(currentJobs) {
     const jobsList = document.getElementById('jobs-list');
     if (!jobsList) {
         console.error('Element #jobs-list not found in the DOM.');
         return;
     }
 
-    if (action === 'load') {
-        currentJobs = jobs;
-    } else if (action === 'add') {
-        jobs.forEach(job => {
-            if (!currentJobs.some(currentJob => currentJob.id === job.id)) {
-                currentJobs.push(job);
-            }
-        });
-    } else if (action === 'remove') {
-        jobs.forEach(job => {
-            currentJobs = currentJobs.filter(currentJob => currentJob.id !== job.id);
-        });
-    }
-
     jobsList.innerHTML = '';
 
-    console.log('Number of jobs:', jobs.length);
     if (currentJobs.length === 0) {
-        const noJobsAlert = document.createElement('div');
-        noJobsAlert.id = 'no-jobs-alert';
-        noJobsAlert.className = 'alert alert-info';
-        noJobsAlert.role = 'alert';
-        noJobsAlert.textContent = 'No jobs are currently loaded.';
-        jobsList.appendChild(noJobsAlert);
+        jobsList.innerHTML = `
+            <div id="no-jobs-alert" class="alert alert-info" role="alert">
+                No jobs are currently loaded.
+            </div>`;
         return;
     }
 
     currentJobs.forEach(job => {
-      const jobItem = document.createElement('a');
-      jobItem.href = `/job/${job.id}`; 
-      jobItem.className = 'list-group-item list-group-item-action';      
-
-      jobItem.innerHTML = `
-        <strong>${job.job_display_name}</strong>
-        <br>Estimated: ${job.estimated_hours}hrs
-        <br>Spent: ${job.hours_spent}hrs
-      `;
-
-      jobsList.appendChild(jobItem);
+        const jobItem = createJobItem(job);
+        jobsList.appendChild(jobItem);
     });
+}
+
+/**
+ * Creates a DOM element for a single job item.
+ * @param {Object} job - Job data to render.
+ * @returns {HTMLElement} - The DOM element for the job item.
+ */
+function createJobItem(job) {
+    const statusIcon = getStatusIcon(job.job_status);
+    const hoursExceeded = job.hours_spent > job.estimated_hours;
+    const warningMessage = hoursExceeded ? `<small style="color: red">⚠ Exceeds estimated hours</small>` : '';
+
+    const jobItem = document.createElement('div');
+    jobItem.className = 'accordion-item';
+    jobItem.innerHTML = `
+        <h2 class="accordion-header" id="heading-${job.id}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${job.id}">
+                ${statusIcon} <strong>${job.job_display_name}</strong>
+            </button>
+        </h2>
+        <div id="collapse-${job.id}" class="accordion-collapse collapse">
+            <div class="accordion-body">
+                <p><strong>Status:</strong> ${job.job_status.charAt(0).toUpperCase() + job.job_status.slice(1)}</p>
+                <hr>
+                <p><strong>Client:</strong> ${job.client_name}</p>
+                <hr>
+                <p><strong>Estimated Hours:</strong> ${job.estimated_hours}</p>
+                <hr>
+                <p><strong>Hours Spent:</strong> ${job.hours_spent} ${warningMessage}</p>
+                <hr>
+                <p><a href="/job/${job.id}" class="btn btn-primary btn-lg">View Job Details</a></p>
+            </div>
+        </div>
+    `;
+
+    return jobItem;
 }

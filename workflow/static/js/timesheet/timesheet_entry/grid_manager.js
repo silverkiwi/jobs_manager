@@ -1,5 +1,3 @@
-import { gridOptions } from "./grid.js";
-
 export function calculateAmounts(data) {
     const hours = data.hours || 0;
     const minutes = hours * 60;

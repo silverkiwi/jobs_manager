@@ -93,33 +93,3 @@ def get_jobs_data(related_jobs):
         )
     return job_data
 
-
-def serialize_time_entry(entry):
-    """
-    Serializes a time entry object into a dictionary format.
-
-    Args:
-        entry: The time entry object to serialize
-
-    Returns:
-        dict: A dictionary containing the serialized time entry data:
-    """
-    return {
-        "id": str(entry.id),
-        "job_pricing_id": str(entry.job_pricing.id),
-        "job_number": entry.job_pricing.job.job_number,
-        "job_name": entry.job_pricing.job.name,
-        "hours": float(entry.hours),
-        "description": entry.description,
-        "is_billable": entry.is_billable,
-        "notes": entry.note,
-        "rate_multiplier": float(entry.wage_rate_multiplier),
-        "charge_out_rate": float(entry.charge_out_rate),
-        "timesheet_date": entry.date.strftime("%Y-%m-%d"),
-        "hours_spent": entry.job_pricing.total_hours,
-        "estimated_hours": (
-            entry.job_pricing.job.latest_estimate_pricing.total_hours
-            if entry.job_pricing.job.latest_estimate_pricing
-            else 0
-        ),
-    }

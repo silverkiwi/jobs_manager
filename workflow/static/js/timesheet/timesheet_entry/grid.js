@@ -1,6 +1,6 @@
 import { ActiveJobCellEditor } from './job_cell_editor.js';
 import { rowStateTracker, timesheet_data } from './state.js';
-import { currencyFormatter, hasRowChanged, validateAndTrackRow } from './utils.js';
+import { currencyFormatter } from './utils.js';
 import { createNewRow, calculateAmounts } from './grid_manager.js';
 import { updateSummarySection } from './summary.js';
 import { debouncedAutosave, markEntryAsDeleted } from './timesheet_autosave.js'
@@ -10,20 +10,6 @@ import { renderMessages } from './messages.js';
 function deleteIconCellRenderer() {
     return `<span class="delete-icon">🗑️</span>`;
 }
-
-function getStatusIcon(status) {
-    const icons = {
-        'quoting': '📝',
-        'approved': '✅',
-        'rejected': '❌', 
-        'in_progress': '🚧',
-        'on_hold': '⏸️',
-        'special': '⭐',
-        'completed': '✔️',
-        'archived': '📦'
-    };
-    return icons[status] || '';
-}  
 
 export const gridOptions = {
     columnDefs: [
@@ -41,81 +27,6 @@ export const gridOptions = {
             cellEditor: ActiveJobCellEditor,
             cellEditorParams: {
                 values: timesheet_data.jobs.map(job => job.job_display_name)
-            },
-            cellStyle: params => {
-                const job = timesheet_data.jobs.find(j => j.job_number === params.value);
-
-                if (!job) return null;
-
-                const jobStatus = job.job_status;
-                const hoursSpent = job.hours_spent;
-                const estimatedHours = job.estimated_hours;
-                console.log('Job status:', job.job_status);
-                console.log('Hours spent:', hoursSpent);
-                console.log('Estimated hours:', estimatedHours);
-
-                if (jobStatus === 'completed' && hoursSpent > estimatedHours) {
-                    return { backgroundColor: '#f8d7da' };
-                }
-
-                if (jobStatus === 'quoting') {
-                    return { backgroundColor: '#fff3cd' };
-                }
-
-                if (hoursSpent > estimatedHours) {
-                    return { backgroundColor: '#f8d7da' };
-                }
-
-                if (hoursSpent > estimatedHours * 0.8) {
-                    return { backgroundColor: '#fff3cd' };
-                }
-
-                return null;
-            },
-            cellRenderer: params => {
-                const job = timesheet_data.jobs.find(j => j.job_number === params.value);
-
-                if (!job) return params.value;
-
-                let { job_status, hours_spent, estimated_hours } = job;
-                console.log(`Job number: ${job.job_number} | Job:`, job);
-                console.log('Job status:', job_status);
-                console.log('Hours spent:', hours_spent);
-                console.log('Estimated hours:', estimated_hours);
-
-                hours_spent = Number(hours_spent).toFixed(1);
-                estimated_hours = Number(estimated_hours).toFixed(1);
-
-                let statusIcon = '';
-                statusIcon = getStatusIcon(job_status);
-
-                if (job_status === 'completed' && hours_spent >= estimated_hours) {
-                    renderMessages([{ level: 'warning', message: 'Adding hours to a job with status: "completed"!' }]); 
-                    renderMessages([{ level: 'warning', message: 'Job has met or exceeded its estimated hours!' }]);
-                    return `
-                        ${statusIcon} <a href="/job/${job.id}">${params.value}
-                        <small style="color: red">⚠ ${hours_spent}/${estimated_hours} hrs</small>
-                        <small><strong> Warning:</strong> Exceeds estimated hours on completed job!</small>
-                        </a>
-                    `;
-                }
-
-                if (job_status === 'quoting') {
-                    renderMessages([{ level: 'warning', message: 'Adding hours to a job with status: "quoting"!' }]);
-                    return `
-                        ${statusIcon} <a href="/job/${job.id}">${params.value}
-                        <small style="color: orange">⚠ ${hours_spent}/${estimated_hours}hrs</small>
-                        <small><strong>Note:</strong> Adding hours to quoting job.</small>
-                        </a>
-                    `;
-                }
-
-                return `
-                    ${statusIcon} <a href="/job/${job.id}">
-                    ${params.value}
-                    <small>Total: ${hours_spent}/${estimated_hours} hrs</small>
-                    </a>
-                `;
             }
         },
         {
@@ -257,10 +168,11 @@ export const gridOptions = {
                         data: rowData
                     });
 
-                    const isEmptyRow = !rowData.job_number && !rowData.description?.trim() && rowData.hours <= 0;
+                    const isEmptyRow = rowData.hours <= 0 && (!rowData.description?.trim() || !rowData.job_number || !rowData.notes);
 
                     if (isEmptyRow) {
                         console.log('Skipping empty row:', rowData);
+                        params.api.applyTransaction({ remove: [rowData] });
                         return;
                     }
 
@@ -318,7 +230,7 @@ export const gridOptions = {
             console.log('Refreshing cells for job_name, job_number, client, wage_amount, bill_amount');
             params.api.refreshCells({
                 rowNodes: [params.node],
-                force: true 
+                force: true
             });
         }
 
@@ -330,7 +242,7 @@ export const gridOptions = {
             console.log('Refreshing cells for wage_amount, bill_amount');
             params.api.refreshCells({
                 rowNodes: [params.node],
-                force: true 
+                force: true
             });
 
             // Check for hours exceeding scheduled hours
@@ -359,15 +271,29 @@ export const gridOptions = {
         debouncedAutosave();
         updateSummarySection();
     },
-    // Add new row when Enter is pressed on last row
+    // Add new row when Enter is pressed on last row or stop editing if ESC is pressed
     onCellKeyDown: (params) => {
-        if (params.event.key === 'Enter') {
-            const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
+        const { event, api, node, column } = params;
+
+        if (event.key === 'Escape') {            
+            console.log('ESC pressed:', { node, column });
+
+            if (!column.colDef.editable) {
+                console.log('Column is not editable, skipping');
+                return;
+            }
+
+            api.stopEditing(true); 
+            console.log('Editing canceled for column:', column.colId);
+        }
+
+        if (event.key === 'Enter') {
+            const isLastRow = api.getDisplayedRowCount() - 1 === params.rowIndex;
             if (isLastRow) {
-                params.api.applyTransaction({ add: [createNewRow()] });
+                api.applyTransaction({ add: [createNewRow()] });
                 // Focus the first editable cell of the newly added row
-                const newRowIndex = params.api.getDisplayedRowCount() - 1;
-                params.api.setFocusedCell(newRowIndex, 'job_number');
+                const newRowIndex = api.getDisplayedRowCount() - 1;
+                api.setFocusedCell(newRowIndex, 'job_number');
                 debouncedAutosave();
                 updateSummarySection();
             }

@@ -11,27 +11,6 @@
 <div class="container">
     <h2>Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ timesheet_date }}</h2>
 
-    <div class="summary-section">
-        <table class="table table-bordered table-striped w-50">
-            <thead class="thead-dark">
-                <tr>
-                    <th style="width: 40%; white-space: nowrap;">Category</th>
-                    <th>Details</th>
-                </tr>
-            </thead>
-            <tbody id="summary-table-body">
-                <!-- These will be dynamically loaded -->
-            </tbody>
-        </table>
-    </div>
-    
-
-    <!-- AG Grid will be initialized here -->
-    <button id="new-timesheet-btn" class="btn btn-success mt-5 mb-1 me-1">New Timesheet</button>
-    <button id="open-paid-absence-modal" type="button" class="btn btn-warning mt-5 mb-1 ms-1">Add Paid Absence </button>
-    <div id="timesheet-grid" class="ag-theme-alpine" style="height: 400px; width: 100%;">
-    </div>
-
     <!-- Add Paid Absence modal -->
     <div class="modal fade" tabindex="-1" id="paidAbsenceModal">
         <div class="modal-dialog">
@@ -47,7 +26,13 @@
         </div>
     </div>
 
-    <!-- New Timesheet modal -->
+    <!-- AG Grid will be initialized here -->
+    <!-- <button id="new-timesheet-btn" class="btn btn-success mt-5 mb-1 me-1" style="display: none;">New Timesheet</button> -->
+    <button id="open-paid-absence-modal" type="button" class="btn btn-warning mt-1 mb-1 ms-1">Add Paid Absence </button>
+    <div id="timesheet-grid" class="ag-theme-alpine" style="height: 350px; width: 100%;">
+    </div>
+
+    <!-- New Timesheet modal 
     <div class="modal fade" id="timesheetModal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -58,13 +43,14 @@
                     </button>
                 </div>
                 <div class="modal-body modal-lg">
-                    <!-- TimeEntryForm will be loaded here -->
+                     TimeEntryForm will be loaded here
                 </div>
             </div>
         </div>
     </div>
+    -->
 
-    <div class="header-actions d-flex justify-content-between mt-3 mb-5">
+    <div class="header-actions d-flex justify-content-between mt-3 mb-2">
         <a href="{% url 'timesheet_entry' date=timesheet_date staff_id=prev_staff.id %}" class="btn btn-primary">
             {{ prev_staff.get_display_full_name }} <- Previous staff </a>
                 <a href="{% url 'timesheet_daily_view' date=timesheet_date %}"
@@ -80,6 +66,24 @@
     <!-- Messages will be loaded here -->
     <div class="alert-container"></div>
 
+    <hr>
+
+    <div
+        class="summary-section w-100 d-flex flex-column justify-content-center align-items-center my-5 border border-black rounded">
+        <h3>Summary</h3>
+        <table class="table table-bordered table-striped w-50 border border-black">
+            <thead class="thead-dark">
+                <tr>
+                    <th style="width: 25%; white-space: nowrap;">Category</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody id="summary-table-body">
+                <!-- These will be dynamically loaded -->
+            </tbody>
+        </table>
+    </div>
+
     <!-- JSON Data -->
     <script id="timesheet-date" type="application/json">"{{ timesheet_date|escapejs }}"</script>
     <script id="jobs-data" type="application/json">
@@ -92,11 +96,14 @@
     {{ staff_member_json|safe }}
     </script>
 
+    <hr>
 
-    <!-- Current jobs section -->
-    <div id="current-jobs" class="container mt-4 mb-4">
-        <h4>Current Jobs</h4>
-        <div id="jobs-list" class="list-group">
+    <div id="current-jobs" class="container mb-4 border border-dark rounded">
+        <h4 class="mt-3">Current Jobs</h4>
+        <div class="accordion" id="jobsAccordion">
+            <div id="jobs-list" class="accordion-body">
+                <!-- Dynamic job items will be loaded here -->
+            </div>
         </div>
     </div>
 

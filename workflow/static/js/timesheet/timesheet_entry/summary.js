@@ -17,22 +17,44 @@ export function updateSummarySection() {
     let nonBillableCount = 0;
     let hasInconsistencies = false;
     const jobsWithIssues = [];
+    const shopEntriesLog = []; // Array to log shop entries
+
+    console.log('--- Starting Summary Section Update ---');
 
     // Sum all the hours in the grid
     grid.forEachNode(node => {
-        console.log('Node:', node);
+        console.log('Processing Node:', {
+            id: node?.data?.id,
+            hours: node?.data?.hours,
+            jobName: node?.data?.job_data?.name,
+            clientName: node?.data?.job_data?.client_name
+        });
+
         const jobData = node?.data?.job_data;
         const hours = node?.data?.hours || 0;
 
         if (hours > 0) {
             totalHours += hours;
+            console.log(`Added ${hours} to total hours. New total: ${totalHours}`);
 
             node.data.is_billable ? billableCount++ : nonBillableCount++;
         }
 
         if (jobData && jobData.client_name === 'MSM (Shop)') {
-            console.log(`Job: ${jobData.name} Hours: ${hours}`);
+            const previousShopHours = shopHours;
             shopHours += hours;
+            shopEntriesLog.push({
+                jobName: jobData.name,
+                hours: hours,
+                previousTotal: previousShopHours,
+                newTotal: shopHours
+            });
+            console.log('Shop Entry Found:', {
+                jobName: jobData.name,
+                hours: hours,
+                previousShopHoursTotal: previousShopHours,
+                newShopHoursTotal: shopHours
+            });
         }
 
         if (node?.data?.inconsistent) {
@@ -44,6 +66,16 @@ export function updateSummarySection() {
         }
     });
 
+    console.log('--- Summary Calculation Results ---', {
+        totalHours,
+        shopHours,
+        billableCount,
+        nonBillableCount,
+        shopEntriesDetail: shopEntriesLog,
+        hasInconsistencies,
+        jobsWithIssues
+    });
+
     // Update the summary table dynamically
     const scheduledHours = Number(window.timesheet_data.staff.scheduled_hours).toFixed(1);
 
@@ -53,6 +85,14 @@ export function updateSummarySection() {
         return;
     }
 
+    // Log final calculations before rendering
+    console.log('Final calculations for display:', {
+        totalHoursDisplay: totalHours.toFixed(1),
+        scheduledHours: scheduledHours,
+        shopHoursDisplay: shopHours.toFixed(1),
+        shopHoursPercentage: shopHours > 0 ? ((shopHours / totalHours) * 100).toFixed(1) : 0
+    });
+
     summaryTableBody.innerHTML = `
         <tr class="${totalHours < scheduledHours ? 'table-danger' : totalHours > scheduledHours ? 'table-warning' : 'table-success'}">
             <td>Total Hours</td>
@@ -60,15 +100,15 @@ export function updateSummarySection() {
         </tr>
         <tr>
             <td>Billable Entries</td>
-            <td>${((billableCount / (billableCount + nonBillableCount)) * 100).toFixed(1)}%</td>
+            <td>${billableCount > 0 ? ((billableCount / (billableCount + nonBillableCount)) * 100).toFixed(1) + '%' : 'No billable entries detected.'}</td>
         </tr>
         <tr>
             <td>Non-Billable Entries</td>
-            <td>${((nonBillableCount / (billableCount + nonBillableCount)) * 100).toFixed(1)}%</td>
+            <td>${nonBillableCount > 0 ? ((nonBillableCount / (billableCount + nonBillableCount)) * 100).toFixed(1) + '%' : 'No non-billable entries detected.'}</td>
         </tr>
         <tr>
             <td>Shop Hours</td>
-            <td>${shopHours.toFixed(1)} (${((shopHours / totalHours) * 100).toFixed(1)}%)</td>
+            <td>${shopHours.toFixed(1)} (${shopHours > 0 ? ((shopHours / totalHours) * 100).toFixed(1) + '%' : 'No shop hours detected'})</td>
         </tr>
     `;
 
@@ -92,4 +132,6 @@ export function updateSummarySection() {
     if ((shopHours / totalHours) >= 0.5) {
         renderMessages([{ level: "warning", message: "High shop time detected! More than 50% of hours are shop hours." }]);
     }
+
+    console.log('--- Summary Section Update Complete ---');
 }

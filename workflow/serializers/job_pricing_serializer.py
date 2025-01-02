@@ -8,7 +8,7 @@ from rest_framework import serializers
 from workflow.models import JobPricing
 from workflow.serializers.adjustment_entry_serializer import AdjustmentEntrySerializer
 from workflow.serializers.material_entry_serializer import MaterialEntrySerializer
-from workflow.serializers.time_entry_serializer import TimeEntrySerializer
+from workflow.serializers.time_entry_serializer import TimeEntryForJobPricingSerializer as TimeEntrySerializer
 
 logger = logging.getLogger(__name__)
 DEBUG_SERIALIZER = False  # Toggle serializer debugging

@@ -9,6 +9,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_DATABASE: msm_workflow_test
+          MYSQL_ROOT_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.12
@@ -22,6 +35,17 @@ jobs:
     - name: Install Dependencies
       run: |
         poetry install
+    - name: Wait for MySQL
+      run: |
+        while ! mysqladmin ping -h "localhost" --silent; do
+          echo "Waiting for database connection..."
+          sleep 2
+        done
     - name: Run Tests
+      env:
+        MSM_DB_USER: root
+        DB_PASSWORD: password
+        DB_PORT: 3306
       run: |
         poetry run python manage.py test
+        
