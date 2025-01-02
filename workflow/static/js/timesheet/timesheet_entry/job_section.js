@@ -190,7 +190,7 @@ function createJobItem(job) {
                 ${statusIcon} <strong>${job.job_display_name}</strong>
             </button>
         </h2>
-        <div id="collapse-${job.id}" class="accordion-collapse collapse">
+        <div id="collapse-${job.id}" class="accordion-collapse collapse show">
             <div class="accordion-body">
                 <p><strong>Status:</strong> ${job.job_status.charAt(0).toUpperCase() + job.job_status.slice(1)}</p>
                 <hr>

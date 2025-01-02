@@ -6,9 +6,22 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.generic import TemplateView
+from decimal import Decimal
 
 from workflow.models import Job, Staff, TimeEntry
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+# Excluding app users ID's to avoid them being loaded in timesheet views because they do not have entries (Valerie and Corrin included as they are not supposed to enter hours)
+EXCLUDED_STAFF_IDS = [
+    "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
+    "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
+    "d335acd4-800e-517a-8ff4-ba7aada58d14",
+    "e61e2723-26e1-5d5a-bd42-bbd318ddef81"
+]
 
 class TimesheetOverviewView(TemplateView):
     template_name = "time_entries/timesheet_overview.html"
@@ -32,9 +45,10 @@ class TimesheetOverviewView(TemplateView):
         staff_data = []
         all_staff = Staff.objects.all()
         for staff_member in all_staff:
-            # App users (Django admins, etc.) are not workers in the factory and so should not be having timesheet entries
-            if staff_member.is_staff is True:
+
+            if staff_member.is_staff is True or str(staff_member.id) in EXCLUDED_STAFF_IDS:
                 continue
+            
             staff_hours = []
             for day in last_seven_days:
                 scheduled_hours = staff_member.get_scheduled_hours(
@@ -143,17 +157,75 @@ class TimesheetDailyView(TemplateView):
         else:
             target_date = timezone.now().date()
 
+        leave_jobs = {
+            "annual": "eecdc751-0207-4f00-a47a-ca025a7cf935", 
+            "sick": "4dd8ec04-35a0-4c99-915f-813b6b8a3584", 
+            "other": "cd2085c7-0793-403e-b78d-63b3c134e59d"
+        }
+
         staff_data = []
+        total_expected_hours = 0
+        total_actual_hours = 0
+        total_billable_hours = 0
+        total_shop_hours = 0
+        total_missing_hours = 0
+
         for staff_member in Staff.objects.all():
-            # See TimesheetOverviewView, lines under "all_staff = ..." 
-            if staff_member.is_staff is True:
+
+            if staff_member.is_staff is True or str(staff_member.id) in EXCLUDED_STAFF_IDS:
                 continue
+            
             scheduled_hours = staff_member.get_scheduled_hours(target_date)
+            decimal_scheduled_hours = Decimal(scheduled_hours)
+            
             time_entries = TimeEntry.objects.filter(
                 date=target_date, staff=staff_member
             ).select_related("job_pricing")
 
+            paid_leave_entries = time_entries.filter(
+                job_pricing__job_id__in=leave_jobs.values()
+            )
+
+            has_paid_leave = paid_leave_entries.exists()
+
             actual_hours = sum(entry.hours for entry in time_entries)
+            
+            billable_hours = sum(
+                entry.hours for entry in time_entries if entry.is_billable
+            )
+            
+            shop_hours = sum(
+                entry.hours
+                for entry in time_entries
+                if entry.job_pricing.job.shop_job
+            )
+
+            missing_hours = decimal_scheduled_hours - actual_hours if decimal_scheduled_hours > actual_hours else 0
+
+            total_expected_hours += scheduled_hours
+            total_actual_hours += actual_hours
+            total_billable_hours += billable_hours
+            total_shop_hours += shop_hours
+            total_missing_hours += missing_hours
+            
+            if has_paid_leave:
+                status = "Off Today"
+                alert = "-"
+            elif scheduled_hours == 0:
+                status = "Off Today"
+                alert = "-"
+            elif actual_hours == 0:
+                status = "⚠️ Missing"
+                alert = f"{decimal_scheduled_hours}hrs needed"
+            elif actual_hours < decimal_scheduled_hours and decimal_scheduled_hours > 0:
+                status = "⚠️ Missing"
+                alert = f"{decimal_scheduled_hours - actual_hours:.1f}hrs needed"
+            elif actual_hours > decimal_scheduled_hours:
+                status = "⚠️ Overtime"
+                alert = f"{actual_hours - decimal_scheduled_hours:.1f}hrs extra"
+            else:
+                status = "Complete"
+                alert = "-"
 
             staff_data.append(
                 {
@@ -162,6 +234,8 @@ class TimesheetDailyView(TemplateView):
                     "last_name": staff_member.last_name,
                     "scheduled_hours": scheduled_hours,
                     "actual_hours": actual_hours,
+                    "status": status,
+                    "alert": alert,
                     "entries": [
                         {
                             "job_name": entry.job_pricing.job.name,
@@ -173,46 +247,24 @@ class TimesheetDailyView(TemplateView):
                 }
             )
 
+        total_hours = total_actual_hours or 1
+        billable_percentage = (total_billable_hours / total_hours) * 100
+        shop_percentage = (total_shop_hours / total_hours) * 100
+
         context = {
             "date": target_date.strftime("%Y-%m-%d"),
             "staff_data": staff_data,
+            "daily_summary": {
+                "total_expected_hours": total_expected_hours,
+                "total_actual_hours": total_actual_hours,
+                "total_missing_hours": total_missing_hours,
+                "billable_percentage": round(billable_percentage, 1),
+                "shop_percentage": round(shop_percentage, 1),
+            },
             "context_json": json.dumps(
                 {"date": target_date.strftime("%Y-%m-%d"), "staff_data": staff_data},
                 cls=DjangoJSONEncoder,
             ),
         }
 
-        return render(request, self.template_name, context)
-        # Step 2: Retrieve all time entries for the given date
-        time_entries = TimeEntry.objects.filter(date=target_date).select_related(
-            "staff", "job_pricing"
-        )
-        data = []
-
-        for entry in time_entries:
-            # Use reality_pricing for actual work done during time entry
-            reality_pricing = entry.job_pricing.reality_pricing
-
-            data.append(
-                {
-                    "staff_member": entry.staff.get_display_name(),
-                    "date": entry.date.strftime("%Y-%m-%d"),
-                    "job_name": reality_pricing.job.name,
-                    "hours_worked": entry.hours_worked,
-                    "billable": entry.billable,
-                    "job_type": reality_pricing.job.type,
-                    "estimated_hours": self.get_estimated_hours(reality_pricing.job),
-                    "is_closed": reality_pricing.job.is_closed,
-                }
-            )
-
-            # Step 3: Check if it is an AJAX request
-            if request.headers.get(
-                "x-requested-with"
-            ) == "XMLHttpRequest" or request.GET.get("ajax"):
-                # Return the raw data as JSON
-                return JsonResponse(data, safe=False)
-
-        # Step 4: Normal request, render the HTML template
-        context = {"date": target_date.strftime("%Y-%m-%d")}
         return render(request, self.template_name, context)
