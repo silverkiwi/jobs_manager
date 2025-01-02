@@ -81,3 +81,10 @@ class Client(models.Model):
             # TODO: Add more mappings if necessary, like account numbers.
         }
         return client_dict
+
+class Supplier(Client):
+    """
+    A Supplier is simply a Client with additional semantics.
+    """
+    class Meta:
+        proxy = True

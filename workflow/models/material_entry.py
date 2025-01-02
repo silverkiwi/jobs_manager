@@ -33,6 +33,14 @@ class MaterialEntry(models.Model):
     unit_revenue = models.DecimalField(
         max_digits=10, decimal_places=2, null=False, default=0
     )
+    purchase_line = models.ForeignKey(
+        'PurchaseLine',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Source purchase line if from a purchase"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
