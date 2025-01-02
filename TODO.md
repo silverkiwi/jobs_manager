@@ -1,11 +1,88 @@
+## 🐛 First release milestone requirements
+
+My plan is to go live with the app.  Ideally on the 13th of January.  That means
+
+The app will be used for ALL data entry: estimates, quotes, timesheets, purchases, invoice generation, payroll export
+The app will be the permanent archive of jobs from this release.  We will no longer store paper jobs
+
+### Estimate Entry
+
+Probably sorted from a MVP perspective
+The totals not calculating needs fixing
+
+### Quotes Entry
+
+Needs 'copy estimate to quote'
+Needs 'approve quote'
+Needs the MSM logo - quotes need to look official
+
+### Timesheets
+
+Requires weekly and daily view
+Requires the ability to move time from one job to another
+Requires resolving the data entry for internal jobs that roll month to month
+
+### Purchases
+
+Requires a page similar to timesheets for entering a purchase.
+Much like a timesheet, it will create entries in the job(s) associated
+Can link to a bill in Xero (must link to a bill eventually)
+Can link to a Purchase Order in Xero (must link to a PO eventually)
+
+### Jobs timeline
+
+ A log of events related to a job (created, status changes, etc).  
+    Some automated (e.g. stauts changes, some entered manually e.g. job picked up)
+
+Essential governance feature.  
+Xero calls this 'history and notes'.  They do NOT support editing of history or notes.
+THey have a manual add notes 
+Changes, Date, User, Details
+
+### PDF Generation
+
+Needs to look like our current printed jobs
+E.g. logo, date ordered, delivery date, etc.
+
+### Invoice Generation
+
+The button 'generate invoice' creates the invoice in Xero 
+
+### Payroll Export
+
+Just seeing the data on screen for manually copy/pasting
+Note the weekly view may be perfect for this
+
+# Stuff that didn't make the first release
+
+## Email quotes: (generates PDF, creates draft email containing PDF, launches Chrome)
+## Budgeting
+
+* Revenue targets/forecasts
+* Time sick / away /shop targets/forecasts
+* Integration with budgeting
+
+## Basic business rules
+You shoudln't invoice a job that isn't done
+You shoudln't put time on a job that isn't approved (except time quoting)
+You shoudln't change an invoice after it has been approved
+You shoudln't change anything in reality pricing after a job is invoiced.
+
+## Payroll export
+
+
+----
+Following is the old TODO
+
+It's still mostly correct but... what I've done above is prioritise  
+----
+
+
 ## 🐛 Bugs
 
-- **Ugliness on job entry**: The word 'Revenue' isn't printed
-
 - **Markup not working**: Jobs currently don't have markup functioning properly.  This means the link doesn't come up, or the client name
-- **JobPricing not fully justified**: You can see the trash cans are not vertically aligned.
 - **Autosave successful on failure**: You should only say successful if it passes
-- **Duplicate time entries**: Not quite sure what's happening but I've seen multiple identical rows.  Probably relates to timesheet entry
+- **Duplicate time entries**: Not quite sure what's happening but I've seen multiple identical rows.  I think the reverse link should highlight the problem
 - **Mins/item broke.**:  Estimate no longer saving it
 - **The P&L report is pretty broken.  It's not doing category/subcategory.  It's not getting column names right.  Formatting is awful.  Low priority
 - 
@@ -61,8 +138,6 @@ Purchases
 Xero Linkage
 Edit CLient
 Create Invoice
-
-Attach images to jobs
 
 Search for archived jobs
 

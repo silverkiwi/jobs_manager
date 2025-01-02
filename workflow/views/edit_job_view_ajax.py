@@ -6,6 +6,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
 from workflow.helpers import DecimalEncoder, get_company_defaults
+from workflow.services.file_service import sync_job_folder
 from workflow.models import Job
 from workflow.serializers import JobPricingSerializer, JobSerializer
 from workflow.services.job_service import (
@@ -157,6 +158,7 @@ def edit_job_view_ajax(request, job_id=None):
     # Fetch the Latest Revision for Each Pricing Stage
     latest_job_pricings = get_latest_job_pricings(job)
 
+    sync_job_folder(job)
     job_files = job.files.all()
     # job_files_json = json.dumps(
     #     [

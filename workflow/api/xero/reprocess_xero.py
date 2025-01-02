@@ -8,8 +8,13 @@ import uuid
 
 from workflow.models import BillLineItem, XeroJournal, XeroJournalLineItem
 from workflow.models.client import Client
-from workflow.models.invoice import Bill, Invoice, InvoiceLineItem, CreditNote, \
-    CreditNoteLineItem
+from workflow.models.invoice import (
+    Bill,
+    Invoice,
+    InvoiceLineItem,
+    CreditNote,
+    CreditNoteLineItem,
+)
 from workflow.models.xero_account import XeroAccount
 
 logger = logging.getLogger(__name__)
@@ -26,11 +31,12 @@ def set_invoice_or_bill_fields(document, document_type):
 
     if not document.raw_json:
         raise ValueError(
-            f"{document_type.title()} raw_json is empty. We better not try to process it")
+            f"{document_type.title()} raw_json is empty. We better not try to process it"
+        )
 
-    is_invoice = document.raw_json.get('_type') == 'ACCREC'
-    is_bill = document.raw_json.get('_type') == 'ACCPAY'
-    is_credit_note = document.raw_json.get('_type') in ['ACCRECCREDIT', 'ACCPAYCREDIT']
+    is_invoice = document.raw_json.get("_type") == "ACCREC"
+    is_bill = document.raw_json.get("_type") == "ACCPAY"
+    is_credit_note = document.raw_json.get("_type") in ["ACCRECCREDIT", "ACCPAYCREDIT"]
 
     if is_invoice:
         json_document_type = "INVOICE"
@@ -73,27 +79,26 @@ def set_invoice_or_bill_fields(document, document_type):
     client = Client.objects.filter(xero_contact_id=contact_id).first()
     if not client:
         raise ValueError(
-            f"Client not found for {document_type.lower()} {document.number}")
+            f"Client not found for {document_type.lower()} {document.number}"
+        )
     document.client = client
 
     document.save()
 
     # Handle line items
     line_items_data = raw_data.get("_line_items", [])
-    amount_type = raw_data.get('_line_amount_types', {}).get('_value_')
+    amount_type = raw_data.get("_line_amount_types", {}).get("_value_")
 
     # Determine which line item model to use
     LineItemModel = (
-        InvoiceLineItem if is_invoice else
-        BillLineItem if is_bill else
-        CreditNoteLineItem if is_credit_note else
-        None
+        InvoiceLineItem
+        if is_invoice
+        else BillLineItem if is_bill else CreditNoteLineItem if is_credit_note else None
     )
     document_field = (
-        'invoice' if is_invoice else
-        'bill' if is_bill else
-        'credit_note' if is_credit_note else
-        None
+        "invoice"
+        if is_invoice
+        else "bill" if is_bill else "credit_note" if is_credit_note else None
     )
 
     for line_item_data in line_items_data:
@@ -111,7 +116,7 @@ def set_invoice_or_bill_fields(document, document_type):
             tax_amount = 0
 
         # Fix for the GST calculation bug
-        if amount_type == 'Inclusive':
+        if amount_type == "Inclusive":
             line_amount_excl_tax = line_amount - tax_amount
             line_amount_incl_tax = line_amount
         else:
@@ -123,10 +128,7 @@ def set_invoice_or_bill_fields(document, document_type):
         account = XeroAccount.objects.filter(account_code=account_code).first()
 
         # Sync the line item using dynamic field name
-        kwargs = {
-            document_field: document,
-            "xero_line_id": xero_line_id
-        }
+        kwargs = {document_field: document, "xero_line_id": xero_line_id}
         line_item, created = LineItemModel.objects.update_or_create(
             **kwargs,
             defaults={
@@ -165,7 +167,7 @@ def set_client_fields(client):
     # Handling payment terms (keeping the condition from old logic)
     payment_terms = raw_data.get("payment_terms")
     client.is_account_customer = (
-            payment_terms is not None and payment_terms.get("sales") is not None
+        payment_terms is not None and payment_terms.get("sales") is not None
     )
 
     updated_date_utc = raw_data.get("_updated_date_utc")
@@ -258,7 +260,6 @@ def set_journal_fields(journal: XeroJournal):
         )
 
 
-
 def reprocess_invoices():
     """Reprocess all existing invoices to set fields based on raw JSON."""
     for invoice in Invoice.objects.all():
@@ -287,7 +288,8 @@ def reprocess_credit_notes():
             logger.info(f"Reprocessed credit note: {credit_note.number}")
         except Exception as e:
             logger.error(
-                f"Error reprocessing credit note {credit_note.number}: {str(e)}")
+                f"Error reprocessing credit note {credit_note.number}: {str(e)}"
+            )
 
 
 def reprocess_clients():
@@ -306,13 +308,15 @@ def reprocess_journals():
     Useful if we’ve tweaked mapping logic and want to re-derive fields from stored raw_json.
     """
     from workflow.models.xero_journal import XeroJournal
+
     for jrnl in XeroJournal.objects.all():
         try:
             set_journal_fields(jrnl)
             logger.info(f"Reprocessed journal: {jrnl.journal_number or jrnl.xero_id}")
         except Exception as e:
             logger.error(
-                f"Error reprocessing journal {jrnl.journal_number or jrnl.xero_id}: {str(e)}")
+                f"Error reprocessing journal {jrnl.journal_number or jrnl.xero_id}: {str(e)}"
+            )
 
 
 def reprocess_all():
@@ -324,5 +328,3 @@ def reprocess_all():
     reprocess_bills()
     reprocess_credit_notes()
     reprocess_journals()
-
-

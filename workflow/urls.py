@@ -7,7 +7,6 @@ from workflow.api import server
 from workflow.api.reports.pnl import CompanyProfitAndLossReport
 from workflow.views import (
     client_view,
-    debug_view,
     edit_job_view_ajax,
     invoice_view,
     kanban_view,
@@ -18,7 +17,8 @@ from workflow.views import (
 )
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import (
-    CompanyProfitAndLossView, ReportsIndexView,
+    CompanyProfitAndLossView,
+    ReportsIndexView,
 )
 
 urlpatterns = [
@@ -35,9 +35,8 @@ urlpatterns = [
         name="autosave_timesheet-api",
     ),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
-    path('api/get-env-variable/', server.get_env_variable, name='get_env_variable'),
-
-    #path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
+    path("api/get-env-variable/", server.get_env_variable, name="get_env_variable"),
+    # path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
     path("api/create-job/", edit_job_view_ajax.create_job_api, name="create_job_api"),
     path(
         "api/fetch_job_pricing/",
@@ -45,19 +44,20 @@ urlpatterns = [
         name="fetch_job_pricing_api",
     ),
     # API URLs
-    path('api/reports/company-profit-loss/',
-         CompanyProfitAndLossReport.as_view(),
-         name='api-company-profit-loss'),
-
+    path(
+        "api/reports/company-profit-loss/",
+        CompanyProfitAndLossReport.as_view(),
+        name="api-company-profit-loss",
+    ),
     path(
         "api/fetch_status_values/",
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
     ),
     path("api/job-files/", JobFileView.as_view(), name="job-files"),  # For POST/upload
-    path("api/job-files/<path:file_path>", JobFileView.as_view(),
-         name="serve-job-file"),  # For GET/download
-
+    path(
+        "api/job-files/<path:file_path>", JobFileView.as_view(), name="serve-job-file"
+    ),  # For GET/download
     path(
         "api/xero/authenticate/",
         xero_view.xero_authenticate,
@@ -107,10 +107,12 @@ urlpatterns = [
         kanban_view.update_job_status,
         name="update_job_status",
     ),
-    path('reports/', ReportsIndexView.as_view(), name='reports'),
-
-    path('reports/company-profit-loss/', CompanyProfitAndLossView.as_view(), name='company-profit-loss-report'),
-
+    path("reports/", ReportsIndexView.as_view(), name="reports"),
+    path(
+        "reports/company-profit-loss/",
+        CompanyProfitAndLossView.as_view(),
+        name="company-profit-loss-report",
+    ),
     path(
         "timesheets/day/<str:date>/<uuid:staff_id>/",
         time_entry_view.TimesheetEntryView.as_view(),
