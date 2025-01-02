@@ -8,7 +8,7 @@ The app will be the permanent archive of jobs from this release.  We will no lon
 ### Regressions
 
 Functionality that used to work doesn't any more.  E.g. selecting the client for a job
-
+Creating/Editing a client - does it sync to Xero?
 
 ### Estimate Entry
 
@@ -27,12 +27,6 @@ Requires weekly and daily view
 Requires the ability to move time from one job to another
 Requires resolving the data entry for internal jobs that roll month to month
 
-### Purchases
-
-Requires a page similar to timesheets for entering a purchase.
-Much like a timesheet, it will create entries in the job(s) associated
-Can link to a bill in Xero (must link to a bill eventually)
-Can link to a Purchase Order in Xero (must link to a PO eventually)
 
 ### Jobs timeline
 
@@ -81,6 +75,12 @@ You shoudln't change anything in reality pricing after a job is invoiced.
 
 ## Payroll export
 
+### Purchases
+
+Requires a page similar to timesheets for entering a purchase.
+Much like a timesheet, it will create entries in the job(s) associated
+Can link to a bill in Xero (must link to a bill eventually)
+Can link to a Purchase Order in Xero (must link to a PO eventually)
 
 ----
 Following is the old TODO

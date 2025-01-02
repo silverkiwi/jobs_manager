@@ -16,6 +16,8 @@ from workflow.models import (
     TimeEntry,
 )
 
+from workflow.models.purchase import PurchaseLine
+
 logger = logging.getLogger(__name__)
 DEBUG_FORM = False  # Toggle form debugging
 
