@@ -94,39 +94,31 @@ export function updateSummarySection() {
     });
 
     summaryTableBody.innerHTML = `
-        <tr class="${totalHours < scheduledHours ? 'table-danger' : totalHours > scheduledHours ? 'table-warning' : 'table-success'}">
+        <tr class="border border-black ${totalHours < scheduledHours ? 'table-danger' : totalHours > scheduledHours ? 'table-warning' : 'table-success'}">
             <td>Total Hours</td>
             <td>${totalHours.toFixed(1)} / ${scheduledHours}</td>
         </tr>
-        <tr>
+        <tr class="border border-black">
             <td>Billable Entries</td>
             <td>${billableCount > 0 ? ((billableCount / (billableCount + nonBillableCount)) * 100).toFixed(1) + '%' : 'No billable entries detected.'}</td>
         </tr>
-        <tr>
+        <tr class="border border-black">
             <td>Non-Billable Entries</td>
             <td>${nonBillableCount > 0 ? ((nonBillableCount / (billableCount + nonBillableCount)) * 100).toFixed(1) + '%' : 'No non-billable entries detected.'}</td>
         </tr>
-        <tr>
+        <tr class="border border-black">
             <td>Shop Hours</td>
             <td>${shopHours.toFixed(1)} (${shopHours > 0 ? ((shopHours / totalHours) * 100).toFixed(1) + '%' : 'No shop hours detected'})</td>
         </tr>
     `;
 
-    if (hasInconsistencies || jobsWithIssues.length > 0) {
+    if (jobsWithIssues.length > 0) {
         summaryTableBody.innerHTML += `
-            <tr class="table-warning">
-                <td>Inconsistencies</td>
-                <td>${hasInconsistencies ? "Yes" : "No"}</td>
-            </tr>
-        `;
-        if (jobsWithIssues.length > 0) {
-            summaryTableBody.innerHTML += `
-                <tr class="table-warning">
+                <tr class="table-warning border border-black">
                     <td>Jobs with Issues</td>
                     <td>${jobsWithIssues.join(", ")}</td>
                 </tr>
             `;
-        }
     }
 
     if ((shopHours / totalHours) >= 0.5) {

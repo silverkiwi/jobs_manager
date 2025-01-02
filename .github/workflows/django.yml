@@ -2,7 +2,7 @@ name: Django CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "timesheet-overview" ] # Jus testing new configs
   pull_request:
     branches: [ "main" ]
 
@@ -10,18 +10,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_DATABASE: msm_workflow_test
-          MYSQL_ROOT_PASSWORD: password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
+  mysql:
+    image: mysql:5.7
+    env:
+      MYSQL_DATABASE: test_msm_workflow
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - 3306:3306
+    options: >-
+      --health-cmd="mysqladmin ping --silent"
+      --health-interval=20s
+      --health-timeout=10s
+      --health-retries=5
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.12
@@ -36,10 +36,18 @@ jobs:
       run: |
         poetry install
     - name: Wait for MySQL
+    - name: Wait for MySQL
       run: |
-        while ! mysqladmin ping -h "localhost" --silent; do
+        timeout=300  # 5 minutes timeout
+        elapsed=0
+        while ! mysqladmin ping -h "localhost" -u root -ppassword --silent; do
+          if [ "$elapsed" -ge "$timeout" ]; then
+            echo "Timeout waiting for MySQL"
+            exit 1
+          fi
           echo "Waiting for database connection..."
           sleep 2
+          elapsed=$((elapsed+2))
         done
     - name: Run Tests
       env:

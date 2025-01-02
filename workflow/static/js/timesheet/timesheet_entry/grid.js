@@ -1,7 +1,7 @@
 import { ActiveJobCellEditor } from './job_cell_editor.js';
 import { rowStateTracker, timesheet_data } from './state.js';
 import { currencyFormatter } from './utils.js';
-import { createNewRow, calculateAmounts } from './grid_manager.js';
+import { createNewRow, calculateAmounts, triggerAutoCalculationForAllRows } from './grid_manager.js';
 import { updateSummarySection } from './summary.js';
 import { debouncedAutosave, markEntryAsDeleted } from './timesheet_autosave.js'
 import { renderMessages } from './messages.js';

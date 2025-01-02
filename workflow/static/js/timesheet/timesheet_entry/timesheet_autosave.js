@@ -2,6 +2,8 @@ import { validateAndTrackRow } from './utils.js';
 import { updateJobsList } from './job_section.js';
 import { renderMessages } from './messages.js';
 import { timesheet_data } from './state.js';
+import { updateSummarySection } from './summary.js';
+import { triggerAutoCalculationForAllRows } from './grid_manager.js';
 
 let deletedEntries = [];
 
@@ -264,6 +266,8 @@ function saveDataToServer(collectedData) {
         renderMessages(data.messages || []);
         
         console.log('Autosave successful:', data);
+        triggerAutoCalculationForAllRows(); // To fix bad shop hours calculation bug in updateSummarySection
+        updateSummarySection();
     })
     .catch(error => {
         console.error('Autosave failed:', error);
