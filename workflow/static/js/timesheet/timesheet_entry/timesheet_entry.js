@@ -15,27 +15,42 @@ const gridDiv = document.querySelector('#timesheet-grid');
 initializeGrid(gridDiv, gridOptions);
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Clear sent messages
-    console.log(sentMessages);
     sentMessages.clear();
 
-    console.log('Fetching initial jobs:', window.timesheet_data.jobs);
     fetchJobs();
 
-    // Initialize rowStateTracker
-    window.grid.forEachNode(node => {
-        rowStateTracker[node.id] = { ...node.data };
-        localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
-    });
-    console.log('Initial row state saved: ', rowStateTracker);
+    if (!localStorage.getItem('rowStateTracker')) {
+        window.grid.addEventListener('firstDataRendered', () => {
+            console.log('Grid data has been rendered. Initializing rowStateTracker.');
+        
+            const nodes = [];
+            window.grid.forEachNode(node => {
+                nodes.push(node);
+            });
+        
+            console.log('Grid nodes:', nodes); // Verificar os nós após o carregamento dos dados
+        
+            nodes.forEach(node => {
+                if (node.data && node.data.id) {
+                    rowStateTracker[node.id] = { ...node.data };
+                }
+            });
+        
+            localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
+            console.log('Initial row state saved: ', rowStateTracker);
+        });
+    } else {
+        console.log('Loaded rowStateTracker from localStorage.');
+        Object.assign(rowStateTracker, JSON.parse(localStorage.getItem('rowStateTracker')));
+        console.log('RowStateTracker: ', rowStateTracker);
+    }    
 
-    // Load existing entries if any, otherwise add an empty row
     if (window.timesheet_data.time_entries?.length > 0) {
         window.grid.applyTransaction({ add: window.timesheet_data.time_entries });
         triggerAutoCalculationForAllRows();
     } else {
         window.grid.applyTransaction({
-            add: [createNewRow()] // Use centralized function
+            add: [createNewRow()] 
         });
     }
 

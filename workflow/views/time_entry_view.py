@@ -689,6 +689,8 @@ def autosave_timesheet_view(request):
                     entry.description = description
                     entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
+                    entry.items = entry_data.get("items", entry.items)
+                    entry.minutes_per_item = Decimal(entry_data.get("mins_per_item", entry.minutes_per_item))
                     entry.note = entry_data.get("notes", "")
                     entry.wage_rate_multiplier = RateType(entry_data.get("rate_type", "Ord")).multiplier                    
                     entry.charge_out_rate = Decimal(str(job_data.get("charge_out_rate", 0)))
@@ -746,6 +748,8 @@ def autosave_timesheet_view(request):
                     date=target_date,
                     description=description,
                     hours=hours,
+                    items=entry_data.get("items"),
+                    minutes_per_item=Decimal(entry_data.get("mins_per_item", 0)),
                     is_billable=entry_data.get("is_billable", True),
                     note=entry_data.get("notes", ""),
                     wage_rate_multiplier=RateType(entry_data["rate_type"]).multiplier,

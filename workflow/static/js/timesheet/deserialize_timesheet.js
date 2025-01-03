@@ -26,11 +26,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const timesheet_date = JSON.parse(timesheetDateElement.textContent.trim());
         const timesheetEntries = JSON.parse(timesheetEntriesDataElement.textContent);
 
-        console.log('Deserialized Staff:', staff);
-        console.log('Deserialized Jobs:', jobs);
-        console.log('Deserialized Timesheet Date:', timesheet_date);
-        console.log('Deserialized Timesheet Entries:', timesheetEntries);
-
         // Transform timesheet entries (if needed)
         const transformedEntries = timesheetEntries.map(entry => ({
             ...entry,

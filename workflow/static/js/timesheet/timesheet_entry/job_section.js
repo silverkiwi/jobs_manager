@@ -39,7 +39,6 @@ function filterRelatedJobs(jobs, timeEntries) {
  * fetchJobs();
  */
 export function fetchJobs() {
-    console.log('Fetching jobs...');
     $.ajax({
         url: window.location.pathname,
         method: 'GET',
@@ -47,15 +46,12 @@ export function fetchJobs() {
             'X-Requested-With': 'XMLHttpRequest'
         },
         success: function (response) {
-            console.log('AJAX response received:', response);
-
             if (response.jobs && response.time_entries) {
                 const relatedJobs = filterRelatedJobs(
                     response.jobs,
                     response.time_entries
                 );
 
-                console.log('Filtered related jobs:', relatedJobs);
                 updateJobsList(relatedJobs, 'load');
             } else {
                 console.warn('Jobs or time_entries missing in response.');
@@ -110,8 +106,6 @@ let currentJobs = [];
  * @param {Array<Object>} removeJobs - Jobs to be removed (for 'update' action).
  */
 export function updateJobsList(jobs, action, removeJobs = []) {
-    console.log(`Updating jobs list with ${action}`, { jobs, removeJobs });
-
     switch (action) {
         case 'load':
             currentJobs = jobs; // Replace the list completely
@@ -134,7 +128,6 @@ export function updateJobsList(jobs, action, removeJobs = []) {
             );
             // Add or update jobs
             currentJobs = mergeOrAddJobs(jobs, currentJobs);
-            console.log('Current jobs after update:', currentJobs);
             break;
 
         default:

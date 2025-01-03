@@ -1,10 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOMContentLoaded event fired - attempting to convert UTC to NZT");
     var timeElements = document.querySelectorAll('.utc-time');
 
     timeElements.forEach(function(el) {
         var utcTimeStr = el.getAttribute('data-utc');
-        console.log("Original UTC time (before conversion):", utcTimeStr);
 
         if (utcTimeStr) {
             // Create a Date object from the UTC string
@@ -31,5 +29,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    console.log("Finished converting all time elements.");
 });

@@ -52,8 +52,6 @@ export const gridOptions = {
                 return null;
             },
             cellRenderer: params => {
-                console.log('Rendering hours cell:', params.value, params.data);
-
                 if (params.data.hours > params.data.scheduled_hours) {
                     return `<div style="background-color: #fff3cd">⚠️ ${Number(params.value).toFixed(2)}</div>`
                 }
@@ -189,7 +187,7 @@ export const gridOptions = {
 
                     // Then remove from grid
                     params.api.applyTransaction({ remove: [rowData] });
-                    delete rowStateTracker[rowData.id];
+                    delete rowStateTracker[params.node.id];
                     localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
                     console.log('Row removed from grid, triggering autosave');
                     debouncedAutosave();
@@ -214,7 +212,6 @@ export const gridOptions = {
 
         // If job number changes, update job name, client, and job_data
         if (params.column?.colId === 'job_number') {
-            console.log('Job number changed:', params.newValue);
             const job = timesheet_data.jobs.find(j => j.job_number === params.newValue);
 
             if (!job) return;
@@ -227,19 +224,16 @@ export const gridOptions = {
             params.node.setDataValue('estimated_hours', job.estimated_hours);
 
             calculateAmounts(params.node.data);
-            console.log('Refreshing cells for job_name, job_number, client, wage_amount, bill_amount');
             params.api.refreshCells({
                 rowNodes: [params.node],
                 force: true
             });
         }
 
-        // Recalculate amounts if rate type or hours changes
+        // Recalculate amounts if rate type or hours changesb
         if (['rate_type', 'hours'].includes(params.column?.colId)) {
-            console.log('Rate type or hours changed:', params.column?.colId, params.newValue);
-
+            params.node.setDataValue('rate_type', Number(params.newValue));
             calculateAmounts(params.node.data);
-            console.log('Refreshing cells for wage_amount, bill_amount');
             params.api.refreshCells({
                 rowNodes: [params.node],
                 force: true
