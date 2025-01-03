@@ -38,108 +38,64 @@ class TimesheetOverviewView(TemplateView):
             # Default to showing the last 7 days ending yesterday
             start_date = timezone.now().date() - timezone.timedelta(days=7)
 
-        # Step 2: Calculate the last 7 days starting from the start date
-        last_seven_days = [start_date - timezone.timedelta(days=i) for i in range(7)]
-
-        # Step 3: Get all staff members and their hours by day
+        week_days = [start_date + timezone.timedelta(days=i) for i in range(-start_date.weekday(), 5 - start_date.weekday())]
+        
         staff_data = []
-        all_staff = Staff.objects.all()
-        for staff_member in all_staff:
+        total_hours = 0
+        total_billable_hours = 0
+        total_shop_hours = 0
+        total_leave_hours = 0
 
+        for staff_member in Staff.objects.all():
             if staff_member.is_staff is True or str(staff_member.id) in EXCLUDED_STAFF_IDS:
                 continue
             
-            staff_hours = []
-            for day in last_seven_days:
-                scheduled_hours = staff_member.get_scheduled_hours(
-                    day
-                )  # Hours they're rostered to work
-                staff_hours.append(
-                    {
-                        "date": day.strftime("%Y-%m-%d"),
-                        "scheduled_hours": scheduled_hours,
-                    }
-                )
+            weekly_hours = []
+            total_staff_hours = 0
+            billable_hours = 0
+
+            for day in week_days:
+                scheduled_hours = staff_member.get_scheduled_hours(day)
+                time_entries = TimeEntry.objects.filter(
+                    staff=staff_member, date=day
+                ).select_related("job_pricing")
+
+                daily_hours = sum(entry.hours for entry in time_entries)
+                daily_billable_hours = sum (entry.hours for entry in time_entries if entry.is_billable)
+                has_paid_leave = time_entries.filter(job_pricing__job__name__icontains="Leave").exists()
+
+                weekly_hours.append({
+                    "day": day,
+                    "hours": daily_hours,
+                    "status": "Leave" if has_paid_leave else ("✓" if daily_hours >= scheduled_hours else "⚠"),
+                })
+
+                total_staff_hours += daily_hours
+                billable_hours += daily_billable_hours
+
             staff_data.append(
                 {
                     "staff_id": staff_member.id,
-                    "staff_name": staff_member.get_display_name(),
-                    "hours_by_day": staff_hours,
+                    "name": staff_member.get_display_name(),
+                    "weekly_hours": weekly_hours,
+                    "total_hours": total_staff_hours,
+                    "billable_percentage": round((billable_hours / total_staff_hours) * 100, 1) if total_staff_hours > 0 else 0,
                 }
             )
 
-        # Step 4: Get all open jobs and their hours
-        job_data = []
-        open_jobs = Job.objects.filter(
-            status__in=["quoting", "approved", "in_progress", "special"]
-        )
+            total_hours += total_staff_hours
+            total_billable_hours += billable_hours
 
-        for job in open_jobs:
-            # Get estimated hours, quoted hours, and actual hours
-            reality = job.latest_reality_pricing
-            estimated_hours = job.latest_estimate_pricing.total_hours
-            quoted_hours = job.latest_quote_pricing.total_hours
-            actual_entries = job.latest_reality_pricing.time_entries.all()
-            actual_total_hours = sum(entry.hours for entry in actual_entries)
-            actual_billable_hours = sum(
-                entry.hours for entry in actual_entries if entry.is_billable
-            )
-            job_data.append(
-                {
-                    "job_id": job.id,
-                    "job_name": job.name,
-                    "estimated_hours": estimated_hours,
-                    "quoted_hours": quoted_hours,
-                    "actual_hours_to_date": actual_total_hours,
-                    "actual_billable_hours_to_date": actual_billable_hours,
-                    "actual_time_revenue_to_date": reality.total_time_revenue,
-                    "actual_time_cost_to_date": reality.total_time_cost,
-                    "actual_total_revenue_to_date": reality.total_revenue,
-                    "actual_total_cost_to_date": reality.total_cost,
-                    "shop_job": job.shop_job,
-                }
-            )
-
-        # Step 5: Get all timesheets in that week
-        timesheet_entries = []
-        time_entries = TimeEntry.objects.filter(
-            date__in=last_seven_days
-        ).select_related("staff", "job_pricing")
-        for entry in time_entries:
-            timesheet_entries.append(
-                {
-                    "date": entry.date.strftime("%Y-%m-%d"),
-                    "staff_member": (
-                        entry.staff.get_display_name() if entry.staff else "Unknown"
-                    ),
-                    "job_name": entry.job_pricing.job.name,
-                    "hours_worked": entry.hours,
-                    "is_billable": entry.is_billable,
-                    "wage_rate": entry.wage_rate,
-                    "charge_out_rate": entry.charge_out_rate,
-                }
-            )
+        billable_percentage = (total_billable_hours / total_hours) * 100 if total_hours > 0 else 0
 
         # Prepare context for rendering
         context = {
-            "start_date": start_date,
+            "week_days": week_days,
             "staff_data": staff_data,
-            "job_data": job_data,
-            "timesheet_entries": timesheet_entries,
-            "last_seven_days": last_seven_days,
-            "context_json": json.dumps(
-                {
-                    "start_date": start_date.strftime("%Y-%m-%d"),
-                    "staff_data": staff_data,
-                    "job_data": job_data,
-                    "timesheet_entries": timesheet_entries,
-                    "last_seven_days": [
-                        day.strftime("%Y-%m-%d") for day in last_seven_days
-                    ],
-                },
-                indent=2,
-                cls=DjangoJSONEncoder,
-            ),  # Pretty-print for readability
+            "weekly_summary": {
+                "total_hours": total_hours,
+                "billable_percentage": round(billable_percentage, 1),
+            },
         }
 
         return render(request, self.template_name, context)

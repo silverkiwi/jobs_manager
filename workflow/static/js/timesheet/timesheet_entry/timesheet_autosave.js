@@ -274,7 +274,7 @@ function saveDataToServer(collectedData) {
         renderMessages(data.messages || []);
         
         console.log('Autosave successful:', data);
-        triggerAutoCalculationForAllRows(); // To fix bad shop hours calculation bug in updateSummarySection
+        triggerAutoCalculationForAllRows();
         updateSummarySection();
     })
     .catch(error => {

@@ -1,64 +1,113 @@
 {% extends 'base.html' %}
+
 {% load static %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/timesheet_overview.css' %}">
-{% endblock %}
-
 {% block content %}
-<div id="timesheet-overview-container">
 
+<div id="timesheet-overview-container" class="container-fluid mt-4">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6 text-start">
+            <h1>
+                Timesheet Overview
+            </h1>
+            <button class="btn btn-outline-primary rounded-2 p-2" data-bs-toggle="modal" data-bs-target="#weekPickerModal">
+                Change Week
+            </button>
+            <span id="current-week-display" class="font-monospace bold p-2 bg-primary-subtle d-inline-block rounded-2">
+                {{ week_days.0|date:"jS F Y" }} - {{ week_days|last|date:"jS F Y" }}
+            </span>
+        </div>
+    </div>
 
-
-    <!-- Days Overview Section -->
-    <div id="days-section" class="overview-section">
-        <div id="days-container">
-            <!-- Display 7 boxes for the last 7 days -->
-            {% for day in last_seven_days %}
-            <div class="day-box">
-            Hello
-                <p class="day-name">
-                    <a href="{% url 'timesheet_daily_view' date=day %}" class="day-name-link">{{ day|date:"l" }}</a>
-                </p> <!-- Day name as link -->
-                <p class="day-date">{{ day }}</p> <!-- Day date, e.g., 2024-11-11 -->
-                <div id="day-chart-{{ forloop.counter }}" class="day-chart"></div> <!-- Placeholder for Highcharts -->
+     <!-- Calendar modal -->
+     <div class="modal fade" id="weekPickerModal" tabindex="-1" aria-labelledby="weekPickerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="weekPickerModalLabel">Select a Week</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="week-calendar" class="d-flex flex-column align-items-center">
+                        <!-- Personalized calendar will be generated here -->
+                    </div>
+                </div>
             </div>
-            {% endfor %}
         </div>
     </div>
 
-    <!-- Staff Overview Section -->
-    <div id="staff-section" class="overview-section">
-        <h3>Staff Overview</h3>
-        <div id="staff-table-container">
-            <!-- Highcharts will generate staff table here -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Timesheet Days</h5>
+                </div>
+                <div class="card-body d-flex flex-wrap overflow-auto" style="height: 300px;">
+                    {% for day in week_days %}
+                    <div class="card m-2" style="width: 150px;">
+                        <div class="card-header">{{ day|date:"D" }}</div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ day|date:"d M" }}</h5>
+                            <a href="{% url 'timesheet_daily_view' date=day %}" class="btn btn-primary btn-sm">View</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Job Overview</h5>
+                </div>
+                <div class="card-body">
+                    <p>Job data will go here...</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Job Overview Section -->
-    <div id="job-section" class="overview-section">
-        <h3>Job Overview</h3>
-        <div id="job-table-container">
-            <!-- Highcharts will generate job table here -->
+    <div class="row my-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Weekly Summary</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Staff</th>
+                                {% for day in week_days %}
+                                <th>{{ day|date:"D" }}</th>
+                                {% endfor %}
+                                <th>Total</th>
+                                <th>Billable%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff in staff_data %}
+                            <tr>
+                                <td>{{ staff.name }}</td>
+                                {% for day_data in staff.weekly_hours %}
+                                <td>{{ day_data.hours|default:"-" }}
+                                    <small class="text-muted">{{ day_data.status }}</small>
+                                </td>
+                                {% endfor %}
+                                <td>{{ staff.total_hours }}</td>
+                                <td>{{ staff.billable_percentage }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-
-    <!-- Temporary link to view previous 7 days -->
-<div style="text-align: center; margin-top: 20px;">
-    <a href="/timesheets/overview/{{ start_date|date:'Y-m-d' }}/" id="previous-seven-days-link">Previous 7 Days</a>
-</div>
-
-        <!-- Temporary Debug Section to View Context JSON -->
-    <div id="debug-context" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9;">
-        <h3>Debug Context (Temporary)</h3>
-        <pre>{{ context_json|safe }}</pre>
-    </div>
-
 {% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'jquery/jquery.min.js' %}"></script>
-<script src="{% static 'highcharts/highcharts.js' %}"></script>
-<script src="{% static 'js/timesheet/timesheet_overview.js' %}"></script>
-{% endblock %}
+{% block extra_js %} 
+    <script src="{% static 'js/timesheet/week_picker.js' %}"></script>
+{% endblock %} 
