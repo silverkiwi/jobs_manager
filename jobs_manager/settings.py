@@ -109,7 +109,7 @@ load_dotenv(BASE_DIR / ".env")
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("MYSQL_DATABASE", "msm_workflow"),
+        "NAME": os.getenv("MYSQL_DATABASE", "test_msm_workflow"),
         "USER": os.getenv("MSM_DB_USER", "root"),
         "PASSWORD": os.getenv("DB_PASSWORD", "password"),
         "HOST": os.getenv("DB_HOST", "localhost"),
