@@ -39,6 +39,10 @@ jobs:
       run: |
         poetry install
 
+    - name: Prepare Database
+      run: |
+        docker exec $(docker ps -q --filter ancestor=mysql:8.0) mysql -u root -ppassword -e "DROP DATABASE IF EXISTS test_msm_workflow; CREATE DATABASE test_msm_workflow;"
+
     - name: Run Tests
       env:
         MYSQL_DATABASE: "${{ secrets.MYSQL_DATABASE }}"
@@ -48,7 +52,7 @@ jobs:
         DB_PORT: "${{ secrets.DB_PORT }}"
         DEBUG: "True"
       run: |
-        poetry run python manage.py test --verbosity 2
+        poetry run python manage.py test --verbosity 2 --keepdb
 
     - name: Get MySQL Logs (on error)
       if: failure()
