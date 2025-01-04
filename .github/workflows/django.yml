@@ -50,6 +50,10 @@ jobs:
         docker exec $(docker ps -q --filter ancestor=mysql:5.7) mysql -u root -ppassword -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password'; FLUSH PRIVILEGES;"
         docker exec $(docker ps -q --filter ancestor=mysql:5.7) mysql -u root -ppassword -e "SHOW DATABASES;"
 
+    - name: Verify Test Database
+      run: |
+        docker exec $(docker ps -q --filter ancestor=mysql:5.7) mysql -u root -ppassword -e "USE test_msm_workflow; SHOW TABLES;"
+
     - name: Wait for MySQL
       run: |
         timeout=600  # Timeout de 10 minutos
@@ -76,10 +80,16 @@ jobs:
         DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
         DB_HOST: "${{ secrets.DB_HOST }}"
         DB_PORT: "${{ secrets.DB_PORT }}"
+        DEBUG: "True"
       run: |
-        poetry run python manage.py test
+        poetry run python manage.py test --verbosity 2
 
     - name: Get MySQL Logs (on error)
       if: failure()
       run: |
         docker logs $(docker ps -q --filter ancestor=mysql:5.7)
+
+    - name: Get Detailed MySQL Logs
+      if: failure()
+      run: |
+        docker exec $(docker ps -q --filter ancestor=mysql:5.7) cat /var/log/mysql/error.log
