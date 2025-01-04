@@ -50,8 +50,10 @@ jobs:
         done
     - name: Run Tests
       env:
+        MYSQL_DATABASE: "msm_workflow"
         MSM_DB_USER: root
         DB_PASSWORD: password
+        DB_HOST: "localhost"
         DB_PORT: 3306
       run: |
         poetry run python manage.py test
