@@ -39,40 +39,6 @@ jobs:
       run: |
         poetry install
 
-    - name: Debug MySQL Container Status
-      run: |
-        echo "Checking MySQL container logs..."
-        docker logs $(docker ps -q --filter ancestor=mysql:5.7)
-
-    - name: Configure MySQL Authentication
-      run: |
-        echo "Configuring MySQL user authentication..."
-        docker exec $(docker ps -q --filter ancestor=mysql:5.7) mysql -u root -ppassword -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password'; FLUSH PRIVILEGES;"
-        docker exec $(docker ps -q --filter ancestor=mysql:5.7) mysql -u root -ppassword -e "SHOW DATABASES;"
-
-    - name: Verify Test Database
-      run: |
-        docker exec $(docker ps -q --filter ancestor=mysql:5.7) mysql -u root -ppassword -e "USE test_msm_workflow; SHOW TABLES;"
-
-    - name: Wait for MySQL
-      run: |
-        timeout=60  # Timeout de 1 minuto
-        elapsed=0
-        while ! mysqladmin ping -h "localhost" -u root -ppassword --silent; do
-          if [ "$elapsed" -ge "$timeout" ]; then
-            echo "Timeout waiting for MySQL"
-            exit 1
-          fi
-          echo "Waiting for database connection..."
-          sleep 2
-          elapsed=$((elapsed+2))
-        done
-
-    - name: Debug MySQL Connection
-      run: |
-        echo "Testing MySQL Connection"
-        mysqladmin ping -h localhost -u root -ppassword
-
     - name: Run Tests
       env:
         MYSQL_DATABASE: "${{ secrets.MYSQL_DATABASE }}"
