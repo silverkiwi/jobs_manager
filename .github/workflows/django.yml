@@ -10,18 +10,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     services:
-  mysql:
-    image: mysql:5.7
-    env:
-      MYSQL_DATABASE: test_msm_workflow
-      MYSQL_ROOT_PASSWORD: password
-    ports:
-      - 3306:3306
-    options: >-
-      --health-cmd="mysqladmin ping --silent"
-      --health-interval=20s
-      --health-timeout=10s
-      --health-retries=5
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_DATABASE: test_msm_workflow
+          MYSQL_ROOT_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=20s
+          --health-timeout=10s
+          --health-retries=5
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.12
@@ -35,7 +35,6 @@ jobs:
     - name: Install Dependencies
       run: |
         poetry install
-    - name: Wait for MySQL
     - name: Wait for MySQL
       run: |
         timeout=300  # 5 minutes timeout
