@@ -2,7 +2,7 @@ name: Django CI
 
 on:
   push:
-    branches: [ "main", "timesheet-overview" ] # Jus testing new configs
+    branches: [ "main", "timesheet-overview" ] # Just testing new configs
   pull_request:
     branches: [ "main" ]
 
