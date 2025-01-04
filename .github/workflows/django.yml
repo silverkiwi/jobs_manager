@@ -2,7 +2,7 @@ name: Django CI
 
 on:
   push:
-    branches: ["main", "timesheet-overview"]
+    branches: ["main", "timesheet-overview"]  # Branches monitoradas
   pull_request:
     branches: ["main"]
 
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:8.0
         env:
           MYSQL_DATABASE: test_msm_workflow
           MYSQL_ROOT_PASSWORD: password
@@ -41,11 +41,11 @@ jobs:
 
     - name: Run Tests
       env:
-        MYSQL_DATABASE: test_msm_workflow
-        MSM_DB_USER: root
-        DB_PASSWORD: password
-        DB_HOST: 127.0.0.1
-        DB_PORT: 3306
+        MYSQL_DATABASE: "${{ secrets.MYSQL_DATABASE }}"
+        MSM_DB_USER: "${{ secrets.MSM_DB_USER }}"
+        DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
+        DB_HOST: "${{ secrets.DB_HOST }}"
+        DB_PORT: "${{ secrets.DB_PORT }}"
         DEBUG: "True"
       run: |
         poetry run python manage.py test --verbosity 2
@@ -53,9 +53,9 @@ jobs:
     - name: Get MySQL Logs (on error)
       if: failure()
       run: |
-        docker logs $(docker ps -q --filter ancestor=mysql:5.7)
+        docker logs $(docker ps -q --filter ancestor=mysql:8.0)
 
     - name: Get Detailed MySQL Logs
       if: failure()
       run: |
-        docker exec $(docker ps -q --filter ancestor=mysql:5.7) cat /var/log/mysql/error.log
+        docker exec $(docker ps -q --filter ancestor=mysql:8.0) cat /var/log/mysql/error.log
