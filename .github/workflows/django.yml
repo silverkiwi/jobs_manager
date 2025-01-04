@@ -2,7 +2,7 @@ name: Django CI
 
 on:
   push:
-    branches: ["main", "timesheet-overview"]  # Branches monitoradas
+    branches: ["main", "timesheet-overview"]
   pull_request:
     branches: ["main"]
 
@@ -18,7 +18,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping --silent"
+          --health-cmd="mysqladmin ping -h localhost -u root -ppassword --silent"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
@@ -64,11 +64,11 @@ jobs:
 
     - name: Run Tests
       env:
-        MYSQL_DATABASE: "msm_workflow"
-        MSM_DB_USER: root
-        DB_PASSWORD: password
-        DB_HOST: "localhost"
-        DB_PORT: 3306
+        MYSQL_DATABASE: "${{ secrets.MYSQL_DATABASE }}"
+        MSM_DB_USER: "${{ secrets.MSM_DB_USER }}"
+        DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
+        DB_HOST: "${{ secrets.DB_HOST }}"
+        DB_PORT: "${{ secrets.DB_PORT }}"
       run: |
         poetry run python manage.py test
 
