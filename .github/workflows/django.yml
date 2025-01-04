@@ -56,7 +56,7 @@ jobs:
 
     - name: Wait for MySQL
       run: |
-        timeout=600  # Timeout de 10 minutos
+        timeout=60  # Timeout de 1 minuto
         elapsed=0
         while ! mysqladmin ping -h "localhost" -u root -ppassword --silent; do
           if [ "$elapsed" -ge "$timeout" ]; then
