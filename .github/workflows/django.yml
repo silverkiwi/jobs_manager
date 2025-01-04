@@ -2,7 +2,7 @@ name: Django CI
 
 on:
   push:
-    branches: ["main", "timesheet-overview"]
+    branches: ["main", "timesheet-overview"]  # Branches monitoradas
   pull_request:
     branches: ["main"]
 
@@ -21,7 +21,7 @@ jobs:
           --health-cmd="mysqladmin ping -h localhost -u root -ppassword --silent"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=10
+          --health-retries=20
     steps:
     - uses: actions/checkout@v4
 
@@ -39,13 +39,20 @@ jobs:
       run: |
         poetry install
 
+    - name: Debug MySQL Container Status
+      run: |
+        echo "Checking MySQL container logs..."
+        docker logs $(docker ps -q --filter ancestor=mysql:5.7)
+
     - name: Configure MySQL Authentication
       run: |
+        echo "Configuring MySQL user authentication..."
         docker exec $(docker ps -q --filter ancestor=mysql:5.7) mysql -u root -ppassword -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password'; FLUSH PRIVILEGES;"
+        docker exec $(docker ps -q --filter ancestor=mysql:5.7) mysql -u root -ppassword -e "SHOW DATABASES;"
 
     - name: Wait for MySQL
       run: |
-        timeout=300  # Timeout de 5 minutos
+        timeout=600  # Timeout de 10 minutos
         elapsed=0
         while ! mysqladmin ping -h "localhost" -u root -ppassword --silent; do
           if [ "$elapsed" -ge "$timeout" ]; then
