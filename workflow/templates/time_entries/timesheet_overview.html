@@ -5,12 +5,43 @@
 {% block content %}
 
 <div id="timesheet-overview-container" class="container-fluid mt-4">
+
+    <!-- Modal for Paid Absence -->
+    <div class="modal fade" id="paidAbsenceModal" tabindex="-1" aria-labelledby="paidAbsenceModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paidAbsenceModalLabel">Add Paid Absence</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="paid-absence-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_paid_absence">
+                    <div class="modal-body">
+                        {{ paid_absence_form.as_p }}
+                        <select name="staff_id" class="form-control">
+                            {% for staff in staff_members %}
+                            <option value="{{ staff.id }}">{{ staff.get_display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="row align-items-center mb-4">
         <div class="col-md-6 text-start">
             <h1>
                 Timesheet Overview
             </h1>
-            <button class="btn btn-outline-primary rounded-2 p-2" data-bs-toggle="modal" data-bs-target="#weekPickerModal">
+            <button class="btn btn-outline-primary rounded-2 p-2" data-bs-toggle="modal"
+                data-bs-target="#weekPickerModal">
                 Change Week
             </button>
             <span id="current-week-display" class="font-monospace bold p-2 bg-primary-subtle d-inline-block rounded-2">
@@ -19,8 +50,9 @@
         </div>
     </div>
 
-     <!-- Calendar modal -->
-     <div class="modal fade" id="weekPickerModal" tabindex="-1" aria-labelledby="weekPickerModalLabel" aria-hidden="true">
+    <!-- Calendar modal -->
+    <div class="modal fade" id="weekPickerModal" tabindex="-1" aria-labelledby="weekPickerModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -53,6 +85,14 @@
                     </div>
                     {% endfor %}
                 </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-lg btn-outline-success mt-2" data-bs-toggle="modal"
+                    data-bs-target="#paidAbsenceModal">
+                    Add Paid Absence
+                </button>
+                <!-- Messages will be loaded here -->
+                <div class="alert-container mt-2 flex-shrink-0" style="width: fit-content;"></div>
             </div>
         </div>
 
@@ -108,6 +148,6 @@
 </div>
 {% endblock %}
 
-{% block extra_js %} 
-    <script src="{% static 'js/timesheet/week_picker.js' %}"></script>
-{% endblock %} 
+{% block extra_js %}
+<script type="module" src="{% static 'js/timesheet/timesheet_overview.js' %}"></script>
+{% endblock %}

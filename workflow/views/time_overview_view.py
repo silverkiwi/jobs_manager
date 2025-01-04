@@ -5,12 +5,16 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.contrib import messages
 from django.views.generic import TemplateView
 from decimal import Decimal
 
-from workflow.models import Job, Staff, TimeEntry
+from workflow.models import JobPricing, Staff, TimeEntry
+from workflow.forms import PaidAbsenceForm
+from workflow.utils import extract_messages
 
 import logging
+from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +103,89 @@ class TimesheetOverviewView(TemplateView):
         }
 
         return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        if action == "load_paid_absence_form":
+            return self.load_paid_absence_form(request)
+        if action == "submit_paid_absence":
+            return self.submit_paid_absence(request)
+        messages.error(request, "Invalid action.")
+        return JsonResponse({
+            "error": "Invalid action.",
+            "messages": extract_messages(request)
+            }, status=400)
+    
+    def load_paid_absence_form(self, request):
+        staff_members = Staff.objects.exclude(id__in=EXCLUDED_STAFF_IDS)
+        form = PaidAbsenceForm()
+        form_html = render_to_string(
+            "time_entries/paid_absence_form.html",
+            {"form": form, "staff_members": staff_members},
+            request=request
+        )
+        return JsonResponse({
+            "form_html": form_html,
+            "success": True,
+            })
+    
+    def submit_paid_absence(self, request):
+        form = PaidAbsenceForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Form validation failed.")
+            return JsonResponse({
+                "success": False,
+                "errors": form.errors,
+                "messages": extract_messages(request)
+            }, status=400)
+        
+        staff_member = form.cleaned_data["staff"]
+        start_date = form.cleaned_data["start_date"]
+        end_date = form.cleaned_data["end_date"]
+        leave_type = form.cleaned_data["leave_type"]
 
+        if end_date < start_date:
+            messages.error(request, "End date must be after start date.")
+            return JsonResponse({
+                "success": False,
+                "messages": extract_messages(request)
+            }, status=400)
+        
+        leave_jobs = {
+            "annual": "eecdc751-0207-4f00-a47a-ca025a7cf935",
+            "sick": "4dd8ec04-35a0-4c99-915f-813b6b8a3584",
+            "other": "cd2085c7-0793-403e-b78d-63b3c134e59d"
+        }
+
+        job_pricing = JobPricing.objects.filter(job_id=leave_jobs[leave_type]).first()
+        if not job_pricing:
+            messages.error(request, "Invalid leave type selected.")
+            return JsonResponse({
+                "success": False,
+                "messages": extract_messages(request)
+            }, status=400)
+        
+        for day in range((end_date - start_date).days + 1):
+            date = start_date + timezone.timedelta(days=day)
+            if date.weekday() >= 5:  # Skip weekends
+                continue
+
+            TimeEntry.objects.create(
+                job_pricing=job_pricing,
+                staff=staff_member,
+                date=date,
+                hours=8,
+                description=f"{leave_type.capitalize()} Leave",
+                is_billable=False,
+                note="Automatically created leave entry",
+                wage_rate=staff_member.wage_rate,
+                charge_out_rate=job_pricing.job.charge_out_rate,
+                wage_rate_multiplier=1.0
+            )
+
+        messages.success(request, "Paid absence entries created successfully.")
+        return JsonResponse({"success": True, "messages": extract_messages(request)})
+    
 
 class TimesheetDailyView(TemplateView):
     template_name = "time_entries/timesheet_daily_view.html"

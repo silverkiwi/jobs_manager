@@ -1,8 +1,6 @@
 import { triggerAutoCalculationForAllRows, createNewRow, initializeGrid,  } from "./grid_manager.js";
 import { gridOptions } from "./grid.js";
 import { getCookie } from "./utils.js";
-import { initializeModals } from "./modal_handling.js";
-import { initializePaidAbsenceHandlers } from "./paid_absence.js";
 import { timesheet_data, rowStateTracker, sentMessages } from './state.js';
 import { fetchJobs } from "./job_section.js";
 import { updateSummarySection } from "./summary.js";
@@ -63,7 +61,4 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
-
-    initializeModals();
-    initializePaidAbsenceHandlers();
 });

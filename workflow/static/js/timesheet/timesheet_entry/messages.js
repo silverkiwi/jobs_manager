@@ -43,3 +43,8 @@ export function renderMessages(messages) {
         }
     });
 }
+
+// Ensure the window object is available before assigning
+if (typeof window !== 'undefined') {
+    window.renderMessages = renderMessages;
+}
