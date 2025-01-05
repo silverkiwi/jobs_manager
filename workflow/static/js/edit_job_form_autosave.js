@@ -430,7 +430,7 @@ function removeValidationError(element) {
 }
 
 // Debounced version of the autosave function
-const debouncedAutosave = debounce(function () {
+export const debouncedAutosave = debounce(function () {
     console.log("Debounced autosave called");
     autosaveData();
 }, 1000);
@@ -439,6 +439,8 @@ const debouncedRemoveValidation = debounce(function (element) {
     console.log("Debounced validation removal called for element:", element);
     removeValidationError(element);
 }, 1000);
+
+
 
 // Attach autosave to form elements (input, select, textarea)
 // Synchronize visible UI fields with hidden form fields
