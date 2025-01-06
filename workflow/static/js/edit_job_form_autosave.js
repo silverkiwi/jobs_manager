@@ -520,6 +520,5 @@ export function copyEstimateToQuote() {
             level: 'success',
             message: 'Estimates successfully copied to Quotes.',
         },
-        'estimate'
-    ]);
+    ], 'estimate');
 }
