@@ -2,6 +2,8 @@ from rest_framework import serializers
 from workflow.helpers import decimal_to_float
 from workflow.models import TimeEntry
 
+from decimal import Decimal
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,7 +38,7 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
         ]
 
     def get_total_minutes(self, obj):
-        return decimal_to_float(obj.minutes)
+        return (obj.items * obj.minutes_per_item).quantize(Decimal("0.01"), rounding="ROUND_HALF_UP")
 
     def get_revenue(self, obj):
         return obj.revenue
@@ -50,6 +52,11 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
 
     def get_timesheet_date(self, obj):
         return obj.date.strftime("%Y-%m-%d") if obj.date else None
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        logger.debug(f"Serialized TimeEntry: {representation}")
+        return representation
 
 class TimeEntryForTimeEntryViewSerializer(serializers.ModelSerializer):
     """

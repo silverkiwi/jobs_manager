@@ -271,7 +271,7 @@ function saveDataToServer(collectedData) {
         }
 
         deletedEntries = [];
-        renderMessages(data.messages || []);
+        renderMessages(data.messages || [], 'time-entry');
         
         console.log('Autosave successful:', data);
         triggerAutoCalculationForAllRows();

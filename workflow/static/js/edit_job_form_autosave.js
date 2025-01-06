@@ -85,7 +85,10 @@ function collectGridData(section) {
             const rowData = [];
             gridData.api.forEachNode(node => {
                 if (isNonDefaultRow(node.data, gridName)) {
-                    rowData.push(node.data);
+                    const data = {...node.data};
+                    data.minutes_per_item = data.mins_per_item;
+                    delete data.mins_per_item
+                    rowData.push(data);
                 }
             });
 

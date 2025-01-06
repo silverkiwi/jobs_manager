@@ -117,7 +117,7 @@ function loadExistingJobTimeEntries(entries) {
   return entries.map((entry) => ({
     description: entry.description,
     items: entry.items,
-    mins_per_item: entry.mins_per_item,
+    mins_per_item: entry.minutes_per_item,
     wage_rate: entry.wage_rate,
     charge_out_rate: entry.charge_out_rate,
     total_minutes: entry.total_minutes,
