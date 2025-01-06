@@ -2,13 +2,14 @@ import { sentMessages } from './state.js'
 
 
 /**
- * Renders dynamic messages in the template's message container.
+ * Renders dynamic messages in a specified alert container.
  * @param {Array} messages - List of messages in the format [{level: "success|error|info", message: "Message"}].
+ * @param {string} containerId - The ID of the alert container to target.
  */
-export function renderMessages(messages) {
-    const alertContainer = document.querySelector('.alert-container');
+export function renderMessages(messages, containerId = 'alert-container') {
+    const alertContainer = document.getElementById(containerId);
     if (!alertContainer) {
-        console.error('Alert container not found.');
+        console.error(`Alert container with ID '${containerId}' not found.`);
         return;
     }
 
@@ -31,7 +32,7 @@ export function renderMessages(messages) {
         `;
         alertContainer.appendChild(alertDiv);
 
-        // Add fade out effect after 1 second if message level is success
+        // Add fade out effect after 2 seconds if message level is success
         if (msg.level === 'success') {
             setTimeout(() => {
                 alertDiv.classList.remove('show');

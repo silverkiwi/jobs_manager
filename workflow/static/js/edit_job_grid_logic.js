@@ -31,7 +31,7 @@
  */
 
 import {createNewRow, getGridData} from '/static/js/deseralise_job_pricing.js';
-import {handlePrintJob} from '/static/js/edit_job_form_autosave.js';
+import {handlePrintJob, debouncedAutosave, copyEstimateToQuote } from './edit_job_form_autosave.js';
 
 // console.log('Grid logic script is running');
 
@@ -578,15 +578,15 @@ document.addEventListener('DOMContentLoaded', function () {
         // console.log('Calling initial calculateTotals');
         calculateTotalRevenue();
     }, 1000);
-});
 
-document.addEventListener('DOMContentLoaded', function () {
     document.body.addEventListener('click', function (event) {
         const buttonId = event.target.id;
 
         switch (buttonId) {
             case 'copyEstimateToQuote':
-                alert('Copy Estimate To Quote feature coming soon!');
+                copyEstimateToQuote();
+                calculateTotalCost();
+                calculateTotalRevenue();
                 break;
 
             case 'submitQuoteToClient':

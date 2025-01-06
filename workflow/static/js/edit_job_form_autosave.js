@@ -1,4 +1,4 @@
-import {createNewRow} from '/static/js/deseralise_job_pricing.js';
+import { createNewRow } from '/static/js/deseralise_job_pricing.js';
 
 let dropboxToken = null;
 
@@ -19,11 +19,9 @@ function collectAllData() {
     const formElements = document.querySelectorAll('.autosave-input');
 
     formElements.forEach(element => {
-        let value;
-        if (element.type === 'checkbox') {
-            value = element.checked;
-        } else {
-            value = element.value.trim() === "" ? null : element.value;
+        let value = element.type === 'checkbox' ? element.checked : element.value.trim() || null;
+        if (element.name === 'client_id' && !value) {
+            console.error('Client ID missing. Ensure client selection updates the hidden input.');
         }
         data[element.name] = value;
     });
@@ -168,7 +166,7 @@ async function uploadToDropbox(file, dropboxPath) {
 }
 
 function exportJobToPDF(jobData) {
-    const {jsPDF} = window.jspdf;
+    const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     let startY = 10;
 
@@ -176,12 +174,12 @@ function exportJobToPDF(jobData) {
 
     // Grid sections
     const pricingSections = [
-        {section: "Estimate", grids: ["estimateTimeTable", "estimateMaterialsTable", "estimateAdjustmentsTable"]},
-        {section: "Quote", grids: ["quoteTimeTable", "quoteMaterialsTable", "quoteAdjustmentsTable"]},
-        {section: "Reality", grids: ["realityTimeTable", "realityMaterialsTable", "realityAdjustmentsTable"]},
+        { section: "Estimate", grids: ["estimateTimeTable", "estimateMaterialsTable", "estimateAdjustmentsTable"] },
+        { section: "Quote", grids: ["quoteTimeTable", "quoteMaterialsTable", "quoteAdjustmentsTable"] },
+        { section: "Reality", grids: ["realityTimeTable", "realityMaterialsTable", "realityAdjustmentsTable"] },
     ];
 
-    pricingSections.forEach(({section, grids}) => {
+    pricingSections.forEach(({ section, grids }) => {
         doc.setFontSize(16);
         doc.text(section, 10, startY);
         doc.setFontSize(12);
@@ -255,7 +253,7 @@ function exportJobToPDF(jobData) {
         startY = doc.lastAutoTable.finalY + 10;
     });
 
-    return new Blob([doc.output("blob")], {type: "application/pdf"});
+    return new Blob([doc.output("blob")], { type: "application/pdf" });
 }
 
 
@@ -290,11 +288,11 @@ async function handlePDF(pdfBlob, mode, jobData) {
         case 'upload':
             const formData = new FormData();
             formData.append('job_number', jobData.job_number);
-            formData.append('files', new File([pdfBlob], 'JobSummary.pdf', {type: 'application/pdf'}));
+            formData.append('files', new File([pdfBlob], 'JobSummary.pdf', { type: 'application/pdf' }));
 
             fetch('/api/upload-job-files/', {
                 method: 'POST',
-                headers: {'X-CSRFToken': getCsrfToken()},
+                headers: { 'X-CSRFToken': getCsrfToken() },
                 body: formData
             }).then(response => {
                 if (!response.ok) {
@@ -349,6 +347,7 @@ function autosaveData() {
         saveDataToServer(collectedData);
     } else {
         console.log("Job is not valid. Skipping autosave.");
+        renderMessages([{ level: 'error', message: 'Please complete all required fields before saving.' }], 'job-details');
     }
 }
 
@@ -374,6 +373,7 @@ function saveDataToServer(collectedData) {
                 return response.json().then(data => {
                     if (data.errors) {
                         handleValidationErrors(data.errors);
+                        renderMessages([{ level: 'error', message: 'Failed to save data. Please try again.' }], 'job-details');
                     }
                     throw new Error('Validation errors occurred');
                 });
@@ -384,9 +384,10 @@ function saveDataToServer(collectedData) {
             const pdfBlob = exportJobToPDF(collectedData);
             handlePDF(pdfBlob, 'upload', collectedData);
             console.log('Autosave successful:', data);
+            renderMessages([{ level: 'success', message: 'Job updated successfully.' }], 'job-details');
         })
         .catch(error => {
-            console.error('Autosave failed:', error);
+            renderMessages([{ level: 'error', message: `Autosave failed: ${error.message}` }]);
         });
 }
 
@@ -412,7 +413,7 @@ function handleValidationErrors(errors) {
                 if (element.nextElementSibling && element.nextElementSibling.classList.contains('invalid-feedback')) {
                     element.nextElementSibling.remove();
                 }
-            }, {once: true});
+            }, { once: true });
         }
     }
 }
@@ -430,7 +431,7 @@ function removeValidationError(element) {
 }
 
 // Debounced version of the autosave function
-const debouncedAutosave = debounce(function () {
+export const debouncedAutosave = debounce(function () {
     console.log("Debounced autosave called");
     autosaveData();
 }, 1000);
@@ -470,44 +471,55 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     });
-
-    // Function to validate all required fields before autosave
-    // Unused?
-    // function validateAllFields() {
-    //     let allValid = true;
-    //
-    //     autosaveInputs.forEach(input => {
-    //         if (input.hasAttribute('required') && input.type !== "checkbox" && input.value.trim() === '') {
-    //             // Add validation error for required fields that are empty
-    //             addValidationError(input, 'This field is required.');
-    //             allValid = false;
-    //         } else if (input.type === "checkbox" && input.hasAttribute('required') && !input.checked) {
-    //             // If a checkbox is required but not checked
-    //             addValidationError(input, 'This checkbox is required.');
-    //             allValid = false;
-    //         } else {
-    //             // Remove validation error if field is valid
-    //             removeValidationError(input);
-    //         }
-    //     });
-    //
-    //     return allValid;
-    // }
-
-    // // Function to add validation error to an input
-    // Unused?
-    // function addValidationError(element, message) {
-    //     element.classList.add('is-invalid');
-    //     if (!element.nextElementSibling || !element.nextElementSibling.classList.contains('invalid-feedback')) {
-    //         const errorDiv = document.createElement('div');
-    //         errorDiv.className = 'invalid-feedback';
-    //         errorDiv.innerText = message;
-    //         element.parentElement.appendChild(errorDiv);
-    //     }
-    // }
-
-    // Function to remove validation error from an input
-    // Unused?
-
-
 });
+
+function getAllRowData(gridApi) {
+    const rowData = [];
+    gridApi.forEachNode(node => rowData.push(node.data));
+    return rowData;
+}
+
+function copyGridData(sourceGridApi, targetGridApi) {
+    if (!sourceGridApi || !targetGridApi) {
+        console.error("Source or target grid API is not defined.");
+        return;
+    }
+
+    const sourceData = getAllRowData(sourceGridApi);
+    const targetData = getAllRowData(targetGridApi);
+
+    targetGridApi.applyTransaction({ remove: targetData });
+    targetGridApi.applyTransaction({ add: sourceData });
+}
+
+export function copyEstimateToQuote() {
+    const grids = ['TimeTable', 'MaterialsTable', 'AdjustmentsTable'];
+
+    grids.forEach(gridName => {
+        const estimateGridKey = `estimate${gridName}`;
+        const quoteGridKey = `quote${gridName}`;
+
+        const estimateGridApi = window.grids[estimateGridKey]?.api;
+        const quoteGridApi = window.grids[quoteGridKey]?.api;
+
+        if (estimateGridApi && quoteGridApi) {
+            copyGridData(estimateGridApi, quoteGridApi); // Uses the generic method
+        } else {
+            console.error(
+                `Grid API not found or not initialized for keys: ${estimateGridKey}, ${quoteGridKey}`
+            );
+        }
+    });
+
+    // Trigger autosave to sync changes
+    debouncedAutosave();
+
+    // Display success message
+    renderMessages([
+        {
+            level: 'success',
+            message: 'Estimates successfully copied to Quotes.',
+        },
+        'estimate'
+    ]);
+}
