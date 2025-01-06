@@ -355,7 +355,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
             },
-            {headerName: 'Revenue', field: 'revenue', editable: false, valueFormatter: currencyFormatter},
             trashCanColumn,
         ],
         rowData: [],
@@ -404,9 +403,15 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             {
                 headerName: 'Price Adjustment',
-                field: 'revenue',
+                field: 'price_adjustment',
                 editable: true,
                 valueParser: numberParser,
+                valueFormatter: currencyFormatter
+            },
+            {
+                headerName: 'Revenue',
+                field: 'revenue',
+                editable: false,
                 valueFormatter: currencyFormatter
             },
             {headerName: 'Comments', field: 'comments', editable: true, flex: 2},
@@ -497,6 +502,8 @@ document.addEventListener('DOMContentLoaded', function () {
         onGridReady: params => {
             window.grids['revenueTable'] = {gridInstance: params.api, api: params.api};
             params.api.sizeColumnsToFit();
+
+            calculateTotalRevenue();
         },
         onGridSizeChanged: params => {
             params.api.sizeColumnsToFit();
@@ -527,6 +534,8 @@ document.addEventListener('DOMContentLoaded', function () {
         onGridReady: params => {
             window.grids['costsTable'] = {gridInstance: params.api, api: params.api};
             params.api.sizeColumnsToFit();
+
+            calculateTotalCost();
         },
         onGridSizeChanged: params => {
             params.api.sizeColumnsToFit();
