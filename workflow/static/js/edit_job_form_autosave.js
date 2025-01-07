@@ -341,7 +341,7 @@ export function handlePrintJob() {
 }
 
 // Autosave function to send data to the server
-function autosaveData() {
+export function autosaveData() {
     const collectedData = collectAllData();
 
     // Skip autosave if the job is not yet ready for saving
@@ -430,7 +430,7 @@ function removeValidationError(element) {
 }
 
 // Debounced version of the autosave function
-const debouncedAutosave = debounce(function () {
+export const debouncedAutosave = debounce(function () {
     console.log("Debounced autosave called");
     autosaveData();
 }, 1000);
@@ -439,6 +439,8 @@ const debouncedRemoveValidation = debounce(function (element) {
     console.log("Debounced validation removal called for element:", element);
     removeValidationError(element);
 }, 1000);
+
+
 
 // Attach autosave to form elements (input, select, textarea)
 // Synchronize visible UI fields with hidden form fields
@@ -511,3 +513,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 });
+
+
+function getAllRowData(gridApi) {
+    const rowData = [];
+    gridApi.forEachNode(node => rowData.push(node.data));
+    return rowData;
+}
+
+
+export function copyEstimateToQuote() {
+    const grids = ['TimeTable', 'MaterialsTable', 'AdjustmentsTable'];
+
+    grids.forEach(gridName => {
+        const estimateGridKey = `estimate${gridName}`;
+        const quoteGridKey = `quote${gridName}`;
+
+        const estimateGridApi = window.grids[estimateGridKey].api;
+        const quoteGridApi = window.grids[quoteGridKey].api;
+
+        const rowData = getAllRowData(estimateGridApi);
+        console.log("ROWDATA : ", rowData);
+        quoteGridApi.setGridOption('rowData',rowData);
+    });
+    autosaveData();  // Explicitly call autosaveData after copying
+}
+
