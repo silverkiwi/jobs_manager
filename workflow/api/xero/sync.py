@@ -388,7 +388,7 @@ def sync_clients(xero_contacts):
 
         try:
             client.raw_json = raw_json
-            set_client_fields(client)
+            set_client_fields(client, new_from_xero=created)
 
             if created:
                 logger.info(
@@ -733,3 +733,63 @@ def sync_all_xero_data():
         last_modified_time=our_latest_journal,
         pagination_mode="offset",
     )
+
+
+def synchronise_xero_data():
+    """Bi-directional sync with Xero - pushes changes TO Xero, then pulls FROM Xero"""
+    logger.info("Starting bi-directional Xero sync")
+
+    accounting_api = AccountingApi(api_client)
+
+    # PUSH changes TO Xero
+
+    # Contacts/Clients
+    clients_to_push = Client.objects.filter(
+        django_updated_at__gt=models.F('xero_last_modified')
+    )
+    for client in clients_to_push:
+        logger.info(f"Pushing changes for client {client.name} to Xero")
+        try:
+            sync_client_to_xero(client)
+        except Exception as e:
+            logger.error(f"Failed to push client {client.name} to Xero: {str(e)}")
+
+    # # Invoices (ACCREC)
+    # invoices_to_push = Invoice.objects.filter(
+    #     django_updated_at__gt=models.F('xero_last_modified')
+    # )
+    # for invoice in invoices_to_push:
+    #     logger.info(f"Pushing changes for invoice {invoice.number} to Xero")
+    #     try:
+    #         sync_invoice_to_xero(invoice)  # Need to implement
+    #     except Exception as e:
+    #         logger.error(f"Failed to push invoice {invoice.number} to Xero: {str(e)}")
+
+    # # Bills (ACCPAY)
+    # bills_to_push = Bill.objects.filter(
+    #     django_updated_at__gt=models.F('xero_last_modified')
+    # )
+    # for bill in bills_to_push:
+    #     logger.info(f"Pushing changes for bill {bill.number} to Xero")
+    #     try:
+    #         sync_bill_to_xero(bill)  # Need to implement
+    #     except Exception as e:
+    #         logger.error(f"Failed to push bill {bill.number} to Xero: {str(e)}")
+
+    # # Credit Notes
+    # credit_notes_to_push = CreditNote.objects.filter(
+    #     django_updated_at__gt=models.F('xero_last_modified')
+    # )
+    # for note in credit_notes_to_push:
+    #     logger.info(f"Pushing changes for credit note {note.number} to Xero")
+    #     try:
+    #         sync_credit_note_to_xero(note)  # Need to implement
+    #     except Exception as e:
+    #         logger.error(f"Failed to push credit note {note.number} to Xero: {str(e)}")
+
+    # Note: Accounts and Journals are read-only from Xero, so no push needed
+
+    # PULL changes FROM Xero using existing sync
+    sync_all_xero_data()
+
+    logger.info("Completed bi-directional Xero sync")
