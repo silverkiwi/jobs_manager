@@ -194,6 +194,8 @@ def edit_job_view_ajax(request, job_id=None):
     context = {
         "job": job,
         "job_id": job.id,
+        "client_name": job.client.name if job.client else "No Client",
+        "created_at": job.created_at.isoformat(),
         "company_defaults": company_defaults,
         "job_files": job_files,
         "historical_job_pricings_json": historical_job_pricings_json,  # Revisions
