@@ -6,7 +6,7 @@ from uuid import UUID
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import transaction
-from django.db.models import Max
+from django.db import models
 from xero_python.accounting import AccountingApi
 
 from workflow.api.xero.reprocess_xero import (
@@ -110,7 +110,7 @@ def sync_xero_data(
 
 def get_last_modified_time(model):
     """Fetch the latest 'last_modified' from the given model, or default to a far past date."""
-    last_modified_time = model.objects.aggregate(Max("xero_last_modified"))[
+    last_modified_time = model.objects.aggregate(models.Max("xero_last_modified"))[
         "xero_last_modified__max"
     ]
     if last_modified_time:
@@ -670,7 +670,7 @@ def single_sync_invoice(
         )
 
 
-def sync_all_xero_data():
+def one_way_sync_all_xero_data():
     accounting_api = AccountingApi(api_client)
 
     our_latest_contact = get_last_modified_time(Client)
@@ -736,7 +736,7 @@ def sync_all_xero_data():
 
 
 def synchronise_xero_data():
-    """Bi-directional sync with Xero - pushes changes TO Xero, then pulls FROM Xero"""
+    """Bidirectional sync with Xero - pushes changes TO Xero, then pulls FROM Xero"""
     logger.info("Starting bi-directional Xero sync")
 
     accounting_api = AccountingApi(api_client)
@@ -790,6 +790,6 @@ def synchronise_xero_data():
     # Note: Accounts and Journals are read-only from Xero, so no push needed
 
     # PULL changes FROM Xero using existing sync
-    sync_all_xero_data()
+    one_way_sync_all_xero_data()
 
     logger.info("Completed bi-directional Xero sync")

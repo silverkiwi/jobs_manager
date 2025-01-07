@@ -1,0 +1,68 @@
+graph TD
+    subgraph Core URLs
+        urlJob["/job/ (create_job)"]
+        urlJobEdit["/job/:id/ (edit_job)"]
+        apiCreateJob["/api/create-job/"]
+        apiJobFiles["/api/job-files/"]
+        apiAutosaveJob["/api/autosave-job/"]
+    end
+
+    subgraph Job Edit Views
+        viewJobEdit["edit_job_ajax.html"]
+        viewJobDetail["edit_job_detail_section.html"]
+        viewJobWorkflow["edit_job_workflow_section.html"]
+        viewCreateJob["create_job_and_redirect.html"]
+    end
+
+    subgraph Job JavaScript
+        jsEditJob["edit_job_form_autosave.js"]
+        jsJobFile["job_file_handling.js"]
+        jsClientLookup["client_lookup.js"]
+        jsEditJobGrid["edit_job_grid_logic.js"]
+        jsDeserializeJob["deseralise_job_pricing.js"]
+        jsTimeConversion["time_conversion.js"]
+    end
+
+    subgraph Reports System
+        urlReports["/reports/"]
+        urlProfitLoss["/reports/company-profit-loss/"]
+        apiProfitLoss["/api/reports/company-profit-loss/"]
+        viewReportsIndex["reports_index.html"]
+        viewProfitLoss["report_company_profit_and_loss.html"]
+        jsReportPnL["report_company_profit_and_loss.js"]
+    end
+
+    subgraph Grid Management
+        jsGridManager["grid_manager.js"]
+        jsState["state.js"]
+        jsSummary["summary.js"]
+        jsUtils["utils.js"]
+    end
+
+    %% Job Creation Flow
+    viewCreateJob --> apiCreateJob
+    apiCreateJob --> urlJobEdit
+
+    %% Job Edit Flow
+    viewJobEdit --> viewJobDetail
+    viewJobEdit --> viewJobWorkflow
+    jsEditJob --> apiAutosaveJob
+    jsJobFile --> apiJobFiles
+    jsEditJobGrid --> jsGridManager
+    jsGridManager --> jsState
+    jsGridManager --> jsSummary
+
+    %% Reports Flow
+    viewReportsIndex --> urlReports
+    viewProfitLoss --> apiProfitLoss
+    viewProfitLoss --> jsReportPnL
+    urlReports --> urlProfitLoss
+
+    %% Style Definitions
+    classDef api fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef view fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef js fill:#bfb,stroke:#333,stroke-width:2px;
+
+    class urlJob,urlJobEdit,apiCreateJob,apiJobFiles,apiAutosaveJob,apiProfitLoss api;
+    class viewJobEdit,viewJobDetail,viewJobWorkflow,viewCreateJob,viewReportsIndex,viewProfitLoss view;
+    class jsEditJob,jsJobFile,jsClientLookup,jsEditJobGrid,jsDeserializeJob,jsTimeConversion,jsGridManager,jsState,jsSummary,jsUtils,jsReportPnL js;

@@ -1,10 +1,10 @@
 import logging
 
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.contrib import messages
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView
 from django_tables2 import SingleTableView
@@ -38,13 +38,18 @@ class ClientUpdateView(UpdateView):
         token = get_valid_token()
         if not token:
             messages.warning(self.request, "Xero authentication required.")
-            return HttpResponseRedirect(reverse('authenticate_xero'))
+            return redirect("authenticate_xero")
 
         try:
             sync_client_to_xero(self.object)
             messages.success(self.request, "Client synced to Xero successfully")
         except Exception as e:
             messages.error(self.request, "Failed to sync to Xero")
+            return render(
+                self.request,
+                "general/generic_error.html",
+                {"error_message": f"Failed to sync client to Xero: {str(e)}"},
+            )
 
         return response
 

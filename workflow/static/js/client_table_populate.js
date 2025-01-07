@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <td>${client.address || ''}</td>
                             <td>${client.is_account_customer ? 'Yes' : 'No'}</td>
                             <td>
-                                <a href="/clients/edit/${client.id}/" class="btn btn-sm btn-primary">Edit</a>
+                                <a href="/client/${client.id}/" class="btn btn-sm btn-primary">Edit</a>
                             </td>
                         </tr>
                     `;
