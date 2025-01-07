@@ -5,8 +5,8 @@ export function calculateAmounts(data) {
     const rateMultiplier = {
         'Unpaid': 0.0,
         'Ord': 1.0,
-        'Ovt': 1.5,
-        'Dt': 2.0
+        '1.5': 1.5,
+        '2.0': 2.0,
     }[data.rate_type] || 1.0;
 
     const wageRate = window.timesheet_data.staff.wage_rate;
@@ -16,7 +16,7 @@ export function calculateAmounts(data) {
     if (jobData) {
         data.bill_amount = hours * jobData.charge_out_rate;
     } else {
-        data.bill_amount = 0; 
+        data.bill_amount = 0;
     }
 
     data.items = 1;
@@ -62,5 +62,4 @@ export function createNewRow() {
 
 export function initializeGrid(gridDiv, gridOptions) {
     window.grid = agGrid.createGrid(gridDiv, gridOptions);
-    console.log('Grid initialized:', window.grid);
 }

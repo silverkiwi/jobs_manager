@@ -104,22 +104,46 @@ export function validateAndTrackRow(rowData, rowId) {
     // Check if the row is valid
     const isValidRow = rowData.job_number &&
         rowData.hours > 0 &&
-        (rowData.description?.trim() !== '' || rowData.notes?.trim() !== '')
-        && typeof rowData.is_billable === 'boolean';
+        typeof rowData.is_billable === 'boolean';
 
     if (!isValidRow) {
         console.log('Row is invalid:', rowData);
         return false;
     }
+    
+    // Otherwise it'll fetch other data that is processed automatically on grid, even if this doesn't really means changes in the row
+    const relevantFields = [
+        "description",
+        "hours",
+        "is_billable",
+        "items",
+        "mins_per_item",
+        "job_number",
+        "rate_type",
+        "notes",
+        "timesheet_date",
+    ];
 
-    // Check if the row has been modified
-    const rowChanged = JSON.stringify(previousRowData) !== JSON.stringify(rowData);
-    if (!rowChanged) {
+    const filteredPrevious = relevantFields.reduce((acc, key) => {
+        acc[key] = key === "mins_per_item" ? parseFloat(previousRowData[key]) : previousRowData[key];
+        return acc;
+    }, {});
+
+    const filteredCurrent = relevantFields.reduce((acc, key) => {
+        acc[key] = key === "mins_per_item" ? parseFloat(rowData[key]) : rowData[key];
+        return acc;
+    }, {});
+
+    // Comparison of previous and current states of the row, after filtering
+    console.log('Previous state:', filteredPrevious);
+    console.log('Current state:', filteredCurrent); 
+    const rowChanged = JSON.stringify(filteredPrevious) !== JSON.stringify(filteredCurrent);    if (!rowChanged) {
         console.log('Row has not changed:', rowData);
         return false;
     }
 
     // Update the RowStateTracker
+    console.log(`Row data id ${rowData} | Row node id ${rowId}`);
     rowStateTracker[rowId] = { ...rowData };
     localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
     console.log('RowStateTracker updated:', rowStateTracker);

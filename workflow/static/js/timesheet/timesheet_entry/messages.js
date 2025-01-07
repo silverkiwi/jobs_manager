@@ -16,9 +16,7 @@ export function renderMessages(messages) {
     messages.forEach(msg => {
         const messageKey = `${msg.level}:${msg.message}`;
 
-        console.log(sentMessages);
         if (sentMessages.has(messageKey) && msg.level !== 'success') {
-            console.log('Message skipped (already sent).');
             return;
         }
         sentMessages.add(messageKey);
@@ -34,7 +32,6 @@ export function renderMessages(messages) {
         alertContainer.appendChild(alertDiv);
 
         // Add fade out effect after 1 second if message level is success
-        console.log("Message level: ", msg.level);
         if (msg.level === 'success') {
             setTimeout(() => {
                 alertDiv.classList.remove('show');
@@ -45,4 +42,9 @@ export function renderMessages(messages) {
             }, 2000);
         }
     });
+}
+
+// Ensure the window object is available before assigning
+if (typeof window !== 'undefined') {
+    window.renderMessages = renderMessages;
 }

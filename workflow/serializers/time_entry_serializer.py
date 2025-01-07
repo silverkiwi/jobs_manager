@@ -70,13 +70,19 @@ class TimeEntryForTimeEntryViewSerializer(serializers.ModelSerializer):
     estimated_hours = serializers.SerializerMethodField()
     staff_id = serializers.SerializerMethodField()
 
+
+    mins_per_item = serializers.DecimalField(
+        source="minutes_per_item", max_digits=5, decimal_places=2, required=False
+    )
+    items = serializers.IntegerField(required=False)
+
     class Meta:
         model = TimeEntry
         fields = [
             "id",
             "description",
             "items",
-            "minutes_per_item",
+            "mins_per_item",
             "wage_rate",
             "charge_out_rate",
             "job_pricing_id",

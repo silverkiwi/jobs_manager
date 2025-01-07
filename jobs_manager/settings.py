@@ -114,9 +114,9 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD", "password"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", 3306),
-    },
-    "TEST": {  # Optional, Django will create 'test_' + NAME by default
-        "NAME": "test_msm_workflow",
+        "TEST": {
+            "NAME": "test_msm_workflow",
+        },
     },
 }
 
