@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 class ClientListView(SingleTableView):
     model = Client
     template_name = "clients/list_clients.html"
-    queryset = Client.objects.all()
 
 
 class ClientUpdateView(UpdateView):
@@ -61,6 +60,15 @@ def ClientSearch(request):
         results = []
 
     return JsonResponse({"results": results})
+
+
+def all_clients(request):
+    """
+    API endpoint to return all clients as JSON for AJAX table population.
+    """
+    clients = Client.objects.values('id', 'name', 'email', 'phone', 'address', 'is_account_customer')
+    return JsonResponse(list(clients), safe=False)
+
 
 
 def AddClient(request):

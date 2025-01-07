@@ -34,6 +34,7 @@ urlpatterns = [
         time_entry_view.autosave_timesheet_view,
         name="autosave_timesheet-api",
     ),
+    path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
     path("api/get-env-variable/", server.get_env_variable, name="get_env_variable"),
     # path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
