@@ -6,6 +6,7 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
+from django.views.generic import TemplateView
 from xero_python.accounting import AccountingApi
 from xero_python.identity import IdentityApi
 
@@ -107,3 +108,9 @@ def refresh_xero_data(request):
 
     # After successful sync, redirect to the home page or wherever appropriate
     return redirect("/")
+
+
+class XeroIndexView(TemplateView):
+    """Note this page is currently inaccessible.  We are using a dropdown menu instead.
+    Kept as of 2025-01-07 in case we change our mind"""
+    template_name = "xero_index.html"
