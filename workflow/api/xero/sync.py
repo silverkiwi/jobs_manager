@@ -448,7 +448,7 @@ def sync_accounts(xero_accounts):
 
 def sync_client_to_xero(client):
     """
-    Sync a client from the local database to Xero - either a new one, or after a change
+    Sync a client from the local database to Xero - either create a new one or update an existing one.
     """
 
     # Step 1: Validate client data before attempting to sync
@@ -474,15 +474,31 @@ def sync_client_to_xero(client):
 
     # Step 4: Create or update the client in Xero
     try:
-        response = accounting_api.create_contacts(
-            xero_tenant_id, contacts={"contacts": [contact_data]}
-        )
-        contacts = response.contacts if response.contacts else []
-        logger.info(f"Successfully synced client {client.name} to Xero.")
-        return contacts  # Return the synced contacts for further processing
+        if client.xero_contact_id:
+            # Update existing contact
+            contact_data["ContactID"] = client.xero_contact_id
+            response = accounting_api.update_contact(
+                xero_tenant_id,
+                contact_id=client.xero_contact_id,
+                contacts={"contacts": [contact_data]},
+            )
+            logger.info(f"Updated existing client {client.name} in Xero.")
+        else:
+            # Create new contact
+            response = accounting_api.create_contacts(
+                xero_tenant_id, contacts={"contacts": [contact_data]}
+            )
+            # Save the new Xero ContactID to the local database
+            new_contact_id = response.contacts[0].contact_id
+            client.xero_contact_id = new_contact_id
+            client.save()
+            logger.info(f"Created new client {client.name} in Xero with ID {new_contact_id}.")
+
+        return response.contacts if response.contacts else []
     except Exception as e:
         logger.error(f"Failed to sync client {client.name} to Xero: {str(e)}")
         raise
+
 
 
 def single_sync_client(
