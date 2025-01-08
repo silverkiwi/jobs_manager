@@ -53,34 +53,41 @@ class Client(models.Model):
     def get_client_for_xero(self):
         """
         Return the client data in a format suitable for syncing to Xero.
-        Maps relevant fields from the model to the Xero API format.
+        Handles None values explicitly to ensure proper serialization.
         """
-        if self.validate_for_xero() is False:
-            return None
+        # Logging all data for debugging
+        logger.debug(f"Preparing client for Xero sync: ID={self.id}, Name={self.name}")
 
+        # Ensure required fields are present
+        if not self.name:
+            raise ValueError(
+                f"Client {self.id} is missing a name, which is required for Xero.")
+
+        # Prepare serialized data
         client_dict = {
-            "contact_id": self.xero_contact_id if self.xero_contact_id else None,
-            "name": self.name,  # Required by Xero
-            "email_address": self.email if self.email else None,
+            "contact_id": self.xero_contact_id or "",  # Empty string if None
+            "name": self.name,  # Required by Xero, must not be None
+            "email_address": self.email or "",  # Empty string if None
             "phones": [
                 {
                     "phone_type": "DEFAULT",
-                    "phone_number": self.phone if self.phone else None,
+                    "phone_number": self.phone or "",  # Empty string if None
                 }
             ],
             "addresses": [
                 {
                     "address_type": "STREET",
                     "attention_to": self.name,
-                    "address_line1": self.address if self.address else None,
-                    # Map additional address fields as needed,
-                    # such as city, region, postal code, etc.
+                    "address_line1": self.address or "",  # Empty string if None
                 }
             ],
-            "is_customer": self.is_account_customer,  # FIXME: Get this logic
-            # TODO: Add more mappings if necessary, like account numbers.
+            "is_customer": self.is_account_customer,  # Boolean, always valid
         }
+
+        # Log the final serialized data
+        logger.debug(f"Serialized client data for Xero: {client_dict}")
         return client_dict
+
 
 class Supplier(Client):
     """
