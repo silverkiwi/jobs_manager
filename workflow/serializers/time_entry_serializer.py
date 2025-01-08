@@ -38,7 +38,7 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
         ]
 
     def get_total_minutes(self, obj):
-        return (obj.items * obj.minutes_per_item).quantize(Decimal("0.01"), rounding="ROUND_HALF_UP")
+        return (obj.items * obj.minutes_per_item).quantize(Decimal("0.01"), rounding="ROUND_HALF_UP") if obj.items and obj.minutes_per_item else 0
 
     def get_revenue(self, obj):
         return obj.revenue
