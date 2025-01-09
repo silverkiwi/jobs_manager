@@ -146,7 +146,9 @@ class Job(models.Model):
     @property
     def shop_job(self) -> bool:
         """Indicates if this is a shop job (no client)."""
-        return str(self.client_id) == "00000000-0000-0000-0000-000000000001" # This is the UUID for the shop client
+        return (
+            str(self.client_id) == "00000000-0000-0000-0000-000000000001"
+        )  # This is the UUID for the shop client
 
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"

@@ -15,6 +15,7 @@ from workflow.views import (
     time_overview_view,
     xero_view,
 )
+from workflow.views import submit_quote_view
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import (
     CompanyProfitAndLossView,
@@ -35,6 +36,16 @@ urlpatterns = [
         name="autosave_timesheet-api",
     ),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
+    path(
+        "api/quote/<uuid:job_id>/pdf-preview/",
+        submit_quote_view.generate_quote_pdf,
+        name="generate_quote_pdf",
+    ),
+    path(
+        "api/quote/<uuid:job_id>/send-email/",
+        submit_quote_view.send_quote_email,
+        name="send_quote_email",
+    ),
     path("api/get-env-variable/", server.get_env_variable, name="get_env_variable"),
     # path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
     path("api/create-job/", edit_job_view_ajax.create_job_api, name="create_job_api"),

@@ -87,7 +87,9 @@ class TimeEntry(models.Model):
     @property
     def minutes(self) -> Decimal:
         """Compute minutes dynamically based on hours."""
-        return (self.hours * Decimal(60)).quantize(Decimal('0.01'), rounding="ROUND_HALF_UP")
+        return (self.hours * Decimal(60)).quantize(
+            Decimal("0.01"), rounding="ROUND_HALF_UP"
+        )
 
     @property
     def cost(self) -> Decimal:

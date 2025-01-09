@@ -90,7 +90,7 @@ function collectGridData(section) {
             const rowData = [];
             gridData.api.forEachNode(node => {
                 if (isNonDefaultRow(node.data, gridName)) {
-                    const data = {...node.data};
+                    const data = { ...node.data };
                     data.minutes_per_item = data.mins_per_item;
                     delete data.mins_per_item
                     rowData.push(data);
@@ -280,36 +280,32 @@ function exportJobToPDF(jobData) {
         if (!grid || !grid.api) {
             throw new Error(`Grid '${gridKey}' not found or missing API.`);
         }
-    
+
         const gridApi = grid.api;
         const columns = gridApi.getColumnDefs();
         const headers = columns.map(col => col.headerName);
-    
+
         const rowData = [];
         gridApi.forEachNode((node, rowIndex) => {
             const row = columns.map(col => {
                 const value = node.data[col.field];
                 if (["estimate", "quote", "reality"].includes(col.field) && typeof value === 'number') {
-                    // Apply "NZD" only for specific rows
-                    if (rowIndex === 2 || rowIndex === 3) { // Adjustments (2) and Project Cost (3)
-                        return `NZD ${value.toFixed(2)}`;
-                    }
-                    return value.toFixed(2); // No "NZD" for other rows
+                    return `NZD ${value.toFixed(2)}`;
                 }
                 return value !== undefined ? value : '';
             });
             rowData.push(row);
         });
-    
+
         doc.text(gridKey.replace(/Table$/, ""), 10, startY);
         startY += 5;
-    
+
         doc.autoTable({
             head: [headers],
             body: rowData,
             startY: startY,
         });
-    
+
         startY = doc.lastAutoTable.finalY + 10;
     });
 
@@ -347,7 +343,7 @@ async function handlePDF(pdfBlob, mode, jobData) {
         case 'upload':
             const formData = new FormData();
             formData.append('job_number', jobData.job_number);
-            formData.append('files', new File([pdfBlob], 'JobSummary.pdf', { type: 'application/pdf' }));
+            formData.append('files', new File([pdfBlob], `${jobData.name}.pdf`, { type: 'application/pdf' }));
 
             fetch('/api/upload-job-files/', {
                 method: 'POST',
@@ -370,7 +366,7 @@ async function handlePDF(pdfBlob, mode, jobData) {
         case 'download':
             const link = document.createElement('a');
             link.href = pdfURL;
-            link.download = `Job-${jobData.job_number}.pdf`;
+            link.download = `${jobData.name}.pdf`;
             link.click();
             break;
         default:

@@ -263,7 +263,7 @@ class PaidAbsenceForm(forms.Form):
         "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
         "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
         "d335acd4-800e-517a-8ff4-ba7aada58d14",
-        "e61e2723-26e1-5d5a-bd42-bbd318ddef81"
+        "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
     ]
 
     leave_type = forms.ChoiceField(

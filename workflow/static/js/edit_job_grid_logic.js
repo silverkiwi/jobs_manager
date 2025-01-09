@@ -30,8 +30,8 @@
  *   API handling in `onGridReady`.
  */
 
-import {createNewRow, getGridData} from '/static/js/deseralise_job_pricing.js';
-import {handlePrintJob, debouncedAutosave, copyEstimateToQuote } from './edit_job_form_autosave.js';
+import { createNewRow, getGridData } from '/static/js/deseralise_job_pricing.js';
+import { handlePrintJob, debouncedAutosave, copyEstimateToQuote } from './edit_job_form_autosave.js';
 
 // console.log('Grid logic script is running');
 
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // console.error("currencyFormatter error: value is undefined for the following params:", params);
             return '$0.00';  // Return a fallback value so the grid doesn't break
         }
-        return '$' + params.value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        return '$' + params.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function numberParser(params) {
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function onDeleteIconClicked(params) {
         if (params.api.getDisplayedRowCount() > 1) {
-            params.api.applyTransaction({remove: [params.node.data]});
+            params.api.applyTransaction({ remove: [params.node.data] });
             calculateTotalRevenue(); // Recalculate totals after row deletion
         }
     }
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (isLastRow) {
                 const newRow = createNewRow(params.context.gridType);
                 if (newRow) {
-                    params.api.applyTransaction({add: [newRow]});
+                    params.api.applyTransaction({ add: [newRow] });
                     setTimeout(() => {
                         params.api.setFocusedCell(params.rowIndex + 1, params.column.colId);
                         params.api.startEditingCell({
@@ -119,9 +119,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function calculateTotalRevenue() {
         const revenueTotals = {
-            time: {estimate: 0, quote: 0, reality: 0},
-            materials: {estimate: 0, quote: 0, reality: 0},
-            adjustments: {estimate: 0, quote: 0, reality: 0}
+            time: { estimate: 0, quote: 0, reality: 0 },
+            materials: { estimate: 0, quote: 0, reality: 0 },
+            adjustments: { estimate: 0, quote: 0, reality: 0 }
         };
 
         const sections = ['estimate', 'quote', 'reality'];
@@ -177,9 +177,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function calculateTotalCost() {
         const totals = {
-            time: {estimate: 0, quote: 0, reality: 0},
-            materials: {estimate: 0, quote: 0, reality: 0},
-            adjustments: {estimate: 0, quote: 0, reality: 0}
+            time: { estimate: 0, quote: 0, reality: 0 },
+            materials: { estimate: 0, quote: 0, reality: 0 },
+            adjustments: { estimate: 0, quote: 0, reality: 0 }
         };
 
         const sections = ['estimate', 'quote', 'reality'];
@@ -263,10 +263,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const gridElement = document.querySelector(`#${gridKey}`);
             const initialNumRows = 1; // Default initial number of rows
             const initialGridHeight = calculateGridHeight(params.api, initialNumRows);
-//            console.log(`Grid Key: ${gridKey}, Initial Grid Height: ${initialGridHeight}`);
+            //            console.log(`Grid Key: ${gridKey}, Initial Grid Height: ${initialGridHeight}`);
             gridElement.style.height = `${initialGridHeight}px`;
 
-            window.grids[gridKey] = {api: params.api};
+            window.grids[gridKey] = { api: params.api };
             // console.log(`Grid ${gridKey} initialized with API:`, window.grids[gridKey]);
 
             params.api.sizeColumnsToFit();
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (gridType === 'MaterialsTable') {
                 data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
             }
-            event.api.refreshCells({rowNodes: [event.node], columns: ['revenue', 'total_minutes'], force: true});
+            event.api.refreshCells({ rowNodes: [event.node], columns: ['revenue', 'total_minutes'], force: true });
 
             debouncedAutosave(event);
             calculateTotalRevenue();
@@ -324,10 +324,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const timeGridOptions = {
         ...commonGridOptions,
         columnDefs: [
-            {headerName: 'Description', field: 'description', editable: true, flex: 2},
-            {headerName: 'Items', field: 'items', editable: true, valueParser: numberParser},
-            {headerName: 'Mins/Item', field: 'mins_per_item', editable: true, valueParser: numberParser},
-            {headerName: 'Total Minutes', field: 'total_minutes', editable: false},
+            { headerName: 'Description', field: 'description', editable: true, flex: 2 },
+            { headerName: 'Items', field: 'items', editable: true, valueParser: numberParser },
+            { headerName: 'Mins/Item', field: 'mins_per_item', editable: true, valueParser: numberParser },
+            { headerName: 'Total Minutes', field: 'total_minutes', editable: false },
             {
                 headerName: 'Actions',
                 field: 'link',
@@ -358,16 +358,16 @@ document.addEventListener('DOMContentLoaded', function () {
             trashCanColumn,
         ],
         rowData: [],
-        context: {gridType: 'TimeTable'},
+        context: { gridType: 'TimeTable' },
     };
 
 
     const materialsGridOptions = {
         ...commonGridOptions,
         columnDefs: [
-            {headerName: 'Item Code', field: 'item_code', editable: true},
-            {headerName: 'Description', field: 'description', editable: true, flex: 2},
-            {headerName: 'Quantity', field: 'quantity', editable: true, valueParser: numberParser},
+            { headerName: 'Item Code', field: 'item_code', editable: true },
+            { headerName: 'Description', field: 'description', editable: true, flex: 2 },
+            { headerName: 'Quantity', field: 'quantity', editable: true, valueParser: numberParser },
             {
                 headerName: 'Cost Rate',
                 field: 'unit_cost',
@@ -382,18 +382,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
             },
-            {headerName: 'Revenue', field: 'revenue', editable: false, valueFormatter: currencyFormatter},
-            {headerName: 'Comments', field: 'comments', editable: true, flex: 2},
+            { headerName: 'Revenue', field: 'revenue', editable: false, valueFormatter: currencyFormatter },
+            { headerName: 'Comments', field: 'comments', editable: true, flex: 2 },
             trashCanColumn,
         ],
         rowData: [],
-        context: {gridType: 'MaterialsTable'}
+        context: { gridType: 'MaterialsTable' }
     };
 
     const adjustmentsGridOptions = {
         ...commonGridOptions,
         columnDefs: [
-            {headerName: 'Description', field: 'description', editable: true, flex: 2},
+            { headerName: 'Description', field: 'description', editable: true, flex: 2 },
             {
                 headerName: 'Cost Adjustment',
                 field: 'cost_adjustment',
@@ -414,11 +414,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 editable: false,
                 valueFormatter: currencyFormatter
             },
-            {headerName: 'Comments', field: 'comments', editable: true, flex: 2},
+            { headerName: 'Comments', field: 'comments', editable: true, flex: 2 },
             trashCanColumn,
         ],
         rowData: [],
-        context: {gridType: 'AdjustmentTable'}
+        context: { gridType: 'AdjustmentTable' }
     };
 
     const sections = ['estimate', 'quote', 'reality'];
@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const gridOptions = {
                 ...commonGridOptions,
                 ...specificGridOptions,
-                context: {section, gridType: `${gridType}`, gridKey: gridKey},
+                context: { section, gridType: `${gridType}`, gridKey: gridKey },
                 rowData: rowData  // Set initial row data in gridOptions
 
             };
@@ -483,16 +483,16 @@ document.addEventListener('DOMContentLoaded', function () {
     // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
     const revenueGridOptions = {
         columnDefs: [
-            {headerName: 'Category', field: 'category', editable: false},
-            {headerName: 'Estimate', field: 'estimate', editable: false, valueFormatter: currencyFormatter},
-            {headerName: 'Quote', field: 'quote', editable: false, valueFormatter: currencyFormatter},
-            {headerName: 'Reality', field: 'reality', editable: false, valueFormatter: currencyFormatter},
+            { headerName: 'Category', field: 'category', editable: false },
+            { headerName: 'Estimate', field: 'estimate', editable: false, valueFormatter: currencyFormatter },
+            { headerName: 'Quote', field: 'quote', editable: false, valueFormatter: currencyFormatter },
+            { headerName: 'Reality', field: 'reality', editable: false, valueFormatter: currencyFormatter },
         ],
         rowData: [
-            {category: 'Total Time', estimate: 0, quote: 0, reality: 0},
-            {category: 'Total Materials', estimate: 0, quote: 0, reality: 0},
-            {category: 'Total Adjustments', estimate: 0, quote: 0, reality: 0},
-            {category: 'Total Project Cost', estimate: 0, quote: 0, reality: 0}
+            { category: 'Total Time', estimate: 0, quote: 0, reality: 0 },
+            { category: 'Total Materials', estimate: 0, quote: 0, reality: 0 },
+            { category: 'Total Adjustments', estimate: 0, quote: 0, reality: 0 },
+            { category: 'Total Project Cost', estimate: 0, quote: 0, reality: 0 }
         ],  // Default 4 rows
         domLayout: 'autoHeight',
         rowHeight: 28,
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function () {
         suppressPaginationPanel: true,
         suppressHorizontalScroll: true,
         onGridReady: params => {
-            window.grids['revenueTable'] = {gridInstance: params.api, api: params.api};
+            window.grids['revenueTable'] = { gridInstance: params.api, api: params.api };
             params.api.sizeColumnsToFit();
 
             calculateTotalRevenue();
@@ -515,16 +515,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const costGridOptions = {
         columnDefs: [
-            {headerName: 'Category', field: 'category', editable: false},
-            {headerName: 'Estimate', field: 'estimate', editable: false, valueFormatter: currencyFormatter},
-            {headerName: 'Quote', field: 'quote', editable: false, valueFormatter: currencyFormatter},
-            {headerName: 'Reality', field: 'reality', editable: false, valueFormatter: currencyFormatter},
+            { headerName: 'Category', field: 'category', editable: false },
+            { headerName: 'Estimate', field: 'estimate', editable: false, valueFormatter: currencyFormatter },
+            { headerName: 'Quote', field: 'quote', editable: false, valueFormatter: currencyFormatter },
+            { headerName: 'Reality', field: 'reality', editable: false, valueFormatter: currencyFormatter },
         ],
         rowData: [
-            {category: 'Total Time', estimate: 0, quote: 0, reality: 0},
-            {category: 'Total Materials', estimate: 0, quote: 0, reality: 0},
-            {category: 'Total Adjustments', estimate: 0, quote: 0, reality: 0},
-            {category: 'Total Project Cost', estimate: 0, quote: 0, reality: 0}
+            { category: 'Total Time', estimate: 0, quote: 0, reality: 0 },
+            { category: 'Total Materials', estimate: 0, quote: 0, reality: 0 },
+            { category: 'Total Adjustments', estimate: 0, quote: 0, reality: 0 },
+            { category: 'Total Project Cost', estimate: 0, quote: 0, reality: 0 }
         ],  // Default 4 rows
         domLayout: 'autoHeight',
         rowHeight: 28,
@@ -532,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function () {
         suppressPaginationPanel: true,
         suppressHorizontalScroll: true,
         onGridReady: params => {
-            window.grids['costsTable'] = {gridInstance: params.api, api: params.api};
+            window.grids['costsTable'] = { gridInstance: params.api, api: params.api };
             params.api.sizeColumnsToFit();
 
             calculateTotalCost();
@@ -599,7 +599,56 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
 
             case 'submitQuoteToClient':
-                alert('Submit quote feature coming soon!');
+                const jobId = window.location.pathname.split('/')[2];
+                console.log('Submitting quote to client for job:', jobId);
+
+                // Open the PDF preview in a new tab
+                const pdfUrl = `/api/quote/${jobId}/pdf-preview/`;
+                window.open(pdfUrl, '_blank');
+
+                // Show confirmation modal
+                const modalHtml = `
+                    <div class="modal fade" id="quoteModal" tabindex="-1" role="dialog" aria-labelledby="quoteModalLabel" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                            <h5 class="modal-title" id="quoteModalLabel">Preview and Send Quote</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                            <p>The quote has been generated. Please preview it in the opened tab and confirm if you'd like to send it to the client.</p>
+                            <div id="email-alert-container" class="alert-container"></div>
+                            </div>
+                            <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button id="sendQuoteEmailButton" type="button" class="btn btn-primary">Send Quote</button>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+                // Show the modal
+                const quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
+                quoteModal.show();
+
+                document.getElementById('sendQuoteEmailButton').addEventListener('click', () => {
+                    fetch(`/api/quote/${jobId}/send-email/`, { method: 'POST' })
+                        .then(response => response.json())
+                        .then(data => {
+                            renderMessages(data.messages || [], 'email-alert-container');
+                            if (data.success) {
+                                setTimeout(quoteModal.hide(), 3000);
+                                document.getElementById('quoteModal').remove();
+                            }
+                        })
+                        .catch(error => {
+                            renderMessages([{ level: 'error', message: `Error sending email: ${error.message}` }], 'email-alert-container');
+                            console.error('Error sending email:', error);
+                        });
+                });
                 break;
 
             case 'reviseQuote':
