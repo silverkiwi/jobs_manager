@@ -4,10 +4,12 @@ import logging
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
 
 from workflow.helpers import DecimalEncoder, get_company_defaults
 from workflow.services.file_service import sync_job_folder
-from workflow.models import Job
+from workflow.models import Job, JobEvent
 from workflow.serializers import JobPricingSerializer, JobSerializer
 from workflow.services.job_service import (
     get_historical_job_pricings,
@@ -295,3 +297,14 @@ def autosave_job_view(request):
     except Exception as e:
         logger.exception(f"Unexpected error during autosave: {str(e)}")
         return JsonResponse({"error": "Unexpected error"}, status=500)
+
+# Currently this is only the back-end implementation of the feature, need to develop the front-end integration later
+@login_required
+@require_http_methods(["POST"])
+def add_job_event(request, job_id):
+    job = get_object_or_404(Job, pk=job_id)
+    description = request.POST.get("descripton", "")
+    if description:
+        JobEvent.objects.create(job=job, user=request.user, event_type="manual_note", description=description)
+        return JsonResponse({"success": True}, status=200)
+    return JsonResponse({"error": "Description required"})

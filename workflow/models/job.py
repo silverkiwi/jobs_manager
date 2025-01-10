@@ -14,6 +14,7 @@ from workflow.models import CompanyDefaults
 # We say . rather than workflow.models to avoid going through init,
 # otherwise it would have a circular import
 from .job_pricing import JobPricing
+from .job_event import JobEvent
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +160,9 @@ class Job(models.Model):
         return f"Job: {self.job_number}"  # type: ignore
 
     def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        original_status = None if is_new else Job.objects.get(pk=self.pk).status
+
         # Step 1: Check if this is a new instance (based on `self._state.adding`)
         if not self.job_number:
             self.job_number = self.generate_unique_job_number()
@@ -167,7 +171,7 @@ class Job(models.Model):
             company_defaults = CompanyDefaults.objects.first()
             self.charge_out_rate = company_defaults.charge_out_rate
 
-        if self._state.adding:
+        if is_new:
             # Creating a new job is tricky because of the circular reference.
             # We first save the job to the DB without any associated pricings, then we
             super(Job, self).save(*args, **kwargs)
@@ -197,6 +201,19 @@ class Job(models.Model):
                 ]
             )
 
+            JobEvent.objects.create(
+                job=self,
+                event_type="created",
+                description=f"Job {self.name} created",
+                user=kwargs.get("user", None)
+            )
+        elif original_status != self.status:
+            JobEvent.objects.create(
+                job=self,
+                event_type="status_change",
+                description=f"Job status changed from {original_status} to {self.status}",
+                user=kwargs.get("user", None)
+            )
         # Step 5: Save the Job to persist everything, including relationships
         else:
             super(Job, self).save(*args, **kwargs)
