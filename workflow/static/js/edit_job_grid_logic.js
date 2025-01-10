@@ -598,6 +598,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 calculateTotalRevenue();
                 break;
 
+            // TODO: extract separated logic to individual functions to modularize code 
             case 'submitQuoteToClient':
                 const jobId = window.location.pathname.split('/')[2];
                 console.log('Submitting quote to client for job:', jobId);

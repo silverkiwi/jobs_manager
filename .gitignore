@@ -99,3 +99,6 @@ dmypy.json
 /.__debug_sql.lock
 /node_modules/
 
+# For Docker
+.yaml
+Dockerfile
