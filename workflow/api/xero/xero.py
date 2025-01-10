@@ -44,6 +44,7 @@ def get_token() -> Optional[Dict[str, Any]]:
 @api_client.oauth2_token_saver
 def store_token(token: Dict[str, Any]) -> None:
     """Store token in cache with 29 minute timeout."""
+    logger.info(f"Storing token: {token}")
     cache.set("xero_token", token, timeout=1740)  # 29 minutes
 
 
@@ -127,14 +128,20 @@ def exchange_code_for_token(
 
 
 def get_tenant_id() -> str:
-    """Get the tenant ID from cache."""
-    tenant_id = cache.get("xero_tenant_id")
-    if not tenant_id:
-        if get_token():
+    """
+    Retrieve the tenant ID from cache, refreshing or re-authenticating as needed.
+    """
+    tenant_id = cache.get("xero_tenant_id")  # Step 1: Try to retrieve the tenant ID from the cache.
+    token = get_valid_token()  # Step 2: Ensure a valid token exists, refreshing if necessary.
+
+    if not token:
+        raise Exception("No valid Xero token found. Please complete the authorization workflow.")
+
+    if not tenant_id:  # Step 3: If tenant ID is missing, fetch it using the current token.
+        try:
             tenant_id = get_tenant_id_from_connections()
-            cache.set("xero_tenant_id", tenant_id)
-        else:
-            raise Exception(
-                "No Xero token found. Please complete initial authorization."
-            )
+            cache.set("xero_tenant_id", tenant_id)  # Cache the tenant ID for future use.
+        except Exception as e:
+            raise Exception(f"Failed to fetch tenant ID: {str(e)}")
+
     return tenant_id

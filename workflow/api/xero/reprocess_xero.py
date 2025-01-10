@@ -146,7 +146,7 @@ def set_invoice_or_bill_fields(document, document_type):
         #       f"Tax Amount: {line_item.tax_amount}, Total Incl. Tax: {line_item.line_amount_incl_tax}")
 
 
-def set_client_fields(client):
+def set_client_fields(client, new_from_xero=False):
     # Extract relevant fields from raw_json
     if not client.raw_json:
         raise ValueError("Client raw_json is empty.  We better not try to process it")
@@ -175,6 +175,11 @@ def set_client_fields(client):
         client.xero_last_modified = updated_date_utc
     else:
         raise ValueError("Xero last modified date is missing from the raw JSON.")
+
+
+    if new_from_xero:
+        client.django_created_at = client.xero_last_modified
+        client.django_updated_at = client.xero_last_modified
 
     # Save the updated client information
     client.save()

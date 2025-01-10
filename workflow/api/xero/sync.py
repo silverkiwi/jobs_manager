@@ -6,7 +6,7 @@ from uuid import UUID
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import transaction
-from django.db.models import Max
+from django.db import models
 from xero_python.accounting import AccountingApi
 
 from workflow.api.xero.reprocess_xero import (
@@ -110,7 +110,7 @@ def sync_xero_data(
 
 def get_last_modified_time(model):
     """Fetch the latest 'last_modified' from the given model, or default to a far past date."""
-    last_modified_time = model.objects.aggregate(Max("xero_last_modified"))[
+    last_modified_time = model.objects.aggregate(models.Max("xero_last_modified"))[
         "xero_last_modified__max"
     ]
     if last_modified_time:
@@ -388,7 +388,7 @@ def sync_clients(xero_contacts):
 
         try:
             client.raw_json = raw_json
-            set_client_fields(client)
+            set_client_fields(client, new_from_xero=created)
 
             if created:
                 logger.info(
@@ -448,7 +448,7 @@ def sync_accounts(xero_accounts):
 
 def sync_client_to_xero(client):
     """
-    Sync a client from the local database to Xero - either a new one, or after a change
+    Sync a client from the local database to Xero - either create a new one or update an existing one.
     """
 
     # Step 1: Validate client data before attempting to sync
@@ -474,15 +474,31 @@ def sync_client_to_xero(client):
 
     # Step 4: Create or update the client in Xero
     try:
-        response = accounting_api.create_contacts(
-            xero_tenant_id, contacts={"contacts": [contact_data]}
-        )
-        contacts = response.contacts if response.contacts else []
-        logger.info(f"Successfully synced client {client.name} to Xero.")
-        return contacts  # Return the synced contacts for further processing
+        if client.xero_contact_id:
+            # Update existing contact
+            contact_data["ContactID"] = client.xero_contact_id
+            response = accounting_api.update_contact(
+                xero_tenant_id,
+                contact_id=client.xero_contact_id,
+                contacts={"contacts": [contact_data]},
+            )
+            logger.info(f"Updated existing client {client.name} in Xero.")
+        else:
+            # Create new contact
+            response = accounting_api.create_contacts(
+                xero_tenant_id, contacts={"contacts": [contact_data]}
+            )
+            # Save the new Xero ContactID to the local database
+            new_contact_id = response.contacts[0].contact_id
+            client.xero_contact_id = new_contact_id
+            client.save()
+            logger.info(f"Created new client {client.name} in Xero with ID {new_contact_id}.")
+
+        return response.contacts if response.contacts else []
     except Exception as e:
         logger.error(f"Failed to sync client {client.name} to Xero: {str(e)}")
         raise
+
 
 
 def single_sync_client(
@@ -670,7 +686,7 @@ def single_sync_invoice(
         )
 
 
-def sync_all_xero_data():
+def one_way_sync_all_xero_data():
     accounting_api = AccountingApi(api_client)
 
     our_latest_contact = get_last_modified_time(Client)
@@ -733,3 +749,63 @@ def sync_all_xero_data():
         last_modified_time=our_latest_journal,
         pagination_mode="offset",
     )
+
+
+def synchronise_xero_data():
+    """Bidirectional sync with Xero - pushes changes TO Xero, then pulls FROM Xero"""
+    logger.info("Starting bi-directional Xero sync")
+
+    accounting_api = AccountingApi(api_client)
+
+    # PUSH changes TO Xero
+
+    # Contacts/Clients
+    clients_to_push = Client.objects.filter(
+        django_updated_at__gt=models.F('xero_last_modified')
+    )
+    for client in clients_to_push:
+        logger.info(f"Pushing changes for client {client.name} to Xero")
+        try:
+            sync_client_to_xero(client)
+        except Exception as e:
+            logger.error(f"Failed to push client {client.name} to Xero: {str(e)}")
+
+    # # Invoices (ACCREC)
+    # invoices_to_push = Invoice.objects.filter(
+    #     django_updated_at__gt=models.F('xero_last_modified')
+    # )
+    # for invoice in invoices_to_push:
+    #     logger.info(f"Pushing changes for invoice {invoice.number} to Xero")
+    #     try:
+    #         sync_invoice_to_xero(invoice)  # Need to implement
+    #     except Exception as e:
+    #         logger.error(f"Failed to push invoice {invoice.number} to Xero: {str(e)}")
+
+    # # Bills (ACCPAY)
+    # bills_to_push = Bill.objects.filter(
+    #     django_updated_at__gt=models.F('xero_last_modified')
+    # )
+    # for bill in bills_to_push:
+    #     logger.info(f"Pushing changes for bill {bill.number} to Xero")
+    #     try:
+    #         sync_bill_to_xero(bill)  # Need to implement
+    #     except Exception as e:
+    #         logger.error(f"Failed to push bill {bill.number} to Xero: {str(e)}")
+
+    # # Credit Notes
+    # credit_notes_to_push = CreditNote.objects.filter(
+    #     django_updated_at__gt=models.F('xero_last_modified')
+    # )
+    # for note in credit_notes_to_push:
+    #     logger.info(f"Pushing changes for credit note {note.number} to Xero")
+    #     try:
+    #         sync_credit_note_to_xero(note)  # Need to implement
+    #     except Exception as e:
+    #         logger.error(f"Failed to push credit note {note.number} to Xero: {str(e)}")
+
+    # Note: Accounts and Journals are read-only from Xero, so no push needed
+
+    # PULL changes FROM Xero using existing sync
+    one_way_sync_all_xero_data()
+
+    logger.info("Completed bi-directional Xero sync")
