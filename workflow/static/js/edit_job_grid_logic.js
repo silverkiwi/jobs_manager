@@ -597,59 +597,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 calculateTotalCost();
                 calculateTotalRevenue();
                 break;
-
-            // TODO: extract separated logic to individual functions to modularize code 
+ 
             case 'submitQuoteToClient':
-                const jobId = window.location.pathname.split('/')[2];
+                const jobId = getJobIdFromUrl();
                 console.log('Submitting quote to client for job:', jobId);
 
-                // Open the PDF preview in a new tab
-                const pdfUrl = `/api/quote/${jobId}/pdf-preview/`;
-                window.open(pdfUrl, '_blank');
-
-                // Show confirmation modal
-                const modalHtml = `
-                    <div class="modal fade" id="quoteModal" tabindex="-1" role="dialog" aria-labelledby="quoteModalLabel" aria-hidden="true">
-                        <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                            <h5 class="modal-title" id="quoteModalLabel">Preview and Send Quote</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                            <p>The quote has been generated. Please preview it in the opened tab and confirm if you'd like to send it to the client.</p>
-                            <div id="email-alert-container" class="alert-container"></div>
-                            </div>
-                            <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button id="sendQuoteEmailButton" type="button" class="btn btn-primary">Send Quote</button>
-                            </div>
-                        </div>
-                        </div>
-                    </div>
-                `;
-
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-                // Show the modal
-                const quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
-                quoteModal.show();
-
-                document.getElementById('sendQuoteEmailButton').addEventListener('click', () => {
-                    fetch(`/api/quote/${jobId}/send-email/`, { method: 'POST' })
-                        .then(response => response.json())
-                        .then(data => {
-                            renderMessages(data.messages || [], 'email-alert-container');
-                            if (data.success) {
-                                setTimeout(quoteModal.hide(), 3000);
-                                document.getElementById('quoteModal').remove();
-                            }
-                        })
-                        .catch(error => {
-                            renderMessages([{ level: 'error', message: `Error sending email: ${error.message}` }], 'email-alert-container');
-                            console.error('Error sending email:', error);
-                        });
-                });
+                openPdfPreview(jobId);
+                showQuoteModal();
+                sendQuoteEmail();
                 break;
 
             case 'reviseQuote':
@@ -681,3 +636,52 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+function getJobIdFromUrl() {
+    return window.location.pathname.split('/')[2];
+}
+
+function openPdfPreview(jobId) {
+    const pdfUrl = `/api/quote/${jobId}/pdf-preview/`;
+    window.open(pdfUrl, '_blank');
+};
+
+function showQuoteModal() {
+    const modalHtml = `
+                   <div class="modal fade" id="quoteModal" tabindex="-1" role="dialog" aria-labelledby="quoteModalLabel" aria-hidden="true">
+                       <div class="modal-dialog" role="document">
+                       <div class="modal-content">
+                           <div class="modal-header">
+                           <h5 class="modal-title" id="quoteModalLabel">Preview and Send Quote</h5>
+                           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                           </div>
+                           <div class="modal-body">
+                           <p>The quote has been generated. Please preview it in the opened tab and confirm if you'd like to send it to the client.</p>
+                           <div id="email-alert-container" class="alert-container"></div>
+                           </div>
+                           <div class="modal-footer">
+                           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                           <button id="sendQuoteEmailButton" type="button" class="btn btn-primary">Send Quote</button>
+                           </div>
+                       </div>
+                       </div>
+                   </div>
+               `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
+    quoteModal.show();
+    return quoteModal;
+};
+
+async function sendQuoteEmail(jobId) {
+    try {
+        const response = await fetch(`/api/quote/${jobId}/send-email/`, { method: 'POST' });
+        const data = await response.json();
+        renderMessages(data.messages || [], 'email-alert-container');
+        return data;
+    } catch (error) {
+        renderMessages([{ level: 'error', message: `Error sending email: ${error.message}` }], 'email-alert-container');
+        console.error('Error sending email:', error);
+        throw error;
+    }
+}
