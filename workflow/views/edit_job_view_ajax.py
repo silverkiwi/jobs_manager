@@ -7,6 +7,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
+from django.utils.timezone import localtime
 
 from workflow.helpers import DecimalEncoder, get_company_defaults
 from workflow.services.file_service import sync_job_folder
@@ -255,6 +256,7 @@ def autosave_job_view(request):
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
+# TODO: add Docstring to this FBV
 def add_job_event(request, job_id):
     try:
         logger.debug(f"Adding job event for job ID: {job_id}")

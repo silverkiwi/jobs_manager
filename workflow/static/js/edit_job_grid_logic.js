@@ -602,6 +602,7 @@ document.addEventListener('DOMContentLoaded', function () {
             case 'submitQuoteToClient':
                 console.log('Submitting quote to client for job:', jobId);
 
+                // TODO: add JSDocs to the following functions
                 openPdfPreview(jobId);
                 showQuoteModal();
                 sendQuoteEmail();
@@ -631,6 +632,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
 
             // Only dynamic when creating manual notes: need to make it completely dynamic.
+            // TODO: extract logic to specific functions to modularize code / improve docs
             case 'saveEventButton':
                 const eventDescriptionField = document.getElementById('eventDescription'); 
                 const description = eventDescriptionField.value.trim();
@@ -665,10 +667,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     const newEventHtml = `
                         <div class="timeline-item list-group-item">
                             <div class="d-flex w-100 justify-content-between">
-                                <div class="timeline-date text-muted small">${data.event.timestamp}</div>
+                                <div class="timeline-date text-muted small">${formatTimestamp(data.event.timestamp)}</div>
                             </div>
                             <div class="timeline-content">
-                                <h6 class="mb-1">${data.event.event_type.replace('_', ' ')}</h6>
+                                <h6 class="mb-1">${data.event.event_type.replaceAll('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</h6>
                                 <p class="mb-1">${data.event.description}</p>
                                 <small class="text-muted">By ${data.event.staff}</small>
                             </div>
@@ -739,4 +741,17 @@ async function sendQuoteEmail(jobId) {
         console.error('Error sending email:', error);
         throw error;
     }
+}
+
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Pacific/Auckland'
+    }).format(date);
 }
