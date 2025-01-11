@@ -205,15 +205,16 @@ class Job(models.Model):
                 job=self,
                 event_type="created",
                 description=f"Job {self.name} created",
-                user=kwargs.get("user", None)
+                staff=kwargs.get("staff", None)
             )
         elif original_status != self.status:
             JobEvent.objects.create(
                 job=self,
                 event_type="status_change",
                 description=f"Job status changed from {original_status} to {self.status}",
-                user=kwargs.get("user", None)
+                staff=kwargs.get("staff", None)
             )
+            super(Job, self).save(update_fields=["status"])
         # Step 5: Save the Job to persist everything, including relationships
         else:
             super(Job, self).save(*args, **kwargs)

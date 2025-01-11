@@ -590,6 +590,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.body.addEventListener('click', function (event) {
         const buttonId = event.target.id;
+        const jobId = getJobIdFromUrl();
 
         switch (buttonId) {
             case 'copyEstimateToQuote':
@@ -597,9 +598,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 calculateTotalCost();
                 calculateTotalRevenue();
                 break;
- 
+
             case 'submitQuoteToClient':
-                const jobId = getJobIdFromUrl();
                 console.log('Submitting quote to client for job:', jobId);
 
                 openPdfPreview(jobId);
@@ -628,6 +628,61 @@ document.addEventListener('DOMContentLoaded', function () {
 
             case 'contactClientButton':
                 alert('Contact Client feature coming soon!');
+                break;
+
+            // Only dynamic when creating manual notes: need to make it completely dynamic.
+            case 'saveEventButton':
+                const eventDescriptionField = document.getElementById('eventDescription'); 
+                const description = eventDescriptionField.value.trim();
+
+                if (!description) {
+                    renderMessages([{ level: 'error', message: 'Please enter an event description.' }]);
+                    return;
+                }
+
+                const jobEventsList = document.querySelector('.timeline.list-group');
+                const noEventsMessage = jobEventsList.querySelector('.text-center.text-muted');
+
+                fetch(`/api/job-event/${jobId}/add-event/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                    body: JSON.stringify({ description }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        renderMessages([{ level: 'error', message: data.error || 'Failed to add an event.' }]);
+                        return;
+                    }
+
+                    if (noEventsMessage) {
+                        noEventsMessage.remove();
+                    }
+
+                    const newEventHtml = `
+                        <div class="timeline-item list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div class="timeline-date text-muted small">${data.event.timestamp}</div>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">${data.event.event_type.replace('_', ' ')}</h6>
+                                <p class="mb-1">${data.event.description}</p>
+                                <small class="text-muted">By ${data.event.staff}</small>
+                            </div>
+                        </div>
+                    `;
+                    jobEventsList.insertAdjacentHTML('afterbegin', newEventHtml);
+                    eventDescriptionField.value = '';
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addJobEventModal'));
+                    modal.hide();
+                })
+                .catch(error => {
+                    console.error('Error adding job event:', error);
+                    renderMessages([{ level: 'error', message: 'Failed to add job event. Please try again.' }]);
+                });
                 break;
 
             default:
