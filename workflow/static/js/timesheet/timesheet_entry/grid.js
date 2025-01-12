@@ -245,7 +245,7 @@ export const gridOptions = {
                 const scheduled_hours = timesheet_data.staff.scheduled_hours;
 
                 if (totalHours > scheduled_hours) {
-                    renderMessages([{ level: 'warning', message: `Hours exceed scheduled (${totalHours} > ${scheduled_hours}).` }]);
+                    renderMessages([{ level: 'warning', message: `Hours exceed scheduled (${totalHours} > ${scheduled_hours}).` }], 'time-entry');
                     params.node.setDataValue('inconsistent', true);
                 } else {
                     params.node.setDataValue('inconsistent', false);

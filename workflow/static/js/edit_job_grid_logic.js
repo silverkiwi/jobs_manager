@@ -31,7 +31,7 @@
  */
 
 import {createNewRow, getGridData} from '/static/js/deseralise_job_pricing.js';
-import {handlePrintJob, copyEstimateToQuote, autosaveData,debouncedAutosave } from '/static/js/edit_job_form_autosave.js';
+import {handlePrintJob, debouncedAutosave, copyEstimateToQuote } from './edit_job_form_autosave.js';
 
 // console.log('Grid logic script is running');
 
@@ -355,7 +355,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
             },
-            {headerName: 'Revenue', field: 'revenue', editable: false, valueFormatter: currencyFormatter},
             trashCanColumn,
         ],
         rowData: [],
@@ -404,9 +403,15 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             {
                 headerName: 'Price Adjustment',
-                field: 'revenue',
+                field: 'price_adjustment',
                 editable: true,
                 valueParser: numberParser,
+                valueFormatter: currencyFormatter
+            },
+            {
+                headerName: 'Revenue',
+                field: 'revenue',
+                editable: false,
                 valueFormatter: currencyFormatter
             },
             {headerName: 'Comments', field: 'comments', editable: true, flex: 2},
@@ -497,6 +502,8 @@ document.addEventListener('DOMContentLoaded', function () {
         onGridReady: params => {
             window.grids['revenueTable'] = {gridInstance: params.api, api: params.api};
             params.api.sizeColumnsToFit();
+
+            calculateTotalRevenue();
         },
         onGridSizeChanged: params => {
             params.api.sizeColumnsToFit();
@@ -527,6 +534,8 @@ document.addEventListener('DOMContentLoaded', function () {
         onGridReady: params => {
             window.grids['costsTable'] = {gridInstance: params.api, api: params.api};
             params.api.sizeColumnsToFit();
+
+            calculateTotalCost();
         },
         onGridSizeChanged: params => {
             params.api.sizeColumnsToFit();
@@ -587,9 +596,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 copyEstimateToQuote();
                 calculateTotalCost();
                 calculateTotalRevenue();
-
-                
-                // alert('Copied Estimate To Quote!');
                 break;
 
             case 'submitQuoteToClient':
@@ -624,54 +630,4 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
         }
     });
-
 });
-
-
-// // This listener is moved up to the above domContentLoaded listener as revenue and costs functions are now initialized there
-
-// document.addEventListener('DOMContentLoaded', function () {
-//     document.body.addEventListener('click', function (event) {
-//         const buttonId = event.target.id;
-
-//         switch (buttonId) {
-//             case 'copyEstimateToQuote':
-//                 copyEstimateToQuote();
-
-                
-//                 // alert('Copied Estimate To Quote!');
-//                 break;
-
-//             case 'submitQuoteToClient':
-//                 alert('Submit quote feature coming soon!');
-//                 break;
-
-//             case 'reviseQuote':
-//                 alert('Revise Quote feature coming soon!');
-//                 break;
-
-//             case 'invoiceJobButton':
-//                 alert('Invoice Job feature coming soon!');
-//                 break;
-
-//             case 'printJobButton':
-//                 handlePrintJob();
-//                 break;
-
-//             case 'acceptQuoteButton':
-//                 const currentDateTimeISO = new Date().toISOString();
-//                 document.getElementById('quote_acceptance_date_iso').value = currentDateTimeISO;
-//                 console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
-//                 autosaveData();
-//                 break;
-
-//             case 'contactClientButton':
-//                 alert('Contact Client feature coming soon!');
-//                 break;
-
-//             default:
-//                 // Random clicks not on buttons don't count - don't even log them
-//                 break;
-//         }
-//     });
-// });

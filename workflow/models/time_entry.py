@@ -3,6 +3,10 @@ from decimal import Decimal
 
 from django.db import models
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class TimeEntry(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -72,14 +76,18 @@ class TimeEntry(models.Model):
             and self.items is not None
             and self.minutes_per_item is not None
         ):
-            total_minutes = self.items * self.minutes_per_item
-            self.hours = total_minutes / Decimal(60)
+            total_minutes = Decimal(self.items) * Decimal(self.minutes_per_item)
+            logger.debug(f"Calculated total_minutes before assignment: {total_minutes}")
+            self.hours = (total_minutes / Decimal(60)).quantize(
+                Decimal("0.0001"), rounding="ROUND_HALF_UP"
+            )
+            logger.debug(f"Calculated hours before saving: {self.hours}")
         super().save(*args, **kwargs)
 
     @property
     def minutes(self) -> Decimal:
         """Compute minutes dynamically based on hours."""
-        return self.hours * Decimal(60)
+        return (self.hours * Decimal(60)).quantize(Decimal('0.01'), rounding="ROUND_HALF_UP")
 
     @property
     def cost(self) -> Decimal:

@@ -1,16 +1,35 @@
-import { sentMessages } from './state.js'
-
+import { sentMessages } from './state.js';
 
 /**
- * Renders dynamic messages in the template's message container.
+ * Renders dynamic messages in a specified alert container or a modal if no container is specified.
  * @param {Array} messages - List of messages in the format [{level: "success|error|info", message: "Message"}].
+ * @param {string} [containerId] - Optional ID of the alert container to target.
  */
-export function renderMessages(messages) {
-    const alertContainer = document.querySelector('.alert-container');
+export function renderMessages(messages, containerId) {
+    let alertContainer;
+
+    if (containerId) {
+        alertContainer = document.getElementById(containerId);
+    } else {
+        alertContainer = document.getElementById('alert-modal-body');
+        const modalContainer = document.getElementById('alert-container');
+        if (!modalContainer || !alertContainer) {
+            console.error('Alert modal container or body not found.');
+            return;
+        }
+        const modal = new bootstrap.Modal(modalContainer);
+        modal.show(); // Show the modal if no specific container is provided
+    }
+
     if (!alertContainer) {
-        console.error('Alert container not found.');
+        console.error(
+            `Alert container with ID '${containerId}' not found. Falling back to modal if available.`
+        );
         return;
     }
+
+    // Clear the container (useful for modals to avoid duplications)
+    alertContainer.innerHTML = '';
 
     // Add new messages
     messages.forEach(msg => {
@@ -31,7 +50,7 @@ export function renderMessages(messages) {
         `;
         alertContainer.appendChild(alertDiv);
 
-        // Add fade out effect after 1 second if message level is success
+        // Add fade out effect after 2 seconds if message level is success
         if (msg.level === 'success') {
             setTimeout(() => {
                 alertDiv.classList.remove('show');

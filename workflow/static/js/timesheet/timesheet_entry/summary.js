@@ -87,6 +87,6 @@ export function updateSummarySection() {
     }
 
     if ((shopHours / totalHours) >= 0.5) {
-        renderMessages([{ level: "warning", message: "High shop time detected! More than 50% of hours are shop hours." }]);
+        renderMessages([{ level: "warning", message: "High shop time detected! More than 50% of hours are shop hours." }], 'time-entry');
     }
 }
