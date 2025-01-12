@@ -160,6 +160,8 @@ class Job(models.Model):
         return f"Job: {self.job_number}"  # type: ignore
 
     def save(self, *args, **kwargs):
+        staff = kwargs.pop("staff", None)
+
         is_new = self._state.adding
         original_status = None if is_new else Job.objects.get(pk=self.pk).status
 
@@ -201,23 +203,23 @@ class Job(models.Model):
                 ]
             )
 
-            JobEvent.objects.create(
-                job=self,
-                event_type="created",
-                description=f"Job {self.name} created",
-                staff=kwargs.get("staff", None)
-            )
-        elif original_status != self.status:
+            if staff:
+                JobEvent.objects.create(
+                    job=self,
+                    event_type="created",
+                    description=f"Job {self.name} created",
+                    staff=kwargs.get("staff", None)
+                )
+        elif original_status != self.status and staff:
             JobEvent.objects.create(
                 job=self,
                 event_type="status_change",
                 description=f"Job status changed from {original_status} to {self.status}",
                 staff=kwargs.get("staff", None)
             )
-            super(Job, self).save(update_fields=["status"])
+
         # Step 5: Save the Job to persist everything, including relationships
-        else:
-            super(Job, self).save(*args, **kwargs)
+        super(Job, self).save(*args, **kwargs)
 
     @staticmethod
     def generate_unique_job_number():
