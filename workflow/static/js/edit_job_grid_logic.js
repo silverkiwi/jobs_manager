@@ -733,4 +733,3 @@ async function sendQuoteEmail(jobId, provider = 'gmail') {
         throw error;
     }
 }
-
