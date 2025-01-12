@@ -173,6 +173,14 @@ class Job(models.Model):
             company_defaults = CompanyDefaults.objects.first()
             self.charge_out_rate = company_defaults.charge_out_rate
 
+        if staff and not JobEvent.objects.filter(job=self, event_type="created").exists():
+            JobEvent.objects.create(
+                job=self,
+                event_type="created",
+                description=f"Job {self.name} created",
+                staff=staff
+            )
+
         if is_new:
             # Creating a new job is tricky because of the circular reference.
             # We first save the job to the DB without any associated pricings, then we
@@ -203,23 +211,17 @@ class Job(models.Model):
                 ]
             )
 
-            if staff:
+        else:
+            if original_status != self.status and staff:
                 JobEvent.objects.create(
                     job=self,
-                    event_type="created",
-                    description=f"Job {self.name} created",
-                    staff=kwargs.get("staff", None)
+                    event_type="status_change",
+                    description=f"Job status changed from {original_status} to {self.status}",
+                    staff=staff
                 )
-        elif original_status != self.status and staff:
-            JobEvent.objects.create(
-                job=self,
-                event_type="status_change",
-                description=f"Job status changed from {original_status} to {self.status}",
-                staff=kwargs.get("staff", None)
-            )
 
-        # Step 5: Save the Job to persist everything, including relationships
-        super(Job, self).save(*args, **kwargs)
+            # Step 5: Save the Job to persist everything, including relationships
+            super(Job, self).save(*args, **kwargs)
 
     @staticmethod
     def generate_unique_job_number():

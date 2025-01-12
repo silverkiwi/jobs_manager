@@ -37,6 +37,7 @@ def create_job_api(request):
     try:
         # Create the job with default values using the service function
         new_job = Job.objects.create()
+        new_job.save(staff=request.user)
 
         # Log that the job and pricings have been created successfully
         logger.debug(f"New job created with ID: {new_job.id}")
