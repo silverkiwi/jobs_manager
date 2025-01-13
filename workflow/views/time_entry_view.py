@@ -14,7 +14,9 @@ from django.contrib import messages
 from workflow.enums import RateType
 from workflow.models import Job, JobPricing, Staff, TimeEntry
 from workflow.forms import TimeEntryForm, PaidAbsenceForm
-from workflow.serializers.time_entry_serializer import TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer
+from workflow.serializers.time_entry_serializer import (
+    TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
+)
 from workflow.utils import extract_messages, get_jobs_data
 
 logger = logging.getLogger(__name__)
@@ -42,14 +44,15 @@ class TimesheetEntryView(TemplateView):
     - Accessed via a URL pattern that includes the date and staff ID as parameters.
     - Provides the back-end logic for the `time_entries/timesheet_entry.html` template.
     """
-    template_name = "time_entries/timesheet_entry.html" 
+
+    template_name = "time_entries/timesheet_entry.html"
 
     # Excluding app users ID's to avoid them being loaded in timesheet views because they do not have entries (Valerie and Corrin included as they are not supposed to enter hours)
     EXCLUDED_STAFF_IDS = [
         "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
         "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
         "d335acd4-800e-517a-8ff4-ba7aada58d14",
-        "e61e2723-26e1-5d5a-bd42-bbd318ddef81"
+        "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
     ]
 
     def get(self, request, date, staff_id, *args, **kwargs):
@@ -128,7 +131,11 @@ class TimesheetEntryView(TemplateView):
                 "job_pricing_id": entry.job_pricing_id,
                 "job_number": entry.job_pricing.job.job_number,
                 "job_name": entry.job_pricing.job.name,
-                "client_name": entry.job_pricing.job.client.name if entry.job_pricing.job.client else "No client!?",
+                "client_name": (
+                    entry.job_pricing.job.client.name
+                    if entry.job_pricing.job.client
+                    else "No client!?"
+                ),
                 "description": entry.description or "",
                 "hours": float(
                     entry.hours
@@ -162,33 +169,36 @@ class TimesheetEntryView(TemplateView):
             for job in open_jobs
         ]
 
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({
-                "time_entries": timesheet_data,
-                "jobs": jobs_data
-            })
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({"time_entries": timesheet_data, "jobs": jobs_data})
 
-        next_staff = Staff.objects.exclude(
-            id__in=self.EXCLUDED_STAFF_IDS
-        ).filter(
-            id__gt=staff_member.id
-        ).order_by("id").first()
+        next_staff = (
+            Staff.objects.exclude(id__in=self.EXCLUDED_STAFF_IDS)
+            .filter(id__gt=staff_member.id)
+            .order_by("id")
+            .first()
+        )
 
         if not next_staff:
-            next_staff = Staff.objects.exclude(
-                id__in=self.EXCLUDED_STAFF_IDS
-            ).order_by("id").first()
-        
-        prev_staff = Staff.objects.exclude(
-            id__in=self.EXCLUDED_STAFF_IDS
-        ).filter(
-            id__lt=staff_member.id
-        ).order_by("-id").first()
+            next_staff = (
+                Staff.objects.exclude(id__in=self.EXCLUDED_STAFF_IDS)
+                .order_by("id")
+                .first()
+            )
+
+        prev_staff = (
+            Staff.objects.exclude(id__in=self.EXCLUDED_STAFF_IDS)
+            .filter(id__lt=staff_member.id)
+            .order_by("-id")
+            .first()
+        )
 
         if not prev_staff:
-            prev_staff = Staff.objects.exclude(
-                id__in=self.EXCLUDED_STAFF_IDS
-            ).order_by("-id").first()   
+            prev_staff = (
+                Staff.objects.exclude(id__in=self.EXCLUDED_STAFF_IDS)
+                .order_by("-id")
+                .first()
+            )
 
         context = {
             "staff_member": staff_member,
@@ -202,6 +212,7 @@ class TimesheetEntryView(TemplateView):
         }
 
         return render(request, self.template_name, context)
+
 
 @require_http_methods(["POST"])
 def autosave_timesheet_view(request):
@@ -273,27 +284,33 @@ def autosave_timesheet_view(request):
 
                 try:
                     entry = TimeEntry.objects.get(id=entry_id)
-                    related_jobs.add(entry.job_pricing.job_id) 
+                    related_jobs.add(entry.job_pricing.job_id)
                     messages.success(request, f"Timesheet deleted successfully")
                     entry.delete()
                     logger.debug(f"Entry with ID {entry_id} deleted successfully")
 
                 except TimeEntry.DoesNotExist:
                     logger.error(f"TimeEntry with ID {entry_id} not found for deletion")
-            return JsonResponse({
-                        "success": True,
-                        "jobs": get_jobs_data(related_jobs),
-                        "action": "remove",
-                        "messages": extract_messages(request)
-                    }, status=200)
-        
+            return JsonResponse(
+                {
+                    "success": True,
+                    "jobs": get_jobs_data(related_jobs),
+                    "action": "remove",
+                    "messages": extract_messages(request),
+                },
+                status=200,
+            )
+
         if not time_entries and not deleted_entries:
             logger.error("No valid entries to process")
             messages.info(request, "No changes to save.")
-            return JsonResponse({
-                "error": "No time entries provided", 
-                "messages": extract_messages(request)
-                }, status=400)
+            return JsonResponse(
+                {
+                    "error": "No time entries provided",
+                    "messages": extract_messages(request),
+                },
+                status=400,
+            )
 
         updated_entries = []
         for entry_data in time_entries:
@@ -303,7 +320,7 @@ def autosave_timesheet_view(request):
 
             entry_id = entry_data.get("id")
             logger.debug(f"Entry: {json.dumps(entry_data, indent=2)}")
-            job_data = entry_data.get("job_data") 
+            job_data = entry_data.get("job_data")
             logger.debug(f"Job data: {json.dumps(job_data, indent=2)}")
             job_id = job_data.get("id") if job_data else None
             logger.debug(f"Job ID: {job_id}")
@@ -311,27 +328,32 @@ def autosave_timesheet_view(request):
             if not job_id:
                 logger.error("Missing job ID in entry data")
                 continue
-            
+
             try:
                 hours = Decimal(str(entry_data.get("hours", 0)))
             except (TypeError, ValueError) as e:
                 messages.error(request, f"Invalid hours value: {str(e)}")
-                return JsonResponse({
-                    "error": f"Invalid hours value: {str(e)}", 
-                    "messages": extract_messages(request)
-                    }, status=400)
+                return JsonResponse(
+                    {
+                        "error": f"Invalid hours value: {str(e)}",
+                        "messages": extract_messages(request),
+                    },
+                    status=400,
+                )
 
             try:
                 timesheet_date = entry_data.get("timesheet_date", None)
                 if not timesheet_date:
                     logger.error("Missing timesheet_date in entry data")
-                    continue  
+                    continue
 
                 target_date = datetime.strptime(timesheet_date, "%Y-%m-%d").date()
             except (ValueError, TypeError) as e:
-                logger.error(f"Invalid timesheet_date format: {entry_data.get("timesheet_date")}")
-                continue 
-                
+                logger.error(
+                    f"Invalid timesheet_date format: {entry_data.get("timesheet_date")}"
+                )
+                continue
+
             description = entry_data.get("description", "").strip()
 
             if entry_id and entry_id != "tempId":
@@ -340,7 +362,9 @@ def autosave_timesheet_view(request):
                     entry = TimeEntry.objects.get(id=entry_id)
 
                     # Identify old job before changing
-                    old_job_id = entry.job_pricing.job.id if entry.job_pricing.job else None
+                    old_job_id = (
+                        entry.job_pricing.job.id if entry.job_pricing.job else None
+                    )
                     old_job = Job.objects.get(id=old_job_id) if old_job_id else None
 
                     if job_id != str(entry.job_pricing.job.id):
@@ -353,10 +377,16 @@ def autosave_timesheet_view(request):
                     entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
                     entry.items = entry_data.get("items", entry.items)
-                    entry.minutes_per_item = Decimal(entry_data.get("mins_per_item", entry.minutes_per_item))
+                    entry.minutes_per_item = Decimal(
+                        entry_data.get("mins_per_item", entry.minutes_per_item)
+                    )
                     entry.note = entry_data.get("notes", "")
-                    entry.wage_rate_multiplier = RateType(entry_data.get("rate_type", "Ord")).multiplier                    
-                    entry.charge_out_rate = Decimal(str(job_data.get("charge_out_rate", 0)))
+                    entry.wage_rate_multiplier = RateType(
+                        entry_data.get("rate_type", "Ord")
+                    ).multiplier
+                    entry.charge_out_rate = Decimal(
+                        str(job_data.get("charge_out_rate", 0))
+                    )
 
                     related_jobs.add(job_id)
                     entry.save()
@@ -365,21 +395,34 @@ def autosave_timesheet_view(request):
 
                     scheduled_hours = entry.staff.get_scheduled_hours(target_date)
                     if scheduled_hours < hours:
-                        messages.warning(request, f"Existing timesheet saved successfully, but hours exceed scheduled hours for {target_date}")
+                        messages.warning(
+                            request,
+                            f"Existing timesheet saved successfully, but hours exceed scheduled hours for {target_date}",
+                        )
                     elif job.status in ["completed", "quoting"]:
-                        messages.error(request, f"Existing timesheet saved successfully, but current job is {job.status}.")
+                        messages.error(
+                            request,
+                            f"Existing timesheet saved successfully, but current job is {job.status}.",
+                        )
                     else:
-                        messages.success(request, "Existing timesheet saved successfully.")
+                        messages.success(
+                            request, "Existing timesheet saved successfully."
+                        )
                     logger.debug("Existing timesheet saved successfully")
 
-                    return JsonResponse({
-                        "success": True,
-                        "entry": TimeEntrySerializer(entry).data,
-                        "jobs": get_jobs_data(related_jobs),
-                        "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
-                        "action": "update",
-                        "messages": extract_messages(request)
-                    }, status=200)
+                    return JsonResponse(
+                        {
+                            "success": True,
+                            "entry": TimeEntrySerializer(entry).data,
+                            "jobs": get_jobs_data(related_jobs),
+                            "remove_jobs": (
+                                [get_jobs_data([str(old_job.id)])] if old_job else []
+                            ),
+                            "action": "update",
+                            "messages": extract_messages(request),
+                        },
+                        status=200,
+                    )
 
                 except TimeEntry.DoesNotExist:
                     logger.error(f"TimeEntry with ID {entry_id} not found")
@@ -395,7 +438,7 @@ def autosave_timesheet_view(request):
                     staff_id=entry_data.get("staff_id"),
                     date=target_date,
                     description=description,
-                    hours=hours
+                    hours=hours,
                 ).first()
 
                 if existing_entry:
@@ -419,48 +462,57 @@ def autosave_timesheet_view(request):
                     wage_rate=staff.wage_rate,
                     charge_out_rate=Decimal(str(job_data.get("charge_out_rate", 0))),
                 )
-                
+
                 updated_entries.append(entry)
                 related_jobs.add(job_id)
 
                 scheduled_hours = entry.staff.get_scheduled_hours(target_date)
                 if scheduled_hours < hours:
-                    messages.warning(request, f"Timesheet created successfully, but hours exceed scheduled hours for today ({target_date})")
+                    messages.warning(
+                        request,
+                        f"Timesheet created successfully, but hours exceed scheduled hours for today ({target_date})",
+                    )
                 elif job.status in ["completed", "quoting"]:
-                    messages.error(request, f"Timesheet created successfully, but current job is {job.status}.")
+                    messages.error(
+                        request,
+                        f"Timesheet created successfully, but current job is {job.status}.",
+                    )
                 else:
                     messages.success(request, "Timesheet created successfully.")
                 logger.debug("Timesheet created successfully")
 
-                return JsonResponse({
-                    "success": True,
-                    "messages": extract_messages(request),
-                    "entry": TimeEntrySerializer(entry).data,
-                    "jobs": get_jobs_data(related_jobs),
-                    "action": "add"
-                }, status=200)
-            
-        return JsonResponse({
-            "success": True,
-            "messages": extract_messages(request),
-            "entries": TimeEntrySerializer(updated_entries, many=True).data,
-            "jobs": get_jobs_data(related_jobs),
-            "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
-            "action": "update"
-        })
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "messages": extract_messages(request),
+                        "entry": TimeEntrySerializer(entry).data,
+                        "jobs": get_jobs_data(related_jobs),
+                        "action": "add",
+                    },
+                    status=200,
+                )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "messages": extract_messages(request),
+                "entries": TimeEntrySerializer(updated_entries, many=True).data,
+                "jobs": get_jobs_data(related_jobs),
+                "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
+                "action": "update",
+            }
+        )
 
     except json.JSONDecodeError:
         logger.error("Failed to parse JSON")
         messages.error(request, "Failed to parse JSON")
-        return JsonResponse({
-            "error": "Invalid JSON",
-            "messages": extract_messages(request)
-            }, status=400)
+        return JsonResponse(
+            {"error": "Invalid JSON", "messages": extract_messages(request)}, status=400
+        )
 
     except Exception as e:
         messages.error(request, f"Unexpected error: {str(e)}")
         logger.exception("Unexpected error during timesheet autosave")
-        return JsonResponse({
-            "error": str(e),
-            "messages": extract_messages(request)
-            }, status=500)
+        return JsonResponse(
+            {"error": str(e), "messages": extract_messages(request)}, status=500
+        )

@@ -18,6 +18,7 @@ class JobSerializer(serializers.ModelSerializer):
         source="client",
         write_only=True,
     )
+    client_name = serializers.CharField(source="client.name", read_only=True)
     job_status = serializers.CharField(source="status")
 
     class Meta:
@@ -26,6 +27,7 @@ class JobSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "client_id",
+            "client_name",
             "contact_person",
             "contact_phone",
             "job_number",

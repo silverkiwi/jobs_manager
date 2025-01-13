@@ -92,4 +92,3 @@ def get_jobs_data(related_jobs):
             }
         )
     return job_data
-

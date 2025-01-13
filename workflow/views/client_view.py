@@ -97,7 +97,7 @@ def AddClient(request):
                 email=form.cleaned_data["email"],
                 phone=form.cleaned_data["phone"],
                 address=form.cleaned_data["address"],
-                xero_last_modified="2000-01-01 00:00:00+00:00"
+                xero_last_modified="2000-01-01 00:00:00+00:00",
             )
             client.save()
 
