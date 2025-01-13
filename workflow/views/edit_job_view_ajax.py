@@ -255,9 +255,7 @@ def autosave_job_view(request):
 
 
 @login_required
-@csrf_exempt
 @require_http_methods(["POST"])
-# TODO: add Docstring to this FBV
 def add_job_event(request, job_id):
     try:
         logger.debug(f"Adding job event for job ID: {job_id}")
