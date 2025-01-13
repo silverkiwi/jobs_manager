@@ -16,6 +16,7 @@ from .invoice import (
 from .job import Job
 from .job_file import JobFile
 from .job_pricing import JobPricing, QuotePricing
+from .job_event import JobEvent
 from .material_entry import MaterialEntry
 from .staff import StaffManager, Staff
 from .time_entry import TimeEntry
@@ -38,6 +39,7 @@ __all__ = [
     "Job",
     "JobFile",
     "JobPricing",
+    "JobEvent",
     "QuotePricing",
     "MaterialEntry",
     "StaffManager",

@@ -548,14 +548,6 @@ function copyGridData(sourceGridApi, targetGridApi) {
     targetGridApi.applyTransaction({ remove: targetData });
     targetGridApi.applyTransaction({ add: sourceData });
 }
-});
-
-
-function getAllRowData(gridApi) {
-    const rowData = [];
-    gridApi.forEachNode(node => rowData.push(node.data));
-    return rowData;
-}
 
 export function copyEstimateToQuote() {
     const grids = ['TimeTable', 'MaterialsTable', 'AdjustmentsTable'];

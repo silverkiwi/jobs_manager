@@ -130,6 +130,7 @@ class JobSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {pricing_type: pricing_serializer.errors}
                     )
-
-        instance.save()
+                
+        staff = self.context["request"].user if "request" in self.context else None
+        instance.save(staff=staff)
         return instance
