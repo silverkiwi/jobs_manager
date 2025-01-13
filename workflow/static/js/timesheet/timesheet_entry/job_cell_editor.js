@@ -20,11 +20,10 @@ export class ActiveJobCellEditor {
 
         // List container
         this.listDiv = document.createElement('div');
-        this.listDiv.className = 'dropdown-menu p-2 w-100';
+        this.listDiv.className = 'dropdown-menu p-3 w-100';
         this.listDiv.style.maxHeight = '200px';
         this.listDiv.style.overflowY = 'auto';
-        this.listDiv.style.width = '300px'; // Increased width
-
+           
         // Populate initial list
         this.populateList(this.jobs);
 
