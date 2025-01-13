@@ -5,6 +5,11 @@ My plan is to go live with the app.  Ideally on the 13th of January.  That means
 The app will be used for ALL data entry: estimates, quotes, timesheets, purchases, invoice generation, payroll export
 The app will be the permanent archive of jobs from this release.  We will no longer store paper jobs
 
+### Regressions
+
+Functionality that used to work doesn't any more.  E.g. selecting the client for a job
+Creating/Editing a client - does it sync to Xero?
+
 ### Estimate Entry
 
 Probably sorted from a MVP perspective
@@ -22,12 +27,6 @@ Requires weekly and daily view
 Requires the ability to move time from one job to another
 Requires resolving the data entry for internal jobs that roll month to month
 
-### Purchases
-
-Requires a page similar to timesheets for entering a purchase.
-Much like a timesheet, it will create entries in the job(s) associated
-Can link to a bill in Xero (must link to a bill eventually)
-Can link to a Purchase Order in Xero (must link to a PO eventually)
 
 ### Jobs timeline
 
@@ -56,6 +55,12 @@ Note the weekly view may be perfect for this
 # Stuff that didn't make the first release
 
 ## Email quotes: (generates PDF, creates draft email containing PDF, launches Chrome)
+## Testing
+
+I'm not happy with the number of regressions.  Ideally I'd have some sort of test that ensured the app continues to work.  
+My experience with automated testing is you end up spending longer maintaining the tests than you do writing software
+
+
 ## Budgeting
 
 * Revenue targets/forecasts
@@ -70,6 +75,12 @@ You shoudln't change anything in reality pricing after a job is invoiced.
 
 ## Payroll export
 
+### Purchases
+
+Requires a page similar to timesheets for entering a purchase.
+Much like a timesheet, it will create entries in the job(s) associated
+Can link to a bill in Xero (must link to a bill eventually)
+Can link to a Purchase Order in Xero (must link to a PO eventually)
 
 ----
 Following is the old TODO

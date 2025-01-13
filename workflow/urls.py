@@ -35,6 +35,7 @@ urlpatterns = [
         time_entry_view.autosave_timesheet_view,
         name="autosave_timesheet-api",
     ),
+    path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
@@ -90,11 +91,6 @@ urlpatterns = [
         xero_view.refresh_xero_data,
         name="refresh_xero_data",
     ),
-    path(
-        "api/xero/contacts/",
-        xero_view.get_xero_contacts,
-        name="list_xero_contacts",
-    ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
     path(
@@ -119,12 +115,20 @@ urlpatterns = [
         kanban_view.update_job_status,
         name="update_job_status",
     ),
-    path("reports/", ReportsIndexView.as_view(), name="reports"),
+    # Kanban views
+    path("kanban/", kanban_view.kanban_view, name="view_kanban"),
+    path(
+        "kanban/fetch_jobs/<str:status>/",
+        kanban_view.fetch_jobs,
+        name="fetch_jobs",
+    ),
+    path("reports/", ReportsIndexView.as_view(), name="reports_index"),
     path(
         "reports/company-profit-loss/",
         CompanyProfitAndLossView.as_view(),
         name="company-profit-loss-report",
     ),
+
     path(
         "timesheets/day/<str:date>/<uuid:staff_id>/",
         time_entry_view.TimesheetEntryView.as_view(),
@@ -146,21 +150,16 @@ urlpatterns = [
         time_overview_view.TimesheetDailyView.as_view(),
         name="timesheet_daily_view",
     ),
-    # Kanban views
-    path("kanban/", kanban_view.kanban_view, name="view_kanban"),
-    path(
-        "kanban/fetch_jobs/<str:status>/",
-        kanban_view.fetch_jobs,
-        name="fetch_jobs",
-    ),
-    path(
-        "reports/company-profit-and-loss/",
-        CompanyProfitAndLossView.as_view(),
-        name="company_profit_and_loss_view",
-    ),
+
+    path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
+
+
     # Login/Logout views
     path("login/", auth_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+
+    # This URL doesn't match our naming pattern - need to fix.
+    # Probably should be in api/internal?
     path(
         "staff/<uuid:staff_id>/get_rates/",
         staff_view.get_staff_rates,

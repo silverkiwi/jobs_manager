@@ -394,7 +394,7 @@ export function handlePrintJob() {
 }
 
 // Autosave function to send data to the server
-function autosaveData() {
+export function autosaveData() {
     const collectedData = collectAllData();
 
     // Skip autosave if the job is not yet ready for saving
@@ -496,6 +496,8 @@ const debouncedRemoveValidation = debounce(function (element) {
     removeValidationError(element);
 }, 1000);
 
+
+
 // Attach autosave to form elements (input, select, textarea)
 // Synchronize visible UI fields with hidden form fields
 document.addEventListener('DOMContentLoaded', function () {
@@ -546,6 +548,14 @@ function copyGridData(sourceGridApi, targetGridApi) {
     targetGridApi.applyTransaction({ remove: targetData });
     targetGridApi.applyTransaction({ add: sourceData });
 }
+});
+
+
+function getAllRowData(gridApi) {
+    const rowData = [];
+    gridApi.forEachNode(node => rowData.push(node.data));
+    return rowData;
+}
 
 export function copyEstimateToQuote() {
     const grids = ['TimeTable', 'MaterialsTable', 'AdjustmentsTable'];
@@ -553,7 +563,6 @@ export function copyEstimateToQuote() {
     grids.forEach(gridName => {
         const estimateGridKey = `estimate${gridName}`;
         const quoteGridKey = `quote${gridName}`;
-
         const estimateGridApi = window.grids[estimateGridKey]?.api;
         const quoteGridApi = window.grids[quoteGridKey]?.api;
 
