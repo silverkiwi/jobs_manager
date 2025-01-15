@@ -584,12 +584,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     setTimeout(() => {
-        // console.log('Calling initial calculateTotals');
         calculateTotalRevenue();
     }, 1000);
 
     document.body.addEventListener('click', function (event) {
         const buttonId = event.target.id;
+        const jobId = getJobIdFromUrl();
 
         switch (buttonId) {
             case 'copyEstimateToQuote':
@@ -597,11 +597,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 calculateTotalCost();
                 calculateTotalRevenue();
                 break;
- 
+
             case 'submitQuoteToClient':
-                const jobId = getJobIdFromUrl();
                 console.log('Submitting quote to client for job:', jobId);
 
+                // TODO: add JSDocs to the following functions
                 openPdfPreview(jobId);
                 showQuoteModal(jobId);
                 break;
@@ -627,6 +627,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             case 'contactClientButton':
                 alert('Contact Client feature coming soon!');
+                break;
+
+            // Only dynamic when creating manual notes: need to make it completely dynamic.
+            case 'saveEventButton':
+                handleSaveEventButtonClick(jobId);
                 break;
 
             default:
@@ -732,4 +737,89 @@ async function sendQuoteEmail(jobId, provider = 'gmail') {
         console.error('Error sending email:', error);
         throw error;
     }
+}
+
+// Function to format the event type (e.g., "manual_note" -> "Manual Note")
+function formatEventType(eventType) {
+    return eventType
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    }).format(date);
+}
+
+function addEventToTimeline(event, jobEventsList) {
+    const eventType = formatEventType(event.event_type);
+
+    const newEventHtml = `
+        <div class="timeline-item list-group-item">
+            <div class="d-flex w-100 justify-content-between">
+                <div class="timeline-date text-muted small">${formatTimestamp(event.timestamp)}</div>
+            </div>
+            <div class="timeline-content">
+                <h6 class="mb-1">${eventType}</h6>
+                <p class="mb-1">${event.description}</p>
+                <small class="text-muted">By ${event.staff}</small>
+            </div>
+        </div>
+    `;
+    jobEventsList.insertAdjacentHTML('afterbegin', newEventHtml);
+}
+
+function handleSaveEventButtonClick(jobId) {
+    const eventDescriptionField = document.getElementById('eventDescription');
+    const description = eventDescriptionField.value.trim();
+
+    if (!description) {
+        renderError('Please enter an event description.');
+        return;
+    }
+
+    const jobEventsList = document.querySelector('.timeline.list-group');
+    const noEventsMessage = jobEventsList.querySelector('.text-center.text-muted');
+
+    fetch(`/api/job-event/${jobId}/add-event/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({ description }),
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                renderError(data.error || 'Failed to add an event.');
+                return;
+            }
+
+            // Remove "No events found" message if it exists
+            if (noEventsMessage) {
+                noEventsMessage.remove();
+            }
+
+            // Add the new event to the timeline
+            addEventToTimeline(data.event, jobEventsList);
+
+            // Clear the input field and hide the modal
+            eventDescriptionField.value = '';
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addJobEventModal'));
+            modal.hide();
+        })
+        .catch(error => {
+            console.error('Error adding job event:', error);
+            renderError('Failed to add job event. Please try again.');
+        });
 }
