@@ -4,7 +4,7 @@ from pathlib import Path
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 AUTH_USER_MODEL = "workflow.Staff"
