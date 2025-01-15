@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-DEBUG = True
-
 AUTH_USER_MODEL = "workflow.Staff"
 
 # Application definition
@@ -17,7 +15,6 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "django_node_assets",
-    "debug_toolbar",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -32,7 +29,6 @@ INSTALLED_APPS = [
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -102,7 +98,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "jobs_manager.wsgi.application"
 load_dotenv(BASE_DIR / ".env")
 
-
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
@@ -119,17 +114,6 @@ DATABASES = {
         },
     },
 }
-
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-#
-
-# Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -162,9 +146,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
 STATICFILES_DIRS = [
     # Bootstrap CSS and JS
     ("bootstrap", "node_modules/bootstrap/dist"),
@@ -192,29 +173,14 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
-
-# SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = os.getenv("DEBUG", "False") == "True"
-
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
-CSRF_TRUSTED_ORIGINS = [
-    "http://" + host for host in ALLOWED_HOSTS if host not in ["localhost", "127.0.0.1"]
-]
-CSRF_TRUSTED_ORIGINS += ["http://localhost", "http://127.0.0.1"]
-CSRF_TRUSTED_ORIGINS += [
-    "https://" + host
-    for host in ALLOWED_HOSTS
-    if host not in ["localhost", "127.0.0.1"]
-]
-
-# Xero settings
-XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID")
-XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET")
-XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI")
 
 # ===========================
 # CUSTOM SETTINGS
 # ===========================
+
+XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID", "")
+XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET", "")
+XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI", "")
+
 DROPBOX_WORKFLOW_FOLDER = os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow")
