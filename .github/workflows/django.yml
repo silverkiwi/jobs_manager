@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - aws-environment
   pull_request:
     branches:
       - main
@@ -29,10 +30,10 @@ jobs:
           AWS_HOST: ${{ secrets.AWS_HOST }}
           AWS_USER: ${{ secrets.AWS_USER }}
         run: |
+          BRANCH_NAME=${{ github.head_ref || github.ref_name }}
           ssh -T -o StrictHostKeyChecking=no $AWS_USER@$AWS_HOST << 'EOF'
             cd ${{ secrets.PROJECT_PATH }}
-            git pull -f origin main
-
+            git pull -f origin $BRANCH_NAME
             source venv/bin/activate
 
             poetry install
