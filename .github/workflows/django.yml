@@ -33,6 +33,11 @@ jobs:
           BRANCH_NAME=${{ github.head_ref || github.ref_name }}
           ssh -T -o StrictHostKeyChecking=no $AWS_USER@$AWS_HOST << 'EOF'
             cd ${{ secrets.PROJECT_PATH }}
+            if git branch | grep -q "$BRANCH_NAME"; then
+              git switch $BRANCH_NAME
+            else
+              git switch -c $BRANCH_NAME
+            fi            
             git pull -f origin $BRANCH_NAME
             source venv/bin/activate
 
