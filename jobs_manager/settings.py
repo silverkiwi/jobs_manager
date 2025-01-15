@@ -114,9 +114,9 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD", "password"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", 3306),
-    },
-    "TEST": {  # Optional, Django will create 'test_' + NAME by default
-        "NAME": "test_msm_workflow",
+        "TEST": {
+            "NAME": "test_msm_workflow",
+        },
     },
 }
 
@@ -167,32 +167,24 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_DIRS = [
     # Bootstrap CSS and JS
-    ('bootstrap', 'node_modules/bootstrap/dist'),
-
+    ("bootstrap", "node_modules/bootstrap/dist"),
     # ag-Grid Community (CSS/JS)
-    ('ag-grid-community', 'node_modules/ag-grid-community/dist'),
-    ('ag-grid-styles', 'node_modules/@ag-grid-community/styles'),
-
+    ("ag-grid-community", "node_modules/ag-grid-community/dist"),
+    ("ag-grid-styles", "node_modules/@ag-grid-community/styles"),
     # Highcharts (JS)
-    ('highcharts', 'node_modules/highcharts'),
-
+    ("highcharts", "node_modules/highcharts"),
     # jQuery (JS)
-    ('jquery', 'node_modules/jquery/dist'),
-
+    ("jquery", "node_modules/jquery/dist"),
     # JSONEditor (CSS/JS)
-    ('jsoneditor', 'node_modules/jsoneditor/dist'),
-
+    ("jsoneditor", "node_modules/jsoneditor/dist"),
     # jsPDF (JS)
-    ('jspdf', 'node_modules/jspdf/dist'),
-
+    ("jspdf", "node_modules/jspdf/dist"),
     # jsPDF-AutoTable (JS)
-    ('jspdf-autotable', 'node_modules/jspdf-autotable/dist'),
-
+    ("jspdf-autotable", "node_modules/jspdf-autotable/dist"),
     # Moment.js (JS)
-    ('moment', 'node_modules/moment'),
-
+    ("moment", "node_modules/moment"),
     # SortableJS (JS)
-    ('sortablejs', 'node_modules/sortablejs'),
+    ("sortablejs", "node_modules/sortablejs"),
 ]
 
 # Default primary key field type

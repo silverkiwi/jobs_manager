@@ -2,11 +2,15 @@
 {% load static %}
 
 {#{% block extra_css %}#}
-{#<link rel="stylesheet" href="{% static 'css/timesheet_daily_view.css' %}">#}
+{#
+<link rel="stylesheet" href="{% static 'css/timesheet_daily_view.css' %}">#}
 {#{% endblock %}#}
 
 {% block content %}
-<div id="timesheet-daily-view-container">
+<div id="timesheet-daily-view-container" class="container">
+
+    <hr>
+
     <h3>Timesheet Daily View</h3>
 
     <div id="staff-boxes-section" class="overview-section my-5">
@@ -15,7 +19,8 @@
             <li class="list-group-item d-flex justify-content-between align-items-start">
                 <div class="ms-2 me-auto">
                     <div class="fw-bold">
-                        <a href="{% url 'timesheet_entry' date=date staff_id=staff.staff_id %}" class="text-decoration-none">
+                        <a href="{% url 'timesheet_entry' date=date staff_id=staff.staff_id %}"
+                            class="text-decoration-none">
                             {{ staff.name }} {{ staff.last_name }}
                         </a>
                     </div>
@@ -27,7 +32,7 @@
                     </div>
                     <div id="staff-chart-{{ staff.staff_id }}" class="staff-chart mt-2"></div>
                 </div>
-                <span class="badge bg-primary rounded-pill">
+                <span class="badge rounded-pill {% if staff.actual_hours == 0 %}bg-danger{% elif staff.actual_hours != staff.scheduled_hours %}bg-warning{% else %}bg-success{% endif %}">
                     Staff actual hours: {{ staff.actual_hours }}
                 </span>
             </li>
@@ -36,15 +41,45 @@
     </div>
 </div>
 
+<hr>
 
-    <!-- Job Progress Section -->
-    <div id="job-progress-section" class="overview-section">
-        <h3>Job Progress Summary</h3>
-        <div id="job-chart"></div>
-    </div>
-</div>
-<div id="debug-context" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9;">
-    <h3>Debug Context (Temporary)</h3>
-    <pre>{{ context_json|safe }}</pre>
+<div class="container">
+    <h2>Daily Timesheet Summary for {{ date }}</h2>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Staff Member</th>
+                <th>Expected</th>
+                <th>Entered</th>
+                <th>Status</th>
+                <th>Alerts</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for staff in staff_data %}
+            <tr>
+                <td>
+                    <a href="{% url 'timesheet_entry' date=date staff_id=staff.staff_id %}">
+                        {{ staff.name }} {{ staff.last_name }}
+                    </a>
+                </td>
+                <td>{{ staff.scheduled_hours|default:"0.0" }}</td>
+                <td>{{ staff.actual_hours|default:"-" }}</td>
+                <td class="{% if staff.status == 'Complete' %}text-success{% elif '⚠' in staff.status %}text-warning{% else %}text-muted{% endif %}">
+                    {{ staff.status }}
+                </td>
+                <td>{{ staff.alert }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="2">Daily Totals</th>
+                <th>{{ daily_summary.total_actual_hours }} / {{ daily_summary.total_expected_hours }} hrs</th>
+                <th>Billable: {{ daily_summary.billable_percentage }}%</th>
+                <th>Shop: {{ daily_summary.shop_percentage }}% | Missing: {{ daily_summary.total_missing_hours }}hr(s)</th>
+            </tr>
+        </tfoot>
+    </table>
 </div>
 {% endblock %}

@@ -1,4 +1,4 @@
-import {createNewRow} from '/static/js/deseralise_job_pricing.js';
+import { createNewRow } from '/static/js/deseralise_job_pricing.js';
 
 let dropboxToken = null;
 
@@ -19,16 +19,19 @@ function collectAllData() {
     const formElements = document.querySelectorAll('.autosave-input');
 
     formElements.forEach(element => {
-        let value;
-        if (element.type === 'checkbox') {
-            value = element.checked;
-        } else {
-            value = element.value.trim() === "" ? null : element.value;
+        let value = element.type === 'checkbox' ? element.checked : element.value.trim() || null;
+        if (element.name === 'client_id' && !value) {
+            console.error('Client ID missing. Ensure client selection updates the hidden input.');
         }
         data[element.name] = value;
     });
 
-    // Add job validity check
+    // Collect additional fields not present in form inputs
+    const additionalFields = {
+        client_name: document.getElementById('job-client-name')?.textContent || 'N/A',
+        created_at: document.getElementById('job-created-at')?.textContent || 'N/A',
+    };
+    Object.assign(data, additionalFields);
 
     // 2. Get all historical pricings that were passed in the initial context
     let historicalPricings = JSON.parse(JSON.stringify(window.historical_job_pricings_json));
@@ -41,7 +44,7 @@ function collectAllData() {
     // 4. Add the historical pricings to jobData
     data.historical_pricings = historicalPricings;
 
-    // console.log("Collected Data:", data);
+    // console.log('Collected Data:', data);
     data.job_is_valid = checkJobValidity(data);
 
     return data;
@@ -49,8 +52,8 @@ function collectAllData() {
 }
 
 function checkJobValidity(data) {
-    console.log("Checking job validity...");
-    console.log("Data:", data);
+    console.log('Checking job validity...');
+    console.log('Data:', data);
     const requiredFields = ['name', 'client_id', 'contact_person', 'job_number'];
     const invalidFields = requiredFields.filter(field => !data[field] || data[field].trim() === '');
     if (invalidFields.length > 0) {
@@ -87,7 +90,10 @@ function collectGridData(section) {
             const rowData = [];
             gridData.api.forEachNode(node => {
                 if (isNonDefaultRow(node.data, gridName)) {
-                    rowData.push(node.data);
+                    const data = { ...node.data };
+                    data.minutes_per_item = data.mins_per_item;
+                    delete data.mins_per_item
+                    rowData.push(data);
                 }
             });
 
@@ -124,64 +130,107 @@ async function getDropboxToken() {
 async function uploadToDropbox(file, dropboxPath) {
     const accessToken = await getDropboxToken();
     if (!accessToken) {
-        console.error("No Dropbox token available");
+        console.error('No Dropbox token available');
         return false;
     }
 
     try {
-        const response = await fetch("https://content.dropboxapi.com/2/files/upload", {
-            method: "POST",
+        const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
+            method: 'POST',
             headers: {
-                "Authorization": `Bearer ${accessToken}`,
-                "Dropbox-API-Arg": JSON.stringify({
+                'Authorization': `Bearer ${accessToken}`,
+                'Dropbox-API-Arg': JSON.stringify({
                     path: dropboxPath,
-                    mode: "overwrite",
+                    mode: 'overwrite',
                     autorename: false,
                     mute: false,
                 }),
-                "Content-Type": "application/octet-stream",
+                'Content-Type': 'application/octet-stream',
             },
             body: file,
         });
 
         if (!response.ok) {
             // Check Content-Type to handle non-JSON errors
-            const contentType = response.headers.get("Content-Type");
-            if (contentType && contentType.includes("application/json")) {
+            const contentType = response.headers.get('Content-Type');
+            if (contentType && contentType.includes('application/json')) {
                 const errorData = await response.json();
-                console.error("Dropbox API error:", errorData);
+                console.error('Dropbox API error:', errorData);
             } else {
                 const errorText = await response.text(); // Handle non-JSON responses
-                console.error("Dropbox upload failed (non-JSON):", errorText);
+                console.error('Dropbox upload failed (non-JSON):', errorText);
             }
             return false;
         }
 
         // Parse and log the successful response
         const data = await response.json();
-        console.log("File uploaded to Dropbox:", data);
+        console.log('File uploaded to Dropbox:', data);
         return true;
     } catch (error) {
-        console.error("Dropbox upload failed:", error);
+        console.error('Dropbox upload failed:', error);
         return false;
     }
 }
 
 function exportJobToPDF(jobData) {
-    const {jsPDF} = window.jspdf;
+    const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    let startY = 10;
+    const creationDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); // Friendly date format
+    let startY = 20;
 
-    // Job Details section stays the same...
+    // Add logo
+    const logoPath = '/static/logo_msm.png';
+    doc.addImage(logoPath, 'PNG', 160, 10, 30, 20);
 
-    // Grid sections
-    const pricingSections = [
-        {section: "Estimate", grids: ["estimateTimeTable", "estimateMaterialsTable", "estimateAdjustmentsTable"]},
-        {section: "Quote", grids: ["quoteTimeTable", "quoteMaterialsTable", "quoteAdjustmentsTable"]},
-        {section: "Reality", grids: ["realityTimeTable", "realityMaterialsTable", "realityAdjustmentsTable"]},
+    // Document title and generation date
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Job Summary", 10, 20);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated on: ${creationDate}`, 10, 30);
+
+    startY += 20;
+
+    // Job details section
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Job Details", 10, startY);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    startY += 8;
+
+    const jobDetails = [
+        ["Job Name", jobData.name || "N/A"],
+        ["Job Number", jobData.job_number || "N/A"],
+        ["Client", jobData.client_name || "N/A"],
+        ["Contact Person", jobData.contact_person || "N/A"],
+        ["Description", jobData.description || "N/A"],
+        ["Job Created On", new Date(jobData.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) || "N/A"],
     ];
 
-    pricingSections.forEach(({section, grids}) => {
+    jobDetails.forEach(([label, value]) => {
+        doc.setFont("helvetica", "bold");
+        doc.text(`${label}:`, 10, startY);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${value}`, 50, startY);
+        startY += 6;
+    });
+
+    startY += 10;
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.line(10, startY - 5, 200, startY - 5);
+
+    // Pricing sections
+    const pricingSections = [
+        { section: "Estimate", grids: ["estimateTimeTable", "estimateMaterialsTable", "estimateAdjustmentsTable"] },
+        { section: "Quote", grids: ["quoteTimeTable", "quoteMaterialsTable", "quoteAdjustmentsTable"] },
+        { section: "Reality", grids: ["realityTimeTable", "realityMaterialsTable", "realityAdjustmentsTable"] },
+    ];
+
+    pricingSections.forEach(({ section, grids }) => {
         doc.setFontSize(16);
         doc.text(section, 10, startY);
         doc.setFontSize(12);
@@ -190,19 +239,21 @@ function exportJobToPDF(jobData) {
         grids.forEach((gridKey) => {
             const grid = window.grids[gridKey];
             if (!grid || !grid.api) {
-                throw new Error(`Grid '${gridKey}' not found or missing API. Available grids: ${Object.keys(window.grids).join(', ')}`);
+                throw new Error(`Grid '${gridKey}' not found or missing API.`);
             }
             const gridApi = grid.api;
 
-            // Get column definitions and filter out the empty trash column
-            const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '');
+            const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Actions');
             const headers = columns.map(col => col.headerName);
 
-            // Get row data directly
             const rowData = [];
             gridApi.forEachNode(node => {
                 const row = columns.map(col => {
                     const value = node.data[col.field];
+                    // Apply "NZD" only to monetary fields
+                    if (["cost", "revenue", "price_adjustment", "cost_adjustment"].includes(col.field) && typeof value === 'number') {
+                        return `NZD ${value.toFixed(2)}`;
+                    }
                     return value !== undefined ? value : '';
                 });
                 rowData.push(row);
@@ -227,7 +278,7 @@ function exportJobToPDF(jobData) {
     ["revenueTable", "costsTable"].forEach(gridKey => {
         const grid = window.grids[gridKey];
         if (!grid || !grid.api) {
-            throw new Error(`Grid '${gridKey}' not found or missing API. Available grids: ${Object.keys(window.grids).join(', ')}`);
+            throw new Error(`Grid '${gridKey}' not found or missing API.`);
         }
 
         const gridApi = grid.api;
@@ -235,9 +286,12 @@ function exportJobToPDF(jobData) {
         const headers = columns.map(col => col.headerName);
 
         const rowData = [];
-        gridApi.forEachNode(node => {
+        gridApi.forEachNode((node, rowIndex) => {
             const row = columns.map(col => {
                 const value = node.data[col.field];
+                if (["estimate", "quote", "reality"].includes(col.field) && typeof value === 'number') {
+                    return `NZD ${value.toFixed(2)}`;
+                }
                 return value !== undefined ? value : '';
             });
             rowData.push(row);
@@ -255,14 +309,13 @@ function exportJobToPDF(jobData) {
         startY = doc.lastAutoTable.finalY + 10;
     });
 
-    return new Blob([doc.output("blob")], {type: "application/pdf"});
+    return new Blob([doc.output("blob")], { type: "application/pdf" });
 }
-
 
 function addGridToPDF(doc, title, rowData, startY) {
     // Extract column headers from the first row's keys
     const columns = Object.keys(rowData[0] || {});
-    const rows = rowData.map((row) => columns.map((col) => row[col] || ""));
+    const rows = rowData.map((row) => columns.map((col) => row[col] || ''));
 
     // Add table to the PDF
     doc.text(title, 10, startY);
@@ -290,11 +343,11 @@ async function handlePDF(pdfBlob, mode, jobData) {
         case 'upload':
             const formData = new FormData();
             formData.append('job_number', jobData.job_number);
-            formData.append('files', new File([pdfBlob], 'JobSummary.pdf', {type: 'application/pdf'}));
+            formData.append('files', new File([pdfBlob], `${jobData.name}.pdf`, { type: 'application/pdf' }));
 
             fetch('/api/upload-job-files/', {
                 method: 'POST',
-                headers: {'X-CSRFToken': getCsrfToken()},
+                headers: { 'X-CSRFToken': getCsrfToken() },
                 body: formData
             }).then(response => {
                 if (!response.ok) {
@@ -304,7 +357,7 @@ async function handlePDF(pdfBlob, mode, jobData) {
             break;
         case 'print':
             const newWindow = window.open(pdfURL, '_blank');
-            if (!newWindow) throw new Error("Popup blocked. Unable to print the PDF.");
+            if (!newWindow) throw new Error('Popup blocked. Unable to print the PDF.');
             newWindow.print();
             break;
         case 'preview':
@@ -313,7 +366,7 @@ async function handlePDF(pdfBlob, mode, jobData) {
         case 'download':
             const link = document.createElement('a');
             link.href = pdfURL;
-            link.download = `Job-${jobData.job_number}.pdf`;
+            link.download = `${jobData.name}.pdf`;
             link.click();
             break;
         default:
@@ -328,7 +381,7 @@ export function handlePrintJob() {
 
         // Validate the job before proceeding
         if (!collectedData.job_is_valid) {
-            console.error("Job is not valid. Please complete all required fields before printing.");
+            console.error('Job is not valid. Please complete all required fields before printing.');
             return;
         }
 
@@ -336,7 +389,7 @@ export function handlePrintJob() {
         const pdfBlob = exportJobToPDF(collectedData);
         handlePDF(pdfBlob, 'preview', collectedData); // Open the PDF in a new tab
     } catch (error) {
-        console.error("Error during Print Job process:", error);
+        console.error('Error during Print Job process:', error);
     }
 }
 
@@ -348,7 +401,8 @@ export function autosaveData() {
     if (collectedData.job_is_valid) {
         saveDataToServer(collectedData);
     } else {
-        console.log("Job is not valid. Skipping autosave.");
+        console.log('Job is not valid. Skipping autosave.');
+        renderMessages([{ level: 'error', message: 'Please complete all required fields before saving.' }], 'job-details');
     }
 }
 
@@ -374,6 +428,7 @@ function saveDataToServer(collectedData) {
                 return response.json().then(data => {
                     if (data.errors) {
                         handleValidationErrors(data.errors);
+                        renderMessages([{ level: 'error', message: 'Failed to save data. Please try again.' }], 'job-details');
                     }
                     throw new Error('Validation errors occurred');
                 });
@@ -384,9 +439,10 @@ function saveDataToServer(collectedData) {
             const pdfBlob = exportJobToPDF(collectedData);
             handlePDF(pdfBlob, 'upload', collectedData);
             console.log('Autosave successful:', data);
+            renderMessages([{ level: 'success', message: 'Job updated successfully.' }], 'job-details');
         })
         .catch(error => {
-            console.error('Autosave failed:', error);
+            renderMessages([{ level: 'error', message: `Autosave failed: ${error.message}` }]);
         });
 }
 
@@ -398,7 +454,7 @@ function handleValidationErrors(errors) {
 
     // Display new errors
     for (const [field, messages] of Object.entries(errors)) {
-        const element = document.querySelector(`[name="${field}"]`);
+        const element = document.querySelector(`[name='${field}']`);
         if (element) {
             element.classList.add('is-invalid');
             const errorDiv = document.createElement('div');
@@ -412,7 +468,7 @@ function handleValidationErrors(errors) {
                 if (element.nextElementSibling && element.nextElementSibling.classList.contains('invalid-feedback')) {
                     element.nextElementSibling.remove();
                 }
-            }, {once: true});
+            }, { once: true });
         }
     }
 }
@@ -431,12 +487,12 @@ function removeValidationError(element) {
 
 // Debounced version of the autosave function
 export const debouncedAutosave = debounce(function () {
-    console.log("Debounced autosave called");
+    console.log('Debounced autosave called');
     autosaveData();
 }, 1000);
 
 const debouncedRemoveValidation = debounce(function (element) {
-    console.log("Debounced validation removal called for element:", element);
+    console.log('Debounced validation removal called for element:', element);
     removeValidationError(element);
 }, 1000);
 
@@ -451,14 +507,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Attach change event listener to handle special input types like checkboxes
     autosaveInputs.forEach(fieldElement => {
         fieldElement.addEventListener('blur', function () {
-            console.log("Blur event fired for:", fieldElement);
+            console.log('Blur event fired for:', fieldElement);
             debouncedRemoveValidation(fieldElement);
             debouncedAutosave();
         });
 
         if (fieldElement.type === 'checkbox') {
             fieldElement.addEventListener('change', function () {
-                console.log("Change event fired for checkbox:", fieldElement);
+                console.log('Change event fired for checkbox:', fieldElement);
                 debouncedRemoveValidation(fieldElement);
                 debouncedAutosave();
             });
@@ -466,54 +522,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (fieldElement.tagName === 'SELECT') {
             fieldElement.addEventListener('change', function () {
-                console.log("Change event fired for select:", fieldElement);
+                console.log('Change event fired for select:', fieldElement);
                 debouncedRemoveValidation(fieldElement);
                 debouncedAutosave();
             });
         }
     });
-
-    // Function to validate all required fields before autosave
-    // Unused?
-    // function validateAllFields() {
-    //     let allValid = true;
-    //
-    //     autosaveInputs.forEach(input => {
-    //         if (input.hasAttribute('required') && input.type !== "checkbox" && input.value.trim() === '') {
-    //             // Add validation error for required fields that are empty
-    //             addValidationError(input, 'This field is required.');
-    //             allValid = false;
-    //         } else if (input.type === "checkbox" && input.hasAttribute('required') && !input.checked) {
-    //             // If a checkbox is required but not checked
-    //             addValidationError(input, 'This checkbox is required.');
-    //             allValid = false;
-    //         } else {
-    //             // Remove validation error if field is valid
-    //             removeValidationError(input);
-    //         }
-    //     });
-    //
-    //     return allValid;
-    // }
-
-    // // Function to add validation error to an input
-    // Unused?
-    // function addValidationError(element, message) {
-    //     element.classList.add('is-invalid');
-    //     if (!element.nextElementSibling || !element.nextElementSibling.classList.contains('invalid-feedback')) {
-    //         const errorDiv = document.createElement('div');
-    //         errorDiv.className = 'invalid-feedback';
-    //         errorDiv.innerText = message;
-    //         element.parentElement.appendChild(errorDiv);
-    //     }
-    // }
-
-    // Function to remove validation error from an input
-    // Unused?
-
-
 });
-
 
 function getAllRowData(gridApi) {
     const rowData = [];
@@ -523,7 +538,7 @@ function getAllRowData(gridApi) {
 
 function copyGridData(sourceGridApi, targetGridApi) {
     if (!sourceGridApi || !targetGridApi) {
-        console.error("Source or target grid API is not defined.");
+        console.error('Source or target grid API is not defined.');
         return;
     }
 
@@ -540,7 +555,6 @@ export function copyEstimateToQuote() {
     grids.forEach(gridName => {
         const estimateGridKey = `estimate${gridName}`;
         const quoteGridKey = `quote${gridName}`;
-
         const estimateGridApi = window.grids[estimateGridKey]?.api;
         const quoteGridApi = window.grids[quoteGridKey]?.api;
 
@@ -562,8 +576,6 @@ export function copyEstimateToQuote() {
             level: 'success',
             message: 'Estimates successfully copied to Quotes.',
         },
-    ]);
+    ], 'estimate');
 }
-
-
 

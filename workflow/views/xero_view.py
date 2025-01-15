@@ -6,11 +6,12 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
+from django.views.generic import TemplateView
 from xero_python.accounting import AccountingApi
 from xero_python.identity import IdentityApi
 
 
-from workflow.api.xero.sync import sync_all_xero_data
+from workflow.api.xero.sync import synchronise_xero_data
 from workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
@@ -62,20 +63,6 @@ def success_xero_connection(request: HttpRequest) -> HttpResponse:
 
 
 # Get Xero contacts
-def get_xero_contacts(request: HttpRequest) -> HttpResponse:
-    accounting_api: AccountingApi = AccountingApi(api_client)
-    identity_api: IdentityApi = IdentityApi(api_client)
-    connections = identity_api.get_connections()
-
-    if not connections:
-        raise Exception("No Xero tenants found.")
-
-    xero_tenant_id = connections[0].tenant_id
-    contacts: Any = accounting_api.get_contacts(xero_tenant_id)
-
-    return render(
-        request, "workflow/xero_contacts.html", {"contacts": contacts.contacts}
-    )
 
 
 def refresh_xero_data(request):
@@ -91,7 +78,7 @@ def refresh_xero_data(request):
             )  # Redirect to the Xero authentication path
 
         # If authenticated, proceed with syncing data
-        sync_all_xero_data()
+        synchronise_xero_data()
         logger.info("Xero data successfully refreshed")
 
     except Exception as e:
@@ -107,3 +94,9 @@ def refresh_xero_data(request):
 
     # After successful sync, redirect to the home page or wherever appropriate
     return redirect("/")
+
+
+class XeroIndexView(TemplateView):
+    """Note this page is currently inaccessible.  We are using a dropdown menu instead.
+    Kept as of 2025-01-07 in case we change our mind"""
+    template_name = "xero_index.html"

@@ -10,7 +10,8 @@
 {% block content %}
     <!-- Job Details Section -->
     {% include "jobs/edit_job_detail_section.html" %}
-
+    <p class="d-none" id="job-client-name">{{ client_name }}</p>
+    <p class="d-none" id="job-created-at">{{ created_at }}</p>
     <hr/>
 
     <div class="job-pricing-sections">
@@ -21,6 +22,8 @@
             <div id="estimateAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
             <button id="copyEstimateToQuote" class="btn btn-primary mt-3">Copy Estimate to Quote</button>
         </div>
+
+        <div id="estimate" class="alert-container"></div>
 
         <div class="job-grid-section">
             <h2>Quote</h2>
@@ -102,6 +105,7 @@
     {% include "jobs/edit_job_workflow_section.html" %}
 
     <hr/>
+
     {% if job_form.errors %}
         <div class="alert alert-danger">
             <ul>
@@ -111,6 +115,9 @@
             </ul>
         </div>
     {% endif %}
+
+    {% include "jobs/add_job_event_modal.html" %}
+    {% include "jobs/job_event_section.html" %}
 
     <hr/>
 

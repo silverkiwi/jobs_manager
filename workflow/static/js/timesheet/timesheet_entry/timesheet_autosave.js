@@ -1,7 +1,9 @@
 import { validateAndTrackRow } from './utils.js';
 import { updateJobsList } from './job_section.js';
 import { renderMessages } from './messages.js';
-import { timesheet_data } from './state.js';
+import { rowStateTracker, timesheet_data } from './state.js';
+import { updateSummarySection } from './summary.js';
+import { triggerAutoCalculationForAllRows } from './grid_manager.js';
 
 let deletedEntries = [];
 
@@ -20,12 +22,22 @@ function updateGridEntries(entries) {
             }
 
             if (node.data.id === entry.id) {
-                node.setData(entry);
+                // Preserve the existing rate if not provided in the update
+                const existingRate = node.data.rate_type;
+                node.setData({
+                    ...entry,
+                    rate_type: entry.rate_type || existingRate || 'Ord',
+                    mins_per_item: parseFloat(entry.mins_per_item) || parseFloat(entry.minutes_per_item),
+                    items: entry.items || 0,
+                });
+                
                 console.log('Updated entry:', entry);
+                rowStateTracker[node.id] = { ...node.data };
             }
         });
     });
 
+    localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
     grid.refreshCells({ force: true });
 }
 
@@ -129,7 +141,7 @@ function collectGridData() {
             rate_type: rowData.rate_type || 'Ord'
         };
 
-        console.log('Entry created:', entry)
+        console.log('Entry created:', entry);
 
         gridData.push(entry);
     });
@@ -157,8 +169,7 @@ function autosaveData() {
         entry => 
             entry.id && 
             entry.job_number && 
-            entry.hours > 0 && 
-            (entry.description.trim() !== '')
+            entry.hours > 0
     );
 
     // Changed validation - proceed if either we have entries to update or delete
@@ -256,14 +267,15 @@ function saveDataToServer(collectedData) {
         const jobs = data.jobs || [];
         const removeJobs = (data.remove_jobs || []).flat();
         if (jobs.length > 0) {
-            console.log('Updating jobs from server response:', { jobs, removeJobs });
             updateJobsList(jobs, data.action, removeJobs);
         }
 
         deletedEntries = [];
-        renderMessages(data.messages || []);
+        renderMessages(data.messages || [], 'time-entry');
         
         console.log('Autosave successful:', data);
+        triggerAutoCalculationForAllRows();
+        updateSummarySection();
     })
     .catch(error => {
         console.error('Autosave failed:', error);

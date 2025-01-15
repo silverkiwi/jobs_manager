@@ -1,4 +1,4 @@
-
+import { debouncedAutosave } from "./edit_job_form_autosave.js";
 
 document.addEventListener('DOMContentLoaded', function () {
     const clientInput = document.getElementById('client_name');
@@ -6,14 +6,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!clientInput || !suggestionsContainer) {
         console.error('Client input field or suggestions container not found.');
-        return;  // Exit early if these elements are missing
+        return; 
     }
 
+    function hideDropdown() {
+        suggestionsContainer.innerHTML = '';
+        suggestionsContainer.classList.add('d-none'); 
+    }
+
+    function showDropdown() {
+        suggestionsContainer.classList.remove('d-none'); 
+    }
+
+    
     clientInput.addEventListener('input', function () {
-        const query = clientInput.value;
+        const query = clientInput.value.trim();
         console.log("Client query event triggered: ", query);
 
-        // Only search when there's a query longer than 2 characters
         if (query.length > 2) {
             fetch(`/api/client-search/?q=${encodeURIComponent(query)}`, {
                 method: 'GET',
@@ -30,13 +39,14 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .then(data => {
                 displayClientSuggestions(data.results, query);
+                showDropdown(); 
             })
             .catch(error => {
                 console.error('Error fetching client data:', error);
-                suggestionsContainer.innerHTML = ''; // Clear suggestions in case of an error
+                hideDropdown(); 
             });
         } else {
-            suggestionsContainer.innerHTML = ''; // Clear suggestions if the query is too short
+            hideDropdown(); 
         }
     });
 
@@ -65,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     function displayClientSuggestions(clients, query) {
-        suggestionsContainer.innerHTML = ''; // Clear previous suggestions
+        suggestionsContainer.innerHTML = ''; 
 
         if (clients.length === 0) {
             const noResultsItem = document.createElement('div');
@@ -79,36 +89,58 @@ document.addEventListener('DOMContentLoaded', function () {
                 suggestionItem.textContent = client.name;
                 suggestionItem.dataset.clientId = client.id;
 
-                // Add the event listener within this block to avoid 'undefined' error
                 suggestionItem.addEventListener('click', function () {
                     clientInput.value = client.name;
-                    document.getElementById('client_id').value = client.id;
-                    document.getElementById('client_name').value = client.name;
-                    console.log('Client updated: ID:', client.id, ' Name:', client.name);
-                    autosaveData();
-                    suggestionsContainer.innerHTML = ''; // Clear suggestions after selecting
+                    const clientIdField = document.getElementById('client_id');
+                    const clientNameField = document.getElementById('client_name');
+
+                    clientIdField.value = client.id;
+                    clientNameField.value = client.name;
+
+                    if (!clientIdField.value || !clientNameField.value) {
+                        console.error('Failed to update client_id or client_name in the form.');
+                        renderMessages([{level: 'error', message: 'Failed to update client_id or client_name in the form.'}], 'job-details');
+                    } else {
+                        console.log('Client updated successfully:', clientIdField.value, clientNameField.value);
+                    }
+
+                    console.log('Client selected:', client.id, client.name);
+
+                    debouncedAutosave();
+                    hideDropdown(); 
                 });
 
                 suggestionsContainer.appendChild(suggestionItem);
             });
         }
 
-        // Add 'Add new client' option at the end of the list
         const addNewOption = document.createElement('div');
         addNewOption.classList.add('suggestion-item', 'add-new-client');
         addNewOption.textContent = `Add new client "${query}"`;
         addNewOption.addEventListener('click', function () {
-            // Open the Add New Client form in a new tab
             const newWindow = window.open(`/client/add/?name=${encodeURIComponent(query)}`, '_blank');
-
-            // Focus on the new tab
             if (newWindow) {
                 newWindow.focus();
             }
+
+            debouncedAutosave();
+            hideDropdown(); 
         });
         suggestionsContainer.appendChild(addNewOption);
     }
 
+    document.addEventListener('click', function (event) {
+        if (!clientInput.contains(event.target) && !suggestionsContainer.contains(event.target)) {
+            hideDropdown(); 
+        }
+    });
+
+    
+    suggestionsContainer.addEventListener('click', function (event) {
+        event.stopPropagation(); 
+    });
+
+    
     function getCsrfToken() {
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
         return csrfToken ? csrfToken.value : '';

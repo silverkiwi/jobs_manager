@@ -44,3 +44,19 @@ def to_nz_time(value: datetime) -> datetime:
     nz_time = value.astimezone(nz_tz)
 
     return nz_time
+
+
+@register.filter(name="replace")
+def replace(value: str, arg: str) -> str:
+    """
+    Replaces all occurrences of the first character in `arg` with the second character.
+    Usage: {{ value|replace:"search|replace" }}
+    """
+    if not value or not arg:
+        return value
+
+    try:
+        search, replace = arg.split("|")
+        return value.replace(search, replace)
+    except ValueError:
+        return value

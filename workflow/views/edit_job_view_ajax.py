@@ -4,10 +4,14 @@ import logging
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404
+from django.utils.timezone import localtime
 
 from workflow.helpers import DecimalEncoder, get_company_defaults
 from workflow.services.file_service import sync_job_folder
-from workflow.models import Job
+from workflow.models import Job, JobEvent
 from workflow.serializers import JobPricingSerializer, JobSerializer
 from workflow.services.job_service import (
     get_historical_job_pricings,
@@ -34,6 +38,7 @@ def create_job_api(request):
     try:
         # Create the job with default values using the service function
         new_job = Job.objects.create()
+        new_job.save(staff=request.user)
 
         # Log that the job and pricings have been created successfully
         logger.debug(f"New job created with ID: {new_job.id}")
@@ -45,58 +50,6 @@ def create_job_api(request):
         # Catch all exceptions to ensure API always returns JSON response
         logger.exception("Error creating job")
         return JsonResponse({"error": str(e)}, status=500)
-
-
-# Unused: we are only using edit_job_view_ajax
-# Deletion candidate
-# @require_http_methods(["GET"])
-# def get_job_api(request):
-#     job_id = request.GET.get("job_id")
-#
-#     if not job_id:
-#         return JsonResponse({"error": "Missing job_id"}, status=400)
-#
-#     try:
-#         # Use the service layer to get the job and its related pricings
-#         job = get_job_with_pricings(job_id)
-#
-#         job_client = job.client.name if job.client else "No Client"
-#         logger.debug(
-#             "Retrieving job - Number: %(num)s, ID: %(id)s, Client: %(client)s",
-#             {
-#                 "num": job.job_number,
-#                 "id": job.id,
-#                 "client": job_client,
-#             },
-#         )
-#         # Prepare response data with job pricings using correct field names
-#         response_data = {
-#             "id": str(job.id),
-#             "created_at": job.created_at,
-#             "updated_at": job.updated_at,
-#             "client": job_client,
-#             "latest_estimate_pricing": {
-#                 "pricing_stage": (job.latest_estimate_pricing.pricing_stage),
-#                 "pricing_type": (job.latest_estimate_pricing.pricing_type),
-#             },
-#             "latest_quote_pricing": {
-#                 "pricing_stage": (job.latest_quote_pricing.pricing_stage),
-#                 "pricing_type": (job.latest_quote_pricing.pricing_type),
-#             },
-#             "latest_reality_pricing": {
-#                 "pricing_stage": (job.latest_reality_pricing.pricing_stage),
-#                 "pricing_type": (job.latest_reality_pricing.pricing_type),
-#             },
-#         }
-#
-#         return JsonResponse(response_data, safe=False)
-#
-#     except Job.DoesNotExist:
-#         return JsonResponse({"error": "Job not found"}, status=404)
-#
-#     except Exception as e:
-#         logger.exception(f"Unexpected error during get_job_api: {str(e)}")
-#         return JsonResponse({"error": "Unexpected error"}, status=500)
 
 
 @require_http_methods(["GET"])
@@ -191,10 +144,16 @@ def edit_job_view_ajax(request, job_id=None):
     # Get company defaults for any shared settings or values
     company_defaults = get_company_defaults()
 
+    # Get job events related to this job
+    events = JobEvent.objects.filter(job=job).order_by("-timestamp")
+
     # Prepare the context to pass to the template
     context = {
         "job": job,
         "job_id": job.id,
+        "events": events,
+        "client_name": job.client.name if job.client else "No Client",
+        "created_at": job.created_at.isoformat(),
         "company_defaults": company_defaults,
         "job_files": job_files,
         "historical_job_pricings_json": historical_job_pricings_json,  # Revisions
@@ -255,7 +214,7 @@ def autosave_job_view(request):
         if serializer.is_valid():
             if DEBUG_JSON:
                 logger.debug(f"Validated data: {serializer.validated_data}")
-            serializer.save()
+            serializer.save(staff=request.user)
             job.latest_estimate_pricing.display_entries()  # Just for debugging
 
             # Logging client name for better traceability
@@ -295,7 +254,6 @@ def autosave_job_view(request):
         logger.exception(f"Unexpected error during autosave: {str(e)}")
         return JsonResponse({"error": "Unexpected error"}, status=500)
 
-
 @require_http_methods(["POST"])
 def process_month_end(request):
     """Handles month-end processing for selected jobs."""
@@ -307,3 +265,48 @@ def process_month_end(request):
         return JsonResponse({"success": True})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+@login_required
+@require_http_methods(["POST"])
+def add_job_event(request, job_id):
+    try:
+        logger.debug(f"Adding job event for job ID: {job_id}")
+        job = get_object_or_404(Job, id=job_id)
+
+        data = json.loads(request.body)
+        description = data.get("description")
+        if not description:
+            logger.warning(f"Missing description for job event on job {job_id}")
+            return JsonResponse({"error": "Description required"}, status=400)
+            
+        logger.debug(f"Creating job event for job {job_id} with description: {description}")
+        event = JobEvent.objects.create(
+            job=job, 
+            staff=request.user, 
+            description=description,
+            event_type="manual_note"
+            )
+        
+        logger.info(f"Successfully created job event {event.id} for job {job_id}")
+        return JsonResponse({
+            "success": True,
+            "event": {
+                "timestamp": event.timestamp.isoformat(),
+                "event_type": "manual_note", 
+                "description": event.description,
+                "staff": request.user.get_display_name() if request.user else "System"
+            }
+            }, status=201)
+
+    except Job.DoesNotExist:
+        logger.error(f"Job {job_id} not found when creating event")
+        return JsonResponse({"error": "Job not found"}, status=404)
+
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON payload for job {job_id}")
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+        
+    except Exception as e:
+        logger.exception(f"Unexpected error creating job event for job {job_id}: {str(e)}")
+        return JsonResponse({"error": "An unexpected error occurred"}, status=500)
+    

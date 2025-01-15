@@ -23,23 +23,35 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'create_job' %}">Create Job</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'refresh_xero_data' %}">Refresh Xero Data</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'timesheet_overview' %}">Timesheets</a>
-                    </li>
-                    {% if user.is_staff %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'reports' %}">Reports</a>
-                    </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'create_job' %}">Create Job</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'timesheet_overview' %}">Timesheets</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="{% url 'xero_index' %}" id="xeroMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Xero
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="xeroMenu">
+                                <li><a class="dropdown-item" href="{% url 'refresh_xero_data' %}">Refresh Xero Data</a></li>
+                                <!-- Add more options here as needed -->
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="{% url 'reports_index' %}" id="reportsMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Reports
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="reportsMenu">
+                                <li><a class="dropdown-item" href="{% url 'company-profit-loss-report' %}">Company Profit & Loss</a></li>
+                                <!-- Add more options here as needed -->
+                            </ul>
+                        </li>
+                        {% if user.is_staff %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+                            </li>
+                        {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav ms-auto">
@@ -63,7 +75,7 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container mt-4 mb-4">
         {% block content %}{% endblock %}
     </div>
     <script src="{% static 'js/time_conversion.js' %}"></script>
@@ -72,6 +84,24 @@
 
     <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
     {% block extra_js %}{% endblock %}
+
+    <div class="modal fade" id="alert-container" tabindex="-1" aria-labelledby="alert-modal-label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="alert-modal-label">Notification</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="alert-modal-body">
+                    <!-- Dynamic content will be injected here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

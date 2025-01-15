@@ -14,7 +14,9 @@ from django.contrib import messages
 from workflow.enums import RateType
 from workflow.models import Job, JobPricing, Staff, TimeEntry
 from workflow.forms import TimeEntryForm, PaidAbsenceForm
-from workflow.serializers.time_entry_serializer import TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer
+from workflow.serializers.time_entry_serializer import (
+    TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
+)
 from workflow.utils import extract_messages, get_jobs_data
 
 logger = logging.getLogger(__name__)
@@ -45,10 +47,12 @@ class TimesheetEntryView(TemplateView):
 
     template_name = "time_entries/timesheet_entry.html"
 
-    # Excluding app users ID's to avoid them being loaded in timesheet views because they do not have entries
+    # Excluding app users ID's to avoid them being loaded in timesheet views because they do not have entries (Valerie and Corrin included as they are not supposed to enter hours)
     EXCLUDED_STAFF_IDS = [
         "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
         "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
+        "d335acd4-800e-517a-8ff4-ba7aada58d14",
+        "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
     ]
 
     def get(self, request, date, staff_id, *args, **kwargs):
@@ -93,8 +97,7 @@ class TimesheetEntryView(TemplateView):
         - Template: `time_entries/timesheet_entry.html`.
 
         Notes:
-        - The `EXCLUDED_STAFF_IDS` attribute should be updated as needed
-        to reflect changes in app/system users.
+        - The `EXCLUDED_STAFF_IDS` attribute should be updated as needed to reflect changes in app/system users.
         """
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -210,380 +213,6 @@ class TimesheetEntryView(TemplateView):
 
         return render(request, self.template_name, context)
 
-    def post(self, request, date, staff_id, *args, **kwargs):
-        """
-        Handles POST requests to manage timesheet entries and related actions.
-
-        Purpose:
-        - Provides centralized logic for managing timesheet-related AJAX operations.
-        - Supports dynamic form loading and submission for timesheet entries.
-        - Enables actions for managing paid absences.
-
-        Workflow:
-        1. Validates and parses the date from the URL.
-        2. Ensures the staff member is authorized and exists in the database.
-        3. Determines the requested action (`action` parameter) and processes it:
-        - `load_paid_absence`: Renders the form for managing paid absences.
-        - `add_paid_absence`: Adds paid absence entries to the timesheet.
-        - `load_form`: Loads the timesheet entry form dynamically via AJAX.
-        - `submit_form`: Validates and saves the timesheet entry data.
-        4. Handles both success and failure responses with appropriate messages.
-
-        Parameters:
-        - `request`: The HTTP POST request containing action details and data.
-        - `date` (str): The target date for the timesheet, extracted from the URL.
-        - `staff_id` (UUID): The ID of the staff member, extracted from the URL.
-
-        Responses:
-        - Returns JSON responses for all actions:
-        - Success: Includes relevant data for UI updates (e.g., form HTML, entry/job data).
-        - Failure: Includes error messages to guide the user.
-
-        Error Handling:
-        - Raises `ValueError` for invalid date formats.
-        - Returns 403 if the staff member is excluded.
-        - Returns 404 if the staff member is not found.
-        - Handles form validation errors gracefully, returning detailed messages.
-        - Handles non-AJAX requests with a general "Invalid request" error.
-
-        Dependencies:
-        - Django utilities for JSON and template rendering (`JsonResponse`, `render_to_string`).
-        - Custom utilities for extracting messages and formatting rate labels.
-        - `TimeEntryForm` and `PaidAbsenceForm` for handling specific actions.
-
-        Usage:
-        - Integrated with the timesheet UI to dynamically load forms and process user inputs.
-        - Handles backend logic for managing timesheet entries and paid absences.
-        """
-        try:
-            target_date = datetime.strptime(date, "%Y-%m-%d").date()
-        except ValueError:
-            raise ValueError("Invalid date format. Expected YYYY-MM-DD.")
-
-        if staff_id in self.EXCLUDED_STAFF_IDS:
-            messages.error(request, "Access denied for this staff member.")
-            return JsonResponse(
-                {
-                    "error": "Access denied for this staff member",
-                    "messages": extract_messages(request),
-                },
-                status=403,
-            )
-
-        try:
-            staff_member = Staff.objects.get(id=staff_id)
-        except Staff.DoesNotExist:
-            messages.error(request, "Staff member not found.")
-            return JsonResponse(
-                {
-                    "error": "Staff member not found",
-                    "messages": extract_messages(request),
-                },
-                status=404,
-            )
-
-        action = request.POST.get("action")
-        if action == "load_paid_absence":
-            return self.load_paid_absence(request)
-
-        if action == "add_paid_absence":
-            return self.add_paid_absence(request, staff_member)
-
-        if request.headers.get("x-requested-with") == "XMLHttpRequest":
-            if request.POST.get("action") == "load_form":
-                form = TimeEntryForm(
-                    staff_member=staff_member, timesheet_date=target_date
-                )
-                form_html = render_to_string(
-                    "time_entries/timesheet_form.html",
-                    {
-                        "form": form,
-                        "staff_member": staff_member,
-                        "target_date": target_date,
-                    },
-                    request=request,
-                )
-                return JsonResponse({"form_html": form_html})
-
-            elif request.POST.get("action") == "submit_form":
-                form = TimeEntryForm(request.POST, staff_member=staff_member)
-                if form.is_valid():
-                    time_entry = form.save(commit=False)
-                    time_entry.staff = staff_member
-                    time_entry.date = target_date
-                    time_entry.save()
-
-                    messages.success(request, "Timesheet saved successfully")
-
-                    job = time_entry.job_pricing.job
-                    job_data = {
-                        "id": str(job.id),
-                        "job_number": job.job_number,
-                        "name": job.name,
-                        "job_display_name": str(job),
-                        "client_name": job.client.name if job.client else "NO CLIENT!?",
-                        "charge_out_rate": float(job.charge_out_rate),
-                    }
-
-                    return JsonResponse({    
-                        "success": True, 
-                        "entry": TimeEntrySerializer(time_entry).data,
-                        "job": job_data,
-                        "action": "add",
-                        "messages": extract_messages(request),
-                    }, status=200)                    
-
-                messages.error(
-                    request,
-                    "Please correct the following errors in your time entry submission: "
-                    + ", ".join(
-                        [f"{field}: {error[0]}" for field, error in form.errors.items()]
-                    ),
-                )
-
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "errors": form.errors,
-                        "messages": extract_messages(request),
-                    },
-                    status=400,
-                )
-
-        # Handle non-AJAX POST requests
-        messages.error(request, "Invalid request.")
-        return JsonResponse(
-            {"error": "Invalid request", "messages": extract_messages(request)},
-            status=400,
-        )
-
-    def add_paid_absence(self, request, staff_member):
-        """
-        Adds paid absence entries to the timesheet.
-
-        Purpose:
-        - Automates the creation of time entries for a specified date range, excluding weekends.
-        - Associates entries with a predefined virtual job for paid absences.
-        - Ensures consistency and validation for staff-related absences.
-
-        Workflow:
-        1. Validates and parses the start and end dates from the request.
-        2. Excludes invalid ranges where the end date is earlier than the start date.
-        3. Iterates through each day in the range, skipping Saturdays and Sundays.
-        4. Retrieves the `JobPricing` for the virtual paid absence job.
-        5. Creates a `TimeEntry` for each valid weekday, linking it to the staff member and job.
-        6. Collects data for each entry to be returned to the front-end.
-        7. Returns success or error messages based on the outcome of the operation.
-
-        Parameters:
-        - `request`: The HTTP POST request containing the date range and staff details.
-        - `staff_member`: The `Staff` object representing the staff member for whom the entries are created.
-
-        Responses:
-        - Success: Returns a list of created entries, including their details for UI updates.
-        - Error: Returns validation or processing errors (e.g., invalid date range, missing job pricing).
-
-        Error Handling:
-        - Validates the date range to ensure `end_date >= start_date`.
-        - Skips weekends (Saturday and Sunday) during entry creation.
-        - Handles cases where `JobPricing` for the paid absence job cannot be found.
-        - Catches and reports errors during entry creation, ensuring partial failures don't halt the process entirely.
-
-        Dependencies:
-        - Django's models (`JobPricing`, `TimeEntry`) for database operations.
-        - Utility functions (`extract_messages`) for consistent error and success messaging.
-
-        Usage:
-        - Triggered via the `post` method in `TimesheetEntryView` when the action is `add_paid_absence`.
-        - Enables bulk creation of time entries for predefined absence scenarios, improving efficiency and consistency.
-
-        Notes:
-        - Weekends are automatically excluded to reflect typical work schedules.
-        - The virtual paid absence job ID (`job_id`) is hardcoded to match the Paid Absence Job, but the form can be updated to manage dynamic special jobs for paid leaves/absences
-        """
-        leave_jobs = {
-            "annual": "eecdc751-0207-4f00-a47a-ca025a7cf935",
-            "sick": "4dd8ec04-35a0-4c99-915f-813b6b8a3584",
-            "other": "cd2085c7-0793-403e-b78d-63b3c134e59d",
-        }
-
-        start_date = request.POST.get("start_date")
-        end_date = request.POST.get("end_date")
-        leave_type = request.POST.get("leave_type")
-
-        job_id = leave_jobs.get(leave_type, leave_jobs["other"])
-        if not job_id:
-            messages.error(request, "Invalid leave type provided")
-            return JsonResponse(
-                {
-                    "error": "Invalid leave type provided",
-                    "messages": extract_messages(request),
-                },
-                status=400,
-            )
-
-        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-        if end_date < start_date:
-            error_msg = "End date must be greater than or equal to start date."
-            messages.error(request, error_msg)
-            return JsonResponse(
-                {
-                    "error": error_msg,
-                    "messages": extract_messages(request),
-                },
-                status=400
-            )
-
-        days = (end_date - start_date).days + 1
-        entries = []
-        for i in range(days):
-            entry_date = start_date + timedelta(days=i)
-
-            # Skipping weekends
-            if entry_date.weekday() in [5, 6]:
-                continue
-
-            try:
-                # Fetching the JobPricing related to the Paid Absence Job
-                job_pricing = JobPricing.objects.filter(
-                    job_id=job_id
-                ).first()  # Maybe there's a better way to do it without having to import another model, but it solves the problem
-                if not job_pricing:
-                    return JsonResponse(
-                        {
-                            "error": "Job pricing for paid absence not found.",
-                            "messages": [
-                                {
-                                    "level": "error",
-                                    "message": "Job pricing for paid absence not found.",
-                                }
-                            ],
-                        },
-                        status=400,
-                    )
-
-                entry = TimeEntry.objects.create(
-                    job_pricing=job_pricing,
-                    staff=staff_member,
-                    date=entry_date,
-                    hours=8,
-                    description=f"{leave_type.capitalize()} Leave",
-                    is_billable=False,
-                    note="Automatically created leave entry",
-                    wage_rate=staff_member.wage_rate,
-                    charge_out_rate=job_pricing.job.charge_out_rate,
-                    wage_rate_multiplier=1.0,
-                )
-
-                job = entry.job_pricing.job
-                jobs_data = [
-                    {
-                        "id": str(job.id),
-                        "job_number": job.job_number,
-                        "name": job.name,
-                        "job_display_name": str(job),
-                        "estimated_hours": job.latest_estimate_pricing.total_hours,
-                        "hours_spent": job.latest_reality_pricing.total_hours,
-                        "client_name": job.client.name if job.client else "NO CLIENT!?",
-                        "charge_out_rate": float(job.charge_out_rate),
-                        "job_status": job.job_status,
-                    }
-                ]
-
-                entries.append(
-                    {
-                        "id": str(entry.id),
-                        "job_pricing_id": str(entry.job_pricing_id),
-                        "job_number": entry.job_pricing.job.job_number,
-                        "job_name": entry.job_pricing.job.name,
-                        "client": entry.job_pricing.job.client.name,
-                        "description": entry.description or "",
-                        "hours": float(entry.hours),
-                        "rate_multiplier": float(entry.wage_rate_multiplier),
-                        "is_billable": entry.is_billable,
-                        "notes": entry.note or "",
-                        "timesheet_date": entry_date.strftime("%Y-%m-%d"),
-                        "staff_id": staff_member.id,
-                    }
-                )
-
-            except Exception as e:
-                messages.error(request, f"Error creating paid absence entry: {str(e)}")
-                return JsonResponse(
-                    {"error": str(e), "messages": extract_messages(request)}, status=400
-                )
-
-        messages.success(request, "Paid absence entries created successfully")
-        return JsonResponse(
-            {
-                "success": True,
-                "entries": entries,
-                "jobs": jobs_data,
-                "messages": extract_messages(request),
-            },
-            status=200,
-        )
-
-    def load_paid_absence(self, request):
-        """
-        Loads the paid absence form for rendering in the front-end.
-
-        Purpose:
-        - Dynamically generates the HTML for the paid absence form.
-        - Provides a seamless user experience by enabling form rendering via AJAX.
-
-        Workflow:
-        1. Instantiates the `PaidAbsenceForm` with the data from the request.
-        2. Renders the form into an HTML string using the `render_to_string` utility.
-        3. Returns a JSON response containing:
-        - The rendered form HTML.
-        - Success status.
-        - Any messages to be displayed to the user.
-
-        Parameters:
-        - `request`: The HTTP POST request containing the form data.
-
-        Responses:
-        - Success:
-        - Includes the rendered HTML for the form (`form_html`).
-        - Provides feedback messages to the user if necessary.
-        - Error Handling: Assumes basic validation at the form level.
-
-        Dependencies:
-        - `PaidAbsenceForm`: The Django form used for capturing paid absence details.
-        - `render_to_string`: Utility for converting a template and context into HTML.
-        - `extract_messages`: Utility for extracting user feedback messages from the request.
-
-        Usage:
-        - Triggered via the `post` method in `TimesheetEntryView` when the action is `load_paid_absence`.
-        - Enables dynamic loading of the paid absence form in a modal or similar UI component.
-
-        Notes:
-        - Optimized for AJAX-based workflows to improve responsiveness and user experience.
-        - Any server-side validation should be handled when the form is submitted (at `add_paid_absence`), not at this stage.
-        - Includes a dropdown for selecting the type of leave.
-        """
-        LEAVE_CHOICES = [
-            ("annual", "Annual Leave"),
-            ("sick", "Sick Leave"),
-            ("other", "Other Leave"),
-        ]
-
-        form = PaidAbsenceForm(initial={"leave_type": "other"})
-        form_html = render_to_string(
-            "time_entries/paid_absence_form.html", {"form": form}, request=request
-        )
-
-        return JsonResponse(
-            {
-                "success": True,
-                "form_html": form_html,
-                "messages": extract_messages(request),
-            },
-            status=200,
-        )
-
 
 @require_http_methods(["POST"])
 def autosave_timesheet_view(request):
@@ -656,7 +285,7 @@ def autosave_timesheet_view(request):
                 try:
                     entry = TimeEntry.objects.get(id=entry_id)
                     related_jobs.add(entry.job_pricing.job_id)
-                    messages.success(request, "Timesheet deleted successfully")
+                    messages.success(request, f"Timesheet deleted successfully")
                     entry.delete()
                     logger.debug(f"Entry with ID {entry_id} deleted successfully")
 
@@ -691,7 +320,7 @@ def autosave_timesheet_view(request):
 
             entry_id = entry_data.get("id")
             logger.debug(f"Entry: {json.dumps(entry_data, indent=2)}")
-            job_data = entry_data.get("job_data") 
+            job_data = entry_data.get("job_data")
             logger.debug(f"Job data: {json.dumps(job_data, indent=2)}")
             job_id = job_data.get("id") if job_data else None
             logger.debug(f"Job ID: {job_id}")
@@ -733,7 +362,9 @@ def autosave_timesheet_view(request):
                     entry = TimeEntry.objects.get(id=entry_id)
 
                     # Identify old job before changing
-                    old_job_id = entry.job_pricing.job.id if entry.job_pricing.job else None
+                    old_job_id = (
+                        entry.job_pricing.job.id if entry.job_pricing.job else None
+                    )
                     old_job = Job.objects.get(id=old_job_id) if old_job_id else None
 
                     if job_id != str(entry.job_pricing.job.id):
@@ -745,9 +376,17 @@ def autosave_timesheet_view(request):
                     entry.description = description
                     entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
+                    entry.items = entry_data.get("items", entry.items)
+                    entry.minutes_per_item = Decimal(
+                        entry_data.get("mins_per_item", entry.minutes_per_item)
+                    )
                     entry.note = entry_data.get("notes", "")
-                    entry.wage_rate_multiplier = RateType(entry_data.get("rate_type", "Ord")).multiplier                    
-                    entry.charge_out_rate = Decimal(str(job_data.get("charge_out_rate", 0)))
+                    entry.wage_rate_multiplier = RateType(
+                        entry_data.get("rate_type", "Ord")
+                    ).multiplier
+                    entry.charge_out_rate = Decimal(
+                        str(job_data.get("charge_out_rate", 0))
+                    )
 
                     related_jobs.add(job_id)
                     entry.save()
@@ -771,14 +410,19 @@ def autosave_timesheet_view(request):
                         )
                     logger.debug("Existing timesheet saved successfully")
 
-                    return JsonResponse({
-                        "success": True,
-                        "entry": TimeEntrySerializer(entry).data,
-                        "jobs": get_jobs_data(related_jobs),
-                        "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
-                        "action": "update",
-                        "messages": extract_messages(request)
-                    }, status=200)
+                    return JsonResponse(
+                        {
+                            "success": True,
+                            "entry": TimeEntrySerializer(entry).data,
+                            "jobs": get_jobs_data(related_jobs),
+                            "remove_jobs": (
+                                [get_jobs_data([str(old_job.id)])] if old_job else []
+                            ),
+                            "action": "update",
+                            "messages": extract_messages(request),
+                        },
+                        status=200,
+                    )
 
                 except TimeEntry.DoesNotExist:
                     logger.error(f"TimeEntry with ID {entry_id} not found")
@@ -810,6 +454,8 @@ def autosave_timesheet_view(request):
                     date=target_date,
                     description=description,
                     hours=hours,
+                    items=entry_data.get("items"),
+                    minutes_per_item=Decimal(entry_data.get("mins_per_item", 0)),
                     is_billable=entry_data.get("is_billable", True),
                     note=entry_data.get("notes", ""),
                     wage_rate_multiplier=RateType(entry_data["rate_type"]).multiplier,
@@ -835,23 +481,27 @@ def autosave_timesheet_view(request):
                     messages.success(request, "Timesheet created successfully.")
                 logger.debug("Timesheet created successfully")
 
-                return JsonResponse({
-                    "success": True,
-                    "messages": extract_messages(request),
-                    "entry": TimeEntrySerializer(entry).data,
-                    "jobs": get_jobs_data(related_jobs),
-                    "action": "add"
-                }, status=200)
-            
-        return JsonResponse({
-            "success": True,
-            "messages": extract_messages(request),
-            "entries": TimeEntrySerializer(updated_entries, many=True).data,
-            "jobs": get_jobs_data(related_jobs),
-            "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
-            "action": "update"
-        })
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "messages": extract_messages(request),
+                        "entry": TimeEntrySerializer(entry).data,
+                        "jobs": get_jobs_data(related_jobs),
+                        "action": "add",
+                    },
+                    status=200,
+                )
 
+        return JsonResponse(
+            {
+                "success": True,
+                "messages": extract_messages(request),
+                "entries": TimeEntrySerializer(updated_entries, many=True).data,
+                "jobs": get_jobs_data(related_jobs),
+                "remove_jobs": [get_jobs_data([str(old_job.id)])] if old_job else [],
+                "action": "update",
+            }
+        )
 
     except json.JSONDecodeError:
         logger.error("Failed to parse JSON")

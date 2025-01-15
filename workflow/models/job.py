@@ -14,6 +14,7 @@ from workflow.models import CompanyDefaults
 # We say . rather than workflow.models to avoid going through init,
 # otherwise it would have a circular import
 from .job_pricing import JobPricing
+from .job_event import JobEvent
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +147,9 @@ class Job(models.Model):
     @property
     def shop_job(self) -> bool:
         """Indicates if this is a shop job (no client)."""
-        return self.client_id is None
+        return (
+            str(self.client_id) == "00000000-0000-0000-0000-000000000001"
+        )  # This is the UUID for the shop client
 
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"
@@ -157,6 +160,11 @@ class Job(models.Model):
         return f"Job: {self.job_number}"  # type: ignore
 
     def save(self, *args, **kwargs):
+        staff = kwargs.pop("staff", None)
+
+        is_new = self._state.adding
+        original_status = None if is_new else Job.objects.get(pk=self.pk).status
+
         # Step 1: Check if this is a new instance (based on `self._state.adding`)
         if not self.job_number:
             self.job_number = self.generate_unique_job_number()
@@ -165,7 +173,15 @@ class Job(models.Model):
             company_defaults = CompanyDefaults.objects.first()
             self.charge_out_rate = company_defaults.charge_out_rate
 
-        if self._state.adding:
+        if staff and not JobEvent.objects.filter(job=self, event_type="created").exists():
+            JobEvent.objects.create(
+                job=self,
+                event_type="created",
+                description=f"Job {self.name} created",
+                staff=staff
+            )
+
+        if is_new:
             # Creating a new job is tricky because of the circular reference.
             # We first save the job to the DB without any associated pricings, then we
             super(Job, self).save(*args, **kwargs)
@@ -195,8 +211,16 @@ class Job(models.Model):
                 ]
             )
 
-        # Step 5: Save the Job to persist everything, including relationships
         else:
+            if original_status != self.status and staff:
+                JobEvent.objects.create(
+                    job=self,
+                    event_type="status_change",
+                    description=f"Job status changed from {original_status} to {self.status}",
+                    staff=staff
+                )
+
+            # Step 5: Save the Job to persist everything, including relationships
             super(Job, self).save(*args, **kwargs)
 
     @staticmethod

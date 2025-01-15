@@ -2,6 +2,8 @@ from rest_framework import serializers
 from workflow.helpers import decimal_to_float
 from workflow.models import TimeEntry
 
+from decimal import Decimal
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,6 +14,7 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
     Serializer used for JobPricing context.
     Includes the original fields of TimeEntrySerializer and adds staff_id and timesheet_date to display a link for the timesheet in edit_job_view_ajax.html
     """
+
     total_minutes = serializers.SerializerMethodField()
     revenue = serializers.SerializerMethodField()
     cost = serializers.SerializerMethodField()
@@ -36,7 +39,13 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
         ]
 
     def get_total_minutes(self, obj):
-        return decimal_to_float(obj.minutes)
+        return (
+            (obj.items * obj.minutes_per_item).quantize(
+                Decimal("0.01"), rounding="ROUND_HALF_UP"
+            )
+            if obj.items and obj.minutes_per_item
+            else 0
+        )
 
     def get_revenue(self, obj):
         return obj.revenue
@@ -51,11 +60,18 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
     def get_timesheet_date(self, obj):
         return obj.date.strftime("%Y-%m-%d") if obj.date else None
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        logger.debug(f"Serialized TimeEntry: {representation}")
+        return representation
+
+
 class TimeEntryForTimeEntryViewSerializer(serializers.ModelSerializer):
     """
     Serializer used for TimeEntryView.
     Includes all fields defined in the new serializer.
     """
+
     description = serializers.CharField(allow_blank=True)
 
     job_pricing_id = serializers.SerializerMethodField()
@@ -70,13 +86,18 @@ class TimeEntryForTimeEntryViewSerializer(serializers.ModelSerializer):
     estimated_hours = serializers.SerializerMethodField()
     staff_id = serializers.SerializerMethodField()
 
+    mins_per_item = serializers.DecimalField(
+        source="minutes_per_item", max_digits=5, decimal_places=2, required=False
+    )
+    items = serializers.IntegerField(required=False)
+
     class Meta:
         model = TimeEntry
         fields = [
             "id",
             "description",
             "items",
-            "minutes_per_item",
+            "mins_per_item",
             "wage_rate",
             "charge_out_rate",
             "job_pricing_id",
