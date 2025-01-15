@@ -7,6 +7,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize search functionality
     document.getElementById('search').addEventListener('input', filterJobs);
+
+    console.log("CHECK THE SCRIPT")
+
+    // Add event listener for the Month End button
+    const monthEndButton = document.getElementById('monthEndButton');
+    const monthEndModal = document.getElementById('monthEndModal');
+
+    monthEndButton.addEventListener('click', function () {
+        // Show the modal
+        if (monthEndModal) {
+            monthEndModal.style.display = 'block';
+        } else {
+            console.error("Month End Modal not found!");
+        }
+    });
+
+    // Add functionality to close the modal
+    document.querySelectorAll('.modal .close, .modal .btn-secondary').forEach(button => {
+        button.addEventListener('click', function () {
+            if (monthEndModal) {
+                monthEndModal.style.display = 'none';
+            }
+        });
+    });
 });
 
 function fetchStatusValues() {
@@ -180,3 +204,27 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// Function to pop up the Modal for selecting the job to select for month end 
+document.getElementById("confirmMonthEnd").addEventListener("click", function () {
+    const selectedJobs = Array.from(document.getElementById("jobSelector").selectedOptions)
+                              .map(option => option.value);
+
+    fetch("/month-end/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken"),  // Ensure CSRF token is included
+        },
+        body: JSON.stringify({ jobs: selectedJobs }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("Month-end process completed successfully!");
+            location.reload();  // Reload the page to reflect changes
+        } else {
+            alert("Error during the month-end process: " + data.error);
+        }
+    });
+});

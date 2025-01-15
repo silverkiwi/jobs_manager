@@ -13,6 +13,7 @@ from workflow.services.job_service import (
     get_historical_job_pricings,
     get_job_with_pricings,
     get_latest_job_pricings,
+    archive_and_reset_job_pricing,  
 )
 
 logger = logging.getLogger(__name__)
@@ -293,3 +294,16 @@ def autosave_job_view(request):
     except Exception as e:
         logger.exception(f"Unexpected error during autosave: {str(e)}")
         return JsonResponse({"error": "Unexpected error"}, status=500)
+
+
+@require_http_methods(["POST"])
+def process_month_end(request):
+    """Handles month-end processing for selected jobs."""
+    try:
+        data = json.loads(request.body)
+        job_ids = data.get("jobs", [])
+        for job_id in job_ids:
+            archive_and_reset_job_pricing(job_id)
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)

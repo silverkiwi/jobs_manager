@@ -521,6 +521,18 @@ function getAllRowData(gridApi) {
     return rowData;
 }
 
+function copyGridData(sourceGridApi, targetGridApi) {
+    if (!sourceGridApi || !targetGridApi) {
+        console.error("Source or target grid API is not defined.");
+        return;
+    }
+
+    const sourceData = getAllRowData(sourceGridApi);
+    const targetData = getAllRowData(targetGridApi);
+
+    targetGridApi.applyTransaction({ remove: targetData });
+    targetGridApi.applyTransaction({ add: sourceData });
+}
 
 export function copyEstimateToQuote() {
     const grids = ['TimeTable', 'MaterialsTable', 'AdjustmentsTable'];
@@ -529,13 +541,29 @@ export function copyEstimateToQuote() {
         const estimateGridKey = `estimate${gridName}`;
         const quoteGridKey = `quote${gridName}`;
 
-        const estimateGridApi = window.grids[estimateGridKey].api;
-        const quoteGridApi = window.grids[quoteGridKey].api;
+        const estimateGridApi = window.grids[estimateGridKey]?.api;
+        const quoteGridApi = window.grids[quoteGridKey]?.api;
 
-        const rowData = getAllRowData(estimateGridApi);
-        console.log("ROWDATA : ", rowData);
-        quoteGridApi.setGridOption('rowData',rowData);
+        if (estimateGridApi && quoteGridApi) {
+            copyGridData(estimateGridApi, quoteGridApi); // Uses the generic method
+        } else {
+            console.error(
+                `Grid API not found or not initialized for keys: ${estimateGridKey}, ${quoteGridKey}`
+            );
+        }
     });
-    autosaveData();  // Explicitly call autosaveData after copying
+
+    // Trigger autosave to sync changes
+    debouncedAutosave();
+
+    // Display success message
+    renderMessages([
+        {
+            level: 'success',
+            message: 'Estimates successfully copied to Quotes.',
+        },
+    ]);
 }
+
+
 

@@ -1,8 +1,63 @@
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 
-from workflow.models import AdjustmentEntry, Job, MaterialEntry, TimeEntry
+from workflow.models import AdjustmentEntry, Job, MaterialEntry, TimeEntry, JobPricing, CompanyDefaults
 
+def archive_and_reset_job_pricing(job_id):
+    """Archives current pricing and resets to defaults based on company defaults."""
+    job = Job.objects.get(id=job_id)
+
+    # Fetch company defaults (assuming only one instance exists)
+    company_defaults = CompanyDefaults.objects.first()
+    if not company_defaults:
+        raise ValueError("Company defaults are not configured.")
+
+    with transaction.atomic():
+        # Archive current pricing by marking them as historical
+        current_pricings = JobPricing.objects.filter(job=job, is_historical=False)
+        for pricing in current_pricings:
+            pricing.is_historical = True
+            pricing.save()
+
+        # Create new pricing for "estimate"
+        estimate_pricing = JobPricing.objects.create(
+            job=job,
+            pricing_stage='estimate',
+            pricing_type='time_and_materials',
+        )
+        estimate_pricing.time_entries.create(
+            wage_rate=company_defaults.wage_rate,
+            charge_out_rate=company_defaults.charge_out_rate,
+        )
+
+        # Create new pricing for "quote"
+        quote_pricing = JobPricing.objects.create(
+            job=job,
+            pricing_stage='quote',
+            pricing_type='fixed_price',
+        )
+        quote_pricing.adjustment_entries.create(
+            cost_adjustment=company_defaults.time_markup,
+            price_adjustment=company_defaults.charge_out_rate * company_defaults.time_markup,
+        )
+
+        # Create new pricing for "reality"
+        reality_pricing = JobPricing.objects.create(
+            job=job,
+            pricing_stage='reality',
+            pricing_type='time_and_materials',
+        )
+        reality_pricing.material_entries.create(
+            unit_cost=company_defaults.wage_rate,
+            unit_revenue=company_defaults.charge_out_rate,
+        )
+
+        # Save references to the job
+        job.latest_estimate_pricing = estimate_pricing
+        job.latest_quote_pricing = quote_pricing
+        job.latest_reality_pricing = reality_pricing
+        job.save()
 
 def get_job_with_pricings(job_id):
     """Fetches a Job object with all relevant latest JobPricing data,
