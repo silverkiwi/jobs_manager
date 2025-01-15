@@ -27,29 +27,30 @@ jobs:
 
       - name: Deploy Application to EC2
         env:
-          AWS_HOST: ${{ secrets.AWS_HOST }}
-          AWS_USER: ${{ secrets.AWS_USER }}
+            AWS_HOST: ${{ secrets.AWS_HOST }}
+            AWS_USER: ${{ secrets.AWS_USER }}
         run: |
-          BRANCH_NAME=${{ github.head_ref || github.ref_name }}
-          ssh -T -o StrictHostKeyChecking=no $AWS_USER@$AWS_HOST << 'EOF'
-            cd ${{ secrets.PROJECT_PATH }}
-            if git branch | grep -q "$BRANCH_NAME"; then
-              git switch $BRANCH_NAME
-            else
-              git switch -c $BRANCH_NAME
-            fi            
-            git pull -f origin $BRANCH_NAME
-            source venv/bin/activate
-
-            poetry install
-            npm install
-
-            python manage.py migrate
-            python manage.py collectstatic --noinput
-
-            sudo systemctl restart gunicorn
-            sudo systemctl reload nginx
-          EOF
+            BRANCH_NAME=${{ github.head_ref || github.ref_name }}
+            echo "Deploying branch: $BRANCH_NAME"
+            ssh -T -o StrictHostKeyChecking=no $AWS_USER@$AWS_HOST << EOF
+              cd ${{ secrets.PROJECT_PATH }}
+              if git branch | grep -q "$BRANCH_NAME"; then
+                git switch $BRANCH_NAME
+              else
+                git switch -c $BRANCH_NAME
+              fi            
+              git pull -f origin $BRANCH_NAME
+              source venv/bin/activate
+  
+              poetry install
+              npm install
+  
+              python manage.py migrate
+              python manage.py collectstatic --noinput
+  
+              sudo systemctl restart gunicorn
+              sudo systemctl reload nginx
+            EOF
 
       # Completion Notification
       - name: Notify Deployment Success
