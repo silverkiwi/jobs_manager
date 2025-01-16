@@ -1,5 +1,8 @@
 import os
+
 from dotenv import load_dotenv
+
+from .base import BASE_DIR
 
 
 load_dotenv(BASE_DIR / ".env")
