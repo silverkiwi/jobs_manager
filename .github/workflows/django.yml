@@ -48,7 +48,7 @@ jobs:
               python manage.py migrate
               python manage.py collectstatic --noinput
   
-              sudo systemctl restart gunicorn
+              sudo systemctl restart workflow
               sudo systemctl reload nginx
             EOF
 
