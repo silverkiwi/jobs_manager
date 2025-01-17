@@ -63,3 +63,20 @@ export function createNewRow() {
 export function initializeGrid(gridDiv, gridOptions) {
     window.grid = agGrid.createGrid(gridDiv, gridOptions);
 }
+
+export function adjustGridHeight() {
+    const gridElement = document.getElementById('timesheet-grid');
+    if (!gridElement) {
+        console.error("Grid container not found.");
+        return;
+    }
+
+    let rowCount = 0;
+    window.grid.forEachNode(() => rowCount++);
+    const rowHeight = 40;
+    const headerHeight = 50; 
+    const padding = 20; 
+    const maxHeight = Math.min((rowCount * rowHeight) + headerHeight + padding, 350);
+    
+    gridElement.style.height = `${maxHeight}px`;
+}

@@ -68,92 +68,67 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Timesheet Days</h5>
-                </div>
-                <div class="card-body d-flex flex-wrap overflow-auto" style="height: 300px;">
-                    {% for day in week_days %}
-                    <div class="card m-2" style="width: 150px;">
-                        <div class="card-header">{{ day|date:"D" }}</div>
-                        <div class="card-body">
-                            <h5 class="card-title">{{ day|date:"d M" }}</h5>
-                            <a href="{% url 'timesheet_daily_view' date=day %}" class="btn btn-primary btn-sm">View</a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Weekly Staff Summary</h5>
             </div>
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-lg btn-outline-success mt-2" data-bs-toggle="modal"
-                    data-bs-target="#paidAbsenceModal">
-                    Add Paid Absence
-                </button>
-                <!-- Messages will be loaded here -->
-                <div class="alert-container mt-2 flex-shrink-0" style="width: fit-content;"></div>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header text-center">
-                    <h5>Job Overview - Open Jobs: {{ job_count }}</h5>
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-lg btn-outline-success mt-2" data-bs-toggle="modal"
+                        data-bs-target="#paidAbsenceModal">
+                        Add Paid Absence
+                    </button>
+                    <!-- Messages will be loaded here -->
+                    <div class="alert-container mt-2 flex-shrink-0" style="width: fit-content;"></div>
                 </div>
-                <div class="card-body">
-                    <div class="container">
-                        <div class="text-center">
-                            <div class="d-flex justify-content-center overflow-auto" style="max-height: 300px;">
-                                <div class="w-100" style="max-width: 800px;">
-                                    {{ graphic|safe }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-    </div>
-
-    <div class="row my-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Weekly Summary</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>Staff</th>
-                                {% for day in week_days %}
-                                <th>{{ day|date:"D" }}</th>
-                                {% endfor %}
-                                <th>Total</th>
-                                <th>Billable%</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for staff in staff_data %}
-                            <tr>
-                                <td>{{ staff.name }}</td>
-                                {% for day_data in staff.weekly_hours %}
-                                <td>{{ day_data.hours|default:"-" }}
-                                    <small class="text-muted">{{ day_data.status }}</small>
-                                </td>
-                                {% endfor %}
-                                <td>{{ staff.total_hours }}</td>
-                                <td>{{ staff.billable_percentage }}%</td>
-                            </tr>
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Staff</th>
+                            {% for day in week_days %}
+                            <th><a href="{% url 'timesheet_daily_view' date=day %}">{{ day|date:"D" }}</a></th>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                            <th>Total</th>
+                            <th>Billable%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for staff in staff_data %}
+                        <tr>
+                            <td>{{ staff.name }}</td>
+                            {% for day_data in staff.weekly_hours %}
+                            <td>{{ day_data.hours|default:"-" }}
+                                <small class="text-muted">{{ day_data.status }}</small>
+                            </td>
+                            {% endfor %}
+                            <td>{{ staff.total_hours }}</td>
+                            <td>{{ staff.billable_percentage }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card col-12 mt-5">
+        <div class="card-header text-center">
+            <h5>Job Overview - Open Jobs: {{ job_count }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="container">
+                <div class="text-center">
+                    <div class="d-flex justify-content-center overflow-auto">
+                        <div class="w-100">
+                            {{ graphic|safe }}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 {% endblock %}
 

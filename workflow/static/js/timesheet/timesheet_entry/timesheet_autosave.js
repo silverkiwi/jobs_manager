@@ -3,7 +3,7 @@ import { updateJobsList } from './job_section.js';
 import { renderMessages } from './messages.js';
 import { rowStateTracker, timesheet_data } from './state.js';
 import { updateSummarySection } from './summary.js';
-import { triggerAutoCalculationForAllRows } from './grid_manager.js';
+import { triggerAutoCalculationForAllRows, adjustGridHeight } from './grid_manager.js';
 
 let deletedEntries = [];
 
@@ -38,6 +38,7 @@ function updateGridEntries(entries) {
     });
 
     localStorage.setItem('rowStateTracker', JSON.stringify(rowStateTracker));
+    adjustGridHeight();
     grid.refreshCells({ force: true });
 }
 
@@ -275,6 +276,7 @@ function saveDataToServer(collectedData) {
         
         console.log('Autosave successful:', data);
         triggerAutoCalculationForAllRows();
+        adjustGridHeight();
         updateSummarySection();
     })
     .catch(error => {

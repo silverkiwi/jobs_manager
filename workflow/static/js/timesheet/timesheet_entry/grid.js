@@ -1,7 +1,7 @@
 import { ActiveJobCellEditor } from './job_cell_editor.js';
 import { rowStateTracker, timesheet_data } from './state.js';
 import { currencyFormatter } from './utils.js';
-import { createNewRow, calculateAmounts, triggerAutoCalculationForAllRows } from './grid_manager.js';
+import { createNewRow, calculateAmounts, adjustGridHeight } from './grid_manager.js';
 import { updateSummarySection } from './summary.js';
 import { debouncedAutosave, markEntryAsDeleted } from './timesheet_autosave.js'
 import { renderMessages } from './messages.js';
@@ -172,6 +172,7 @@ export const gridOptions = {
                     if (isEmptyRow) {
                         console.log('Skipping empty row:', rowData);
                         params.api.applyTransaction({ remove: [rowData] });
+                        adjustGridHeight();
                         return;
                     }
 
@@ -198,6 +199,7 @@ export const gridOptions = {
                         params.api.applyTransaction({ add: [createNewRow()] })
                     }
 
+                    adjustGridHeight();
                     updateSummarySection();
                 }
         }
@@ -264,6 +266,7 @@ export const gridOptions = {
         }
 
         debouncedAutosave();
+        adjustGridHeight();
         updateSummarySection();
     },
     // Checks for the Shift + Enter shortcut, handle the creation of a new row through the Enter shortcut and check for ESC to stop editing
@@ -316,5 +319,8 @@ function createNewRowShortcut(api) {
     const newRowIndex = api.getDisplayedRowCount() - 1;
     api.setFocusedCell(newRowIndex, 'job_number');
     debouncedAutosave();
+
+    console.log('Adjusting grid height');
+    adjustGridHeight();
     updateSummarySection();
 }

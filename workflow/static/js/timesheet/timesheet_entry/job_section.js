@@ -159,10 +159,13 @@ function renderJobsSection(currentJobs) {
         return;
     }
 
+    // Render cards for each job
     currentJobs.forEach(job => {
-        const jobItem = createJobItem(job);
-        jobsList.appendChild(jobItem);
+        const jobCard = createJobItem(job);
+        jobsList.insertAdjacentHTML('beforeend', jobCard);
     });
+
+    adjustJobContainerHeight();
 }
 
 /**
@@ -173,30 +176,51 @@ function renderJobsSection(currentJobs) {
 function createJobItem(job) {
     const statusIcon = getStatusIcon(job.job_status);
     const hoursExceeded = job.hours_spent > job.estimated_hours;
-    const warningMessage = hoursExceeded ? `<small style="color: red">⚠ Exceeds estimated hours</small>` : '';
+    const warningMessage = hoursExceeded
+        ? `<small class="text-danger">⚠ Exceeds estimated hours</small>`
+        : '';
 
-    const jobItem = document.createElement('div');
-    jobItem.className = 'accordion-item';
-    jobItem.innerHTML = `
-        <h2 class="accordion-header" id="heading-${job.id}">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${job.id}">
-                ${statusIcon} <strong>${job.job_display_name}</strong>
-            </button>
-        </h2>
-        <div id="collapse-${job.id}" class="accordion-collapse collapse show">
-            <div class="accordion-body">
-                <p><strong>Status:</strong> ${job.job_status.charAt(0).toUpperCase() + job.job_status.slice(1)}</p>
-                <hr>
-                <p><strong>Client:</strong> ${job.client_name}</p>
-                <hr>
-                <p><strong>Estimated Hours:</strong> ${job.estimated_hours}</p>
-                <hr>
-                <p><strong>Hours Spent:</strong> ${job.hours_spent} ${warningMessage}</p>
-                <hr>
-                <p><a href="/job/${job.id}" class="btn btn-primary btn-lg">View Job Details</a></p>
+    return `
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-truncate">
+                        <a href="/job/${job.id}" class="text-decoration-none">
+                            ${statusIcon} ${job.job_display_name}
+                        </a>
+                    </h5>
+                    <p class="card-text mb-1"><strong>Status:</strong> ${capitalizeFirstLetter(job.job_status)}</p>
+                    <p class="card-text mb-1"><strong>Client:</strong> ${job.client_name || 'N/A'}</p>
+                    <p class="card-text mb-1"><strong>Estimated Hours:</strong> ${job.estimated_hours || 0}</p>
+                    <p class="card-text mb-1">
+                        <strong>Hours Spent:</strong> ${job.hours_spent || 0}
+                        ${warningMessage}
+                    </p>
+                </div>
             </div>
         </div>
     `;
+}
 
-    return jobItem;
+/**
+ * Capitalizes the first letter of a string.
+ * @param {string} str - The string to capitalize.
+ * @returns {string} - The capitalized string.
+ */
+function capitalizeFirstLetter(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function adjustJobContainerHeight() {
+    const jobsContainer = document.getElementById('current-jobs');
+    const jobsList = document.getElementById('jobs-list');
+    const summarySection = document.getElementById('summary-section');
+
+    const jobsContentHeight = jobsList.scrollHeight;
+
+    if (jobsContentHeight > summarySection.offsetHeight) {
+        jobsContainer.style.height = `${jobsContentHeight}px`;
+    } else {
+        jobsContainer.style.height = `${summarySection.offsetHeight}px`;
+    }
 }
