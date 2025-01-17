@@ -41,7 +41,7 @@ A Django-based jobs/quotes/work management system customized for **Morris Sheetm
 - **Python 3.12+**  
 - **[Poetry](https://python-poetry.org/)** (manages Python dependencies)  
 - **Node.js + npm** (manages JavaScript dependencies, even if lightly used)  
-- **MariaDB 11.5.2** (locally or via RDS in production)
+- **MariaDB 11.5.2** (locally)
 
 ---
 
@@ -146,7 +146,7 @@ Our application expects a **MariaDB 11.5.2** (or MySQL-compatible) database.
 Create a file named **`.env`** in the project root (or configure them in your environment). Below are the commonly used vars:
 
 ```bash
-DEBUG=true
+DEBUG=True
 SECRET_KEY=your-django-secret-key
 ALLOWED_HOSTS=localhost,127.0.0.1
 
@@ -162,7 +162,7 @@ DB_PORT=your-db-port
 
 ```
 
-> Note: You can customize or add others as needed (DJANGO_ENV=production, etc.).
+> Note: You can customize or add others as needed (DJANGO_ENV=production_like, etc.).
 > 
 
 ---
