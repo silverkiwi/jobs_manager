@@ -4,7 +4,6 @@
 {% block extra_css %}
 <!-- AG Grid Styles -->
 <link rel="stylesheet" href="{% static 'ag-grid-styles/ag-theme-alpine.css' %}">
-<link rel="stylesheet" href="{% static 'css/timesheet-entry.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -37,26 +36,32 @@
 
     <div class="container-fluid d-flex flex-row gap-2">
         <!-- Current Jobs Section -->
-        <div id="current-jobs" class="border border-dark rounded flex-grow-1 p-3 overflow-auto" style="max-height: 600px;">
+        <div class="flex-grow-1">
             <h4 class="text-center mb-3">Current Jobs</h4>
-            <div class="row row-cols-1 row-cols-md-2 g-3" id="jobs-list">
-                <!-- Dynamic job cards will be added here -->
+            <div id="current-jobs"
+                class="border border-dark rounded p-3 overflow-auto d-flex justify-content-center align-items-center flex-column"
+                style="max-height: 600px;">
+                <div class="row row-cols-1 row-cols-md-2 g-3" id="jobs-list">
+                    <!-- Dynamic job cards will be added here -->
+                </div>
             </div>
         </div>
-    
+
         <!-- Summary Section -->
-        <div id="summary-section" class="border border-dark rounded p-3 d-flex flex-column h-100">
+        <div class="flex-grow-1">
             <h4 class="text-center mb-3">Summary</h4>
-            <table class="table table-sm table-striped table-bordered">
+            <div id="summary-section" class="border border-dark rounded p-3 d-flex flex-column h-100" style="max-height: 300px;">
+                <table class="table table-sm table-striped table-bordered">
                     <tr>
                         <th class="text-center">Category</th>
                         <th class="text-center">Details</th>
                     </tr>
-                </thead>
-                <tbody id="summary-table-body" class="align-self-center justify-self-center">
-                    <!-- Rows will be dynamically added here -->
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody id="summary-table-body" class="align-self-center justify-self-center">
+                        <!-- Rows will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 

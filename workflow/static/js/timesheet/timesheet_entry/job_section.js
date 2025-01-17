@@ -67,7 +67,7 @@ function getStatusIcon(status) {
     const icons = {
         'quoting': '📝',
         'approved': '✅',
-        'rejected': '❌', 
+        'rejected': '❌',
         'in_progress': '🚧',
         'on_hold': '⏸️',
         'special': '⭐',
@@ -91,7 +91,7 @@ function getStatusIcon(status) {
 function mergeOrAddJobs(jobsToProcess, currentJobsList) {
     jobsToProcess.forEach(job => {
         const existingJobIndex = currentJobsList.findIndex(currentJob => currentJob.id === job.id);
-        existingJobIndex !== -1 
+        existingJobIndex !== -1
             ? currentJobsList[existingJobIndex] = { ...currentJobsList[existingJobIndex], ...job }
             : currentJobsList.push(job);
     });
@@ -151,13 +151,23 @@ function renderJobsSection(currentJobs) {
 
     jobsList.innerHTML = '';
 
+    const jobsSection = document.getElementById('current-jobs');
+
     if (currentJobs.length === 0) {
-        jobsList.innerHTML = `
-            <div id="no-jobs-alert" class="alert alert-info" role="alert">
-                No jobs are currently loaded.
-            </div>`;
+        const noJobsAlert = document.createElement('div');
+
+        noJobsAlert.id = 'no-jobs-alert';
+        noJobsAlert.className = 'alert alert-info text-center align-self-center';
+        noJobsAlert.setAttribute('role', 'alert');
+        noJobsAlert.textContent = 'No jobs are currently loaded.';
+
+        const titleElement = jobsSection.querySelector('h4');
+        titleElement.insertAdjacentElement('afterend', noJobsAlert);
+
         return;
     }
+
+    jobsSection.querySelector('#no-jobs-alert')?.remove();
 
     // Render cards for each job
     currentJobs.forEach(job => {
