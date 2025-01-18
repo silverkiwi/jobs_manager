@@ -38,6 +38,8 @@ class JobPricing(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    is_historical = models.BooleanField(default=False)  # New field to indicate historical records
 
     class Meta:
         ordering = [
