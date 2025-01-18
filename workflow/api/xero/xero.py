@@ -146,6 +146,7 @@ def exchange_code_for_token(code, state, session_state):
         logger.debug(f"Request payload: {data}")
         logger.debug(f"Response: {response.status_code}, {response.json()}")
         response.raise_for_status()
+        cache.set("xero_token", response.json(), timeout=1740) # Testing current logic of setting token
         return response.json()
     except requests.exceptions.HTTPError as e:
         logger.error(f"HTTP Error: {response.status_code} - {response.text}")
