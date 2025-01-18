@@ -40,7 +40,10 @@ def get_token() -> Optional[Dict[str, Any]]:
     """Get token from cache."""
     logger.debug("Getting token from cache")
     token = cache.get("xero_token")
-    logger.debug(f"Retrieved token: {token}")
+    if not token:
+        logger.warning("Token not found in cache")
+    else:
+        logger.debug(f"Retrieved token from cache: {token}")
     return token
 
 
@@ -48,8 +51,11 @@ def get_token() -> Optional[Dict[str, Any]]:
 def store_token(token: Dict[str, Any]) -> None:
     """Store token in cache with 29 minute timeout."""
     logger.info(f"Storing token: {token}")
-    cache.set("xero_token", token, timeout=1740)  # 29 minutes
-    logger.debug("Token stored successfully")
+    try:
+        cache.set("xero_token", token, timeout=1740)  # 29 minutes
+        logger.debug("Token stored successfully")
+    except Exception as e:
+        logger.error(f"Failed to store token in cache: {str(e)}")
 
 
 def refresh_token() -> Optional[Dict[str, Any]]:
