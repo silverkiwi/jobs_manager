@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - aws-environment
   pull_request:
     branches:
       - main

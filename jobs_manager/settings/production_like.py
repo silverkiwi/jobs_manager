@@ -11,7 +11,9 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "debug_toolbar"]
 
-MIDDLEWARE = [mw for mw in MIDDLEWARE if mw != "debug_toolbar.middleware.DebugToolbarMiddleware"]
+MIDDLEWARE = [
+    mw for mw in MIDDLEWARE if mw != "debug_toolbar.middleware.DebugToolbarMiddleware"
+]
 
 STATIC_URL = "/static/"
 STATIC_ROOT = os.getenv("STATIC_ROOT")
