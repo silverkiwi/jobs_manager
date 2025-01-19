@@ -41,7 +41,7 @@ def get_token() -> Optional[Dict[str, Any]]:
     logger.debug("Getting token from cache")
     token = cache.get("xero_token")
     if not token:
-        logger.warning("Token not found in cache")
+        logger.debug("Token not found in cache")
     else:
         logger.debug(f"Retrieved token from cache: {token}")
     return token
@@ -50,20 +50,20 @@ def get_token() -> Optional[Dict[str, Any]]:
 @api_client.oauth2_token_saver
 def store_token(token: Dict[str, Any]) -> None:
     """Store token in cache with 29 minute timeout."""
-    logger.info(f"Storing token: {token}")
+    logger.debug(f"Storing token: {token}")
     try:
         cache.set("xero_token", token, timeout=1740)  # 29 minutes
         logger.debug("Token stored successfully")
     except Exception as e:
-        logger.error(f"Failed to store token in cache: {str(e)}")
+        logger.debug(f"Failed to store token in cache: {str(e)}")
 
 
 def refresh_token() -> Optional[Dict[str, Any]]:
     """Refresh the token using the refresh_token."""
-    logger.info("Attempting to refresh token")
+    logger.debug("Attempting to refresh token")
     token = get_token()
     if not token or "refresh_token" not in token:
-        logger.error("No valid token to refresh")
+        logger.debug("No valid token to refresh")
         return None
 
     logger.debug("Calling token refresh API")
@@ -80,14 +80,14 @@ def get_valid_token() -> Optional[Dict[str, Any]]:
     logger.debug("Getting valid token")
     token = get_token()
     if not token:
-        logger.warning("No token found")
+        logger.debug("No token found")
         return None
 
     expires_at = token.get("expires_at")
     if expires_at:
         expires_at_datetime = datetime.fromtimestamp(expires_at, tz=timezone.utc)
         if datetime.now(timezone.utc) > expires_at_datetime:
-            logger.info("Token expired, refreshing")
+            logger.debug("Token expired, refreshing")
             token = refresh_token()
     logger.debug(f"Returning valid token: {token}")
     return token
@@ -113,7 +113,7 @@ def get_tenant_id_from_connections() -> str:
     identity_api = IdentityApi(api_client)
     connections = identity_api.get_connections()
     if not connections:
-        logger.error("No Xero tenants found")
+        logger.debug("No Xero tenants found")
         raise Exception("No Xero tenants found.")
     tenant_id = connections[0].tenant_id
     logger.debug(f"Retrieved tenant ID: {tenant_id}")
@@ -124,7 +124,7 @@ def exchange_code_for_token(code, state, session_state):
     """
     Exchange authorization code for access and refresh tokens from Xero.
     """
-    logger.info(f"Exchanging code for token. Code: {code}, State: {state}")
+    logger.debug(f"Exchanging code for token. Code: {code}, State: {state}")
     url = "https://identity.xero.com/connect/token"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {
@@ -142,17 +142,16 @@ def exchange_code_for_token(code, state, session_state):
 
     try:
         response = requests.post(url, headers=headers, data=data)
-        logger.info(f"Requesting token exchange with code: {code} and state: {state}")
+        logger.debug(f"Requesting token exchange with code: {code} and state: {state}")
         logger.debug(f"Request payload: {data}")
         logger.debug(f"Response: {response.status_code}, {response.json()}")
         response.raise_for_status()
-        cache.set("xero_token", response.json(), timeout=1740) # Testing current logic of setting token
         return response.json()
     except requests.exceptions.HTTPError as e:
-        logger.error(f"HTTP Error: {response.status_code} - {response.text}")
+        logger.debug(f"HTTP Error: {response.status_code} - {response.text}")
         raise e
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.debug(f"Unexpected error: {str(e)}")
         raise e
 
 
@@ -171,7 +170,7 @@ def get_tenant_id() -> str:
     )  # Step 2: Ensure a valid token exists, refreshing if necessary.
 
     if not token:
-        logger.error("No valid token found")
+        logger.debug("No valid token found")
         raise Exception(
             "No valid Xero token found. Please complete the authorization workflow."
         )
@@ -179,7 +178,7 @@ def get_tenant_id() -> str:
     if (
         not tenant_id
     ):  # Step 3: If tenant ID is missing, fetch it using the current token.
-        logger.info("No tenant ID in cache, fetching from Xero")
+        logger.debug("No tenant ID in cache, fetching from Xero")
         try:
             tenant_id = get_tenant_id_from_connections()
             logger.debug(f"Caching tenant ID: {tenant_id}")
@@ -187,7 +186,7 @@ def get_tenant_id() -> str:
                 "xero_tenant_id", tenant_id
             )  # Cache the tenant ID for future use.
         except Exception as e:
-            logger.error(f"Failed to fetch tenant ID: {str(e)}")
+            logger.debug(f"Failed to fetch tenant ID: {str(e)}")
             raise Exception(f"Failed to fetch tenant ID: {str(e)}")
 
     logger.debug(f"Returning tenant ID: {tenant_id}")

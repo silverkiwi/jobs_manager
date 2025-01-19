@@ -1,4 +1,3 @@
-# workflow/views/xero_view.py
 import logging
 import uuid
 import traceback
