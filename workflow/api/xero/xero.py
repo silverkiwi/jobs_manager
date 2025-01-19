@@ -47,7 +47,7 @@ def get_token() -> Optional[Dict[str, Any]]:
     token = cache.get("xero_token")
     if not token:
         logger.debug("Token not found in cache")
-        logger.debug(f"Current cache content: \n{pretty_print(cache._cache)}")
+        logger.debug(f"Current cache content: \n{cache._cache}")
     else:
         logger.debug(f"Retrieved token from cache: \n{pretty_print(token)}")
     return token
