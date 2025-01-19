@@ -122,7 +122,7 @@ def get_authentication_url(state: str) -> str:
         'state': state,
     }
     logger.debug(f"\nGenerating authentication URL with params: \n{pretty_print(params)}")
-    url = f"\nhttps://login.xero.com/identity/connect/authorize?{urlencode(params)}"
+    url = f"https://login.xero.com/identity/connect/authorize?{urlencode(params)}"
     logger.debug(f"\nGenerated URL: {url}")
     return url
 
