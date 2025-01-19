@@ -75,7 +75,7 @@ def store_token(token: Dict[str, Any]) -> None:
         ).timestamp()
 
     cache.set("xero_token", token_data, timeout=1740)  # 29 minutes
-    logger.debug(f"Token stored successfully. Current cache: \n{pretty_print(cache._cache)}")
+    logger.debug(f"Token stored successfully. Current cache: \n{cache._cache}")
 
 
 def refresh_token() -> Optional[Dict[str, Any]]:
