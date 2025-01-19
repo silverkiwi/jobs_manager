@@ -135,18 +135,16 @@ def exchange_code_for_token(code, state, session_state):
         "client_secret": settings.XERO_CLIENT_SECRET,
     }
 
-    # Log Xero configuration
-    logger.debug(f"XERO_REDIRECT_URI: {settings.XERO_REDIRECT_URI}")
-    logger.debug(f"XERO_CLIENT_ID: {settings.XERO_CLIENT_ID}")
-    logger.debug(f"XERO_CLIENT_SECRET: {settings.XERO_CLIENT_SECRET}")
-
     try:
         response = requests.post(url, headers=headers, data=data)
-        logger.debug(f"Requesting token exchange with code: {code} and state: {state}")
-        logger.debug(f"Request payload: {data}")
-        logger.debug(f"Response: {response.status_code}, {response.json()}")
         response.raise_for_status()
-        return response.json()
+        token = response.json()
+        logger.debug(f"Token received: {token}")
+        
+        store_token(token)
+        logger.debug("Token stored successfully after exchange.")
+        
+        return token
     except requests.exceptions.HTTPError as e:
         logger.debug(f"HTTP Error: {response.status_code} - {response.text}")
         raise e
