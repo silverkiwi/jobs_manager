@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 from urllib.parse import urlencode
+import json
 
 import requests
 from django.conf import settings
@@ -12,6 +13,10 @@ from xero_python.identity import IdentityApi
 from xero_python.api_client.oauth2 import TokenApi
 
 logger = logging.getLogger(__name__)
+
+# Helper function for pretty printing JSON/dict objects
+def pretty_print(obj):
+    return json.dumps(obj, indent=2, sort_keys=True)
 
 XERO_SCOPES = [
     "offline_access",
@@ -42,20 +47,35 @@ def get_token() -> Optional[Dict[str, Any]]:
     token = cache.get("xero_token")
     if not token:
         logger.debug("Token not found in cache")
+        logger.debug(f"Current cache content: \n{pretty_print(cache._cache)}")
     else:
-        logger.debug(f"Retrieved token from cache: {token}")
+        logger.debug(f"Retrieved token from cache: \n{pretty_print(token)}")
     return token
 
 
 @api_client.oauth2_token_saver
 def store_token(token: Dict[str, Any]) -> None:
     """Store token in cache with 29 minute timeout."""
-    logger.debug(f"Storing token: {token}")
-    try:
-        cache.set("xero_token", token, timeout=1740)  # 29 minutes
-        logger.debug("Token stored successfully")
-    except Exception as e:
-        logger.debug(f"Failed to store token in cache: {str(e)}")
+    logger.info(f"Storing token: \n{pretty_print(token)}")
+    
+    # For better logs if needed
+    token_data = {
+        "id_token": token.get("id_token"),
+        "access_token": token.get("access_token"),
+        "refresh_token": token.get("refresh_token"),
+        "expires_in": token.get("expires_in"),
+        "token_type": token.get("token_type"),
+        "scope": token.get("scope"),
+    }
+
+    # Absolute expiration date for better accuracy
+    if token_data["expires_in"]:
+        token_data["expires_at"] = (
+            datetime.now(timezone.utc) + timedelta(seconds=token_data["expires_in"])
+        ).timestamp()
+
+    cache.set("xero_token", token_data, timeout=1740)  # 29 minutes
+    logger.debug(f"Token stored successfully. Current cache: \n{pretty_print(cache._cache)}")
 
 
 def refresh_token() -> Optional[Dict[str, Any]]:
@@ -70,7 +90,7 @@ def refresh_token() -> Optional[Dict[str, Any]]:
     token_api = TokenApi(api_client)
     refreshed_token = token_api.refresh_token(token)
     refreshed_dict = refreshed_token.to_dict()
-    logger.debug(f"Token refreshed successfully: {refreshed_dict}")
+    logger.debug(f"Token refreshed successfully: \n{pretty_print(refreshed_dict)}")
     store_token(refreshed_dict)
     return refreshed_dict
 
@@ -89,20 +109,21 @@ def get_valid_token() -> Optional[Dict[str, Any]]:
         if datetime.now(timezone.utc) > expires_at_datetime:
             logger.debug("Token expired, refreshing")
             token = refresh_token()
-    logger.debug(f"Returning valid token: {token}")
+    logger.debug(f"Returning valid token: \n{pretty_print(token)}")
     return token
 
 
 def get_authentication_url(state: str) -> str:
     """Get the URL for initial Xero OAuth."""
-    logger.debug(f"Generating authentication URL with state: {state}")
-    url = f"https://login.xero.com/identity/connect/authorize?{urlencode({
+    params = {
         'response_type': 'code',
         'client_id': settings.XERO_CLIENT_ID,
         'redirect_uri': settings.XERO_REDIRECT_URI,
         'scope': ' '.join(XERO_SCOPES),
         'state': state,
-    })}"
+    }
+    logger.debug(f"Generating authentication URL with params: \n{pretty_print(params)}")
+    url = f"https://login.xero.com/identity/connect/authorize?{urlencode(params)}"
     logger.debug(f"Generated URL: {url}")
     return url
 
@@ -139,7 +160,7 @@ def exchange_code_for_token(code, state, session_state):
         response = requests.post(url, headers=headers, data=data)
         response.raise_for_status()
         token = response.json()
-        logger.debug(f"Token received: {token}")
+        logger.debug(f"Token received: \n{pretty_print(token)}")
         
         store_token(token)
         logger.debug("Token stored successfully after exchange.")
