@@ -88,7 +88,7 @@ LOGGING = {
             "propagate": False,
         },
         "xero": {
-            "handlers": ["xero_file", "console"],
+            "handlers": ["xero_file"],
             "level": "DEBUG",
             "propagate": False,
         },
