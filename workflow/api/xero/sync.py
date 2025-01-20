@@ -20,7 +20,7 @@ from workflow.models.client import Client
 from workflow.models.invoice import Bill, Invoice, CreditNote
 from workflow.models.xero_account import XeroAccount
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("xero")
 
 
 def sync_xero_data(
