@@ -49,7 +49,6 @@ jobs:
               python manage.py collectstatic --noinput
   
               sudo systemctl restart workflow
-              sudo systemctl restart celery
               sudo systemctl reload nginx
             EOF
 
