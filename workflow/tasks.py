@@ -1,6 +1,6 @@
 from celery import shared_task
 import logging
-from api.xero.sync import sync_client_to_xero
+from workflow.api.xero.sync import sync_client_to_xero
 
 logger = logging.getLogger("xero")
 
