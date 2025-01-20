@@ -19,17 +19,23 @@ from workflow.models import XeroJournal
 from workflow.models.client import Client
 from workflow.models.invoice import Bill, Invoice, CreditNote
 from workflow.models.xero_account import XeroAccount
-from workflow.tasks import sync_client_task
+from workflow.tasks import (
+    sync_client_task, 
+    sync_accounts_task, 
+    sync_invoices_task, 
+    sync_bills_task, 
+    sync_credit_notes_task, 
+    sync_journals_task)
 
 logger = logging.getLogger("xero")
 
 
 def enqueue_client_sync_tasks():
     """
-    Enqueues synchronization of all clients to be processed by Celery    
+    Enqueues synchronization of all clients to be processed by Celery
     """
     clients_to_push = Client.objects.filter(
-        django_updated_at__gt=models.F('xero_last_modified')
+        django_updated_at__gt=models.F("xero_last_modified")
     )
 
     for client in clients_to_push:
@@ -112,8 +118,11 @@ def sync_xero_data(
             logger.info("No items to sync.")
             return
 
-        # Process the current batch of items.
-        sync_function(items)
+        # Process the current batch of items, enqueuing it if it's a Celery task, otherwise run it directly
+        if callable(getattr(sync_function, "delay", None)):
+            sync_function.delay(items)
+        else:
+            sync_function(items)
 
         # Update parameters to ensure progress in pagination.
         if pagination_mode == "page":
@@ -396,22 +405,22 @@ def sync_journals(journals):
 
 
 def sync_clients(xero_contacts):
+    """
+    Sync clients fetched from Xero API.
+    """
     for contact_data in xero_contacts:
         xero_contact_id = getattr(contact_data, "contact_id", None)
 
+        # Serialize and clean the JSON received from the API
         raw_json_with_currency = serialise_xero_object(contact_data)
-        raw_json = remove_junk_json_fields(
-            raw_json_with_currency
-        )  # Client doesn't have any currency fields but kept for consistancy
+        raw_json = remove_junk_json_fields(raw_json_with_currency)
 
         try:
-            client = Client.objects.get(xero_contact_id=xero_contact_id)
-            created = False
-        except Client.DoesNotExist:
-            client = Client(xero_contact_id=xero_contact_id)
-            created = True
+            # Find client by `xero_contact_id`
+            client, created = Client.objects.get_or_create(
+                xero_contact_id=xero_contact_id
+            )
 
-        try:
             client.raw_json = raw_json
             set_client_fields(client, new_from_xero=created)
 
@@ -423,8 +432,13 @@ def sync_clients(xero_contacts):
                 logger.info(
                     f"Updated client: {client.name} updated_at={client.xero_last_modified}"
                 )
+
+            # Queue synchronization for each client
+            sync_client_task.delay(client.id)
         except Exception as e:
-            logger.error(f"Error processing client {contact_data.name}: {str(e)}")
+            logger.error(
+                f"Error processing client {contact_data.get('name', 'unknown')}: {str(e)}"
+            )
             logger.error(f"Client data: {raw_json}")
             raise
 
@@ -517,13 +531,14 @@ def sync_client_to_xero(client):
             new_contact_id = response.contacts[0].contact_id
             client.xero_contact_id = new_contact_id
             client.save()
-            logger.info(f"Created new client {client.name} in Xero with ID {new_contact_id}.")
+            logger.info(
+                f"Created new client {client.name} in Xero with ID {new_contact_id}."
+            )
 
         return response.contacts if response.contacts else []
     except Exception as e:
         logger.error(f"Failed to sync client {client.name} to Xero: {str(e)}")
         raise
-
 
 
 def single_sync_client(
@@ -726,10 +741,11 @@ def one_way_sync_all_xero_data():
     # set_invoice_or_bill_fields(invoice, "INVOICE")
     # reprocess_all()
 
+    logger.info(f"Starting sync for accounts, mode=single, since={our_latest_account}")
     sync_xero_data(
         xero_entity_type="accounts",
         xero_api_function=accounting_api.get_accounts,
-        sync_function=sync_accounts,
+        sync_function=sync_accounts_task,
         last_modified_time=our_latest_account,
         pagination_mode="single",
     )
@@ -737,7 +753,7 @@ def one_way_sync_all_xero_data():
     sync_xero_data(
         xero_entity_type="contacts",
         xero_api_function=accounting_api.get_contacts,
-        sync_function=sync_clients,
+        sync_function=sync_clients,  # Already enqueuing by itself
         last_modified_time=our_latest_contact,
         pagination_mode="page",
     )
@@ -745,15 +761,16 @@ def one_way_sync_all_xero_data():
     sync_xero_data(
         xero_entity_type="invoices",
         xero_api_function=accounting_api.get_invoices,
-        sync_function=sync_invoices,
+        sync_function=sync_invoices_task,
         last_modified_time=our_latest_invoice,
         additional_params={"where": 'Type=="ACCREC"'},
         pagination_mode="page",
     )
+
     sync_xero_data(
         xero_entity_type="invoices",
         xero_api_function=accounting_api.get_invoices,
-        sync_function=sync_bills,
+        sync_function=sync_bills_task,
         last_modified_time=our_latest_bill,
         additional_params={"where": 'Type=="ACCPAY"'},
         pagination_mode="page",
@@ -762,7 +779,7 @@ def one_way_sync_all_xero_data():
     sync_xero_data(
         xero_entity_type="credit_notes",
         xero_api_function=accounting_api.get_credit_notes,
-        sync_function=sync_credit_notes,
+        sync_function=sync_credit_notes_task,
         last_modified_time=our_latest_credit_note,
         pagination_mode="page",
     )
@@ -770,7 +787,7 @@ def one_way_sync_all_xero_data():
     sync_xero_data(
         xero_entity_type="journals",
         xero_api_function=accounting_api.get_journals,
-        sync_function=sync_journals,
+        sync_function=sync_journals_task,
         last_modified_time=our_latest_journal,
         pagination_mode="offset",
     )
@@ -790,4 +807,3 @@ def synchronise_xero_data(delay_between_requests=1):
     one_way_sync_all_xero_data()
 
     logger.info("Completed bi-directional Xero sync")
-    
