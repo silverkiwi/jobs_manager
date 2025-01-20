@@ -48,3 +48,8 @@ CACHES = {
         "TIMEOUT": 3600,
     }
 }
+
+# Celery configs
+CELERY_BROKER_URL = "redis://localhost:6379/0"  # Redis connection
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"

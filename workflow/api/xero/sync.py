@@ -19,8 +19,22 @@ from workflow.models import XeroJournal
 from workflow.models.client import Client
 from workflow.models.invoice import Bill, Invoice, CreditNote
 from workflow.models.xero_account import XeroAccount
+from workflow.tasks import sync_client_task
 
 logger = logging.getLogger("xero")
+
+
+def enqueue_client_sync_tasks():
+    """
+    Enqueues synchronization of all clients to be processed by Celery    
+    """
+    clients_to_push = Client.objects.filter(
+        django_updated_at__gt=models.F('xero_last_modified')
+    )
+
+    for client in clients_to_push:
+        sync_client_task.delay(client.id)  # Send each client as an asynchronous task
+        logger.info(f"Enqueued sync task for client {client.name}.")
 
 
 def apply_rate_limit_delay(response_headers):
@@ -769,67 +783,11 @@ def synchronise_xero_data(delay_between_requests=1):
     accounting_api = AccountingApi(api_client)
 
     # PUSH changes TO Xero
-
-    # Contacts/Clients
-    clients_to_push = Client.objects.filter(
-        django_updated_at__gt=models.F('xero_last_modified')
-    )
-    for client in clients_to_push:
-        logger.info(f"Pushing changes for client {client.name} to Xero")
-        try:
-            logger.info(f"Attempting to sync client {client.name} with Xero.")
-            response = sync_client_to_xero(client)
-
-            if response.status_code == 429:  # Rate limit exceeded
-                apply_rate_limit_delay(response.headers)
-                response = sync_client_to_xero(client)
-
-            if response.status_code == 200:
-                logger.info(f"Client {client.name} synced successfully.")
-            else:
-                logger.error(f"Failed to sync client {client.name}: {response.text}")
-
-        except Exception as e:
-            logger.error(f"Failed to push client {client.name} to Xero: {str(e)}")
-
-        time.sleep(delay_between_requests)
-
-    # # Invoices (ACCREC)
-    # invoices_to_push = Invoice.objects.filter(
-    #     django_updated_at__gt=models.F('xero_last_modified')
-    # )
-    # for invoice in invoices_to_push:
-    #     logger.info(f"Pushing changes for invoice {invoice.number} to Xero")
-    #     try:
-    #         sync_invoice_to_xero(invoice)  # Need to implement
-    #     except Exception as e:
-    #         logger.error(f"Failed to push invoice {invoice.number} to Xero: {str(e)}")
-
-    # # Bills (ACCPAY)
-    # bills_to_push = Bill.objects.filter(
-    #     django_updated_at__gt=models.F('xero_last_modified')
-    # )
-    # for bill in bills_to_push:
-    #     logger.info(f"Pushing changes for bill {bill.number} to Xero")
-    #     try:
-    #         sync_bill_to_xero(bill)  # Need to implement
-    #     except Exception as e:
-    #         logger.error(f"Failed to push bill {bill.number} to Xero: {str(e)}")
-
-    # # Credit Notes
-    # credit_notes_to_push = CreditNote.objects.filter(
-    #     django_updated_at__gt=models.F('xero_last_modified')
-    # )
-    # for note in credit_notes_to_push:
-    #     logger.info(f"Pushing changes for credit note {note.number} to Xero")
-    #     try:
-    #         sync_credit_note_to_xero(note)  # Need to implement
-    #     except Exception as e:
-    #         logger.error(f"Failed to push credit note {note.number} to Xero: {str(e)}")
-
-    # Note: Accounts and Journals are read-only from Xero, so no push needed
+    # Queue client synchronization
+    enqueue_client_sync_tasks()
 
     # PULL changes FROM Xero using existing sync
     one_way_sync_all_xero_data()
 
     logger.info("Completed bi-directional Xero sync")
+    
