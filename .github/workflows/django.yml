@@ -49,9 +49,9 @@ jobs:
               python manage.py collectstatic --noinput
   
               sudo systemctl restart workflow
+              sudo systemctl restart celery
               sudo systemctl reload nginx
             EOF
 
-      # Completion Notification
       - name: Notify Deployment Success
         run: echo "✅ Deployment to AWS EC2 completed successfully!"
