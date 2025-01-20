@@ -1,6 +1,5 @@
 from celery import shared_task
 import logging
-from workflow.api.xero.sync import sync_client_to_xero
 
 logger = logging.getLogger("xero")
 
@@ -10,6 +9,7 @@ def sync_client_task(self, client_id):
     """
     Asynchronous task to sync a single client with Xero.
     """
+    from workflow.api.xero.sync import sync_client_to_xero
     from workflow.models.client import Client
 
     try:
