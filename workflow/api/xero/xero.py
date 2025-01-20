@@ -48,14 +48,14 @@ def get_token() -> Optional[Dict[str, Any]]:
     if not token:
         logger.debug("\nToken not found in cache")
     else:
-        logger.debug(f"\nRetrieved token from cache: \n{pretty_print(token)}")
+        logger.debug(f"\nRetrieved token from cache!")
     return token
 
 
 @api_client.oauth2_token_saver
 def store_token(token: Dict[str, Any]) -> None:
     """Store token in cache with 29 minute timeout."""
-    logger.info(f"\nStoring token: \n{pretty_print(token)}")
+    logger.info(f"\nStoring token!")
     
     # For better logs if needed
     token_data = {
@@ -108,7 +108,7 @@ def get_valid_token() -> Optional[Dict[str, Any]]:
         if datetime.now(timezone.utc) > expires_at_datetime:
             logger.debug("\nToken expired, refreshing")
             token = refresh_token()
-    logger.debug(f"\nReturning valid token: \n{pretty_print(token)}")
+    logger.debug(f"\nReturning valid token!")
     return token
 
 
@@ -159,10 +159,10 @@ def exchange_code_for_token(code, state, session_state):
         response = requests.post(url, headers=headers, data=data)
         response.raise_for_status()
         token = response.json()
-        logger.debug(f"\nToken received: \n{pretty_print(token)}")
+        logger.debug(f"\nToken received!")
         
         store_token(token)
-        logger.debug("\nToken stored successfully after exchange.")
+        logger.debug("\nToken stored successfully after exchange!")
         
         return token
     except requests.exceptions.HTTPError as e:
