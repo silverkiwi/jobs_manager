@@ -23,6 +23,17 @@ from workflow.models.xero_account import XeroAccount
 logger = logging.getLogger("xero")
 
 
+def apply_rate_limit_delay(response_headers):
+    """
+    Applies a dynamic delay based on the 'Retry-After' header returned by Xero.
+    This is needed in case we get a 429 error (rate limit exceeded).
+    """
+    retry_after = int(response_headers.get("Retry-After", 0))
+    if retry_after > 0:
+        logger.warning(f"Rate limit reached. Retrying after {retry_after} seconds...")
+        time.sleep(retry_after)
+
+
 def sync_xero_data(
     xero_entity_type,
     xero_api_function,
@@ -751,7 +762,7 @@ def one_way_sync_all_xero_data():
     )
 
 
-def synchronise_xero_data():
+def synchronise_xero_data(delay_between_requests=1):
     """Bidirectional sync with Xero - pushes changes TO Xero, then pulls FROM Xero"""
     logger.info("Starting bi-directional Xero sync")
 
@@ -766,9 +777,22 @@ def synchronise_xero_data():
     for client in clients_to_push:
         logger.info(f"Pushing changes for client {client.name} to Xero")
         try:
-            sync_client_to_xero(client)
+            logger.info(f"Attempting to sync client {client.name} with Xero.")
+            response = sync_client_to_xero(client)
+
+            if response.status_code == 429:  # Rate limit exceeded
+                apply_rate_limit_delay(response.headers)
+                response = sync_client_to_xero(client)
+
+            if response.status_code == 200:
+                logger.info(f"Client {client.name} synced successfully.")
+            else:
+                logger.error(f"Failed to sync client {client.name}: {response.text}")
+
         except Exception as e:
             logger.error(f"Failed to push client {client.name} to Xero: {str(e)}")
+
+        time.sleep(delay_between_requests)
 
     # # Invoices (ACCREC)
     # invoices_to_push = Invoice.objects.filter(
