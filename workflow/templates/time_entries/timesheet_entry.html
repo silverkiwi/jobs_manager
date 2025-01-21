@@ -4,7 +4,10 @@
 {% block extra_css %}
 <!-- AG Grid Styles -->
 <link rel="stylesheet" href="{% static 'ag-grid-styles/ag-theme-alpine.css' %}">
-<link rel="stylesheet" href="{% static 'css/timesheet-entry.css' %}">k
+
+<!-- Bootstrap Icons and custom CSS classes -->
+<link rel="stylesheet" href="{% static 'css/timesheet-entry.css' %}">
+<link rel="stylesheet" href="{% static 'bootstrap-icons/bootstrap-icons.min.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -12,9 +15,48 @@
 <div class="container">
     <h2>Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ timesheet_date }}</h2>
 
+    <div class="card border-light mb-3">
+        <div class="card-header bg-transparent">
+            <i class="bi bi-keyboard"></i> Keyboard Shortcuts
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-3">
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-light text-dark me-2">Shift + Enter</span>
+                        <small>Edit/Confirm cell changes</small>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-light text-dark me-2">Enter</span>
+                        <small>Add new row below</small>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-light text-dark me-2">Esc</span>
+                        <small>Cancel editing</small>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-light text-dark me-2">Tab</span>
+                        <small>Move to next cell</small>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> Use arrow keys to navigate between cells and within the jobs dropdown list
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- AG Grid will be initialized here -->
     <div id="timesheet-grid" class="ag-theme-alpine">
-    </div>
+    </div>    
 
     <div class="header-actions d-flex justify-content-between mt-3 mb-2">
         <a href="{% url 'timesheet_entry' date=timesheet_date staff_id=prev_staff.id %}" class="btn btn-primary">
