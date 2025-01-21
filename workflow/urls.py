@@ -110,6 +110,9 @@ urlpatterns = [
     # Entry URLs
     path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
     path("job/<uuid:job_id>/", edit_job_view_ajax.edit_job_view_ajax, name="edit_job"),
+    
+    path("month-end/", edit_job_view_ajax.process_month_end, name="month_end"),
+    
     path(
         "jobs/<uuid:job_id>/update_status/",
         kanban_view.update_job_status,
@@ -166,4 +169,6 @@ urlpatterns = [
         name="get_staff_rates",
     ),
     path("__debug__/", include(debug_toolbar.urls)),  # Add this line
+    
+    
 ]

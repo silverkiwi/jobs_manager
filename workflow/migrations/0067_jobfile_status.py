@@ -10,13 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="jobfile",
-            name="status",
-            field=models.CharField(
-                choices=[("active", "Active"), ("deleted", "Deleted")],
-                default="active",
-                max_length=20,
-            ),
-        ),
     ]
