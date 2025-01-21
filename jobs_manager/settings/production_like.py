@@ -1,4 +1,5 @@
 from .base import *
+from .local import STATIC_ROOT as LOCAL_STATIC_ROOT
 from dotenv import load_dotenv
 
 
@@ -16,7 +17,7 @@ MIDDLEWARE = [
 ]
 
 STATIC_URL = "/static/"
-STATIC_ROOT = os.getenv("STATIC_ROOT")
+STATIC_ROOT = os.getenv("STATIC_ROOT", LOCAL_STATIC_ROOT)
 
 # Security configs
 SESSION_COOKIE_SECURE = True

@@ -58,11 +58,16 @@ export function updateSummarySection() {
             <td>Non-Billable Entries</td>
             <td>${nonBillableCount > 0 ? ((nonBillableCount / (billableCount + nonBillableCount)) * 100).toFixed(1) + '%' : 'No non-billable entries detected.'}</td>
         </tr>
-        ${jobsWithIssues.length > 0 ? `
-        <tr class="table-warning">
-            <td>Jobs with Issues</td>
-            <td>${jobsWithIssues.join(", ")}</td>
-        </tr>` : ''}
+        ${jobsWithIssues.length > 0 
+            ? `<tr class="table-warning">
+                <td>Jobs with Issues</td>
+                <td>${jobsWithIssues.length > 2
+                    ? jobsWithIssues.slice(0, 2).join(", ") + `, ...`
+                    : jobsWithIssues.join(", ")
+                }</td>
+            </tr>`
+            : ''
+        }
     `;
 
     // Update the table body

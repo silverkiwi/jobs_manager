@@ -169,9 +169,14 @@ function renderJobsSection(currentJobs) {
 
     jobsSection.querySelector('#no-jobs-alert')?.remove();
 
+    // Update the jobs list class based on the number of jobs
+    jobsList.className = currentJobs.length === 1 
+        ? 'row row-cols-1 g-3 w-100' 
+        : 'row row-cols-1 row-cols-md-2 g-3';
+
     // Render cards for each job
     currentJobs.forEach(job => {
-        const jobCard = createJobItem(job);
+        const jobCard = createJobItem(job, currentJobs.length === 1);
         jobsList.insertAdjacentHTML('beforeend', jobCard);
     });
 
@@ -181,17 +186,21 @@ function renderJobsSection(currentJobs) {
 /**
  * Creates a DOM element for a single job item.
  * @param {Object} job - Job data to render.
+ * @param {boolean} isSingleJob - Whether this is the only job being displayed.
  * @returns {HTMLElement} - The DOM element for the job item.
  */
-function createJobItem(job) {
+function createJobItem(job, isSingleJob = false) {
     const statusIcon = getStatusIcon(job.job_status);
     const hoursExceeded = job.hours_spent > job.estimated_hours;
     const warningMessage = hoursExceeded
         ? `<small class="text-danger">⚠ Exceeds estimated hours</small>`
         : '';
 
+    // Add w-100 class if it's a single job
+    const colClass = isSingleJob ? 'col w-100' : 'col';
+
     return `
-        <div class="col">
+        <div class="${colClass}">
             <div class="card h-100">
                 <div class="card-body">
                     <h5 class="card-title text-truncate">

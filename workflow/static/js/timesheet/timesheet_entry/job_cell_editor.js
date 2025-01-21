@@ -41,35 +41,35 @@ export class ActiveJobCellEditor {
     
         this.div.appendChild(this.input);
     }
-
+        
     updateDropdownPosition() {
-        const inputRect = this.input.getBoundingClientRect(); // Posição do input no viewport
+        const inputRect = this.input.getBoundingClientRect();
         this.listDiv.style.top = `${inputRect.bottom + window.scrollY}px`;
         this.listDiv.style.left = `${inputRect.left + window.scrollX}px`;
-        this.listDiv.style.width = `${inputRect.width}px`; // Ajustar largura ao input
+        this.listDiv.style.width = `${inputRect.width}px`;
     }
     
     showDropdown() {
-        this.updateDropdownPosition(); // Posicionar corretamente
-        this.listDiv.style.display = 'block'; // Mostrar dropdown
-        this.listDiv.classList.add('show'); // Bootstrap class
+        this.updateDropdownPosition();
+        this.listDiv.style.display = 'block';
+        this.listDiv.classList.add('show');
     }
     
     hideDropdown() {
-        this.listDiv.style.display = 'none'; // Ocultar dropdown
-        this.listDiv.classList.remove('show'); // Remover classe
+        this.listDiv.style.display = 'none';
+        this.listDiv.classList.remove('show');
     }
 
     populateList(jobs) {
-        this.listDiv.innerHTML = ''; // Clear previous results
-        this.highlightedIndex = -1; // Reset highlight index
+        this.listDiv.innerHTML = '';
+        this.highlightedIndex = -1;
 
         if (jobs.length === 0) {
             const noResults = document.createElement('div');
             noResults.className = 'dropdown-item text-muted';
             noResults.textContent = 'No jobs found';
             this.listDiv.appendChild(noResults);
-            this.listDiv.classList.add('show'); // Ensure dropdown is shown even if empty
+            this.listDiv.classList.add('show');
             return;
         }
 
@@ -159,7 +159,7 @@ export class ActiveJobCellEditor {
             this.listDiv.parentNode.removeChild(this.listDiv);
         }
         this.listDiv.classList.remove('show');
-    }    
+    }  
 
     isPopup() {
         return true;
