@@ -618,7 +618,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
 
             case 'invoiceJobButton':
-                alert('Invoice Job feature coming soon!');
+                createInvoiceForJob(jobId);
                 break;
 
             case 'printJobButton':
@@ -825,5 +825,54 @@ function handleSaveEventButtonClick(jobId) {
         .catch(error => {
             console.error('Error adding job event:', error);
             renderError('Failed to add job event. Please try again.');
+        });
+}
+
+function createInvoiceForJob(jobId) {
+    if (!jobId) {
+        renderMessages([{ level: 'error', message: `Job id is missing!` }]);
+        return;
+    }
+
+    fetch(`api/xero/create_invoice/${jobId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+    })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to create invoice');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            const invoiceSummary = `
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        Invoice Created Successfully
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Invoice ID:</strong> ${data.invoice_id}</p>
+                        <p><strong>Xero ID:</strong> ${data.xero_id}</p>
+                        <p><strong>Client:</strong> ${data.client}</p>
+                        <p><strong>Total (Excl. Tax):</strong> ${data.total_excl_tax}</p>
+                        <p><strong>Total (Incl. Tax):</strong> ${data.total_incl_tax}</p>
+                    </div>
+                </div>
+            `;
+
+            const modalBody = document.getElementById('alert-modal-body');
+            modalBody.innerHTML = invoiceSummary;
+
+            const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
+            alertModal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
         });
 }

@@ -5,7 +5,7 @@ import uuid
 import traceback
 from typing import Any
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.generic import TemplateView
 from xero_python.accounting import AccountingApi
@@ -15,6 +15,7 @@ from xero_python.accounting.models import (
     LineItem,
     Contact,
 )
+from xero_python.exceptions import AccountingBadRequestException
 
 from workflow.api.xero.sync import synchronise_xero_data
 from workflow.api.xero.xero import (
@@ -23,6 +24,7 @@ from workflow.api.xero.xero import (
     get_authentication_url,
     get_token,
     refresh_token,
+    get_tenant_id,
 )
 from workflow.models import Job, Invoice, InvoiceLineItem
 
@@ -68,9 +70,6 @@ def success_xero_connection(request: HttpRequest) -> HttpResponse:
     return render(request, "xero/success_xero_connection.html")
 
 
-# Get Xero contacts
-
-
 def refresh_xero_data(request):
     try:
         token = get_token()
@@ -108,7 +107,7 @@ def create_xero_invoice(job_id):
 
         if not job.client:
             raise ValueError("Job does not have a client")
-        
+
         client = job.client
         if not client.validate_for_xero():
             raise ValueError("Client data is not valid for Xero")
@@ -130,17 +129,20 @@ def create_xero_invoice(job_id):
             {
                 "description": "Total Time",
                 "quantity": 1,
-                "unit_price": job.latest_reality_pricing.total_time_cost or Decimal("0.00"),
+                "unit_price": job.latest_reality_pricing.total_time_cost
+                or Decimal("0.00"),
             },
             {
                 "description": "Total Materials",
                 "quantity": 1,
-                "unit_price": job.latest_reality_pricing.total_material_cost or Decimal("0.00"),
+                "unit_price": job.latest_reality_pricing.total_material_cost
+                or Decimal("0.00"),
             },
             {
                 "description": "Total Adjustments",
                 "quantity": 1,
-                "unit_price": job.latest_reality_pricing.total_adjustments_cost or Decimal("0.00"),
+                "unit_price": job.latest_reality_pricing.total_adjustments_cost
+                or Decimal("0.00"),
             },
         ]
 
@@ -157,22 +159,28 @@ def create_xero_invoice(job_id):
                 tax_amount=Decimal("0.00"),
             )
             total_excl_tax += line_item.line_amount_excl_tax
-            xero_line_items.append(LineItem(
-                description=item_data["description"],
-                quantity=item_data["quantity"],
-                unit_amount=item_data["unit_price"],
-                tax_type="NONE",  # Need to adjust if there's taxes
-            ))
-            
+            xero_line_items.append(
+                LineItem(
+                    description=item_data["description"],
+                    quantity=item_data["quantity"],
+                    unit_amount=item_data["unit_price"],
+                    tax_type="NONE",  # Need to adjust if there's taxes
+                )
+            )
+
         invoice.total_excl_tax = total_excl_tax
-        invoice.total_incl_tax = total_excl_tax # Again, need to adjust if there's taxes
-        invoice.amount_due = total_excl_tax # Need to adjust if there's parcial payments
+        invoice.total_incl_tax = (
+            total_excl_tax  # Again, need to adjust if there's taxes
+        )
+        invoice.amount_due = (
+            total_excl_tax  # Need to adjust if there's parcial payments
+        )
         invoice.save()
 
-        xero_api = AccountingApi()
-        xero_contact = Contact(
-            contact_id=client.xero_contact_id,
-        )
+        xero_tenant_id = get_tenant_id()
+        xero_api = AccountingApi(api_client())
+
+        xero_contact = Contact(contact_id=client.xero_contact_id)
 
         xero_invoice = XeroInvoice(
             type="ACCREC",
@@ -180,19 +188,38 @@ def create_xero_invoice(job_id):
             line_items=xero_line_items,
             date=datetime.now().date(),
             due_date=(datetime.now().date() + timedelta(days=30)),
-            line_amount_types="Exclusive"
+            line_amount_types="Exclusive",
         )
 
-        # TODO: implement Xero invoice creation effectively, considering needed data such as tenant ID etc.
+        response = xero_api.create_invoices(xero_tenant_id, [xero_invoice])
+
+        if response and response.invoices:
+            invoice.raw_json = response.to_dict()
+            invoice.xero_id = response.invoices[0].invoice_id
+            invoice.save()
 
         logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
+        return JsonResponse({
+            "success": True,
+            "invoice_id": invoice.id,
+            "xero_id": invoice.xero_id,
+            "client": invoice.client.name,
+            "total_excl_tax": str(invoice.total_excl_tax),
+            "total_incl_tax": str(invoice.total_incl_tax),
+        })
 
-        return invoice
+    except AccountingBadRequestException as e:
+        logger.error(f"Error creating invoice in Xero: {e}")
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Job.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Job not found."}, status=404)
     except Exception as e:
-        pass
+        logger.error(f"Unexpected error: {e}")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 class XeroIndexView(TemplateView):
     """Note this page is currently inaccessible.  We are using a dropdown menu instead.
     Kept as of 2025-01-07 in case we change our mind"""
+
     template_name = "xero_index.html"
