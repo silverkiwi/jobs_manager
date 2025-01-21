@@ -47,31 +47,58 @@ LOGIN_EXEMPT_URLS = ["logout"]
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
         },
-        "file": {
-            "level": "DEBUG",
-            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
-            "filename": "debug_sql.log",  # Path to store SQL logs
-            "maxBytes": 1024 * 1024 * 5,  # 5 MB log size before rotating
-            "backupCount": 5,  # Keep up to 5 backup logs
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
         },
     },
-    "root": {
-        "handlers": ["console"],  # Keep general logging to the console
-        "level": "DEBUG",
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+        "sql_file": {
+            "level": "DEBUG",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/debug_sql.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
+        # Saving Xero logs in a different file because they're getting to big
+        "xero_file": {
+            "level": "DEBUG",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/xero_integration.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
     },
     "loggers": {
         "django.db.backends": {
-            "handlers": ["file"],  # Only log SQL to file
+            "handlers": ["sql_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "xero": {
+            "handlers": ["xero_file"],
             "level": "DEBUG",
             "propagate": False,
         },
     },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
+    },
 }
+
 
 INTERNAL_IPS = [
     "127.0.0.1",

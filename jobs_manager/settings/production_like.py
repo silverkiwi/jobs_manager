@@ -11,7 +11,9 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "debug_toolbar"]
 
-MIDDLEWARE = [mw for mw in MIDDLEWARE if mw != "debug_toolbar.middleware.DebugToolbarMiddleware"]
+MIDDLEWARE = [
+    mw for mw in MIDDLEWARE if mw != "debug_toolbar.middleware.DebugToolbarMiddleware"
+]
 
 STATIC_URL = "/static/"
 STATIC_ROOT = os.getenv("STATIC_ROOT")
@@ -34,3 +36,20 @@ CSRF_TRUSTED_ORIGINS += [
     for host in ALLOWED_HOSTS
     if host not in ["localhost", "127.0.0.1"]
 ]
+
+# Cache configs (Currently using Redis for persistent caching)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "TIMEOUT": 3600,
+    }
+}
+
+# Celery configs
+CELERY_BROKER_URL = "redis://localhost:6379/0"  # Redis connection
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"

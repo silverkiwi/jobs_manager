@@ -1,4 +1,3 @@
-# workflow/views/xero_view.py
 import logging
 import uuid
 import traceback
@@ -20,7 +19,7 @@ from workflow.api.xero.xero import (
     refresh_token,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("xero")
 
 
 # Xero Authentication (Step 1: Redirect user to Xero OAuth2 login)

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - aws-environment
   pull_request:
     branches:
       - main
@@ -51,6 +52,5 @@ jobs:
               sudo systemctl reload nginx
             EOF
 
-      # Completion Notification
       - name: Notify Deployment Success
         run: echo "✅ Deployment to AWS EC2 completed successfully!"
