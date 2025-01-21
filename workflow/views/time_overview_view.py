@@ -45,6 +45,19 @@ EXCLUDED_STAFF_IDS = [
     "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
 ]
 
+# Jobs that won't make part of the graphic
+EXCLUDED_JOBS = [
+    "Business Development",
+    "Bench - busy work",
+    "Worker Admin",
+    "Office Admin",
+    "Annual Leave",
+    "Sick Leave",
+    "Other Leave",
+    "Travel",
+    "Training",
+]
+
 # This way we make only one query to the database for both views, which saves resources and improves the performance
 filtered_staff = [
     staff_member
@@ -101,7 +114,7 @@ class TimesheetOverviewView(TemplateView):
         try:
             return Job.objects.filter(
                 status__in=["quoting", "approved", "in_progress", "special"]
-            )
+            ).exclude(name__in=EXCLUDED_JOBS)
         except Exception as e:
             logger.error(f"Error getting open jobs: {str(e)}")
             return Job.objects.none()
