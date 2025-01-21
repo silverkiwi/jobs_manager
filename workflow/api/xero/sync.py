@@ -112,8 +112,11 @@ def sync_xero_data(
             logger.info("No items to sync.")
             return
 
-        # Process the current batch of items.
-        sync_function(items)
+        # Process the current batch of items, enqueuing it if it's a Celery task, otherwise run it directly
+        if callable(getattr(sync_function, "delay", None)):
+            sync_function.delay(items)
+        else:
+            sync_function(items)
 
         # Update parameters to ensure progress in pagination.
         if pagination_mode == "page":
@@ -396,22 +399,22 @@ def sync_journals(journals):
 
 
 def sync_clients(xero_contacts):
+    """
+    Sync clients fetched from Xero API.
+    """
     for contact_data in xero_contacts:
         xero_contact_id = getattr(contact_data, "contact_id", None)
 
+        # Serialize and clean the JSON received from the API
         raw_json_with_currency = serialise_xero_object(contact_data)
-        raw_json = remove_junk_json_fields(
-            raw_json_with_currency
-        )  # Client doesn't have any currency fields but kept for consistancy
+        raw_json = remove_junk_json_fields(raw_json_with_currency)
 
         try:
-            client = Client.objects.get(xero_contact_id=xero_contact_id)
-            created = False
-        except Client.DoesNotExist:
-            client = Client(xero_contact_id=xero_contact_id)
-            created = True
+            # Find client by `xero_contact_id`
+            client, created = Client.objects.get_or_create(
+                xero_contact_id=xero_contact_id
+            )
 
-        try:
             client.raw_json = raw_json
             set_client_fields(client, new_from_xero=created)
 
@@ -423,8 +426,13 @@ def sync_clients(xero_contacts):
                 logger.info(
                     f"Updated client: {client.name} updated_at={client.xero_last_modified}"
                 )
+
+            # Queue synchronization for each client
+            sync_client_task.delay(client.id)
         except Exception as e:
-            logger.error(f"Error processing client {contact_data.name}: {str(e)}")
+            logger.error(
+                f"Error processing client {contact_data.get('name', 'unknown')}: {str(e)}"
+            )
             logger.error(f"Client data: {raw_json}")
             raise
 
@@ -734,10 +742,11 @@ def one_way_sync_all_xero_data():
         pagination_mode="single",
     )
 
+    # Since clients seem to be the highest volume sync object, we continue to queue them to avoid hitting the Xero API call per minute limit.
     sync_xero_data(
         xero_entity_type="contacts",
         xero_api_function=accounting_api.get_contacts,
-        sync_function=sync_clients,
+        sync_function=sync_clients, # Already enqueuing
         last_modified_time=our_latest_contact,
         pagination_mode="page",
     )
