@@ -1,4 +1,4 @@
-from datetime import timezone, timedelta
+from datetime import timedelta
 from decimal import Decimal
 import logging
 import uuid
@@ -7,7 +7,9 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.views.generic import TemplateView
+
 from xero_python.accounting import AccountingApi
 from xero_python.identity import IdentityApi
 from xero_python.accounting.models import (
