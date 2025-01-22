@@ -31,7 +31,7 @@
  */
 
 import { createNewRow, getGridData } from '/static/js/deseralise_job_pricing.js';
-import { handlePrintJob, debouncedAutosave, copyEstimateToQuote } from './edit_job_form_autosave.js';
+import { handlePrintJob, handleExportCosts, debouncedAutosave, copyEstimateToQuote } from './edit_job_form_autosave.js';
 
 // console.log('Grid logic script is running');
 
@@ -618,7 +618,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
 
             case 'invoiceJobButton':
-                createInvoiceForJob(jobId);
+                // TODO: finish Xero invoice creation view 
+                // createInvoiceForJob(jobId);
+                handleExportCosts();
                 break;
 
             case 'printJobButton':
@@ -875,4 +877,76 @@ function createInvoiceForJob(jobId) {
             console.error('Error:', error);
             renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
         });
+}
+
+function exportCostsToPDF(costData, jobData) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'px' });
+    const creationDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    let startY = 20;
+
+    const logoPath = '/static/logo_msm.png';
+    doc.addImage(logoPath, 'PNG', 160, 10, 300, 150);
+
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Costs Summary", 10, startY);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated on: ${creationDate}`, 10, startY + 10);
+
+    startY += 40;
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Job Details", 10, startY);
+    startY += 20;
+
+    const jobDetails = [
+        ["Job Name", jobData.name || "N/A"],
+        ["Job Number", jobData.job_number || "N/A"],
+        ["Client", jobData.client_name || "N/A"],
+        ["Description", jobData.description || "N/A"],
+        ["Created On", new Date(jobData.created_at).toLocaleDateString("en-US") || "N/A"],
+    ];
+
+    jobDetails.forEach(([label, value]) => {
+        doc.setFont("helvetica", "bold");
+        doc.text(`${label}:`, 10, startY);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${value}`, 100, startY);
+        startY += 12;
+    });
+
+    startY += 10;
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Cost Details", 10, startY);
+    startY += 10;
+
+    const costHeaders = ["Category", "Estimate", "Quote", "Reality"];
+    const costRows = costData.map(row => [
+        row.category || "N/A",
+        `NZD ${row.estimate.toFixed(2)}`,
+        `NZD ${row.quote.toFixed(2)}`,
+        `NZD ${row.reality.toFixed(2)}`
+    ]);
+
+    doc.autoTable({
+        head: [costHeaders],
+        body: costRows,
+        startY: startY,
+    });
+
+    startY = doc.lastAutoTable.finalY + 20;
+
+    doc.setFontSize(16);
+    doc.text("Total Project Cost", 10, startY);
+    doc.setFontSize(12);
+    doc.text(`Estimate: NZD ${costData.total_estimate.toFixed(2)}`, 10, startY + 10);
+    doc.text(`Quote: NZD ${costData.total_quote.toFixed(2)}`, 10, startY + 20);
+    doc.text(`Reality: NZD ${costData.total_reality.toFixed(2)}`, 10, startY + 30);
+
+    return new Blob([doc.output("blob")], { type: "application/pdf" });
 }

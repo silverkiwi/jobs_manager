@@ -134,6 +134,9 @@
     <!-- jsPDF -->
     <script src="{% static 'jspdf/jspdf.umd.min.js' %}"></script>
     <script src="{% static 'jspdf-autotable/jspdf.plugin.autotable.min.js' %}"></script>
+    <!-- PDFMake -->
+    <script src="{% static 'pdfmake/pdfmake.js' %}"></script>
+    <script src="{% static 'pdfmake/vfs_fonts.js' %}"></script>
     <!-- Custom JS -->
     <script type="application/json" id="latestJobPricingsData" style="display:none;">{{ latest_job_pricings_json|safe }}</script>
     <script type="application/json" id="historicalJobPricingsData" style="display:none;">{{ historical_job_pricings_json|safe }}</script>

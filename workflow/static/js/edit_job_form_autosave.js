@@ -48,7 +48,6 @@ function collectAllData() {
     data.job_is_valid = checkJobValidity(data);
 
     return data;
-
 }
 
 function checkJobValidity(data) {
@@ -113,6 +112,34 @@ function collectGridData(section) {
     return sectionData;
 }
 
+function collectCostsData() {
+    const costsTable = window.grids.costsTable;
+    if (!costsTable || !costsTable.api) {
+        console.error('Costs table not found or missing API.');
+        return { headers: [], rows: [] };
+    }
+
+    const gridApi = costsTable.api;
+    const columns = gridApi.getColumnDefs().filter(col => col.headerName && col.headerName !== 'Actions');
+    const headers = columns.map(col => col.headerName);
+
+    const rowData = [];
+    gridApi.forEachNode(node => {
+        const row = columns.map(col => {
+            const value = node.data[col.field];
+            if (["estimate", "quote", "reality"].includes(col.field) && typeof value === 'number') {
+                return `$${value.toFixed(2)}`;
+            }
+            return value !== undefined ? value : 'N/A';
+        });
+        rowData.push(row);
+    });
+
+    console.log("Collected Costs Data:", { headers, rows: rowData });
+
+    return { headers, rows: rowData };
+}
+
 async function getDropboxToken() {
     if (!dropboxToken) {
         const response = await fetch('/api/get-env-variable/?var_name=DROPBOX_ACCESS_TOKEN');
@@ -173,143 +200,267 @@ async function uploadToDropbox(file, dropboxPath) {
     }
 }
 
-function exportJobToPDF(jobData) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'px' });
-    const creationDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); // Friendly date format
-    let startY = 20;
-
-    // Add logo
-    const logoPath = '/static/logo_msm.png';
-    doc.addImage(logoPath, 'PNG', 160, 10, 300, 150);
-
-    // Document title and generation date
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("Job Summary", 10, 20);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Generated on: ${creationDate}`, 10, 30);
-
-    startY += 20;
-
-    // Job details section
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Job Details", 10, startY);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    startY += 8;
-
-    const jobDetails = [
-        ["Job Name", jobData.name || "N/A"],
-        ["Job Number", jobData.job_number || "N/A"],
-        ["Client", jobData.client_name || "N/A"],
-        ["Contact Person", jobData.contact_person || "N/A"],
-        ["Description", jobData.description || "N/A"],
-        ["Job Created On", new Date(jobData.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) || "N/A"],
-    ];
-
-    jobDetails.forEach(([label, value]) => {
-        doc.setFont("helvetica", "bold");
-        doc.text(`${label}:`, 10, startY);
-        doc.setFont("helvetica", "normal");
-        doc.text(`${value}`, 50, startY);
-        startY += 6;
-    });
-
-    startY += 10;
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.5);
-    doc.line(10, startY - 5, 200, startY - 5);
-
-    // Pricing sections
-    const pricingSections = [
-        { section: "Estimate", grids: ["estimateTimeTable", "estimateMaterialsTable", "estimateAdjustmentsTable"] },
-        { section: "Quote", grids: ["quoteTimeTable", "quoteMaterialsTable", "quoteAdjustmentsTable"] },
-        { section: "Reality", grids: ["realityTimeTable", "realityMaterialsTable", "realityAdjustmentsTable"] },
-    ];
-
-    pricingSections.forEach(({ section, grids }) => {
-        doc.setFontSize(16);
-        doc.text(section, 10, startY);
-        doc.setFontSize(12);
-        startY += 10;
-
-        grids.forEach((gridKey) => {
-            const grid = window.grids[gridKey];
-            if (!grid || !grid.api) {
-                throw new Error(`Grid '${gridKey}' not found or missing API.`);
-            }
-            const gridApi = grid.api;
-
-            const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Actions');
-            const headers = columns.map(col => col.headerName);
-
-            const rowData = [];
-            gridApi.forEachNode(node => {
-                const row = columns.map(col => {
-                    const value = node.data[col.field];
-                    // Apply "NZD" only to monetary fields
-                    if (["cost", "revenue", "price_adjustment", "cost_adjustment"].includes(col.field) && typeof value === 'number') {
-                        return `NZD ${value.toFixed(2)}`;
-                    }
-                    return value !== undefined ? value : '';
-                });
-                rowData.push(row);
-            });
-
-            doc.autoTable({
-                head: [headers],
-                body: rowData,
-                startY: startY,
-            });
-
-            startY = doc.lastAutoTable.finalY + 10;
-        });
-    });
-
-    // Revenue and Costs section
-    doc.setFontSize(16);
-    doc.text("Revenue and Costs", 10, startY);
-    doc.setFontSize(12);
-    startY += 10;
-
-    ["revenueTable", "costsTable"].forEach(gridKey => {
-        const grid = window.grids[gridKey];
-        if (!grid || !grid.api) {
-            throw new Error(`Grid '${gridKey}' not found or missing API.`);
+async function fetchImageAsBase64(url) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.statusText}`);
         }
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result); // Base64 da imagem
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error(`Error fetching image from ${url}:`, error);
+        throw error;
+    }
+}
 
-        const gridApi = grid.api;
-        const columns = gridApi.getColumnDefs();
-        const headers = columns.map(col => col.headerName);
-
-        const rowData = [];
-        gridApi.forEachNode((node, rowIndex) => {
-            const row = columns.map(col => {
-                const value = node.data[col.field];
-                if (["estimate", "quote", "reality"].includes(col.field) && typeof value === 'number') {
-                    return `NZD ${value.toFixed(2)}`;
+async function exportJobToPDF(jobData) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const logoBase64 = await fetchImageAsBase64('/static/logo_msm.png');
+    
+            const pricingSections = [
+                { section: "Estimate", grids: [
+                    {name: "estimateTimeTable", label: "Time"},
+                    {name: "estimateMaterialsTable", label: "Materials"}, 
+                    {name: "estimateAdjustmentsTable", label: "Adjustments"}
+                ]},
+                { section: "Quote", grids: [
+                    {name: "quoteTimeTable", label: "Time"},
+                    {name: "quoteMaterialsTable", label: "Materials"},
+                    {name: "quoteAdjustmentsTable", label: "Adjustments"}
+                ]},
+                { section: "Reality", grids: [
+                    {name: "realityTimeTable", label: "Time"},
+                    {name: "realityMaterialsTable", label: "Materials"},
+                    {name: "realityAdjustmentsTable", label: "Adjustments"}
+                ]},
+            ];
+    
+            const pricingContent = pricingSections.map(({ section, grids }) => {
+                const sectionContent = [
+                    { text: section, style: 'sectionHeader', margin: [0, 20, 0, 10] },
+                ];
+    
+                grids.forEach((grid) => {
+                    const gridInstance = window.grids[grid.name];
+                    if (!gridInstance || !gridInstance.api) {
+                        sectionContent.push({ text: `Grid '${grid.name}' not found or missing API.`, style: 'error' });
+                        return;
+                    }
+    
+                    sectionContent.push({ text: grid.label, style: 'gridHeader', margin: [0, 10, 0, 5] });
+    
+                    const gridApi = gridInstance.api;
+                    const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Actions');
+                    const headers = columns.map(col => col.headerName || 'N/A');
+    
+                    const rowData = [];
+                    gridApi.forEachNode(node => {
+                        const row = columns.map(col => {
+                            const value = node.data[col.field];
+                            if (["cost", "revenue", "price_adjustment", "cost_adjustment"].includes(col.field) && typeof value === 'number') {
+                                return `$${value.toFixed(2)}`;
+                            }
+                            return value || 'N/A';
+                        });
+                        rowData.push(row);
+                    });
+    
+                    if (rowData.length > 0) {
+                        sectionContent.push({
+                            table: {
+                                headerRows: 1,
+                                widths: Array(headers.length).fill('*'),
+                                body: [
+                                    headers.map(header => ({
+                                        text: header,
+                                        fillColor: '#004aad',
+                                        color: '#ffffff',
+                                        bold: true,
+                                        fontSize: 12,
+                                    })),
+                                    ...rowData,
+                                ],
+                            },
+                            margin: [0, 5, 0, 15],
+                        });
+                    } else {
+                        sectionContent.push({ text: `No data available for '${grid.label}'.`, style: 'error' });
+                    }
+                });
+    
+                return sectionContent;
+            }).flat();
+    
+            const revenueAndCostsContent = ["revenueTable", "costsTable"].map((gridKey) => {
+                const grid = window.grids[gridKey];
+                if (!grid || !grid.api) {
+                    return { text: `Grid '${gridKey}' not found or missing API.`, style: 'error' };
                 }
-                return value !== undefined ? value : '';
+            
+                const title = gridKey === "revenueTable" ? "Revenue Details" : "Costs Details";
+                const gridApi = grid.api;
+                const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Actions');
+                const headers = columns.map(col => col.headerName || 'N/A');
+            
+                const rowData = [];
+                gridApi.forEachNode(node => {
+                    const row = columns.map(col => {
+                        const value = node.data[col.field];
+                        if (["estimate", "quote", "reality"].includes(col.field) && typeof value === 'number') {
+                            return `$${value.toFixed(2)}`;
+                        }
+                        return value || 'N/A';
+                    });
+                    rowData.push(row);
+                });
+            
+                return [
+                    { text: title, style: 'sectionHeader', margin: [0, 20, 0, 10] },
+                    {
+                        table: {
+                            headerRows: 1,
+                            widths: Array(headers.length).fill('*'),
+                            body: [
+                                headers.map(header => ({
+                                    text: header,
+                                    fillColor: '#004aad',
+                                    color: '#ffffff',
+                                    bold: true,
+                                    fontSize: 12,
+                                })),
+                                ...rowData,
+                            ],
+                        },
+                        margin: [0, 5, 0, 15],
+                    },
+                ];
+            }).flat();
+    
+            const docDefinition = {
+                content: [
+                    {
+                        image: logoBase64,
+                        width: 150,
+                        alignment: 'center',
+                        margin: [0, 0, 0, 20],
+                    },
+                    {
+                        text: 'Job Summary',
+                        style: 'header',
+                        margin: [0, 0, 0, 20],
+                    },
+                    {
+                        text: `Generated on: ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`,
+                        style: 'subheader',
+                        alignment: 'right',
+                    },
+                    { text: 'Job Details', style: 'sectionHeader', margin: [0, 20, 0, 10] },
+                    {
+                        table: {
+                            headerRows: 1,
+                            widths: ['*', '*'],
+                            body: [
+                                [
+                                    { text: 'Field', fillColor: '#004aad', color: '#ffffff', bold: true },
+                                    { text: 'Value', fillColor: '#004aad', color: '#ffffff', bold: true }
+                                ],
+                                ['Job Name', jobData.name || 'N/A'],
+                                ['Job Number', jobData.job_number || 'N/A'],
+                                ['Client', jobData.client_name || 'N/A'],
+                                ['Contact Person', jobData.contact_person || 'N/A'],
+                                ['Description', jobData.description || 'N/A'],
+                                ['Job Created On', new Date(jobData.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) || 'N/A'],
+                            ],
+                        },
+                        margin: [0, 0, 0, 20],
+                    },
+                    ...pricingContent,
+                    ...revenueAndCostsContent,
+                ],
+                styles: {
+                    header: { fontSize: 22, bold: true, alignment: 'center' },
+                    subheader: { fontSize: 12, italic: true },
+                    sectionHeader: { fontSize: 16, bold: true, margin: [0, 20, 0, 10] },
+                    gridHeader: { fontSize: 14, bold: true, color: '#444444' },
+                    error: { fontSize: 12, color: 'red', italic: true },
+                },
+            };
+    
+            pdfMake.createPdf(docDefinition).getBlob((blob) => {
+                resolve(blob);
             });
-            rowData.push(row);
-        });
-
-        doc.text(gridKey.replace(/Table$/, ""), 10, startY);
-        startY += 5;
-
-        doc.autoTable({
-            head: [headers],
-            body: rowData,
-            startY: startY,
-        });
-
-        startY = doc.lastAutoTable.finalY + 10;
+        } catch (error) {
+            console.error('Error generating Job PDF:', error);
+        }
     });
+}
 
-    return new Blob([doc.output("blob")], { type: "application/pdf" });
+async function exportCostsToPDF(costsData, jobData) {
+    try {
+        const logoBase64 = await fetchImageAsBase64('/static/logo_msm.png');    
+        const docDefinition = {
+            content: [
+                {
+                    image: logoBase64,
+                    width: 150,
+                    alignment: 'center',
+                    margin: [0, 0, 0, 20],
+                },
+                {
+                    text: 'Costs Summary',
+                    style: 'header',
+                    margin: [0, 0, 0, 20],
+                },
+                {
+                    text: `Generated on: ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`,
+                    style: 'subheader',
+                    alignment: 'right',
+                },
+                { text: 'Job Summary', style: 'sectionHeader', margin: [0, 20, 0, 10] },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: ['*', '*'],
+                        body: [
+                            ['Field', 'Value'],
+                            ['Job Name', jobData.name || 'N/A'],
+                            ['Job Number', jobData.job_number || 'N/A'],
+                            ['Client', jobData.client_name || 'N/A'],
+                            ['Created At', new Date(jobData.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) || 'N/A'],
+                            ['Description', jobData.description || 'N/A'],
+                        ],
+                    },
+                },
+                { text: 'Cost Details', style: 'sectionHeader', margin: [0, 20, 0, 10] },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: ['*', 'auto', 'auto', 'auto'],
+                        body: [
+                            costsData.headers,
+                            ...costsData.rows,
+                        ],
+                    },
+                },
+            ],
+            styles: {
+                header: { fontSize: 22, bold: true, alignment: 'center' },
+                subheader: { fontSize: 12, italic: true },
+                sectionHeader: { fontSize: 16, bold: true, margin: [0, 20, 0, 10] },
+            },
+        };
+    
+        pdfMake.createPdf(docDefinition).open();
+    } catch (error) {
+        console.error('Error fetching logo:', error);
+    }
 }
 
 function addGridToPDF(doc, title, rowData, startY) {
@@ -374,22 +525,53 @@ async function handlePDF(pdfBlob, mode, jobData) {
     }
 }
 
+let isGeneratingPDF = false;
+
 export function handlePrintJob() {
     try {
-        // Collect the current job data
-        const collectedData = collectAllData();
-
-        // Validate the job before proceeding
-        if (!collectedData.job_is_valid) {
-            console.error('Job is not valid. Please complete all required fields before printing.');
+        if (isGeneratingPDF) {
+            console.warn('PDF generation is already in progress.');
             return;
         }
 
-        // Generate the PDF (preview mode)
-        const pdfBlob = exportJobToPDF(collectedData);
-        handlePDF(pdfBlob, 'preview', collectedData); // Open the PDF in a new tab
+        isGeneratingPDF = true;
+
+        const collectedData = collectAllData();
+
+        if (!collectedData.job_is_valid) {
+            console.error('Job is not valid. Please complete all required fields before printing.');
+            isGeneratingPDF = false;
+            return;
+        }
+
+        exportJobToPDF(collectedData)
+            .then((pdfBlob) => {
+                handlePDF(pdfBlob, 'preview', collectedData);
+                isGeneratingPDF = false;
+            })
+            .catch((error) => {
+                console.error('Error generating Job PDF:', error);
+                isGeneratingPDF = false;
+            });
     } catch (error) {
         console.error('Error during Print Job process:', error);
+        isGeneratingPDF = false;
+    }
+}
+
+export function handleExportCosts() {
+    try {
+        const jobData = collectAllData();
+        const costsData = collectCostsData();
+
+        if (!jobData.job_is_valid) {
+            console.error('Job is not valid. Complete all required fields.');
+            return;
+        }
+
+        exportCostsToPDF(costsData, jobData);
+    } catch (error) {
+        console.error('Error exporting costs with PDFMake:', error);
     }
 }
 
@@ -436,16 +618,17 @@ function saveDataToServer(collectedData) {
             return response.json();
         })
         .then(data => {
-            const pdfBlob = exportJobToPDF(collectedData);
-            handlePDF(pdfBlob, 'upload', collectedData);
-            console.log('Autosave successful:', data);
-            renderMessages([{ level: 'success', message: 'Job updated successfully.' }], 'job-details');
+            exportJobToPDF(collectedData)
+                .then((pdfBlob) => {
+                    handlePDF(pdfBlob, 'upload', collectedData);
+                    console.log('Autosave successful:', data);
+                    renderMessages([{ level: 'success', message: 'Job updated successfully.' }], 'job-details');
+                });
         })
         .catch(error => {
             renderMessages([{ level: 'error', message: `Autosave failed: ${error.message}` }]);
         });
 }
-
 
 function handleValidationErrors(errors) {
     // Clear previous error messages

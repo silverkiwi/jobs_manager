@@ -191,6 +191,8 @@ STATICFILES_DIRS = [
     ("jspdf", "node_modules/jspdf/dist"),
     # jsPDF-AutoTable (JS)
     ("jspdf-autotable", "node_modules/jspdf-autotable/dist"),
+    # PDFMake (JS)
+    ("pdfmake", "node_modules/pdfmake/build/"),
     # Moment.js (JS)
     ("moment", "node_modules/moment"),
     # SortableJS (JS)
