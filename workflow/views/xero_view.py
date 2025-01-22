@@ -141,7 +141,7 @@ def create_xero_invoice(request, job_id):
         ]
 
         xero_tenant_id = get_tenant_id()
-        xero_api = AccountingApi(api_client())
+        xero_api = AccountingApi(api_client)
 
         xero_contact = Contact(contact_id=client.xero_contact_id)
         xero_invoice = XeroInvoice(
