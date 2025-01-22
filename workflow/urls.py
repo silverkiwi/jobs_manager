@@ -174,6 +174,4 @@ urlpatterns = [
         name="get_staff_rates",
     ),
     path("__debug__/", include(debug_toolbar.urls)),  # Add this line
-    
-    
 ]

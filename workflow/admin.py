@@ -65,7 +65,6 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
                     "last_name",
                     "preferred_name",
                     "wage_rate",
-                    "charge_out_rate",
                     "ims_payroll_id",
                 )
             },

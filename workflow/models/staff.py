@@ -164,11 +164,3 @@ class Staff(AbstractBaseUser, PermissionsMixin):
             self.last_name = " ".join(parts[1:])
         else:
             raise ValueError("Name must include both first and last name")
-
-    @property
-    def password(self) -> str:
-        return self.password
-
-    @password.setter
-    def password(self, value: str) -> None:
-        self.set_password(value)
