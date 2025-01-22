@@ -37,7 +37,21 @@ export class ActiveJobCellEditor {
         this.input.addEventListener('input', () => this.filterJobs());
         this.input.addEventListener('keydown', (e) => this.handleKeyDown(e));
         this.input.addEventListener('focus', () => this.showDropdown());
-        this.input.addEventListener('blur', () => this.hideDropdown());
+        
+        // Add mousedown listener to prevent blur when clicking dropdown
+        this.listDiv.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        
+        // Only hide dropdown on blur if not clicking inside listDiv
+        this.input.addEventListener('blur', (e) => {
+            setTimeout(() => {
+                if (!this.listDiv.contains(document.activeElement)) {
+                    this.hideDropdown();
+                }
+            }, 200);
+        });
     
         this.div.appendChild(this.input);
     }
@@ -81,6 +95,7 @@ export class ActiveJobCellEditor {
             jobRow.dataset.index = index;
             jobRow.onclick = (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 this.selectJob(job);
             };
             this.listDiv.appendChild(jobRow);
