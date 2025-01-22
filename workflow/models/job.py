@@ -151,6 +151,14 @@ class Job(models.Model):
             str(self.client_id) == "00000000-0000-0000-0000-000000000001"
         )  # This is the UUID for the shop client
 
+    @shop_job.setter 
+    def shop_job(self, value: bool) -> None:
+        """Sets whether this is a shop job by updating the client ID."""
+        if value:
+            self.client_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+        else:
+            self.client_id = None
+            
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"
         job_name = self.name if self.name else "No Job Name"
