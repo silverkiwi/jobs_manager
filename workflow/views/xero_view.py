@@ -176,8 +176,8 @@ def create_xero_invoice(request, job_id):
             type="ACCREC",
             contact=xero_contact,
             line_items=xero_line_items,
-            date=format_date(timezone.now().date().isoformat()),
-            due_date=format_date((timezone.now().date() + timedelta(days=30)).isoformat()),
+            date=format_date(timezone.now().date()),
+            due_date=format_date((timezone.now().date() + timedelta(days=30))),
             line_amount_types="Exclusive",
         )
 
