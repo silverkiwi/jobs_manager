@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const currentDateTimeISO = new Date().toISOString();
                 document.getElementById('quote_acceptance_date_iso').value = currentDateTimeISO;
                 console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
-                autosaveData();
+                debouncedAutosave();
                 break;
 
             case 'contactClientButton':
