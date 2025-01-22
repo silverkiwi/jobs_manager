@@ -120,6 +120,11 @@ def clean_payload(payload):
     return payload
 
 
+def format_date(dt):
+    """Format a date to ISO 8601 format with time."""
+    return dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+
 def create_xero_invoice(request, job_id):
     job = Job.objects.get(id=job_id)
 
@@ -171,8 +176,8 @@ def create_xero_invoice(request, job_id):
             type="ACCREC",
             contact=xero_contact,
             line_items=xero_line_items,
-            date=timezone.now().date().isoformat(),
-            due_date=(timezone.now().date() + timedelta(days=30)).isoformat(),
+            date=format_date(timezone.now().date().isoformat()),
+            due_date=format_date((timezone.now().date() + timedelta(days=30)).isoformat()),
             line_amount_types="Exclusive",
         )
 
