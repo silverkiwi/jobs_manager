@@ -126,17 +126,17 @@ def create_xero_invoice(request, job_id):
             {
                 "description": "Total Time",
                 "quantity": 1,
-                "unit_price": job.latest_reality_pricing.total_time_cost or Decimal("0.00"),
+                "unit_price": job.latest_reality_pricing.total_time_cost or float("0.00"),
             },
             {
                 "description": "Total Materials",
                 "quantity": 1,
-                "unit_price": job.latest_reality_pricing.total_material_cost or Decimal("0.00"),
+                "unit_price": job.latest_reality_pricing.total_material_cost or float("0.00"),
             },
             {
                 "description": "Total Adjustments",
                 "quantity": 1,
-                "unit_price": job.latest_reality_pricing.total_adjustment_cost or Decimal("0.00"),
+                "unit_price": job.latest_reality_pricing.total_adjustment_cost or float("0.00"),
             },
         ]
 
