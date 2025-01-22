@@ -126,11 +126,13 @@ def create_xero_invoice(request, job_id):
     if not job.client:
         raise ValueError("Job does not have a client")
 
-    client = job.client.get_client_for_xero()
+    client = job.client
     if not client.validate_for_xero():
         raise ValueError("Client data is not valid for Xero")
     if not client.xero_contact_id:
         raise ValueError(f"Client {client.name} does not have a valid Xero contact ID. Sync the client with Xero first.")
+
+    client = client.get_client_for_xero()
 
     line_items_data = [
         {
