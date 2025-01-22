@@ -111,15 +111,26 @@ def refresh_xero_data(request):
     return redirect("/")
 
 
+def clean_payload(payload):
+    """Remove null fields from payload."""    
+    if isinstance(payload, dict):
+        return {k: clean_payload(v) for k, v in payload.items() if v is not None}
+    if isinstance(payload, list):
+        return [clean_payload(v) for v in payload if v is not None]
+    return payload
+
+
 def create_xero_invoice(request, job_id):
     job = Job.objects.get(id=job_id)
 
     if not job.client:
         raise ValueError("Job does not have a client")
 
-    client = job.client
+    client = job.client.get_client_for_xero()
     if not client.validate_for_xero():
         raise ValueError("Client data is not valid for Xero")
+    if not client.xero_contact_id:
+        raise ValueError(f"Client {client.name} does not have a valid Xero contact ID. Sync the client with Xero first.")
 
     line_items_data = [
         {
@@ -164,7 +175,7 @@ def create_xero_invoice(request, job_id):
         )
 
         try:
-            invoice_payload = xero_invoice.to_dict()
+            invoice_payload = clean_payload(xero_invoice.to_dict())
             logger.debug(f"Serialized XeroInvoice payload: {json.dumps(invoice_payload, indent=4)}")
         except Exception as e:
             logger.error(f"Error serializing XeroInvoice: {str(e)}")
