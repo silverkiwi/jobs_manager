@@ -31,7 +31,7 @@
  */
 
 import { createNewRow, getGridData } from '/static/js/deseralise_job_pricing.js';
-import { handlePrintJob, handleExportCosts, debouncedAutosave, copyEstimateToQuote } from './edit_job_form_autosave.js';
+import { handlePrintJob, handleExportCosts, debouncedAutosave, copyEstimateToQuote, collectAllData } from './edit_job_form_autosave.js';
 
 // console.log('Grid logic script is running');
 
@@ -613,10 +613,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 showQuoteModal(jobId);
                 break;
 
-            case 'reviseQuote':
-                alert('Revise Quote feature coming soon!');
-                break;
-
             case 'invoiceJobButton':
                 // TODO: finish Xero invoice creation view 
                 // createInvoiceForJob(jobId);
@@ -635,7 +631,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
 
             case 'contactClientButton':
-                alert('Contact Client feature coming soon!');
+                showQuoteModal(jobId, 'gmail', true);
                 break;
 
             case 'saveEventButton':
@@ -658,7 +654,16 @@ function openPdfPreview(jobId) {
     window.open(pdfUrl, '_blank');
 };
 
-function showQuoteModal(jobId, provider = 'gmail') {
+function showQuoteModal(jobId, provider = 'gmail', contactOnly = false) {
+    if (contactOnly) {
+        sendQuoteEmail(jobId, provider, true)
+        .catch(error => {
+            console.error('Error sending quote email:', error);
+            renderMessages([{ level: 'error', message: 'Failed to send quote email.' }]);
+        });
+        return;
+    }
+
     const modalHtml = `
         <div class="modal fade" id="quoteModal" tabindex="-1" role="dialog" aria-labelledby="quoteModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
@@ -711,12 +716,11 @@ function showQuoteModal(jobId, provider = 'gmail') {
     });
 }
 
-async function sendQuoteEmail(jobId, provider = 'gmail') {
+async function sendQuoteEmail(jobId, provider = 'gmail', contactOnly = false) {
     try {
-        const response = await fetch(`/api/quote/${jobId}/send-email/`, { method: 'POST' });
+        const endpoint = `/api/quote/${jobId}/send-email/?contact_only=${contactOnly}`;
+        const response = await fetch(endpoint, { method: 'POST' });
         const data = await response.json();
-
-        renderMessages(data.messages || [], 'email-alert-container');
 
         if (data.success && data.mailto_url) {
             const email = data.mailto_url.match(/mailto:([^?]+)/)?.[1];
@@ -733,7 +737,6 @@ async function sendQuoteEmail(jobId, provider = 'gmail') {
                 throw new Error('Unsupported email provider.');
             }
 
-            // Open the email client in a new tab
             window.open(emailUrl, '_blank');
         } else if (!data.success) {
             console.error('Error sending email:', data.error);

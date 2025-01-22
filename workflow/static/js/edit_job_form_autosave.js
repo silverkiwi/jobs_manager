@@ -12,7 +12,7 @@ function debounce(func, wait) {
 }
 
 // Function to collect all data from the form
-function collectAllData() {
+export function collectAllData() {
     const data = {};  // Collects main form data
 
     // Collect data directly from visible input fields in the form

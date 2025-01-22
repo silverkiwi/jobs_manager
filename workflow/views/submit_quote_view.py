@@ -230,19 +230,6 @@ def generate_quote_pdf(request, job_id):
 
 @csrf_exempt
 def send_quote_email(request, job_id):
-    """
-    Opens default email client with quote summary PDF attached.
-
-    Args:
-        request: The HTTP request object
-        job_id: The ID of the job to send the quote for
-
-    Returns:
-        HttpResponse: A response with the mailto URL
-
-    Raises:
-        Http404: If the job with the given ID does not exist
-    """
     try:
         job = get_object_or_404(Job, pk=job_id)
         logger.info(f"Processing quote email for job {job_id}")
@@ -263,7 +250,6 @@ def send_quote_email(request, job_id):
             pdf_content = pdf_buffer.getvalue()
             pdf_buffer.close()
             logger.debug(f"PDF generated successfully for job {job_id}")
-            
         except Exception as e:
             logger.error(f"Error generating PDF for job {job_id}: {str(e)}")
             return JsonResponse(
@@ -271,9 +257,18 @@ def send_quote_email(request, job_id):
                 status=500
             )
 
-        # Create mailto URL with subject and body
-        subject = f"Quote Summary for {job.name}"
-        body = f"Please find the attached quote summary for {job.name}."
+        # Determine e-mail type
+        contact_only = request.GET.get("contact_only", "false").lower() == "true"
+
+        subject = f"Follow-up on Job #{job.name}" if contact_only else f"Quote Summary for {job.name}"
+        body = (
+            f"Hello {job.client.name if job.client else 'Client'},\n\n"
+            f"We are reaching out regarding Job #{job.name}.\n\n"
+            f"Please let us know if you have any questions or require further information.\n\n"
+            f"Best regards,\nMorris Sheetmetals Works"
+            if contact_only
+            else f"Please find the attached quote summary for {job.name}."
+        )
         
         mailto_url = (
             f"mailto:{email}"
@@ -281,7 +276,7 @@ def send_quote_email(request, job_id):
             f"&body={body}"
         )
 
-        logger.info(f"Quote email prepared successfully for job {job_id}")
+        logger.info(f"Email prepared successfully for job {job_id}")
         return JsonResponse({
             "success": True,
             "mailto_url": mailto_url,
@@ -290,7 +285,7 @@ def send_quote_email(request, job_id):
         })
 
     except Exception as e:
-        logger.error(f"Unexpected error processing quote email for job {job_id}: {str(e)}")
+        logger.error(f"Unexpected error processing email for job {job_id}: {str(e)}")
         return JsonResponse(
             {"error": "Unexpected error occurred", "messages": str(e)},
             status=500
