@@ -165,7 +165,7 @@ def create_xero_invoice(request, job_id):
     xero_tenant_id = get_tenant_id()
     xero_api = AccountingApi(api_client)
 
-    xero_contact = Contact(contact_id=client.xero_contact_id)
+    xero_contact = Contact(contact_id=job.client.xero_contact_id)
     try:
         xero_invoice = XeroInvoice(
             type="ACCREC",
@@ -202,7 +202,7 @@ def create_xero_invoice(request, job_id):
 
             invoice = Invoice.objects.create(
                 xero_id=xero_invoice_data.invoice_id,
-                client=client,
+                client=job.client,
                 date=timezone.now().date(),
                 due_date=(timezone.now().date() + timedelta(days=30)),
                 status="Draft",
