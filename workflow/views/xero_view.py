@@ -1,8 +1,15 @@
 from datetime import timedelta
+
 from decimal import Decimal
+
 import logging
+
 import uuid
+
 import traceback
+
+import json
+
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -156,7 +163,11 @@ def create_xero_invoice(request, job_id):
             line_amount_types=LineAmountTypes.EXCLUSIVE,
         )
 
-        response = xero_api.create_invoices(xero_tenant_id, [xero_invoice])
+        invoice_payload = xero_invoice.to_dict()
+        logger.debug(f"Invoice payload being sent to Xero: {json.dumps(invoice_payload, indent=4)}")
+
+        xero_tenant_id = get_tenant_id()
+        response = xero_api.create_invoices(xero_tenant_id, [invoice_payload])
 
         if response and response.invoices:
             xero_invoice_data = response.invoices[0]
