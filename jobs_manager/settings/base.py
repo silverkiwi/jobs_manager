@@ -4,10 +4,8 @@ from pathlib import Path
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-
-DEBUG = True
 
 AUTH_USER_MODEL = "workflow.Staff"
 
@@ -17,7 +15,6 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "django_node_assets",
-    "debug_toolbar",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -32,7 +29,6 @@ INSTALLED_APPS = [
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -51,31 +47,58 @@ LOGIN_EXEMPT_URLS = ["logout"]
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
         },
-        "file": {
-            "level": "DEBUG",
-            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
-            "filename": "debug_sql.log",  # Path to store SQL logs
-            "maxBytes": 1024 * 1024 * 5,  # 5 MB log size before rotating
-            "backupCount": 5,  # Keep up to 5 backup logs
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
         },
     },
-    "root": {
-        "handlers": ["console"],  # Keep general logging to the console
-        "level": "DEBUG",
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+        "sql_file": {
+            "level": "DEBUG",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/debug_sql.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
+        # Saving Xero logs in a different file because they're getting to big
+        "xero_file": {
+            "level": "DEBUG",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/xero_integration.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
     },
     "loggers": {
         "django.db.backends": {
-            "handlers": ["file"],  # Only log SQL to file
+            "handlers": ["sql_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "xero": {
+            "handlers": ["xero_file"],
             "level": "DEBUG",
             "propagate": False,
         },
     },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
+    },
 }
+
 
 INTERNAL_IPS = [
     "127.0.0.1",
@@ -102,7 +125,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "jobs_manager.wsgi.application"
 load_dotenv(BASE_DIR / ".env")
 
-
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
@@ -119,17 +141,6 @@ DATABASES = {
         },
     },
 }
-
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-#
-
-# Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -162,9 +173,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
 STATICFILES_DIRS = [
     # Bootstrap CSS and JS
     ("bootstrap", "node_modules/bootstrap/dist"),
@@ -192,29 +200,14 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
-
-# SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = os.getenv("DEBUG", "False") == "True"
-
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
-CSRF_TRUSTED_ORIGINS = [
-    "http://" + host for host in ALLOWED_HOSTS if host not in ["localhost", "127.0.0.1"]
-]
-CSRF_TRUSTED_ORIGINS += ["http://localhost", "http://127.0.0.1"]
-CSRF_TRUSTED_ORIGINS += [
-    "https://" + host
-    for host in ALLOWED_HOSTS
-    if host not in ["localhost", "127.0.0.1"]
-]
-
-# Xero settings
-XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID")
-XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET")
-XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI")
 
 # ===========================
 # CUSTOM SETTINGS
 # ===========================
+
+XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID", "")
+XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET", "")
+XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI", "")
+
 DROPBOX_WORKFLOW_FOLDER = os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow")

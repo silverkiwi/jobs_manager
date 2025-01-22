@@ -175,13 +175,13 @@ async function uploadToDropbox(file, dropboxPath) {
 
 function exportJobToPDF(jobData) {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF({ unit: 'px' });
     const creationDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); // Friendly date format
     let startY = 20;
 
     // Add logo
     const logoPath = '/static/logo_msm.png';
-    doc.addImage(logoPath, 'PNG', 160, 10, 30, 20);
+    doc.addImage(logoPath, 'PNG', 160, 10, 300, 150);
 
     // Document title and generation date
     doc.setFontSize(18);

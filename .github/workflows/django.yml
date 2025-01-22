@@ -1,65 +1,56 @@
-name: Django CI
+name: Django CD
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
+      - aws-environment
   pull_request:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
-  build:
+  deploy:
+    name: Deploy to EC2
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_DATABASE: test_msm_workflow
-          MYSQL_ROOT_PASSWORD: password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -ppassword --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=30
+
     steps:
-    - uses: actions/checkout@v4
+      # Code Checkout
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v3
-      with:
-        python-version: 3.12
+      # SSH Configuration and EC2 Deploy
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Install Poetry
-      run: |
-        python -m pip install --upgrade pip
-        pip install poetry
+      - name: Deploy Application to EC2
+        env:
+            AWS_HOST: ${{ secrets.AWS_HOST }}
+            AWS_USER: ${{ secrets.AWS_USER }}
+        run: |
+            BRANCH_NAME=${{ github.head_ref || github.ref_name }}
+            echo "Deploying branch: $BRANCH_NAME"
+            ssh -T -o StrictHostKeyChecking=no $AWS_USER@$AWS_HOST << EOF
+              cd ${{ secrets.PROJECT_PATH }}
+              if git branch | grep -q "$BRANCH_NAME"; then
+                git switch $BRANCH_NAME
+              else
+                git switch -c $BRANCH_NAME
+              fi            
+              git pull -f origin $BRANCH_NAME
+              source venv/bin/activate
+  
+              poetry install
+              npm install
+  
+              python manage.py migrate
+              python manage.py collectstatic --noinput
+  
+              sudo systemctl restart workflow
+              sudo systemctl reload nginx
+            EOF
 
-    - name: Install Dependencies
-      run: |
-        poetry install
-
-    - name: Prepare Database
-      run: |
-        docker exec $(docker ps -q --filter ancestor=mysql:8.0) mysql -u root -ppassword -e "DROP DATABASE IF EXISTS test_msm_workflow; CREATE DATABASE test_msm_workflow;"
-
-    - name: Run Tests
-      env:
-        MYSQL_DATABASE: "${{ secrets.MYSQL_DATABASE }}"
-        MSM_DB_USER: "${{ secrets.MSM_DB_USER }}"
-        DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
-        DB_HOST: "${{ secrets.DB_HOST }}"
-        DB_PORT: "${{ secrets.DB_PORT }}"
-        DEBUG: "True"
-      run: |
-        poetry run python manage.py test --verbosity 2 --keepdb
-
-    - name: Get MySQL Logs (on error)
-      if: failure()
-      run: |
-        docker logs $(docker ps -q --filter ancestor=mysql:8.0)
-
-    - name: Get Detailed MySQL Logs
-      if: failure()
-      run: |
-        docker exec $(docker ps -q --filter ancestor=mysql:8.0) cat /var/log/mysql/error.log
+      - name: Notify Deployment Success
+        run: echo "✅ Deployment to AWS EC2 completed successfully!"

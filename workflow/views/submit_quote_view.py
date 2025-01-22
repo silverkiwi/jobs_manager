@@ -98,10 +98,10 @@ def create_pdf(job):
     try:
         pdf.drawImage(
             logo_path,
-            x=450,
-            y=720,
-            width=100,
-            height=50,
+            x=420,
+            y=680,
+            width=150,
+            height=100,
             preserveAspectRatio=True,
             mask='auto'
         )

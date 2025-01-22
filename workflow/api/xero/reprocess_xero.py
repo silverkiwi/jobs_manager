@@ -2,9 +2,7 @@
 import logging
 from decimal import Decimal
 
-import time
 import uuid
-
 
 from workflow.models import BillLineItem, XeroJournal, XeroJournalLineItem
 from workflow.models.client import Client
@@ -17,7 +15,7 @@ from workflow.models.invoice import (
 )
 from workflow.models.xero_account import XeroAccount
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("xero")
 
 
 def set_invoice_or_bill_fields(document, document_type):
