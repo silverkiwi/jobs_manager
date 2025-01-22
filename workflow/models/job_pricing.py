@@ -72,7 +72,7 @@ class JobPricing(models.Model):
         """Calculate the total revenue for all time entries."""
         return sum(
             entry.revenue for entry in self.time_entries.all()
-        )  # Assuming 'revenue' field exists
+        )
 
     @property
     def total_material_cost(self):

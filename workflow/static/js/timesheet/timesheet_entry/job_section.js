@@ -67,7 +67,7 @@ function getStatusIcon(status) {
     const icons = {
         'quoting': '📝',
         'approved': '✅',
-        'rejected': '❌', 
+        'rejected': '❌',
         'in_progress': '🚧',
         'on_hold': '⏸️',
         'special': '⭐',
@@ -91,7 +91,7 @@ function getStatusIcon(status) {
 function mergeOrAddJobs(jobsToProcess, currentJobsList) {
     jobsToProcess.forEach(job => {
         const existingJobIndex = currentJobsList.findIndex(currentJob => currentJob.id === job.id);
-        existingJobIndex !== -1 
+        existingJobIndex !== -1
             ? currentJobsList[existingJobIndex] = { ...currentJobsList[existingJobIndex], ...job }
             : currentJobsList.push(job);
     });
@@ -151,52 +151,95 @@ function renderJobsSection(currentJobs) {
 
     jobsList.innerHTML = '';
 
+    const jobsSection = document.getElementById('current-jobs');
+
     if (currentJobs.length === 0) {
-        jobsList.innerHTML = `
-            <div id="no-jobs-alert" class="alert alert-info" role="alert">
-                No jobs are currently loaded.
-            </div>`;
+        const noJobsAlert = document.createElement('div');
+
+        noJobsAlert.id = 'no-jobs-alert';
+        noJobsAlert.className = 'alert alert-info text-center align-self-center';
+        noJobsAlert.setAttribute('role', 'alert');
+        noJobsAlert.textContent = 'No jobs are currently loaded.';
+
+        const titleElement = jobsSection.querySelector('h4');
+        titleElement.insertAdjacentElement('afterend', noJobsAlert);
+
         return;
     }
 
+    jobsSection.querySelector('#no-jobs-alert')?.remove();
+
+    // Update the jobs list class based on the number of jobs
+    jobsList.className = currentJobs.length === 1 
+        ? 'row row-cols-1 g-3 w-100' 
+        : 'row row-cols-1 row-cols-md-2 g-3';
+
+    // Render cards for each job
     currentJobs.forEach(job => {
-        const jobItem = createJobItem(job);
-        jobsList.appendChild(jobItem);
+        const jobCard = createJobItem(job, currentJobs.length === 1);
+        jobsList.insertAdjacentHTML('beforeend', jobCard);
     });
+
+    adjustJobContainerHeight();
 }
 
 /**
  * Creates a DOM element for a single job item.
  * @param {Object} job - Job data to render.
+ * @param {boolean} isSingleJob - Whether this is the only job being displayed.
  * @returns {HTMLElement} - The DOM element for the job item.
  */
-function createJobItem(job) {
+function createJobItem(job, isSingleJob = false) {
     const statusIcon = getStatusIcon(job.job_status);
     const hoursExceeded = job.hours_spent > job.estimated_hours;
-    const warningMessage = hoursExceeded ? `<small style="color: red">⚠ Exceeds estimated hours</small>` : '';
+    const warningMessage = hoursExceeded
+        ? `<small class="text-danger">⚠ Exceeds estimated hours</small>`
+        : '';
 
-    const jobItem = document.createElement('div');
-    jobItem.className = 'accordion-item';
-    jobItem.innerHTML = `
-        <h2 class="accordion-header" id="heading-${job.id}">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${job.id}">
-                ${statusIcon} <strong>${job.job_display_name}</strong>
-            </button>
-        </h2>
-        <div id="collapse-${job.id}" class="accordion-collapse collapse show">
-            <div class="accordion-body">
-                <p><strong>Status:</strong> ${job.job_status.charAt(0).toUpperCase() + job.job_status.slice(1)}</p>
-                <hr>
-                <p><strong>Client:</strong> ${job.client_name}</p>
-                <hr>
-                <p><strong>Estimated Hours:</strong> ${job.estimated_hours}</p>
-                <hr>
-                <p><strong>Hours Spent:</strong> ${job.hours_spent} ${warningMessage}</p>
-                <hr>
-                <p><a href="/job/${job.id}" class="btn btn-primary btn-lg">View Job Details</a></p>
+    // Add w-100 class if it's a single job
+    const colClass = isSingleJob ? 'col w-100' : 'col';
+
+    return `
+        <div class="${colClass}">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-truncate">
+                        <a href="/job/${job.id}" class="text-decoration-none">
+                            ${statusIcon} ${job.job_display_name}
+                        </a>
+                    </h5>
+                    <p class="card-text mb-1"><strong>Status:</strong> ${capitalizeFirstLetter(job.job_status)}</p>
+                    <p class="card-text mb-1"><strong>Client:</strong> ${job.client_name || 'N/A'}</p>
+                    <p class="card-text mb-1"><strong>Estimated Hours:</strong> ${job.estimated_hours || 0}</p>
+                    <p class="card-text mb-1">
+                        <strong>Hours Spent:</strong> ${job.hours_spent || 0}
+                        ${warningMessage}
+                    </p>
+                </div>
             </div>
         </div>
     `;
+}
 
-    return jobItem;
+/**
+ * Capitalizes the first letter of a string.
+ * @param {string} str - The string to capitalize.
+ * @returns {string} - The capitalized string.
+ */
+function capitalizeFirstLetter(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function adjustJobContainerHeight() {
+    const jobsContainer = document.getElementById('current-jobs');
+    const jobsList = document.getElementById('jobs-list');
+    const summarySection = document.getElementById('summary-section');
+
+    const jobsContentHeight = jobsList.scrollHeight;
+
+    if (jobsContentHeight > summarySection.offsetHeight) {
+        jobsContainer.style.height = `${jobsContentHeight}px`;
+    } else {
+        jobsContainer.style.height = `${summarySection.offsetHeight}px`;
+    }
 }

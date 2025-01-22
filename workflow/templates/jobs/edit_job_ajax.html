@@ -30,13 +30,15 @@
             <div id="quoteTimeTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="quoteMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="quoteAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
-            <button id="reviseQuote" class="btn btn-primary mt-3">Revise Quote</button>
+            <!-- Already implemented sort of revision with the button below, so this is not needed anymore
+             <button id="reviseQuote" class="btn btn-primary mt-3">Revise Quote</button>
+             -->
             <button id="submitQuoteToClient" class="btn btn-primary mt-3">Submit Quote to Client</button>
         </div>
 
         <div class="job-grid-section">
             <h2>Reality</h2>
-            <div id="realityTimeTable" class="ag-theme-alpine price-entry-table"><!-- Who populates this? --></div>
+            <div id="realityTimeTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="realityMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="realityAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
         </div>
@@ -134,6 +136,9 @@
     <!-- jsPDF -->
     <script src="{% static 'jspdf/jspdf.umd.min.js' %}"></script>
     <script src="{% static 'jspdf-autotable/jspdf.plugin.autotable.min.js' %}"></script>
+    <!-- PDFMake -->
+    <script src="{% static 'pdfmake/pdfmake.js' %}"></script>
+    <script src="{% static 'pdfmake/vfs_fonts.js' %}"></script>
     <!-- Custom JS -->
     <script type="application/json" id="latestJobPricingsData" style="display:none;">{{ latest_job_pricings_json|safe }}</script>
     <script type="application/json" id="historicalJobPricingsData" style="display:none;">{{ historical_job_pricings_json|safe }}</script>

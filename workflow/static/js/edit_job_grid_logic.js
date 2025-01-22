@@ -31,7 +31,7 @@
  */
 
 import { createNewRow, getGridData } from '/static/js/deseralise_job_pricing.js';
-import { handlePrintJob, debouncedAutosave, copyEstimateToQuote } from './edit_job_form_autosave.js';
+import { handlePrintJob, handleExportCosts, debouncedAutosave, copyEstimateToQuote, collectAllData } from './edit_job_form_autosave.js';
 
 // console.log('Grid logic script is running');
 
@@ -613,12 +613,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 showQuoteModal(jobId);
                 break;
 
-            case 'reviseQuote':
-                alert('Revise Quote feature coming soon!');
-                break;
-
             case 'invoiceJobButton':
-                alert('Invoice Job feature coming soon!');
+                // TODO: finish Xero invoice creation view 
+                // createInvoiceForJob(jobId);
+                handleExportCosts();
                 break;
 
             case 'printJobButton':
@@ -629,11 +627,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 const currentDateTimeISO = new Date().toISOString();
                 document.getElementById('quote_acceptance_date_iso').value = currentDateTimeISO;
                 console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
-                autosaveData();
+                debouncedAutosave();
                 break;
 
             case 'contactClientButton':
-                alert('Contact Client feature coming soon!');
+                showQuoteModal(jobId, 'gmail', true);
                 break;
 
             case 'saveEventButton':
@@ -656,7 +654,16 @@ function openPdfPreview(jobId) {
     window.open(pdfUrl, '_blank');
 };
 
-function showQuoteModal(jobId, provider = 'gmail') {
+function showQuoteModal(jobId, provider = 'gmail', contactOnly = false) {
+    if (contactOnly) {
+        sendQuoteEmail(jobId, provider, true)
+        .catch(error => {
+            console.error('Error sending quote email:', error);
+            renderMessages([{ level: 'error', message: 'Failed to send quote email.' }]);
+        });
+        return;
+    }
+
     const modalHtml = `
         <div class="modal fade" id="quoteModal" tabindex="-1" role="dialog" aria-labelledby="quoteModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
@@ -709,12 +716,11 @@ function showQuoteModal(jobId, provider = 'gmail') {
     });
 }
 
-async function sendQuoteEmail(jobId, provider = 'gmail') {
+async function sendQuoteEmail(jobId, provider = 'gmail', contactOnly = false) {
     try {
-        const response = await fetch(`/api/quote/${jobId}/send-email/`, { method: 'POST' });
+        const endpoint = `/api/quote/${jobId}/send-email/?contact_only=${contactOnly}`;
+        const response = await fetch(endpoint, { method: 'POST' });
         const data = await response.json();
-
-        renderMessages(data.messages || [], 'email-alert-container');
 
         if (data.success && data.mailto_url) {
             const email = data.mailto_url.match(/mailto:([^?]+)/)?.[1];
@@ -731,7 +737,6 @@ async function sendQuoteEmail(jobId, provider = 'gmail') {
                 throw new Error('Unsupported email provider.');
             }
 
-            // Open the email client in a new tab
             window.open(emailUrl, '_blank');
         } else if (!data.success) {
             console.error('Error sending email:', data.error);
@@ -826,4 +831,125 @@ function handleSaveEventButtonClick(jobId) {
             console.error('Error adding job event:', error);
             renderError('Failed to add job event. Please try again.');
         });
+}
+
+function createInvoiceForJob(jobId) {
+    if (!jobId) {
+        renderMessages([{ level: 'error', message: `Job id is missing!` }]);
+        return;
+    }
+
+    fetch(`/api/xero/create_invoice/${jobId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+    })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to create invoice');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            const invoiceSummary = `
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        Invoice Created Successfully
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Invoice ID:</strong> ${data.invoice_id}</p>
+                        <p><strong>Xero ID:</strong> ${data.xero_id}</p>
+                        <p><strong>Client:</strong> ${data.client}</p>
+                        <p><strong>Total (Excl. Tax):</strong> ${data.total_excl_tax}</p>
+                        <p><strong>Total (Incl. Tax):</strong> ${data.total_incl_tax}</p>
+                    </div>
+                </div>
+            `;
+
+            const modalBody = document.getElementById('alert-modal-body');
+            modalBody.innerHTML = invoiceSummary;
+
+            const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
+            alertModal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
+        });
+}
+
+function exportCostsToPDF(costData, jobData) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'px' });
+    const creationDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    let startY = 20;
+
+    const logoPath = '/static/logo_msm.png';
+    doc.addImage(logoPath, 'PNG', 160, 10, 300, 150);
+
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Costs Summary", 10, startY);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated on: ${creationDate}`, 10, startY + 10);
+
+    startY += 40;
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Job Details", 10, startY);
+    startY += 20;
+
+    const jobDetails = [
+        ["Job Name", jobData.name || "N/A"],
+        ["Job Number", jobData.job_number || "N/A"],
+        ["Client", jobData.client_name || "N/A"],
+        ["Description", jobData.description || "N/A"],
+        ["Created On", new Date(jobData.created_at).toLocaleDateString("en-US") || "N/A"],
+    ];
+
+    jobDetails.forEach(([label, value]) => {
+        doc.setFont("helvetica", "bold");
+        doc.text(`${label}:`, 10, startY);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${value}`, 100, startY);
+        startY += 12;
+    });
+
+    startY += 10;
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Cost Details", 10, startY);
+    startY += 10;
+
+    const costHeaders = ["Category", "Estimate", "Quote", "Reality"];
+    const costRows = costData.map(row => [
+        row.category || "N/A",
+        `NZD ${row.estimate.toFixed(2)}`,
+        `NZD ${row.quote.toFixed(2)}`,
+        `NZD ${row.reality.toFixed(2)}`
+    ]);
+
+    doc.autoTable({
+        head: [costHeaders],
+        body: costRows,
+        startY: startY,
+    });
+
+    startY = doc.lastAutoTable.finalY + 20;
+
+    doc.setFontSize(16);
+    doc.text("Total Project Cost", 10, startY);
+    doc.setFontSize(12);
+    doc.text(`Estimate: NZD ${costData.total_estimate.toFixed(2)}`, 10, startY + 10);
+    doc.text(`Quote: NZD ${costData.total_quote.toFixed(2)}`, 10, startY + 20);
+    doc.text(`Reality: NZD ${costData.total_reality.toFixed(2)}`, 10, startY + 30);
+
+    return new Blob([doc.output("blob")], { type: "application/pdf" });
 }

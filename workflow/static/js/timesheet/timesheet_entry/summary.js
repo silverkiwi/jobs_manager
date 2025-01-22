@@ -17,7 +17,7 @@ export function updateSummarySection() {
     let hasInconsistencies = false;
     const jobsWithIssues = [];
 
-    // Sum all the hours in the grid and count billable/non-billable entries
+    // Iterate through grid rows to calculate summary data
     grid.forEachNode(node => {
         const jobData = node?.data?.job_data;
         const hours = node?.data?.hours || 0;
@@ -36,39 +36,44 @@ export function updateSummarySection() {
         }
     });
 
-    // Update the summary table dynamically
+    // Prepare the summary data
     const scheduledHours = Number(window.timesheet_data.staff.scheduled_hours).toFixed(1);
 
     const summaryTableBody = document.getElementById('summary-table-body');
     if (!summaryTableBody) {
-        console.error('Summary table not found');
+        console.error('Summary table not found.');
         return;
     }
 
-    summaryTableBody.innerHTML = `
-        <tr class="border border-black ${totalHours < scheduledHours ? 'table-danger' : totalHours > scheduledHours ? 'table-warning' : 'table-success'}">
+    const summaryRows = `
+        <tr class="table-${totalHours < scheduledHours ? 'danger' : totalHours > scheduledHours ? 'warning' : 'success'}">
             <td>Total Hours</td>
             <td>${totalHours.toFixed(1)} / ${scheduledHours}</td>
         </tr>
-        <tr class="border border-black">
+        <tr>
             <td>Billable Entries</td>
             <td>${billableCount > 0 ? ((billableCount / (billableCount + nonBillableCount)) * 100).toFixed(1) + '%' : 'No billable entries detected.'}</td>
         </tr>
-        <tr class="border border-black">
+        <tr>
             <td>Non-Billable Entries</td>
             <td>${nonBillableCount > 0 ? ((nonBillableCount / (billableCount + nonBillableCount)) * 100).toFixed(1) + '%' : 'No non-billable entries detected.'}</td>
         </tr>
+        ${jobsWithIssues.length > 0 
+            ? `<tr class="table-warning">
+                <td>Jobs with Issues</td>
+                <td>${jobsWithIssues.length > 2
+                    ? jobsWithIssues.slice(0, 2).join(", ") + `, ...`
+                    : jobsWithIssues.join(", ")
+                }</td>
+            </tr>`
+            : ''
+        }
     `;
 
-    if (jobsWithIssues.length > 0) {
-        summaryTableBody.innerHTML += `
-            <tr class="table-warning border border-black">
-                <td>Jobs with Issues</td>
-                <td>${jobsWithIssues.join(", ")}</td>
-            </tr>
-        `;
-    }
+    // Update the table body
+    summaryTableBody.innerHTML = summaryRows;
 
+    // Render warning messages for inconsistencies
     if (hasInconsistencies) {
         renderMessages([{ level: "warning", message: "Some entries have inconsistencies. Please review them." }], 'time-entry');
     }

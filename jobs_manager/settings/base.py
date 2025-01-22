@@ -176,6 +176,8 @@ USE_TZ = True
 STATICFILES_DIRS = [
     # Bootstrap CSS and JS
     ("bootstrap", "node_modules/bootstrap/dist"),
+    # Bootstrap Icons CSS
+    ("bootstrap-icons", "node_modules/bootstrap-icons/font"),
     # ag-Grid Community (CSS/JS)
     ("ag-grid-community", "node_modules/ag-grid-community/dist"),
     ("ag-grid-styles", "node_modules/@ag-grid-community/styles"),
@@ -189,6 +191,8 @@ STATICFILES_DIRS = [
     ("jspdf", "node_modules/jspdf/dist"),
     # jsPDF-AutoTable (JS)
     ("jspdf-autotable", "node_modules/jspdf-autotable/dist"),
+    # PDFMake (JS)
+    ("pdfmake", "node_modules/pdfmake/build/"),
     # Moment.js (JS)
     ("moment", "node_modules/moment"),
     # SortableJS (JS)
