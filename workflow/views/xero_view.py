@@ -112,114 +112,113 @@ def refresh_xero_data(request):
 
 
 def create_xero_invoice(request, job_id):
+    job = Job.objects.get(id=job_id)
+
+    if not job.client:
+        raise ValueError("Job does not have a client")
+
+    client = job.client
+    if not client.validate_for_xero():
+        raise ValueError("Client data is not valid for Xero")
+
+    line_items_data = [
+        {
+            "description": "Total Time",
+            "quantity": 1,
+            "unit_price": float(job.latest_reality_pricing.total_time_cost) or float("0.00"),
+        },
+        {
+            "description": "Total Materials",
+            "quantity": 1,
+            "unit_price": float(job.latest_reality_pricing.total_material_cost) or float("0.00"),
+        },
+        {
+            "description": "Total Adjustments",
+            "quantity": 1,
+            "unit_price": float(job.latest_reality_pricing.total_adjustment_cost) or float("0.00"),
+        },
+    ]
+
+    xero_line_items = [
+        LineItem(
+            description=item["description"],
+            quantity=item["quantity"],
+            unit_amount=item["unit_price"],
+            tax_type="NONE",
+        )
+        for item in line_items_data
+    ]
+
+    xero_tenant_id = get_tenant_id()
+    xero_api = AccountingApi(api_client)
+
+    xero_contact = Contact(contact_id=client.xero_contact_id)
     try:
-        job = Job.objects.get(id=job_id)
+        xero_invoice = XeroInvoice(
+            type="ACCREC",
+            contact=xero_contact,
+            line_items=xero_line_items,
+            date=timezone.now().date().isoformat(),
+            due_date=(timezone.now().date() + timedelta(days=30)).isoformat(),
+            line_amount_types=str(LineAmountTypes.EXCLUSIVE),
+        )
 
-        if not job.client:
-            raise ValueError("Job does not have a client")
-
-        client = job.client
-        if not client.validate_for_xero():
-            raise ValueError("Client data is not valid for Xero")
-
-        line_items_data = [
-            {
-                "description": "Total Time",
-                "quantity": 1,
-                "unit_price": float(job.latest_reality_pricing.total_time_cost) or float("0.00"),
-            },
-            {
-                "description": "Total Materials",
-                "quantity": 1,
-                "unit_price": float(job.latest_reality_pricing.total_material_cost) or float("0.00"),
-            },
-            {
-                "description": "Total Adjustments",
-                "quantity": 1,
-                "unit_price": float(job.latest_reality_pricing.total_adjustment_cost) or float("0.00"),
-            },
-        ]
-
-        xero_line_items = [
-            LineItem(
-                description=item["description"],
-                quantity=item["quantity"],
-                unit_amount=item["unit_price"],
-                tax_type="NONE",
-            )
-            for item in line_items_data
-        ]
-
-        xero_tenant_id = get_tenant_id()
-        xero_api = AccountingApi(api_client)
-
-        xero_contact = Contact(contact_id=client.xero_contact_id)
         try:
-            xero_invoice = XeroInvoice(
-                type="ACCREC",
-                contact=xero_contact,
-                line_items=xero_line_items,
-                date=timezone.now().date().isoformat(),
-                due_date=(timezone.now().date() + timedelta(days=30)).isoformat(),
-                line_amount_types=str(LineAmountTypes.EXCLUSIVE),  # Certifique-se de que é uma string
+            invoice_payload = xero_invoice.to_dict()
+            logger.debug(f"Serialized XeroInvoice payload: {json.dumps(invoice_payload, indent=4)}")
+        except Exception as e:
+            logger.error(f"Error serializing XeroInvoice: {str(e)}")
+            raise
+
+        try:
+            xero_tenant_id = get_tenant_id()
+            logger.debug(f"Tenant ID retrieved: {xero_tenant_id}")
+        except Exception as e:
+            logger.error(f"Error retrieving tenant ID: {str(e)}")
+            raise
+
+        try:
+            response = xero_api.create_invoices(xero_tenant_id, [invoice_payload])
+            logger.debug(f"Xero API Response: {response}")
+        except Exception as e:
+            logger.error(f"Error sending invoice to Xero: {str(e)}")
+            raise
+
+        if response and response.invoices:
+            xero_invoice_data = response.invoices[0]
+
+            invoice = Invoice.objects.create(
+                xero_id=xero_invoice_data.invoice_id,
+                client=client,
+                date=timezone.now().date(),
+                due_date=(timezone.now().date() + timedelta(days=30)),
+                status="Draft",
+                total_excl_tax=Decimal(xero_invoice_data.total),
+                tax=Decimal(xero_invoice_data.total_tax),
+                total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
+                amount_due=Decimal(xero_invoice_data.amount_due),
+                xero_last_modified=timezone.now(),
+                raw_json=response.to_dict(),
             )
 
-            try:
-                invoice_payload = xero_invoice.to_dict()
-                logger.debug(f"Serialized XeroInvoice payload: {json.dumps(invoice_payload, indent=4)}")
-            except Exception as e:
-                logger.error(f"Error serializing XeroInvoice: {str(e)}")
-                raise
+            logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
+            return JsonResponse({
+                "success": True,
+                "invoice_id": invoice.id,
+                "xero_id": invoice.xero_id,
+                "client": invoice.client.name,
+                "total_excl_tax": str(invoice.total_excl_tax),
+                "total_incl_tax": str(invoice.total_incl_tax),
+            })
 
-            try:
-                xero_tenant_id = get_tenant_id()
-                logger.debug(f"Tenant ID retrieved: {xero_tenant_id}")
-            except Exception as e:
-                logger.error(f"Error retrieving tenant ID: {str(e)}")
-                raise
-
-            try:
-                response = xero_api.create_invoices(xero_tenant_id, [invoice_payload])
-                logger.debug(f"Xero API Response: {response}")
-            except Exception as e:
-                logger.error(f"Error sending invoice to Xero: {str(e)}")
-                raise
-
-            if response and response.invoices:
-                xero_invoice_data = response.invoices[0]
-
-                invoice = Invoice.objects.create(
-                    xero_id=xero_invoice_data.invoice_id,
-                    client=client,
-                    date=timezone.now().date(),
-                    due_date=(timezone.now().date() + timedelta(days=30)),
-                    status="Draft",
-                    total_excl_tax=Decimal(xero_invoice_data.total),
-                    tax=Decimal(xero_invoice_data.total_tax),
-                    total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
-                    amount_due=Decimal(xero_invoice_data.amount_due),
-                    xero_last_modified=timezone.now(),
-                    raw_json=response.to_dict(),
-                )
-
-                logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
-                return JsonResponse({
-                    "success": True,
-                    "invoice_id": invoice.id,
-                    "xero_id": invoice.xero_id,
-                    "client": invoice.client.name,
-                    "total_excl_tax": str(invoice.total_excl_tax),
-                    "total_incl_tax": str(invoice.total_incl_tax),
-                })
-
-        except AccountingBadRequestException as e:
-            logger.error(f"Error creating invoice in Xero: {e}")
-            return JsonResponse({"success": False, "error": str(e)}, status=400)
-        except Job.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Job not found."}, status=404)
-        except Exception as e:
-            logger.error(f"Unexpected error: {e}")
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
+    except AccountingBadRequestException as e:
+        logger.error(f"Error creating invoice in Xero: {e}")
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Job.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Job not found."}, status=404)
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 class XeroIndexView(TemplateView):
