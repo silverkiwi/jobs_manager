@@ -101,7 +101,7 @@ def refresh_xero_data(request):
     return redirect("/")
 
 
-def create_xero_invoice(job_id):
+def create_xero_invoice(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
 
