@@ -834,7 +834,7 @@ function createInvoiceForJob(jobId) {
         return;
     }
 
-    fetch(`api/xero/create_invoice/${jobId}`, {
+    fetch(`/api/xero/create_invoice/${jobId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
