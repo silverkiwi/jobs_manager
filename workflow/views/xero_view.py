@@ -191,7 +191,7 @@ def create_xero_invoice(request, job_id):
             raise
 
         try:
-            response = xero_api.create_invoices(xero_tenant_id, invoices=[invoice_payload])
+            response = xero_api.create_invoices(xero_tenant_id, invoices=[xero_invoice])
             logger.debug(f"Xero API Response: {response}")
         except Exception as e:
             logger.error(f"Error sending invoice to Xero: {str(e)}")
