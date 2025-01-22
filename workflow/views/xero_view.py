@@ -15,6 +15,7 @@ from xero_python.identity import IdentityApi
 from xero_python.accounting.models import (
     Invoice as XeroInvoice,
     LineItem,
+    LineAmountTypes,
     Contact,
 )
 from xero_python.exceptions import AccountingBadRequestException
@@ -152,7 +153,7 @@ def create_xero_invoice(request, job_id):
             line_items=xero_line_items,
             date=timezone.now().date(),
             due_date=(timezone.now().date() + timedelta(days=30)),
-            line_amount_types="Exclusive",
+            line_amount_types=LineAmountTypes.EXCLUSIVE,
         )
 
         response = xero_api.create_invoices(xero_tenant_id, [xero_invoice])
