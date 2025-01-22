@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timezone, timedelta
 from decimal import Decimal
 import logging
 import uuid
@@ -112,101 +112,75 @@ def create_xero_invoice(request, job_id):
         if not client.validate_for_xero():
             raise ValueError("Client data is not valid for Xero")
 
-        invoice = Invoice.objects.create(
-            client=client,
-            date=datetime.now().date(),
-            due_date=(datetime.now().date() + timedelta(days=30)),
-            status="Draft",
-            total_excl_tax=Decimal("0.00"),
-            tax=Decimal("0.00"),
-            total_incl_tax=Decimal("0.00"),
-            amount_due=Decimal("0.00"),
-            xero_last_modified=datetime.now(),
-            raw_json={},
-        )
-
         line_items_data = [
             {
                 "description": "Total Time",
                 "quantity": 1,
-                "unit_price": job.latest_reality_pricing.total_time_cost
-                or Decimal("0.00"),
+                "unit_price": job.latest_reality_pricing.total_time_cost or Decimal("0.00"),
             },
             {
                 "description": "Total Materials",
                 "quantity": 1,
-                "unit_price": job.latest_reality_pricing.total_material_cost
-                or Decimal("0.00"),
+                "unit_price": job.latest_reality_pricing.total_material_cost or Decimal("0.00"),
             },
             {
                 "description": "Total Adjustments",
                 "quantity": 1,
-                "unit_price": job.latest_reality_pricing.total_adjustments_cost
-                or Decimal("0.00"),
+                "unit_price": job.latest_reality_pricing.total_adjustment_cost or Decimal("0.00"),
             },
         ]
 
-        total_excl_tax = Decimal("0.00")
-        xero_line_items = []
-        for item_data in line_items_data:
-            line_item = InvoiceLineItem.objects.create(
-                invoice=invoice,
-                description=item_data["description"],
-                quantity=item_data["quantity"],
-                unit_price=item_data["unit_price"],
-                line_amount_excl_tax=item_data["unit_price"] * item_data["quantity"],
-                line_amount_incl_tax=item_data["unit_price"] * item_data["quantity"],
-                tax_amount=Decimal("0.00"),
+        xero_line_items = [
+            LineItem(
+                description=item["description"],
+                quantity=item["quantity"],
+                unit_amount=item["unit_price"],
+                tax_type="NONE",
             )
-            total_excl_tax += line_item.line_amount_excl_tax
-            xero_line_items.append(
-                LineItem(
-                    description=item_data["description"],
-                    quantity=item_data["quantity"],
-                    unit_amount=item_data["unit_price"],
-                    tax_type="NONE",  # Need to adjust if there's taxes
-                )
-            )
-
-        invoice.total_excl_tax = total_excl_tax
-        invoice.total_incl_tax = (
-            total_excl_tax  # Again, need to adjust if there's taxes
-        )
-        invoice.amount_due = (
-            total_excl_tax  # Need to adjust if there's parcial payments
-        )
-        invoice.save()
+            for item in line_items_data
+        ]
 
         xero_tenant_id = get_tenant_id()
         xero_api = AccountingApi(api_client())
 
         xero_contact = Contact(contact_id=client.xero_contact_id)
-
         xero_invoice = XeroInvoice(
             type="ACCREC",
             contact=xero_contact,
             line_items=xero_line_items,
-            date=datetime.now().date(),
-            due_date=(datetime.now().date() + timedelta(days=30)),
+            date=timezone.now().date(),
+            due_date=(timezone.now().date() + timedelta(days=30)),
             line_amount_types="Exclusive",
         )
 
         response = xero_api.create_invoices(xero_tenant_id, [xero_invoice])
 
         if response and response.invoices:
-            invoice.raw_json = response.to_dict()
-            invoice.xero_id = response.invoices[0].invoice_id
-            invoice.save()
+            xero_invoice_data = response.invoices[0]
 
-        logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
-        return JsonResponse({
-            "success": True,
-            "invoice_id": invoice.id,
-            "xero_id": invoice.xero_id,
-            "client": invoice.client.name,
-            "total_excl_tax": str(invoice.total_excl_tax),
-            "total_incl_tax": str(invoice.total_incl_tax),
-        })
+            invoice = Invoice.objects.create(
+                xero_id=xero_invoice_data.invoice_id,
+                client=client,
+                date=timezone.now().date(),
+                due_date=(timezone.now().date() + timedelta(days=30)),
+                status="Draft",
+                total_excl_tax=Decimal(xero_invoice_data.total),
+                tax=Decimal(xero_invoice_data.total_tax),
+                total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
+                amount_due=Decimal(xero_invoice_data.amount_due),
+                xero_last_modified=timezone.now(),
+                raw_json=response.to_dict(),
+            )
+
+            logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
+            return JsonResponse({
+                "success": True,
+                "invoice_id": invoice.id,
+                "xero_id": invoice.xero_id,
+                "client": invoice.client.name,
+                "total_excl_tax": str(invoice.total_excl_tax),
+                "total_incl_tax": str(invoice.total_incl_tax),
+            })
 
     except AccountingBadRequestException as e:
         logger.error(f"Error creating invoice in Xero: {e}")
