@@ -173,7 +173,7 @@ def create_xero_invoice(request, job_id):
             line_items=xero_line_items,
             date=timezone.now().date().isoformat(),
             due_date=(timezone.now().date() + timedelta(days=30)).isoformat(),
-            line_amount_types=str(LineAmountTypes.EXCLUSIVE),
+            line_amount_types="Exclusive",
         )
 
         try:
@@ -191,7 +191,7 @@ def create_xero_invoice(request, job_id):
             raise
 
         try:
-            response = xero_api.create_invoices(xero_tenant_id, [invoice_payload])
+            response = xero_api.create_invoices(xero_tenant_id, invoices=[invoice_payload])
             logger.debug(f"Xero API Response: {response}")
         except Exception as e:
             logger.error(f"Error sending invoice to Xero: {str(e)}")
