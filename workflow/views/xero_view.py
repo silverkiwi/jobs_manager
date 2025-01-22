@@ -154,56 +154,72 @@ def create_xero_invoice(request, job_id):
         xero_api = AccountingApi(api_client)
 
         xero_contact = Contact(contact_id=client.xero_contact_id)
-        xero_invoice = XeroInvoice(
-            type="ACCREC",
-            contact=xero_contact,
-            line_items=xero_line_items,
-            date=timezone.now().date().isoformat(),
-            due_date=(timezone.now().date() + timedelta(days=30)).isoformat(),
-            line_amount_types=str(LineAmountTypes.EXCLUSIVE),
-        )
-
-        invoice_payload = xero_invoice.to_dict()
-        logger.debug(f"Invoice payload being sent to Xero: {json.dumps(invoice_payload, indent=4)}")
-
-        xero_tenant_id = get_tenant_id()
-        response = xero_api.create_invoices(xero_tenant_id, [invoice_payload])
-
-        if response and response.invoices:
-            xero_invoice_data = response.invoices[0]
-
-            invoice = Invoice.objects.create(
-                xero_id=xero_invoice_data.invoice_id,
-                client=client,
-                date=timezone.now().date(),
-                due_date=(timezone.now().date() + timedelta(days=30)),
-                status="Draft",
-                total_excl_tax=Decimal(xero_invoice_data.total),
-                tax=Decimal(xero_invoice_data.total_tax),
-                total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
-                amount_due=Decimal(xero_invoice_data.amount_due),
-                xero_last_modified=timezone.now(),
-                raw_json=response.to_dict(),
+        try:
+            xero_invoice = XeroInvoice(
+                type="ACCREC",
+                contact=xero_contact,
+                line_items=xero_line_items,
+                date=timezone.now().date().isoformat(),
+                due_date=(timezone.now().date() + timedelta(days=30)).isoformat(),
+                line_amount_types=str(LineAmountTypes.EXCLUSIVE),  # Certifique-se de que é uma string
             )
 
-            logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
-            return JsonResponse({
-                "success": True,
-                "invoice_id": invoice.id,
-                "xero_id": invoice.xero_id,
-                "client": invoice.client.name,
-                "total_excl_tax": str(invoice.total_excl_tax),
-                "total_incl_tax": str(invoice.total_incl_tax),
-            })
+            try:
+                invoice_payload = xero_invoice.to_dict()
+                logger.debug(f"Serialized XeroInvoice payload: {json.dumps(invoice_payload, indent=4)}")
+            except Exception as e:
+                logger.error(f"Error serializing XeroInvoice: {str(e)}")
+                raise
 
-    except AccountingBadRequestException as e:
-        logger.error(f"Error creating invoice in Xero: {e}")
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
-    except Job.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Job not found."}, status=404)
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+            try:
+                xero_tenant_id = get_tenant_id()
+                logger.debug(f"Tenant ID retrieved: {xero_tenant_id}")
+            except Exception as e:
+                logger.error(f"Error retrieving tenant ID: {str(e)}")
+                raise
+
+            try:
+                response = xero_api.create_invoices(xero_tenant_id, [invoice_payload])
+                logger.debug(f"Xero API Response: {response}")
+            except Exception as e:
+                logger.error(f"Error sending invoice to Xero: {str(e)}")
+                raise
+
+            if response and response.invoices:
+                xero_invoice_data = response.invoices[0]
+
+                invoice = Invoice.objects.create(
+                    xero_id=xero_invoice_data.invoice_id,
+                    client=client,
+                    date=timezone.now().date(),
+                    due_date=(timezone.now().date() + timedelta(days=30)),
+                    status="Draft",
+                    total_excl_tax=Decimal(xero_invoice_data.total),
+                    tax=Decimal(xero_invoice_data.total_tax),
+                    total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
+                    amount_due=Decimal(xero_invoice_data.amount_due),
+                    xero_last_modified=timezone.now(),
+                    raw_json=response.to_dict(),
+                )
+
+                logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
+                return JsonResponse({
+                    "success": True,
+                    "invoice_id": invoice.id,
+                    "xero_id": invoice.xero_id,
+                    "client": invoice.client.name,
+                    "total_excl_tax": str(invoice.total_excl_tax),
+                    "total_incl_tax": str(invoice.total_incl_tax),
+                })
+
+        except AccountingBadRequestException as e:
+            logger.error(f"Error creating invoice in Xero: {e}")
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+        except Job.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Job not found."}, status=404)
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 class XeroIndexView(TemplateView):
