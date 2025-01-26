@@ -1,12 +1,14 @@
 # workflow/xero/sync.py
 import logging
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from uuid import UUID
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import transaction
 from django.db import models
+from django.utils import timezone
+
 from xero_python.accounting import AccountingApi
 
 from workflow.api.xero.reprocess_xero import (
