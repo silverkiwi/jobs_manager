@@ -1,7 +1,7 @@
 # workflow/xero/sync.py
 import logging
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
@@ -412,7 +412,8 @@ def sync_clients(xero_contacts):
         try:
             # Find client by `xero_contact_id`
             client, created = Client.objects.get_or_create(
-                xero_contact_id=xero_contact_id
+                xero_contact_id=xero_contact_id,
+                xero_last_modified=timezone.now()
             )
 
             client.raw_json = raw_json
