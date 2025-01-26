@@ -614,9 +614,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
 
             case 'invoiceJobButton':
-                // TODO: finish Xero invoice creation view 
-                // createInvoiceForJob(jobId);
-                handleExportCosts();
+                createInvoiceForJob(jobId);
                 break;
 
             case 'printJobButton':
