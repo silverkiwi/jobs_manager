@@ -431,7 +431,7 @@ def sync_clients(xero_contacts):
             sync_client_task.delay(client.id)
         except Exception as e:
             logger.error(
-                f"Error processing client {contact_data.get('name', 'unknown')}: {str(e)}"
+                f"Error processing client: {str(e)}"
             )
             logger.error(f"Client data: {raw_json}")
             raise
