@@ -14,10 +14,6 @@ from xero_python.api_client.oauth2 import TokenApi
 
 logger = logging.getLogger("xero")
 
-# Helper function for pretty printing JSON/dict objects
-def pretty_print(obj):
-    return json.dumps(obj, indent=2, sort_keys=True)
-
 XERO_SCOPES = [
     "offline_access",
     "openid", 
@@ -39,6 +35,11 @@ api_client = ApiClient(
         ),
     ),
 )
+
+
+# Helper function for pretty printing JSON/dict objects
+def pretty_print(obj):
+    return json.dumps(obj, indent=2, sort_keys=True)
 
 
 @api_client.oauth2_token_getter

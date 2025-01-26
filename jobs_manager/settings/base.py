@@ -71,7 +71,6 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
         },
-        # Saving Xero logs in a different file because they're getting to big
         "xero_file": {
             "level": "DEBUG",
             "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
@@ -89,6 +88,11 @@ LOGGING = {
         },
         "xero": {
             "handlers": ["xero_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "xero_python": {
+            "handlers": ["xero_file", "console"],
             "level": "DEBUG",
             "propagate": False,
         },
