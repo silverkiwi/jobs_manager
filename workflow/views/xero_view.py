@@ -121,10 +121,7 @@ def clean_payload(payload):
 
 
 def format_date(dt):
-    # Apparently this is the only format accepted by Xero
-    # See https://stackoverflow.com/questions/68590647/date-format-not-accepted-by-invoices-endpoint-when-sent-from-azure-data-factory
-    """Format a date to RFC 1123 format with time.""" 
-    return dt.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    return dt.strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def create_xero_invoice(request, job_id):
