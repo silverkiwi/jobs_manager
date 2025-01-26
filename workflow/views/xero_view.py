@@ -121,56 +121,75 @@ def clean_payload(payload):
 
 
 def format_date(dt):
-    return dt.strftime("%Y-%m-%dT%H:%M:%S")
+    # Apparently this is the only format accepted by Xero
+    # See https://stackoverflow.com/questions/68590647/date-format-not-accepted-by-invoices-endpoint-when-sent-from-azure-data-factory
+    """Format a date to RFC 1123 format with time.""" 
+    return dt.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 
 def create_xero_invoice(request, job_id):
-    job = Job.objects.get(id=job_id)
+    """
+    Creates an invoice in Xero for a specific job. Ensures the client is valid,
+    prepares line items, and sends the invoice to the Xero API.
 
-    if not job.client:
-        raise ValueError("Job does not have a client")
+    Parameters:
+        request: Django HttpRequest object.
+        job_id: The ID of the job for which the invoice is being created.
 
-    client = job.client
-    if not client.validate_for_xero():
-        raise ValueError("Client data is not valid for Xero")
-    if not client.xero_contact_id:
-        raise ValueError(f"Client {client.name} does not have a valid Xero contact ID. Sync the client with Xero first.")
-
-    client = client.get_client_for_xero()
-
-    line_items_data = [
-        {
-            "description": "Total Time",
-            "quantity": 1,
-            "unit_price": float(job.latest_reality_pricing.total_time_cost) or float("0.00"),
-        },
-        {
-            "description": "Total Materials",
-            "quantity": 1,
-            "unit_price": float(job.latest_reality_pricing.total_material_cost) or float("0.00"),
-        },
-        {
-            "description": "Total Adjustments",
-            "quantity": 1,
-            "unit_price": float(job.latest_reality_pricing.total_adjustment_cost) or float("0.00"),
-        },
-    ]
-
-    xero_line_items = [
-        LineItem(
-            description=item["description"],
-            quantity=item["quantity"],
-            unit_amount=item["unit_price"],
-            tax_type="NONE",
-        )
-        for item in line_items_data
-    ]
-
-    xero_tenant_id = get_tenant_id()
-    xero_api = AccountingApi(api_client)
-
-    xero_contact = Contact(contact_id=job.client.xero_contact_id)
+    Returns:
+        JsonResponse: Success or error information.
+    """
     try:
+        job = Job.objects.get(id=job_id)
+
+        if not job.client:
+            raise ValueError("Job does not have a client")
+
+        client = job.client
+
+        if not client.validate_for_xero():
+            raise ValueError("Client data is not valid for Xero")
+
+        if not client.xero_contact_id:
+            raise ValueError(f"Client {client.name} does not have a valid Xero contact ID. Sync the client with Xero first.")
+
+        client = client.get_client_for_xero()
+
+        # Prepare line items for the invoice
+        line_items_data = [
+            {
+                "description": "Total Time",
+                "quantity": 1,
+                "unit_price": float(job.latest_reality_pricing.total_time_cost) or float("0.00"),
+            },
+            {
+                "description": "Total Materials",
+                "quantity": 1,
+                "unit_price": float(job.latest_reality_pricing.total_material_cost) or float("0.00"),
+            },
+            {
+                "description": "Total Adjustments",
+                "quantity": 1,
+                "unit_price": float(job.latest_reality_pricing.total_adjustment_cost) or float("0.00"),
+            },
+        ]
+
+        # Convert line items to Xero-compatible LineItem objects
+        xero_line_items = [
+            LineItem(
+                description=item["description"],
+                quantity=item["quantity"],
+                unit_amount=item["unit_price"],
+                tax_type="NONE",
+            )
+            for item in line_items_data
+        ]
+
+        xero_tenant_id = get_tenant_id()
+        xero_api = AccountingApi(api_client)
+
+        xero_contact = Contact(contact_id=job.client.xero_contact_id)
+
         xero_invoice = XeroInvoice(
             type="ACCREC",
             contact=xero_contact,
@@ -181,6 +200,7 @@ def create_xero_invoice(request, job_id):
             reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}"
         )
 
+        # Debug: Log the serialized payload
         try:
             invoice_payload = clean_payload(xero_invoice.to_dict())
             logger.debug(f"Serialized XeroInvoice payload: {json.dumps(invoice_payload, indent=4)}")
@@ -188,20 +208,20 @@ def create_xero_invoice(request, job_id):
             logger.error(f"Error serializing XeroInvoice: {str(e)}")
             raise
 
-        try:
-            xero_tenant_id = get_tenant_id()
-            logger.debug(f"Tenant ID retrieved: {xero_tenant_id}")
-        except Exception as e:
-            logger.error(f"Error retrieving tenant ID: {str(e)}")
-            raise
-
+        # Send the invoice to Xero
         try:
             response = xero_api.create_invoices(xero_tenant_id, invoices=[xero_invoice])
             logger.debug(f"Xero API Response: {response}")
         except Exception as e:
             logger.error(f"Error sending invoice to Xero: {str(e)}")
+            # Log detailed response if available
+            if hasattr(e, "body"):
+                logger.error(f"Response body: {e.body}")
+            if hasattr(e, "headers"):
+                logger.error(f"Response headers: {e.headers}")
             raise
 
+        # Process the response and create a local Invoice object
         if response and response.invoices:
             xero_invoice_data = response.invoices[0]
 
