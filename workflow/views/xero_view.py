@@ -121,8 +121,10 @@ def clean_payload(payload):
 
 
 def format_date(dt):
-    """Format a date to ISO 8601 format with time."""
-    return dt.strftime("%Y-%m-%dT%H:%M:%S")
+    # Apparently this is the only format accepted by Xero
+    # See https://stackoverflow.com/questions/68590647/date-format-not-accepted-by-invoices-endpoint-when-sent-from-azure-data-factory
+    """Format a date to RFC 1123 format with time.""" 
+    return dt.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 
 def create_xero_invoice(request, job_id):
@@ -179,6 +181,7 @@ def create_xero_invoice(request, job_id):
             date=format_date(timezone.now().date()),
             due_date=format_date((timezone.now().date() + timedelta(days=30))),
             line_amount_types="Exclusive",
+            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}"
         )
 
         try:
