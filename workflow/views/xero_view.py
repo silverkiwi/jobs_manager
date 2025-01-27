@@ -121,7 +121,7 @@ def clean_payload(payload):
 
 
 def format_date(dt):
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return dt.strftime("%Y-%m-%d")
 
 
 def create_xero_invoice(request, job_id):
@@ -185,7 +185,10 @@ def create_xero_invoice(request, job_id):
         xero_tenant_id = get_tenant_id()
         xero_api = AccountingApi(api_client)
 
-        xero_contact = Contact(contact_id=job.client.xero_contact_id)
+        xero_contact = Contact(
+            contact_id=job.client.xero_contact_id,
+            name=job.client.name
+        )
 
         xero_invoice = XeroInvoice(
             type="ACCREC",
@@ -193,8 +196,8 @@ def create_xero_invoice(request, job_id):
             line_items=xero_line_items,
             line_amount_types="Exclusive",
             reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
-            date=timezone.now().strftime("%Y-%m-%d"),
-            due_date=(timezone.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
+            date=format_date(timezone.now()),
+            due_date=format_date(timezone.now() + timedelta(days=30)),
         )
 
         try:
