@@ -229,6 +229,8 @@ def create_xero_invoice(request, job_id):
         if response and response.invoices:
             xero_invoice_data = response.invoices[0]
 
+            invoice_json = json.dumps(response.to_dict(), default=str)
+
             invoice = Invoice.objects.create(
                         xero_id=xero_invoice_data.invoice_id,
                         client=job.client,
@@ -240,7 +242,7 @@ def create_xero_invoice(request, job_id):
                         total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
                         amount_due=Decimal(xero_invoice_data.amount_due),
                         xero_last_modified=timezone.now(),
-                        raw_json=response,
+                        raw_json=invoice_json,
             )
 
             logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
