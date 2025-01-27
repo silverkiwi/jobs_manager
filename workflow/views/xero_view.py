@@ -189,20 +189,33 @@ def create_xero_invoice(request, job_id):
         xero_invoice = XeroInvoice(
             type="ACCREC",
             contact=xero_contact,
-            line_items=xero_line_items
+            line_items=xero_line_items,
         )
 
         try:
+            invoice_payload = xero_invoice.to_dict()
+            logger.debug(f"Serialized payload: {json.dumps(invoice_payload, indent=4)}")
+        except Exception as e:
+            logger.error(f"Error serializing XeroInvoice: {str(e)}")
+            raise
+
+        try:
             response = xero_api.create_invoices(
-                xero_tenant_id, 
-                invoices=[xero_invoice], 
-                _return_http_data_only=False)
-            
-            logger.debug(f"Xero API Response: {response}")
+                xero_tenant_id,
+                invoices=[xero_invoice],
+                _return_http_data_only=False
+            )
+
+            logger.debug(f"Response Content: {response}")
         except Exception as e:
             logger.error(f"Error sending invoice to Xero: {str(e)}")
 
-        # Process the response and create a local Invoice object
+            if hasattr(e, "body"):
+                logger.error(f"Response body: {e.body}")
+            if hasattr(e, "headers"):
+                logger.error(f"Response headers: {e.headers}")
+            raise
+
         if response and response.invoices:
             xero_invoice_data = response.invoices[0]
 
