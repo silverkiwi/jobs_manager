@@ -193,7 +193,7 @@ def create_xero_invoice(request, job_id):
         )
 
         try:
-            invoice_payload = xero_invoice.to_dict()
+            invoice_payload = clean_payload(xero_invoice.to_dict())
             logger.debug(f"Serialized payload: {json.dumps(invoice_payload, indent=4)}")
         except Exception as e:
             logger.error(f"Error serializing XeroInvoice: {str(e)}")
@@ -202,7 +202,7 @@ def create_xero_invoice(request, job_id):
         try:
             response = xero_api.create_invoices(
                 xero_tenant_id,
-                invoices=[xero_invoice],
+                invoices=[invoice_payload],
                 _return_http_data_only=False
             )
 
