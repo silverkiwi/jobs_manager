@@ -240,7 +240,7 @@ def create_xero_invoice(request, job_id):
                         total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
                         amount_due=Decimal(xero_invoice_data.amount_due),
                         xero_last_modified=timezone.now(),
-                        raw_json=response.to_dict(),
+                        raw_json=response,
             )
 
             logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
