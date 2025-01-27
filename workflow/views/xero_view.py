@@ -205,7 +205,8 @@ def create_xero_invoice(request, job_id):
         xero_invoice = clean_object(xero_invoice)
 
         try:
-            logger.debug(f"Serialized payload: {json.dumps(xero_invoice.to_dict, indent=4)}")
+            payload = xero_invoice.to_dict()
+            logger.debug(f"Serialized payload: {json.dumps(payload, indent=4)}")
         except Exception as e:
             logger.error(f"Error serializing XeroInvoice: {str(e)}")
             raise
