@@ -111,18 +111,13 @@ def refresh_xero_data(request):
     return redirect("/")
 
 
-def clean_object(obj):
-    """
-    Remove null fields from an object's attributes recursively.
-    """
-    if isinstance(obj, list):
-        return [clean_object(item) for item in obj if item is not None]
-    elif hasattr(obj, "__dict__"):
-        for key in list(obj.__dict__.keys()):
-            value = getattr(obj, key)
-            if value is None:
-                delattr(obj, key)
-    return obj
+def clean_payload(payload):
+    """Remove null fields from payload."""    
+    if isinstance(payload, dict):
+        return {k: clean_payload(v) for k, v in payload.items() if v is not None}
+    if isinstance(payload, list):
+        return [clean_payload(v) for v in payload if v is not None]
+    return payload
 
 
 def format_date(dt):
@@ -197,13 +192,13 @@ def create_xero_invoice(request, job_id):
             contact=xero_contact,
             line_items=xero_line_items,
             line_amount_types="Exclusive",
-            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}"
+            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
+            date=timezone.now().strftime("%Y-%m-%d"),
+            due_date=(timezone.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
         )
 
-        xero_invoice = clean_object(xero_invoice)
-
         try:
-            payload = xero_invoice.to_dict()
+            payload = clean_payload(xero_invoice.to_dict())
             logger.debug(f"Serialized payload: {json.dumps(payload, indent=4)}")
         except Exception as e:
             logger.error(f"Error serializing XeroInvoice: {str(e)}")
@@ -212,7 +207,7 @@ def create_xero_invoice(request, job_id):
         try:
             response = xero_api.create_invoices(
                 xero_tenant_id,
-                invoices=xero_invoice,
+                invoices=payload,
                 _return_http_data_only=False
             )
 
