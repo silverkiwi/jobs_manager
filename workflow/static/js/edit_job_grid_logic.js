@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { category: 'Total Time', estimate: 0, quote: 0, reality: 0 },
             { category: 'Total Materials', estimate: 0, quote: 0, reality: 0 },
             { category: 'Total Adjustments', estimate: 0, quote: 0, reality: 0 },
-            { category: 'Total Project Cost', estimate: 0, quote: 0, reality: 0 }
+            { category: 'Total Project Revenue', estimate: 0, quote: 0, reality: 0 }
         ],  // Default 4 rows
         domLayout: 'autoHeight',
         rowHeight: 28,
