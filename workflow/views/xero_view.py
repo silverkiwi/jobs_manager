@@ -189,24 +189,18 @@ def create_xero_invoice(request, job_id):
         xero_invoice = XeroInvoice(
             type="ACCREC",
             contact=xero_contact,
-            line_items=xero_line_items,
-            date=format_date(timezone.now().date()),
-            due_date=format_date((timezone.now().date() + timedelta(days=30))),
-            line_amount_types="Exclusive",
-            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}"
+            line_items=xero_line_items
         )
 
         try:
-            response, http_headers, http_status = xero_api.create_invoices(
+            response = xero_api.create_invoices(
                 xero_tenant_id, 
                 invoices=[xero_invoice], 
                 _return_http_data_only=False)
             
             logger.debug(f"Xero API Response: {response}")
-            logger.debug(f"HTTP Headers: {http_headers}")
-            logger.debug(f"HTTP Status: {http_status}")
         except Exception as e:
-            logger.error(f"Error sending invoice to Xero: {str(e)}| Error object: {e}")
+            logger.error(f"Error sending invoice to Xero: {str(e)}")
 
         # Process the response and create a local Invoice object
         if response and response.invoices:
