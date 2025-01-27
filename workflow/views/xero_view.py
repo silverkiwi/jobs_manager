@@ -230,17 +230,17 @@ def create_xero_invoice(request, job_id):
             xero_invoice_data = response.invoices[0]
 
             invoice = Invoice.objects.create(
-                xero_id=xero_invoice_data["invoice_id"],
-                client=job.client,
-                date=timezone.now().date(),
-                due_date=(timezone.now().date() + timedelta(days=30)),
-                status="Draft",
-                total_excl_tax=Decimal(xero_invoice_data["total"]),
-                tax=Decimal(xero_invoice_data["total_tax"]),
-                total_incl_tax=Decimal(xero_invoice_data["total"]) + Decimal(xero_invoice_data["total_tax"]),
-                amount_due=Decimal(xero_invoice_data["amount_due"]),
-                xero_last_modified=timezone.now(),
-                raw_json=response.to_dict(),
+                        xero_id=xero_invoice_data.invoice_id,
+                        client=job.client,
+                        date=timezone.now().date(),
+                        due_date=(timezone.now().date() + timedelta(days=30)),
+                        status="Draft",
+                        total_excl_tax=Decimal(xero_invoice_data.total),
+                        tax=Decimal(xero_invoice_data.total_tax),
+                        total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
+                        amount_due=Decimal(xero_invoice_data.amount_due),
+                        xero_last_modified=timezone.now(),
+                        raw_json=response.to_dict(),
             )
 
             logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
