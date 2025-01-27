@@ -226,8 +226,8 @@ def create_xero_invoice(request, job_id):
                 logger.error(f"Response headers: {e.headers}")
             raise
 
-        if response and "invoices" in response:
-            xero_invoice_data = response["invoices"][0]
+        if response and response.invoices:
+            xero_invoice_data = response.invoices[0]
 
             invoice = Invoice.objects.create(
                 xero_id=xero_invoice_data["invoice_id"],
@@ -240,7 +240,7 @@ def create_xero_invoice(request, job_id):
                 total_incl_tax=Decimal(xero_invoice_data["total"]) + Decimal(xero_invoice_data["total_tax"]),
                 amount_due=Decimal(xero_invoice_data["amount_due"]),
                 xero_last_modified=timezone.now(),
-                raw_json=response,
+                raw_json=response.to_dict(),
             )
 
             logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
