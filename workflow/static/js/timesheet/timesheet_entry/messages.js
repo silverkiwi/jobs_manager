@@ -7,6 +7,7 @@ import { sentMessages } from './state.js';
  */
 export function renderMessages(messages, containerId) {
     let alertContainer;
+    let modal;
 
     if (containerId) {
         alertContainer = document.getElementById(containerId);
@@ -17,8 +18,8 @@ export function renderMessages(messages, containerId) {
             console.error('Alert modal container or body not found.');
             return;
         }
-        const modal = new bootstrap.Modal(modalContainer);
-        modal.show(); // Show the modal if no specific container is provided
+        modal = new bootstrap.Modal(modalContainer);
+        modal.show();
     }
 
     if (!alertContainer) {
@@ -28,7 +29,6 @@ export function renderMessages(messages, containerId) {
         return;
     }
 
-    // Clear the container (useful for modals to avoid duplications)
     alertContainer.innerHTML = '';
 
     // Add new messages
@@ -50,16 +50,18 @@ export function renderMessages(messages, containerId) {
         `;
         alertContainer.appendChild(alertDiv);
 
-        // Add fade out effect after 2 seconds if message level is success
-        if (msg.level === 'success') {
+        // Add fade out effect after 5 seconds for all notifications
+        setTimeout(() => {
+            alertDiv.classList.remove('show');
+            alertDiv.classList.add('fade');
             setTimeout(() => {
-                alertDiv.classList.remove('show');
-                alertDiv.classList.add('fade');
-                setTimeout(() => {
-                    alertDiv.remove();
-                }, 150); // Wait for fade animation to complete
-            }, 2000);
-        }
+                alertDiv.remove();
+                // Hide modal if this was the last alert
+                if (modal && alertContainer.children.length === 0) {
+                    modal.hide();
+                }
+            }, 150); // Wait for fade animation to complete
+        }, 5000);
     });
 }
 

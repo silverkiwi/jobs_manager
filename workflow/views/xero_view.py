@@ -16,6 +16,8 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView
+from django.core.cache import cache
+from django.contrib import messages
 
 from xero_python.accounting import AccountingApi
 from xero_python.identity import IdentityApi
@@ -62,7 +64,8 @@ def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
             request, "xero/error_xero_auth.html", {"error_message": result["error"]}
         )
 
-    return redirect("refresh_xero_data")
+    redirect_url = request.session.pop("post_login_redirect", "/")
+    return redirect(redirect_url)
 
 
 # Refresh OAuth token and handle redirects
@@ -265,6 +268,24 @@ def create_xero_invoice(request, job_id):
         return JsonResponse({"success": False, "error": "Job not found."}, status=404)
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+def create_invoice_job(request, job_id):
+    try:
+        tenant_id = cache.get("xero_tenant_id")
+        if not tenant_id:
+            messages.error(
+                request,
+                "No valid Xero token found. Please complete the authorization workflow.",
+            )
+            request.session["post_login_redirect"] = request.path
+            return redirect("authenticate_xero")
+
+        return create_xero_invoice(request, job_id)
+
+    except Exception as e:
+        logger.error(f"Error in create_invoice_job: {str(e)}")
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
