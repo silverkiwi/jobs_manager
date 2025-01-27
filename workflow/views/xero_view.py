@@ -36,7 +36,9 @@ from workflow.api.xero.xero import (
     get_authentication_url,
     get_token,
     refresh_token,
+    get_valid_token,
     get_tenant_id,
+    get_tenant_id_from_connections,
 )
 from workflow.models import Job, Invoice, InvoiceLineItem
 
@@ -273,14 +275,28 @@ def create_xero_invoice(request, job_id):
 
 def create_invoice_job(request, job_id):
     try:
-        tenant_id = cache.get("xero_tenant_id")
-        if not tenant_id:
+        token = get_valid_token()
+        if not token:
             messages.error(
                 request,
-                "No valid Xero token found. Please complete the authorization workflow.",
+                "Your Xero session has expired. Please log in again.",
             )
             request.session["post_login_redirect"] = request.path
-            return redirect("authenticate_xero")
+            return redirect("authenticate_xero")  # Redirecionar para autenticação
+
+        tenant_id = cache.get("xero_tenant_id")
+        if not tenant_id:
+            try:
+                tenant_id = get_tenant_id_from_connections()
+                cache.set("xero_tenant_id", tenant_id, timeout=3600)
+            except Exception as e:
+                messages.error(
+                    request,
+                    "Unable to fetch Xero tenant ID. Please try re-authenticating.",
+                )
+                logger.error(f"Error fetching tenant ID: {str(e)}")
+                request.session["post_login_redirect"] = request.path
+                return redirect("authenticate_xero")
 
         return create_xero_invoice(request, job_id)
 
