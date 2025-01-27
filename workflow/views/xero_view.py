@@ -200,26 +200,19 @@ def create_xero_invoice(request, job_id):
             reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}"
         )
 
-        # Debug: Log the serialized payload
         try:
-            invoice_payload = clean_payload(xero_invoice.to_dict())
-            logger.debug(f"Serialized XeroInvoice payload: {json.dumps(invoice_payload, indent=4)}")
-        except Exception as e:
-            logger.error(f"Error serializing XeroInvoice: {str(e)}")
-            raise
-
-        # Send the invoice to Xero
-        try:
-            response = xero_api.create_invoices(xero_tenant_id, invoices=[xero_invoice])
+            response, http_headers, http_status = xero_api.create_invoices(
+                xero_tenant_id, 
+                invoices=[xero_invoice], 
+                _return_http_data_only=False)
+            
             logger.debug(f"Xero API Response: {response}")
+            logger.debug(f"HTTP Headers: {http_headers}")
+            logger.debug(f"HTTP Status: {http_status}")
         except Exception as e:
             logger.error(f"Error sending invoice to Xero: {str(e)}")
-            # Log detailed response if available
-            if hasattr(e, "body"):
-                logger.error(f"Response body: {e.body}")
-            if hasattr(e, "headers"):
-                logger.error(f"Response headers: {e.headers}")
-            raise
+            logger.error(f"Response body: {e.body}")
+            logger.error(f"Response headers: {e.headers}")
 
         # Process the response and create a local Invoice object
         if response and response.invoices:
