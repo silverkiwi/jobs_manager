@@ -122,8 +122,6 @@ def clean_object(obj):
             value = getattr(obj, key)
             if value is None:
                 delattr(obj, key)
-            else:
-                clean_object(value)
     return obj
 
 
