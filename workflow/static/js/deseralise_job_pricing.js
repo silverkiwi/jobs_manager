@@ -112,20 +112,40 @@ function loadExistingJobEntries(entries, gridType) {
   }
 }
 
+// function loadExistingJobTimeEntries(entries) {
+//   console.log(`Debug: Found ${entries.length} time entries.`);
+//   return entries.map((entry) => ({
+//     description: entry.description,
+//     items: entry.items,
+//     mins_per_item: entry.minutes_per_item,
+//     wage_rate: entry.wage_rate,
+//     charge_out_rate: entry.charge_out_rate,
+//     total_minutes: entry.total_minutes,
+//     revenue: entry.revenue,
+//     link: entry.timesheet_date && entry.staff_id ? 
+//       `/timesheets/day/${entry.timesheet_date}/${entry.staff_id}` :
+//       '/timesheets/overview/'
+//   }));
+// }
+
 function loadExistingJobTimeEntries(entries) {
-  console.log(`Debug: Found ${entries.length} time entries.`);
-  return entries.map((entry) => ({
-    description: entry.description,
-    items: entry.items,
-    mins_per_item: entry.minutes_per_item,
-    wage_rate: entry.wage_rate,
-    charge_out_rate: entry.charge_out_rate,
-    total_minutes: entry.total_minutes,
-    revenue: entry.revenue,
-    link: entry.timesheet_date && entry.staff_id ? 
-      `/timesheets/day/${entry.timesheet_date}/${entry.staff_id}` :
-      '/timesheets/overview/'
-  }));
+  return entries.map((entry) => {
+    const hours = (entry.total_minutes / 60).toFixed(1); // Convert minutes to hours with one decimal
+    const formattedTotalMinutes = `${entry.total_minutes} (${hours} hours)`; // Include total minutes and decimal hours
+
+      return {
+          description: entry.description,
+          items: entry.items,
+          mins_per_item: entry.minutes_per_item,
+          wage_rate: entry.wage_rate,
+          charge_out_rate: entry.charge_out_rate,
+          total_minutes: formattedTotalMinutes,  
+          revenue: entry.revenue,
+          link: entry.timesheet_date && entry.staff_id ? 
+                `/timesheets/day/${entry.timesheet_date}/${entry.staff_id}` :
+                '/timesheets/overview/',
+      };
+  });
 }
 
 function loadExistingJobMaterialEntries(entries) {
@@ -163,11 +183,12 @@ export function createNewRow(gridType) {
     case 'TimeTable':
       return {
         description: '',
-        items: 0,
+        items: 1,
         mins_per_item: 0,
         wage_rate: defaultWageRate,
         charge_out_rate: defaultChargeOutRate,
         total_minutes: 0,
+        total_minutes_display: '0 (0.0 hours)',
         revenue: 0,
       };
     case 'MaterialsTable':

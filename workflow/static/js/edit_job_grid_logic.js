@@ -295,6 +295,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (gridType === 'TimeTable') {
                 data.total_minutes = (data.items || 0) * (data.mins_per_item || 0);
                 data.revenue = (data.total_minutes || 0) * (data.charge_out_rate / 60.0 || 0);
+
+                const hours = (data.total_minutes / 60).toFixed(1); 
+                data.total_minutes_display = `${data.total_minutes} (${hours} hours)`;
+
             } else if (gridType === 'MaterialsTable') {
                 data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
             }
@@ -327,7 +331,23 @@ document.addEventListener('DOMContentLoaded', function () {
             { headerName: 'Description', field: 'description', editable: true, flex: 2 },
             { headerName: 'Items', field: 'items', editable: true, valueParser: numberParser },
             { headerName: 'Mins/Item', field: 'mins_per_item', editable: true, valueParser: numberParser },
-            { headerName: 'Total Minutes', field: 'total_minutes', editable: false },
+            { headerName: 'Total Minutes', 
+                field: 'total_minutes', 
+                editable: false,
+                valueFormatter: (params) => {
+                    if (params.value !== undefined && params.value !== null) {
+                        const totalMinutes = parseFloat(params.value) || 0; 
+                        const decimalHours = (totalMinutes / 60).toFixed(1); 
+                        return `${totalMinutes} (${decimalHours} hours)`; 
+                    }
+                    return '0 (0.0 hours)'; 
+                },
+                valueParser: (params) => {
+                    return parseFloat(params.newValue) || 0;
+                },
+
+
+             },
             {
                 headerName: 'Actions',
                 field: 'link',
