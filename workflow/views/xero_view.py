@@ -208,13 +208,15 @@ def create_xero_invoice(request, job_id):
             raise
 
         try:
-            response = xero_api.create_invoices(
+            response, http_status, http_headers = xero_api.create_invoices(
                 xero_tenant_id,
                 invoices=payload,
                 _return_http_data_only=False
             )
 
             logger.debug(f"Response Content: {response}")
+            logger.debug(f"HTTP Status: {http_status}")
+            logger.debug(f"HTTP Headers: {http_headers}")
         except Exception as e:
             logger.error(f"Error sending invoice to Xero: {str(e)}")
 
@@ -224,21 +226,21 @@ def create_xero_invoice(request, job_id):
                 logger.error(f"Response headers: {e.headers}")
             raise
 
-        if response and response.invoices:
-            xero_invoice_data = response.invoices[0]
+        if response and "invoices" in response:
+            xero_invoice_data = response["invoices"][0]
 
             invoice = Invoice.objects.create(
-                xero_id=xero_invoice_data.invoice_id,
+                xero_id=xero_invoice_data["invoice_id"],
                 client=job.client,
                 date=timezone.now().date(),
                 due_date=(timezone.now().date() + timedelta(days=30)),
                 status="Draft",
-                total_excl_tax=Decimal(xero_invoice_data.total),
-                tax=Decimal(xero_invoice_data.total_tax),
-                total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
-                amount_due=Decimal(xero_invoice_data.amount_due),
+                total_excl_tax=Decimal(xero_invoice_data["total"]),
+                tax=Decimal(xero_invoice_data["total_tax"]),
+                total_incl_tax=Decimal(xero_invoice_data["total"]) + Decimal(xero_invoice_data["total_tax"]),
+                amount_due=Decimal(xero_invoice_data["amount_due"]),
                 xero_last_modified=timezone.now(),
-                raw_json=response.to_dict(),
+                raw_json=response,
             )
 
             logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
@@ -250,6 +252,9 @@ def create_xero_invoice(request, job_id):
                 "total_excl_tax": str(invoice.total_excl_tax),
                 "total_incl_tax": str(invoice.total_incl_tax),
             })
+        else:
+            logger.error("No invoices found in the response.")
+            return JsonResponse({"success": False, "error": "No invoices found in the response."}, status=400)
 
     except AccountingBadRequestException as e:
         logger.error(f"Error creating invoice in Xero: {e}")
