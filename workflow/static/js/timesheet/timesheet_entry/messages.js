@@ -33,12 +33,13 @@ export function renderMessages(messages, containerId) {
 
     // Add new messages
     messages.forEach(msg => {
-        const messageKey = `${msg.level}:${msg.message}`;
+        // Testing
+        // const messageKey = `${msg.level}:${msg.message}`;
 
-        if (sentMessages.has(messageKey) && msg.level !== 'success') {
-            return;
-        }
-        sentMessages.add(messageKey);
+        // if (sentMessages.has(messageKey) && msg.level !== 'success') {
+        //     return;
+        // }
+        // sentMessages.add(messageKey);
 
         const alertDiv = document.createElement('div');
         msg.level = msg.level === 'error' ? 'danger' : msg.level;
