@@ -302,7 +302,8 @@ def create_invoice_job(request, job_id):
                 )
 
         response = create_xero_invoice(request, job_id)
-        return JsonResponse(response, safe=False)
+        if isinstance(response, JsonResponse):
+            return response
 
     except Exception as e:
         logger.error(f"Error in create_invoice_job: {str(e)}")
