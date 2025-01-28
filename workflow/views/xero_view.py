@@ -282,7 +282,7 @@ def create_invoice_job(request, job_id):
                 "Your Xero session has expired. Please log in again.",
             )
             request.session["post_login_redirect"] = request.path
-            return redirect("authenticate_xero")  # Redirecionar para autenticação
+            return redirect("authenticate_xero")
 
         tenant_id = cache.get("xero_tenant_id")
         if not tenant_id:
