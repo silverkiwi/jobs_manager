@@ -849,16 +849,18 @@ function createInvoiceForJob(jobId) {
             if (!response.ok) {
                 return response.json().then((data) => {
                     if (data.redirect_to_auth) {
-                        renderMessages([{ level: 'error', message: data.message }]);
+                        renderMessages([{ level: "error", message: data.message }]);
+            
                         setTimeout(() => {
                             const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
-                                window.location.pathname
-                            )}#`;
+                                `${window.location.pathname}#workflow-section`
+                            )}`;
                             window.location.href = redirectUrl;
                         }, 3000);
+
                         return;
                     }
-                    throw new Error(data.message || 'Failed to create invoice.');
+                    throw new Error(data.message || "Failed to create invoice.");
                 });
             }
             return response.json();
