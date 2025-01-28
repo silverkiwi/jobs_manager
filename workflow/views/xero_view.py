@@ -277,11 +277,13 @@ def create_invoice_job(request, job_id):
     try:
         token = get_valid_token()
         if not token:
+            request.session["post_login_redirect"] = request.path
+            
             return JsonResponse(
                 {
                     "success": False,
                     "redirect_to_auth": True,
-                    "message": "Your Xero session has expired. Please log in again.",
+                    "messages": ["Your Xero session has expired. Please log in again."],
                 },
                 status=400,
             )
