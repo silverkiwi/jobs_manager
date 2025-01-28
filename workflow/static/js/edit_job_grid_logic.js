@@ -847,6 +847,7 @@ function createInvoiceForJob(jobId) {
         .then(response => {
             if (response.redirected) {
                 window.location.href = response.url;
+                return;
             } else if (!response.ok) {
                 return response.json().then(data => {
                     throw new Error(data.error || 'Failed to create invoice');
