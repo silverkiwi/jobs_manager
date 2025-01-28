@@ -848,8 +848,8 @@ function createInvoiceForJob(jobId) {
             if (!response.ok) {
                 return response.json().then((data) => {
                     if (data.redirect_to_auth) {
-                        // Se o back-end indicar redirecionamento, faça o redirecionamento
-                        window.location.href = "/api/xero/authenticate/";
+                        const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(window.location.pathname)}`;
+                        window.location.href = redirectUrl;
                         return;
                     }
                     throw new Error(data.message || "Failed to create invoice.");
@@ -858,7 +858,6 @@ function createInvoiceForJob(jobId) {
             return response.json();
         })
         .then((data) => {
-            // Exibir sumário do invoice
             const invoiceSummary = `
                 <div class="card">
                     <div class="card-header bg-success text-white">
