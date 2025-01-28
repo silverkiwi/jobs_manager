@@ -7,14 +7,16 @@ import { sentMessages } from './state.js';
  */
 export function renderMessages(messages, containerId) {
     let alertContainer;
+    let alertContainerModal = false;
     let modal;
 
     if (containerId) {
         alertContainer = document.getElementById(containerId);
     } else {
         alertContainer = document.getElementById('alert-modal-body');
+        alertContainerModal = true;
         const modalContainer = document.getElementById('alert-container');
-        if (!modalContainer || !alertContainer) {
+        if (!modalContainer || !alertContainerModal) {
             console.error('Alert modal container or body not found.');
             return;
         }
@@ -33,13 +35,12 @@ export function renderMessages(messages, containerId) {
 
     // Add new messages
     messages.forEach(msg => {
-        // Testing
-        // const messageKey = `${msg.level}:${msg.message}`;
+        const messageKey = `${msg.level}:${msg.message}`;
 
-        // if (sentMessages.has(messageKey) && msg.level !== 'success') {
-        //     return;
-        // }
-        // sentMessages.add(messageKey);
+        if (sentMessages.has(messageKey) && msg.level !== 'success' && !alertContainerModal) {
+            return;
+        }
+        sentMessages.add(messageKey);
 
         const alertDiv = document.createElement('div');
         msg.level = msg.level === 'error' ? 'danger' : msg.level;
