@@ -864,7 +864,8 @@ function createInvoiceForJob(jobId) {
             return response.json();
         })
         .then((data) => {
-            if (data.redirect_to_auth) {
+            if (!data.invoice_id || !data.xero_id || !data.client || !data.total_excl_tax || !data.total_incl_tax) {
+                renderMessages([{ level: 'error', message: "Your Xero session has expired. Please log in again." }]);
                 return;
             }
 

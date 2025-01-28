@@ -49,6 +49,10 @@ logger = logging.getLogger("xero")
 def xero_authenticate(request: HttpRequest) -> HttpResponse:
     state = str(uuid.uuid4())
     request.session["oauth_state"] = state
+
+    redirect_after_login = request.GET.get("next", "/")
+    request.session["post_login_redirect"] = redirect_after_login
+
     authorization_url = get_authentication_url(state)
     return redirect(authorization_url)
 
@@ -277,8 +281,6 @@ def create_invoice_job(request, job_id):
     try:
         token = get_valid_token()
         if not token:
-            request.session["post_login_redirect"] = request.path
-            
             return JsonResponse(
                 {
                     "success": False,
