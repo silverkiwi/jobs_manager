@@ -277,12 +277,14 @@ def create_invoice_job(request, job_id):
     try:
         token = get_valid_token()
         if not token:
-            messages.error(
-                request,
-                "Your Xero session has expired. Please log in again.",
+            return JsonResponse(
+                {
+                    "success": False,
+                    "redirect_to_auth": True,
+                    "message": "Your Xero session has expired. Please log in again.",
+                },
+                status=400,
             )
-            request.session["post_login_redirect"] = request.path
-            return redirect("authenticate_xero")
 
         tenant_id = cache.get("xero_tenant_id")
         if not tenant_id:
@@ -290,15 +292,17 @@ def create_invoice_job(request, job_id):
                 tenant_id = get_tenant_id_from_connections()
                 cache.set("xero_tenant_id", tenant_id, timeout=3600)
             except Exception as e:
-                messages.error(
-                    request,
-                    "Unable to fetch Xero tenant ID. Please try re-authenticating.",
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "redirect_to_auth": True,
+                        "message": "Unable to fetch Xero tenant ID. Please log in again.",
+                    },
+                    status=400,
                 )
-                logger.error(f"Error fetching tenant ID: {str(e)}")
-                request.session["post_login_redirect"] = request.path
-                return redirect("authenticate_xero")
 
-        return create_xero_invoice(request, job_id)
+        response = create_xero_invoice(request, job_id)
+        return JsonResponse(response, safe=False)
 
     except Exception as e:
         logger.error(f"Error in create_invoice_job: {str(e)}")

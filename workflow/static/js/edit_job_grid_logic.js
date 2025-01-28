@@ -838,25 +838,27 @@ function createInvoiceForJob(jobId) {
     }
 
     fetch(`/api/xero/create_invoice/${jobId}`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
         },
     })
-        .then(response => {
-            if (response.redirected) {
-                window.location.href = response.url;
-                return;
-            } else if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || 'Failed to create invoice');
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((data) => {
+                    if (data.redirect_to_auth) {
+                        // Se o back-end indicar redirecionamento, faça o redirecionamento
+                        window.location.href = "/api/xero/authenticate/";
+                        return;
+                    }
+                    throw new Error(data.message || "Failed to create invoice.");
                 });
-            } else {
-                return response.json();
             }
+            return response.json();
         })
-        .then(data => {
+        .then((data) => {
+            // Exibir sumário do invoice
             const invoiceSummary = `
                 <div class="card">
                     <div class="card-header bg-success text-white">
@@ -872,15 +874,15 @@ function createInvoiceForJob(jobId) {
                 </div>
             `;
 
-            const modalBody = document.getElementById('alert-modal-body');
+            const modalBody = document.getElementById("alert-modal-body");
             modalBody.innerHTML = invoiceSummary;
 
-            const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
+            const alertModal = new bootstrap.Modal(document.getElementById("alert-container"));
             alertModal.show();
         })
-        .catch(error => {
-            console.error('Error:', error);
-            renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
+        .catch((error) => {
+            console.error("Error:", error);
+            renderMessages([{ level: "error", message: `An error occurred: ${error.message}` }]);
         });
 }
 
