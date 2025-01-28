@@ -853,7 +853,7 @@ function createInvoiceForJob(jobId) {
                         setTimeout(() => {
                             const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
                                 window.location.pathname
-                            )}`;
+                            )}#`;
                             window.location.href = redirectUrl;
                         }, 3000);
                         return;
@@ -866,7 +866,7 @@ function createInvoiceForJob(jobId) {
         .then((data) => {
             try {
                 if (!data.invoice_id || !data.xero_id || !data.client || !data.total_excl_tax || !data.total_incl_tax || !data.success) {
-                    renderMessages([{ level: 'error', message: 'Your Xero session has expired. Please log in again.' }]);
+                    renderMessages([{ level: 'error', message: "Your Xero session has expired. You'll be redirected to Xero login in seconds." }]);
                     return;
                 }
                 
@@ -891,7 +891,7 @@ function createInvoiceForJob(jobId) {
                 const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
                 alertModal.show();
             } catch (error) {
-                renderMessages([{ level: 'error', message: 'Your Xero session has expired. Please log in again.' }]);
+                renderMessages([{ level: 'error', message: "Your Xero session has expired. You'll be redirected to Xero login in seconds." }]);
                 return;
             }
         })
