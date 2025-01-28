@@ -864,31 +864,36 @@ function createInvoiceForJob(jobId) {
             return response.json();
         })
         .then((data) => {
-            if (!data.invoice_id || !data.xero_id || !data.client || !data.total_excl_tax || !data.total_incl_tax) {
+            try {
+                if (!data.invoice_id || !data.xero_id || !data.client || !data.total_excl_tax || !data.total_incl_tax) {
+                    renderMessages([{ level: 'error', message: "Your Xero session has expired. Please log in again." }]);
+                    return;
+                }
+                
+                const invoiceSummary = `
+                    <div class='card'>
+                        <div class='card-header bg-success text-white'>
+                            Invoice Created Successfully
+                        </div>
+                        <div class='card-body'>
+                            <p><strong>Invoice ID:</strong> ${data.invoice_id}</p>
+                            <p><strong>Xero ID:</strong> ${data.xero_id}</p>
+                            <p><strong>Client:</strong> ${data.client}</p>
+                            <p><strong>Total (Excl. Tax):</strong> ${data.total_excl_tax}</p>
+                            <p><strong>Total (Incl. Tax):</strong> ${data.total_incl_tax}</p>
+                        </div>
+                    </div>
+                `;
+
+                const modalBody = document.getElementById('alert-modal-body');
+                modalBody.innerHTML = invoiceSummary;
+
+                const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
+                alertModal.show();
+            } catch (error) {
                 renderMessages([{ level: 'error', message: "Your Xero session has expired. Please log in again." }]);
                 return;
             }
-
-            const invoiceSummary = `
-                <div class='card'>
-                    <div class='card-header bg-success text-white'>
-                        Invoice Created Successfully
-                    </div>
-                    <div class='card-body'>
-                        <p><strong>Invoice ID:</strong> ${data.invoice_id}</p>
-                        <p><strong>Xero ID:</strong> ${data.xero_id}</p>
-                        <p><strong>Client:</strong> ${data.client}</p>
-                        <p><strong>Total (Excl. Tax):</strong> ${data.total_excl_tax}</p>
-                        <p><strong>Total (Incl. Tax):</strong> ${data.total_incl_tax}</p>
-                    </div>
-                </div>
-            `;
-
-            const modalBody = document.getElementById('alert-modal-body');
-            modalBody.innerHTML = invoiceSummary;
-
-            const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
-            alertModal.show();
         })
         .catch((error) => {
             console.error('Error:', error);
