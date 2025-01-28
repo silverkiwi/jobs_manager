@@ -849,7 +849,7 @@ function createInvoiceForJob(jobId) {
             if (!response.ok) {
                 return response.json().then((data) => {
                     if (data.redirect_to_auth) {
-                        renderMessages(data.messages);
+                        renderMessages([{ level: 'error', message: data.message }]);
                         setTimeout(() => {
                             const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
                                 window.location.pathname

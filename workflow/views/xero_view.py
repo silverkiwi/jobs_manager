@@ -283,7 +283,7 @@ def create_invoice_job(request, job_id):
                 {
                     "success": False,
                     "redirect_to_auth": True,
-                    "messages": ["Your Xero session has expired. Please log in again."],
+                    "message": "Your Xero session has expired. Please log in again.",
                 },
                 status=400,
             )
