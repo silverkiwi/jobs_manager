@@ -186,14 +186,14 @@ def create_xero_invoice(request, job_id):
         # Convert line items to Xero-compatible LineItem objects
         xero_line_items = [
             LineItem(
+                description=job.description
+            ),
+            LineItem(
                 description="Price as quoted",
                 quantity=1,
                 unit_amount=total_project_revenue,
                 account_code=200,
             ),
-            LineItem(
-                description=job.description
-            )
         ]
 
         xero_tenant_id = get_tenant_id()
@@ -213,7 +213,7 @@ def create_xero_invoice(request, job_id):
             line_amount_types="Exclusive", # Line Amounts will always be Tax Exclusive, but Staff can edit it in Xero if needed
             reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
             currency_code="NZD",
-            status="SUBMITTED"
+            status="SUBMITTED" # Status need to be SUBMITTED otherwise we won't be able to fetch the link to it and (futurely) display it as a button on front-end
         )
 
         try:
