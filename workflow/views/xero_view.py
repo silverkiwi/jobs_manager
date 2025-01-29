@@ -183,18 +183,21 @@ def create_xero_invoice(request, job_id):
 
         total_project_revenue = float(job.latest_reality_pricing.total_revenue) or float("0.00")
 
+        if job.description:
+            description_line_item = LineItem(description=job.description)
+
         # Convert line items to Xero-compatible LineItem objects
         xero_line_items = [
-            LineItem(
-                description=job.description
-            ),
             LineItem(
                 description="Price as quoted",
                 quantity=1,
                 unit_amount=total_project_revenue,
                 account_code=200,
-            ),
+            )
         ]
+
+        if description_line_item:
+            xero_line_items.append(description_line_item)
 
         xero_tenant_id = get_tenant_id()
         xero_api = AccountingApi(api_client)
