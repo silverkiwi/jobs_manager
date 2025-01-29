@@ -188,7 +188,6 @@ def create_xero_invoice(request, job_id):
                 unit_amount=item["unit_price"],
                 item_code=2001,
                 account_code=200,
-                line_amount=(item["quantity"] * item["unit_price"]),
             )
             for item in line_items_data
         ]
@@ -207,7 +206,7 @@ def create_xero_invoice(request, job_id):
             line_items=xero_line_items,
             date=format_date(timezone.now()),
             due_date=format_date(timezone.now() + timedelta(days=30)),
-            line_amount_types="Exclusive",
+            line_amount_types="Inclusive",
             reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
             currency_code="NZD",
             sub_total=sum(item.line_amount for item in xero_line_items),
