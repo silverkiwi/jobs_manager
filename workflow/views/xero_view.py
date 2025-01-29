@@ -204,10 +204,11 @@ def create_xero_invoice(request, job_id):
             type="ACCREC",
             contact=xero_contact,
             line_items=xero_line_items,
-            line_amount_types="Exclusive",
-            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
             date=format_date(timezone.now()),
             due_date=format_date(timezone.now() + timedelta(days=30)),
+            line_amount_types="Exclusive",
+            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
+            currency_code="NZD",
             sub_total=sum(item.line_amount for item in xero_line_items),
             total=sum(item.line_amount for item in xero_line_items),
             amount_due=sum(item.line_amount for item in xero_line_items)
