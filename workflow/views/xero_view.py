@@ -186,7 +186,8 @@ def create_xero_invoice(request, job_id):
                 description=item["description"],
                 quantity=item["quantity"],
                 unit_amount=item["unit_price"],
-                account_code="200",
+                item_code=2001,
+                account_code=200,
                 line_amount=(item["quantity"] * item["unit_price"]),
                 discount_rate="0.00", # Need further revision
                 discount_amount="0.00" # Need further revision as well
