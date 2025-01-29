@@ -223,7 +223,7 @@ def create_xero_invoice(request, job_id):
         try:
             response, http_status, http_headers = xero_api.create_invoices(
                 xero_tenant_id,
-                invoices=payload,
+                invoices=[payload],
                 _return_http_data_only=False
             )
 
