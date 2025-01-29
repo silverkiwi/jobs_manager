@@ -248,11 +248,26 @@ def create_xero_invoice(request, job_id):
 
         if response and response.invoices:
             xero_invoice_data = response.invoices[0]
+            xero_invoice_id = xero_invoice_data.invoice_id
+
+            invoice_url = None
+            try:
+                invoice_response, _, _ = xero_api.get_invoice_response(
+                    xero_tenant_id,
+                    xero_invoice_id
+                )
+
+                if invoice_response and invoice_response.online_invoices:
+                    invoice_url = invoice_response.online_invoices[0].online_invoice_url
+                    logger.info(f"Fetched Online Invoice URL: {invoice_url}")
+
+            except Exception as e:
+                logger.error(f"Error fetching online invoice URL: {str(e)}")
 
             invoice_json = json.dumps(response.to_dict(), default=str)
 
             invoice = Invoice.objects.create(
-                        xero_id=xero_invoice_data.invoice_id,
+                        xero_id=xero_invoice_id,
                         client=job.client,
                         date=timezone.now().date(),
                         due_date=(timezone.now().date() + timedelta(days=30)),
@@ -266,6 +281,7 @@ def create_xero_invoice(request, job_id):
             )
 
             logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
+
             return JsonResponse({
                 "success": True,
                 "invoice_id": invoice.id,
@@ -273,6 +289,7 @@ def create_xero_invoice(request, job_id):
                 "client": invoice.client.name,
                 "total_excl_tax": str(invoice.total_excl_tax),
                 "total_incl_tax": str(invoice.total_incl_tax),
+                "invoice_url": invoice_url
             })
         else:
             logger.error("No invoices found in the response or failed to update invoice.")
