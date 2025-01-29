@@ -153,9 +153,11 @@ def convert_to_pascal_case(obj):
 
 def create_xero_invoice(request, job_id):
     """
-    Creates an invoice in Xero for a specific job. Ensures the client is valid,
-    prepares line items, and sends the invoice to the Xero API.
-
+    Creates an invoice in Xero for a specific job, ensuring that it reflects the quoted price.
+    
+    - The invoice includes a single line item for the total quoted amount.
+    - Another line item includes only the job description.
+    
     Parameters:
         request: Django HttpRequest object.
         job_id: The ID of the job for which the invoice is being created.
@@ -179,38 +181,19 @@ def create_xero_invoice(request, job_id):
 
         client = client.get_client_for_xero()
 
-        # Prepare line items for the invoice
-        line_items_data = [
-            {
-                "description": "Total Time",
-                "quantity": 1,
-                "unit_price": float(job.latest_reality_pricing.total_time_cost) or float("0.00"),
-            },
-            {
-                "description": "Total Materials",
-                "quantity": 1,
-                "unit_price": float(job.latest_reality_pricing.total_material_cost) or float("0.00"),
-            },
-            {
-                "description": "Total Adjustments",
-                "quantity": 1,
-                "unit_price": float(job.latest_reality_pricing.total_adjustment_cost) or float("0.00"),
-            },
-        ]
-        
-        line_items_data = [item for item in line_items_data if item["unit_price"] > 0]
+        total_project_revenue = float(job.latest_reality_pricing.total_revenue) or float("0.00")
 
         # Convert line items to Xero-compatible LineItem objects
         xero_line_items = [
             LineItem(
-                description=item["description"],
-                quantity=item["quantity"],
-                unit_amount=item["unit_price"],
-                line_amount=item["unit_price"],
-                item_code=2001,
+                description="Price as quoted",
+                quantity=1,
+                unit_amount=total_project_revenue,
                 account_code=200,
+            ),
+            LineItem(
+                description=job.description
             )
-            for item in line_items_data
         ]
 
         xero_tenant_id = get_tenant_id()
@@ -227,12 +210,14 @@ def create_xero_invoice(request, job_id):
             line_items=xero_line_items,
             date=format_date(timezone.now()),
             due_date=format_date(timezone.now() + timedelta(days=30)),
-            line_amount_types="Inclusive",
+            line_amount_types="Exclusive", # Line Amounts will always be Tax Exclusive, but Staff can edit it in Xero if needed
             reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
             currency_code="NZD",
+            status="SUBMITTED"
         )
 
         try:
+            # Xero only recognizes the LineItems of an Invoice if they are in the correct naming pattern, which in this case is PascalCase.
             payload = convert_to_pascal_case(clean_payload(xero_invoice.to_dict()))
             logger.debug(f"Serialized payload: {json.dumps(payload, indent=4)}")
         except Exception as e:
@@ -268,7 +253,7 @@ def create_xero_invoice(request, job_id):
                         client=job.client,
                         date=timezone.now().date(),
                         due_date=(timezone.now().date() + timedelta(days=30)),
-                        status="Draft",
+                        status="Submitted",
                         total_excl_tax=Decimal(xero_invoice_data.total),
                         tax=Decimal(xero_invoice_data.total_tax),
                         total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
