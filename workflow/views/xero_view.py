@@ -198,7 +198,7 @@ def create_xero_invoice(request, job_id):
             },
         ]
         
-        line_items_data = [item for item in line_items_data if item["unit_amount"] > 0 and item["line_amount"] > 0]
+        line_items_data = [item for item in line_items_data if item["unit_price"] > 0]
 
         # Convert line items to Xero-compatible LineItem objects
         xero_line_items = [
