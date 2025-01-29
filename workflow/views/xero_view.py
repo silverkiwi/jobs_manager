@@ -243,6 +243,38 @@ def create_xero_invoice(request, job_id):
 
         if response and response.invoices:
             xero_invoice_data = response.invoices[0]
+            xero_invoice_id = xero_invoice_data.invoice_id
+
+            logger.info(f"Invoice {xero_invoice_id} created successfully. Now updating with line items.")
+
+            updated_invoice = XeroInvoice(
+                type="ACCREC",
+                contact=xero_contact,
+                line_items=xero_line_items,
+                date=format_date(timezone.now()),
+                due_date=format_date(timezone.now() + timedelta(days=30)),
+                line_amount_types="Exclusive",
+                reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
+                currency_code="NZD",
+                sub_total=sum(item.line_amount for item in xero_line_items),
+                total=sum(item.line_amount for item in xero_line_items),
+                amount_due=sum(item.line_amount for item in xero_line_items)
+            )
+
+            update_response, update_http_status, update_http_headers = xero_api.update_invoice(
+                xero_tenant_id,
+                invoice_id=xero_invoice_id,
+                invoices=[updated_invoice],
+                _return_http_data_only=False
+            )
+
+            logger.debug(f"Update Invoice Response: {update_response}")
+            logger.debug(f"Update HTTP Status: {update_http_status}")
+
+            if update_http_status == 200:
+                logger.info(f"Invoice {xero_invoice_id} updated successfully with line items.")
+            else:
+                logger.error(f"Failed to update Invoice {xero_invoice_id}. Response: {update_response}")
 
             invoice_json = json.dumps(response.to_dict(), default=str)
 
@@ -270,7 +302,7 @@ def create_xero_invoice(request, job_id):
                 "total_incl_tax": str(invoice.total_incl_tax),
             })
         else:
-            logger.error("No invoices found in the response.")
+            logger.error("No invoices found in the response or failed to update invoice.")
             return JsonResponse({"success": False, "error": "No invoices found in the response."}, status=400)
 
     except AccountingBadRequestException as e:
