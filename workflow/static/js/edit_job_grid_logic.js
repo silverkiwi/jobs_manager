@@ -883,7 +883,7 @@ function createInvoiceForJob(jobId) {
                             <p><strong>Client:</strong> ${data.client}</p>
                             <p><strong>Total (Excl. Tax):</strong> ${data.total_excl_tax}</p>
                             <p><strong>Total (Incl. Tax):</strong> ${data.total_incl_tax}</p>
-                            ${data.online_invoice_url ? `<a href="${data.online_invoice_url}" target="_blank" class="btn btn-primary">Go to Xero</a>` : ""}
+                            ${data.online_invoice_url ? `<a href="${data.online_invoice_url}" target="_blank" class="btn btn-info" style="color: white;">Go to Xero</a>` : ""}
                         </div>
                     </div>
                 `;
