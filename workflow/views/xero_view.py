@@ -1,6 +1,4 @@
-from datetime import timedelta
-
-from decimal import Decimal
+import re
 
 import logging
 
@@ -11,6 +9,10 @@ import traceback
 import json
 
 from typing import Any
+
+from datetime import timedelta
+
+from decimal import Decimal
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
@@ -133,6 +135,22 @@ def format_date(dt):
     return dt.strftime("%Y-%m-%d")
 
 
+def convert_to_pascal_case(obj):
+    """
+    Recursively converts dictionary keys from snake_case to PascalCase.
+    """
+    if isinstance(obj, dict):
+        new_dict = {}
+        for key, value in obj.items():
+            pascal_key = re.sub(r"(?:^|_)(.)", lambda x: x.group(1).upper(), key)
+            new_dict[pascal_key] = convert_to_pascal_case(value)
+        return new_dict
+    elif isinstance(obj, list):
+        return [convert_to_pascal_case(item) for item in obj]
+    else:
+        return obj
+
+
 def create_xero_invoice(request, job_id):
     """
     Creates an invoice in Xero for a specific job. Ensures the client is valid,
@@ -179,6 +197,8 @@ def create_xero_invoice(request, job_id):
                 "unit_price": float(job.latest_reality_pricing.total_adjustment_cost) or float("0.00"),
             },
         ]
+        
+        line_items_data = [item for item in line_items_data if item["unit_amount"] > 0 and item["line_amount"] > 0]
 
         # Convert line items to Xero-compatible LineItem objects
         xero_line_items = [
@@ -186,6 +206,7 @@ def create_xero_invoice(request, job_id):
                 description=item["description"],
                 quantity=item["quantity"],
                 unit_amount=item["unit_price"],
+                line_amount=item["unit_price"],
                 item_code=2001,
                 account_code=200,
             )
@@ -209,13 +230,10 @@ def create_xero_invoice(request, job_id):
             line_amount_types="Inclusive",
             reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
             currency_code="NZD",
-            # sub_total=sum(item.line_amount for item in xero_line_items),
-            # total=sum(item.line_amount for item in xero_line_items),
-            # amount_due=sum(item.line_amount for item in xero_line_items)
         )
 
         try:
-            payload = clean_payload(xero_invoice.to_dict())
+            payload = convert_to_pascal_case(clean_payload(xero_invoice.to_dict()))
             logger.debug(f"Serialized payload: {json.dumps(payload, indent=4)}")
         except Exception as e:
             logger.error(f"Error serializing XeroInvoice: {str(e)}")
