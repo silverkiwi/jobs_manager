@@ -188,7 +188,6 @@ def create_xero_invoice(request, job_id):
                 unit_amount=item["unit_price"],
                 account_code="200",
                 line_amount=(item["quantity"] * item["unit_price"]),
-                tax_type="NONE",
             )
             for item in line_items_data
         ]
@@ -210,7 +209,8 @@ def create_xero_invoice(request, job_id):
             date=format_date(timezone.now()),
             due_date=format_date(timezone.now() + timedelta(days=30)),
             sub_total=sum(item.line_amount for item in xero_line_items),
-            total=sum(item.line_amount for item in xero_line_items)
+            total=sum(item.line_amount for item in xero_line_items),
+            amount_due=sum(item.line_amount for item in xero_line_items)
         )
 
         try:
