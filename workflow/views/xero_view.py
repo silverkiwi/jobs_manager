@@ -264,7 +264,7 @@ def create_xero_invoice(request, job_id):
             update_response, update_http_status, update_http_headers = xero_api.update_invoice(
                 xero_tenant_id,
                 invoice_id=xero_invoice_id,
-                invoices=[updated_invoice],
+                invoices=clean_payload(updated_invoice.to_dict),
                 _return_http_data_only=False
             )
 
