@@ -252,7 +252,7 @@ def create_xero_invoice(request, job_id):
 
             invoice_url = None
             try:
-                invoice_response, _, _ = xero_api.get_invoice_response(
+                invoice_response, _, _ = xero_api.get_online_invoice(
                     xero_tenant_id,
                     xero_invoice_id
                 )
