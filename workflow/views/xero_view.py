@@ -216,7 +216,7 @@ def create_xero_invoice(request, job_id):
             line_amount_types="Exclusive", # Line Amounts will always be Tax Exclusive, but Staff can edit it in Xero if needed
             reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
             currency_code="NZD",
-            status="SUBMITTED" # Status need to be SUBMITTED otherwise we won't be able to fetch the link to it and (futurely) display it as a button on front-end
+            status="DRAFT"
         )
 
         try:
@@ -261,7 +261,7 @@ def create_xero_invoice(request, job_id):
                         client=job.client,
                         date=timezone.now().date(),
                         due_date=(timezone.now().date() + timedelta(days=30)),
-                        status="Submitted",
+                        status="Draft",
                         total_excl_tax=Decimal(xero_invoice_data.total),
                         tax=Decimal(xero_invoice_data.total_tax),
                         total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
