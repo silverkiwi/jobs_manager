@@ -274,7 +274,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
             date=format_date(timezone.now()),
             expiry_date=format_date(timezone.now() + timedelta(days=30)),
             line_amount_types="Exclusive",
-            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Quote for job {self.job.id}",
+            reference=f"Quote for job {self.job.id}",
             currency_code="NZD",
             status="DRAFT"
         )
@@ -338,7 +338,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
             date=format_date(timezone.now()),
             due_date=format_date(timezone.now() + timedelta(days=30)),
             line_amount_types="Exclusive",
-            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {self.job.id}",
+            reference=f"Invoice for job {self.job.id}",
             currency_code="NZD",
             status="DRAFT"
         )
