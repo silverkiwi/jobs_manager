@@ -252,17 +252,18 @@ def create_xero_invoice(request, job_id):
 
             invoice_url = None
             try:
-                invoice_response, _, _ = xero_api.get_online_invoice(
+                invoice_response = xero_api.get_online_invoice(
                     xero_tenant_id,
                     xero_invoice_id
                 )
 
-                if invoice_response and invoice_response.online_invoices:
-                    invoice_url = invoice_response.online_invoices["online_invoice_url"]
+                if invoice_response and hasattr(invoice_response, "online_invoices"):
+                    invoice_url = invoice_response.online_invoices[0].online_invoice_url
                     logger.info(f"Fetched Online Invoice URL: {invoice_url}")
 
             except Exception as e:
                 logger.error(f"Error fetching online invoice URL: {str(e)}")
+                invoice_url = None
 
             invoice_json = json.dumps(response.to_dict(), default=str)
 
