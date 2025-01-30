@@ -32,6 +32,7 @@
 
 import { createNewRow, getGridData } from '/static/js/deseralise_job_pricing.js';
 import { handlePrintJob, handleExportCosts, debouncedAutosave, copyEstimateToQuote, collectAllData } from './edit_job_form_autosave.js';
+import { renderMessages } from './timesheet/timesheet_entry/messages.js';
 
 // console.log('Grid logic script is running');
 
@@ -62,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', function () {
     function currencyFormatter(params) {
         if (params.value === undefined) {
-            // console.error("currencyFormatter error: value is undefined for the following params:", params);
+            // console.error('currencyFormatter error: value is undefined for the following params:', params);
             return '$0.00';  // Return a fallback value so the grid doesn't break
         }
         return '$' + params.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -83,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function deleteIconCellRenderer(params) {
         const isLastRow = params.api.getDisplayedRowCount() === 1;
         const iconClass = isLastRow ? 'delete-icon disabled' : 'delete-icon';
-        return `<span class="${iconClass}">🗑️</span>`;
+        return `<span class='${iconClass}'>🗑️</span>`;
     }
 
     function onDeleteIconClicked(params) {
@@ -339,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             params.data.link === '/timesheets/overview/'
                                 ? ''
                                 : 'View Timesheet';
-                        content += ` | <a href="${params.data.link}" target="_blank" class="action-link">${linkLabel}</a>`;
+                        content += ` | <a href='${params.data.link}' target='_blank' class='action-link'>${linkLabel}</a>`;
                     }
 
                     return content;
@@ -459,7 +460,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const sectionData = latest_job_pricings_json[`${section}_pricing`];
             if (!sectionData) {
-                console.warn(`Data not found for section "${section}". Assuming this is a new job.`);
+                console.warn(`Data not found for section '${section}'. Assuming this is a new job.`);
             }
 
             let rowData = getGridData(section, gridType);
@@ -467,8 +468,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 rowData = [createNewRow(gridType)];
             }
 
-            // console.log("Grid type: ", gridType, ", Section: ", section, ", Grid Key: ", gridKey);
-            // console.log("First row of rowData during grid initialization:", rowData[0]);
+            // console.log('Grid type: ', gridType, ', Section: ', section, ', Grid Key: ', gridKey);
+            // console.log('First row of rowData during grid initialization:', rowData[0]);
 
             const gridOptions = {
                 ...commonGridOptions,
@@ -481,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const gridInstance = agGrid.createGrid(gridElement, gridOptions);
 
             // Set row data after initializing the grid
-            gridInstance.setGridOption("rowData", rowData);
+            gridInstance.setGridOption('rowData', rowData);
 
         });
     });
@@ -605,18 +606,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 calculateTotalRevenue();
                 break;
 
-            case 'submitQuoteToClient':
-                console.log('Submitting quote to client for job:', jobId);
-
-                // TODO: add JSDocs to the following functions
-                openPdfPreview(jobId);
-                showQuoteModal(jobId);
+            case 'quoteJob':
+                createXeroDocument(jobId, 'quote');
                 break;
 
             case 'invoiceJobButton':
-                // TODO: finish Xero invoice creation view 
-                // createInvoiceForJob(jobId);
-                handleExportCosts();
+                createXeroDocument(jobId, 'invoice');
                 break;
 
             case 'printJobButton':
@@ -649,11 +644,6 @@ function getJobIdFromUrl() {
     return window.location.pathname.split('/')[2];
 }
 
-function openPdfPreview(jobId) {
-    const pdfUrl = `/api/quote/${jobId}/pdf-preview/`;
-    window.open(pdfUrl, '_blank');
-};
-
 function showQuoteModal(jobId, provider = 'gmail', contactOnly = false) {
     if (contactOnly) {
         sendQuoteEmail(jobId, provider, true)
@@ -665,29 +655,29 @@ function showQuoteModal(jobId, provider = 'gmail', contactOnly = false) {
     }
 
     const modalHtml = `
-        <div class="modal fade" id="quoteModal" tabindex="-1" role="dialog" aria-labelledby="quoteModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="quoteModalLabel">Preview and Send Quote</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class='modal fade' id='quoteModal' tabindex='-1' role='dialog' aria-labelledby='quoteModalLabel' aria-hidden='true'>
+            <div class='modal-dialog' role='document'>
+                <div class='modal-content'>
+                    <div class='modal-header'>
+                        <h5 class='modal-title' id='quoteModalLabel'>Preview and Send Quote</h5>
+                        <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
                     </div>
-                    <div class="modal-body">
+                    <div class='modal-body'>
                         <p>The quote has been generated. Please preview it in the opened tab and confirm if you'd like to send it to the client.</p>
                         
-                        <div class="alert alert-info" role="alert">
-                            <p class="mb-1">If the quote looks correct, please download the PDF from the opened tab and click "Send Quote".</p>
+                        <div class='alert alert-info' role='alert'>
+                            <p class='mb-1'>If the quote looks correct, please download the PDF from the opened tab and click 'Send Quote'.</p>
                             <hr>
-                            <p class="mb-1">This will open your email client where you can compose your message and attach the downloaded PDF</p>
+                            <p class='mb-1'>This will open your email client where you can compose your message and attach the downloaded PDF</p>
                             <hr>
-                            <p class="mb-0"><b>Please ensure the PDF is properly attached before sending the email to the client.</b></p>
+                            <p class='mb-0'><b>Please ensure the PDF is properly attached before sending the email to the client.</b></p>
                         </div>
 
-                        <div id="email-alert-container" class="alert-container"></div>
+                        <div id='email-alert-container' class='alert-container'></div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button id="sendQuoteEmailButton" type="button" class="btn btn-primary">Send Quote</button>
+                    <div class='modal-footer'>
+                        <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Close</button>
+                        <button id='sendQuoteEmailButton' type='button' class='btn btn-primary'>Send Quote</button>
                     </div>
                 </div>
             </div>
@@ -750,7 +740,7 @@ async function sendQuoteEmail(jobId, provider = 'gmail', contactOnly = false) {
     }
 }
 
-// Function to format the event type (e.g., "manual_note" -> "Manual Note")
+// Function to format the event type (e.g., 'manual_note' -> 'Manual Note')
 function formatEventType(eventType) {
     return eventType
         .replaceAll('_', ' ')
@@ -775,14 +765,14 @@ function addEventToTimeline(event, jobEventsList) {
     const eventType = formatEventType(event.event_type);
 
     const newEventHtml = `
-        <div class="timeline-item list-group-item">
-            <div class="d-flex w-100 justify-content-between">
-                <div class="timeline-date text-muted small">${formatTimestamp(event.timestamp)}</div>
+        <div class='timeline-item list-group-item'>
+            <div class='d-flex w-100 justify-content-between'>
+                <div class='timeline-date text-muted small'>${formatTimestamp(event.timestamp)}</div>
             </div>
-            <div class="timeline-content">
-                <h6 class="mb-1">${eventType}</h6>
-                <p class="mb-1">${event.description}</p>
-                <small class="text-muted">By ${event.staff}</small>
+            <div class='timeline-content'>
+                <h6 class='mb-1'>${eventType}</h6>
+                <p class='mb-1'>${event.description}</p>
+                <small class='text-muted'>By ${event.staff}</small>
             </div>
         </div>
     `;
@@ -833,123 +823,81 @@ function handleSaveEventButtonClick(jobId) {
         });
 }
 
-function createInvoiceForJob(jobId) {
+function createXeroDocument(jobId, type) {
     if (!jobId) {
         renderMessages([{ level: 'error', message: `Job id is missing!` }]);
         return;
     }
 
-    fetch(`/api/xero/create_invoice/${jobId}`, {
+    const endpoint = type === 'invoice' 
+        ? `/api/xero/create_invoice/${jobId}` 
+        : `/api/xero/create_quote/${jobId}`;
+
+    fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
         },
     })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || 'Failed to create invoice');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            const invoiceSummary = `
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        Invoice Created Successfully
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Invoice ID:</strong> ${data.invoice_id}</p>
-                        <p><strong>Xero ID:</strong> ${data.xero_id}</p>
-                        <p><strong>Client:</strong> ${data.client}</p>
-                        <p><strong>Total (Excl. Tax):</strong> ${data.total_excl_tax}</p>
-                        <p><strong>Total (Incl. Tax):</strong> ${data.total_incl_tax}</p>
-                    </div>
+    .then((response) => {
+                    if (!response.ok) {
+                        return response.json().then((data) => {
+                            if (data.redirect_to_auth) {
+                                renderMessages(
+                                    [
+                                        { 
+                                            level: 'error', 
+                                            message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.' 
+                                        }
+                                    ]
+                                );
+                                
+                                const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
+                                setTimeout(() => {
+                                    const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
+                                        `${window.location.pathname}#${sectionId}`
+                                    )}`;
+                                    window.location.href = redirectUrl;
+                                }, 3000);
+        
+                                return;
+                            }
+                            throw new Error(data.message || 'Failed to create document.');
+                        });
+                    }
+                    return response.json();
+                })
+    .then(data => {
+        if (!data || !data.success) {
+            renderMessages([{ level: 'error', message: 'Your Xero session has expired. Please log in again' }]);
+            return;
+        }
+
+        if (!data.xero_id || !data.client) {
+            renderMessages([{ level: 'error', message: data.message }]);
+            return;
+        }
+        
+        const documentSummary = `
+            <div class='card'>
+                <div class='card-header bg-success text-white'>
+                    ${type === 'invoice' ? 'Invoice' : 'Quote'} Created Successfully
                 </div>
-            `;
+                <div class='card-body'>
+                    <p><strong>Xero ID:</strong> ${data.xero_id}</p>
+                    <p><strong>Client:</strong> ${data.client}</p>
+                    ${data.invoice_url ? `<a href='${data.invoice_url}' target='_blank' class='btn btn-info'>Go to Xero</a>` : ''}
+                    ${data.quote_url ? `<a href='${data.quote_url}' target='_blank' class='btn btn-info'>Go to Xero</a>` : ''}
+                </div>
+            </div>
+        `;
 
-            const modalBody = document.getElementById('alert-modal-body');
-            modalBody.innerHTML = invoiceSummary;
-
-            const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
-            alertModal.show();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
-        });
-}
-
-function exportCostsToPDF(costData, jobData) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'px' });
-    const creationDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    let startY = 20;
-
-    const logoPath = '/static/logo_msm.png';
-    doc.addImage(logoPath, 'PNG', 160, 10, 300, 150);
-
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("Costs Summary", 10, startY);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Generated on: ${creationDate}`, 10, startY + 10);
-
-    startY += 40;
-
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Job Details", 10, startY);
-    startY += 20;
-
-    const jobDetails = [
-        ["Job Name", jobData.name || "N/A"],
-        ["Job Number", jobData.job_number || "N/A"],
-        ["Client", jobData.client_name || "N/A"],
-        ["Description", jobData.description || "N/A"],
-        ["Created On", new Date(jobData.created_at).toLocaleDateString("en-US") || "N/A"],
-    ];
-
-    jobDetails.forEach(([label, value]) => {
-        doc.setFont("helvetica", "bold");
-        doc.text(`${label}:`, 10, startY);
-        doc.setFont("helvetica", "normal");
-        doc.text(`${value}`, 100, startY);
-        startY += 12;
+        document.getElementById('alert-modal-body').innerHTML = documentSummary;
+        new bootstrap.Modal(document.getElementById('alert-container')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
     });
-
-    startY += 10;
-
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Cost Details", 10, startY);
-    startY += 10;
-
-    const costHeaders = ["Category", "Estimate", "Quote", "Reality"];
-    const costRows = costData.map(row => [
-        row.category || "N/A",
-        `NZD ${row.estimate.toFixed(2)}`,
-        `NZD ${row.quote.toFixed(2)}`,
-        `NZD ${row.reality.toFixed(2)}`
-    ]);
-
-    doc.autoTable({
-        head: [costHeaders],
-        body: costRows,
-        startY: startY,
-    });
-
-    startY = doc.lastAutoTable.finalY + 20;
-
-    doc.setFontSize(16);
-    doc.text("Total Project Cost", 10, startY);
-    doc.setFontSize(12);
-    doc.text(`Estimate: NZD ${costData.total_estimate.toFixed(2)}`, 10, startY + 10);
-    doc.text(`Quote: NZD ${costData.total_quote.toFixed(2)}`, 10, startY + 20);
-    doc.text(`Reality: NZD ${costData.total_reality.toFixed(2)}`, 10, startY + 30);
-
-    return new Blob([doc.output("blob")], { type: "application/pdf" });
 }

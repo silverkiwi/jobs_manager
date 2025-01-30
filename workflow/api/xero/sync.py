@@ -7,6 +7,8 @@ from uuid import UUID
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import transaction
 from django.db import models
+from django.utils import timezone
+
 from xero_python.accounting import AccountingApi
 
 from workflow.api.xero.reprocess_xero import (
@@ -410,29 +412,30 @@ def sync_clients(xero_contacts):
         raw_json = remove_junk_json_fields(raw_json_with_currency)
 
         try:
-            # Find client by `xero_contact_id`
-            client, created = Client.objects.get_or_create(
-                xero_contact_id=xero_contact_id
-            )
+            client = Client.objects.filter(xero_contact_id=xero_contact_id).first()
 
-            client.raw_json = raw_json
-            set_client_fields(client, new_from_xero=created)
-
-            if created:
-                logger.info(
-                    f"New client added: {client.name} updated_at={client.xero_last_modified}"
-                )
-            else:
+            if client:
+                client.raw_json = raw_json
+                set_client_fields(client, new_from_xero=False)
                 logger.info(
                     f"Updated client: {client.name} updated_at={client.xero_last_modified}"
+                )
+            else:
+                client = Client.objects.create(
+                    xero_contact_id=xero_contact_id,
+                    xero_last_modified=timezone.now(),
+                    raw_json=raw_json,
+                )
+                set_client_fields(client, new_from_xero=True)
+                logger.info(
+                    f"New client added: {client.name} updated_at={client.xero_last_modified}"
                 )
 
             # Queue synchronization for each client
             sync_client_task.delay(client.id)
+
         except Exception as e:
-            logger.error(
-                f"Error processing client {contact_data.get('name', 'unknown')}: {str(e)}"
-            )
+            logger.error(f"Error processing client: {str(e)}")
             logger.error(f"Client data: {raw_json}")
             raise
 
