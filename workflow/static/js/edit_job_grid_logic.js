@@ -644,11 +644,6 @@ function getJobIdFromUrl() {
     return window.location.pathname.split('/')[2];
 }
 
-function openPdfPreview(jobId) {
-    const pdfUrl = `/api/quote/${jobId}/pdf-preview/`;
-    window.open(pdfUrl, '_blank');
-};
-
 function showQuoteModal(jobId, provider = 'gmail', contactOnly = false) {
     if (contactOnly) {
         sendQuoteEmail(jobId, provider, true)
@@ -828,78 +823,6 @@ function handleSaveEventButtonClick(jobId) {
         });
 }
 
-// function createInvoiceForJob(jobId) {
-//     if (!jobId) {
-//         renderMessages([{ level: 'error', message: `Job id is missing!` }]);
-//         return;
-//     }
-
-//     fetch(`/api/xero/create_invoice/${jobId}`, {
-//         method: 'POST',
-//         headers: {
-//             'Content-Type': 'application/json',
-//             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-//         },
-//     })
-//         .then((response) => {
-//             if (!response.ok) {
-//                 return response.json().then((data) => {
-//                     if (data.redirect_to_auth) {
-//                         renderMessages([{ level: 'error', message: data.message }]);
-            
-//                         setTimeout(() => {
-//                             const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
-//                                 `${window.location.pathname}#workflow-section`
-//                             )}`;
-//                             window.location.href = redirectUrl;
-//                         }, 3000);
-
-//                         return;
-//                     }
-//                     throw new Error(data.message || 'Failed to create invoice.');
-//                 });
-//             }
-//             return response.json();
-//         })
-//         .then((data) => {
-//             try {
-//                 if (!data.invoice_id || !data.xero_id || !data.client || !data.total_excl_tax || !data.total_incl_tax || !data.success) {
-//                     renderMessages([{ level: 'error', message: 'Your Xero session has expired. You'll be redirected to Xero login in seconds.' }]);
-//                     return;
-//                 }
-                
-//                 const invoiceSummary = `
-//                     <div class='card'>
-//                         <div class='card-header bg-success text-white'>
-//                             Invoice Created Successfully
-//                         </div>
-//                         <div class='card-body'>
-//                             <p><strong>Invoice ID:</strong> ${data.invoice_id}</p>
-//                             <p><strong>Xero ID:</strong> ${data.xero_id}</p>
-//                             <p><strong>Client:</strong> ${data.client}</p>
-//                             <p><strong>Total (Excl. Tax):</strong> ${data.total_excl_tax}</p>
-//                             <p><strong>Total (Incl. Tax):</strong> ${data.total_incl_tax}</p>
-//                             ${data.invoice_url ? `<a href='${data.invoice_url}' target='_blank' class='btn btn-info' style='color: white;'>Go to Xero</a>` : ''}
-//                         </div>
-//                     </div>
-//                 `;
-
-//                 const modalBody = document.getElementById('alert-modal-body');
-//                 modalBody.innerHTML = invoiceSummary;
-
-//                 const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
-//                 alertModal.show();
-//             } catch (error) {
-//                 renderMessages([{ level: 'error', message: 'Your Xero session has expired. You'll be redirected to Xero login in seconds.' }]);
-//                 return;
-//             }
-//         })
-//         .catch((error) => {
-//             console.error('Error:', error);
-//             renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
-//         });
-// }
-
 function createXeroDocument(jobId, type) {
     if (!jobId) {
         renderMessages([{ level: 'error', message: `Job id is missing!` }]);
@@ -972,76 +895,4 @@ function createXeroDocument(jobId, type) {
         console.error('Error:', error);
         renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
     });
-}
-
-function exportCostsToPDF(costData, jobData) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'px' });
-    const creationDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    let startY = 20;
-
-    const logoPath = '/static/logo_msm.png';
-    doc.addImage(logoPath, 'PNG', 160, 10, 300, 150);
-
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Costs Summary', 10, startY);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Generated on: ${creationDate}`, 10, startY + 10);
-
-    startY += 40;
-
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Job Details', 10, startY);
-    startY += 20;
-
-    const jobDetails = [
-        ['Job Name', jobData.name || 'N/A'],
-        ['Job Number', jobData.job_number || 'N/A'],
-        ['Client', jobData.client_name || 'N/A'],
-        ['Description', jobData.description || 'N/A'],
-        ['Created On', new Date(jobData.created_at).toLocaleDateString('en-US') || 'N/A'],
-    ];
-
-    jobDetails.forEach(([label, value]) => {
-        doc.setFont('helvetica', 'bold');
-        doc.text(`${label}:`, 10, startY);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`${value}`, 100, startY);
-        startY += 12;
-    });
-
-    startY += 10;
-
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Cost Details', 10, startY);
-    startY += 10;
-
-    const costHeaders = ['Category', 'Estimate', 'Quote', 'Reality'];
-    const costRows = costData.map(row => [
-        row.category || 'N/A',
-        `NZD ${row.estimate.toFixed(2)}`,
-        `NZD ${row.quote.toFixed(2)}`,
-        `NZD ${row.reality.toFixed(2)}`
-    ]);
-
-    doc.autoTable({
-        head: [costHeaders],
-        body: costRows,
-        startY: startY,
-    });
-
-    startY = doc.lastAutoTable.finalY + 20;
-
-    doc.setFontSize(16);
-    doc.text('Total Project Cost', 10, startY);
-    doc.setFontSize(12);
-    doc.text(`Estimate: NZD ${costData.total_estimate.toFixed(2)}`, 10, startY + 10);
-    doc.text(`Quote: NZD ${costData.total_quote.toFixed(2)}`, 10, startY + 20);
-    doc.text(`Reality: NZD ${costData.total_reality.toFixed(2)}`, 10, startY + 30);
-
-    return new Blob([doc.output('blob')], { type: 'application/pdf' });
 }
