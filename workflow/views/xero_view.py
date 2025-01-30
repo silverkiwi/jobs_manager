@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 import re
 
 import logging
@@ -25,8 +27,8 @@ from xero_python.accounting import AccountingApi
 from xero_python.identity import IdentityApi
 from xero_python.accounting.models import (
     Invoice as XeroInvoice,
+    Quote as XeroQuote,
     LineItem,
-    LineAmountTypes,
     Contact,
 )
 from xero_python.exceptions import AccountingBadRequestException
@@ -43,6 +45,8 @@ from workflow.api.xero.xero import (
     get_tenant_id_from_connections,
 )
 from workflow.models import Job, Invoice, InvoiceLineItem
+from datetime import timedelta
+from django.utils import timezone
 
 logger = logging.getLogger("xero")
 
@@ -151,85 +155,213 @@ def convert_to_pascal_case(obj):
         return obj
 
 
-def create_xero_invoice(request, job_id):
-    """
-    Creates an invoice in Xero for a specific job, ensuring that it reflects the quoted price.
+# def create_xero_invoice(request, job_id):
+#     """
+#     Creates an invoice in Xero for a specific job, ensuring that it reflects the quoted price.
     
-    - The invoice includes a single line item for the total quoted amount.
-    - Another line item includes only the job description.
+#     - The invoice includes a single line item for the total quoted amount.
+#     - Another line item includes only the job description.
     
-    Parameters:
-        request: Django HttpRequest object.
-        job_id: The ID of the job for which the invoice is being created.
+#     Parameters:
+#         request: Django HttpRequest object.
+#         job_id: The ID of the job for which the invoice is being created.
 
-    Returns:
-        JsonResponse: Success or error information.
+#     Returns:
+#         JsonResponse: Success or error information.
+#     """
+#     try:
+#         job = Job.objects.get(id=job_id)
+
+#         if not job.client:
+#             raise ValueError("Job does not have a client")
+
+#         client = job.client
+
+#         if not client.validate_for_xero():
+#             raise ValueError("Client data is not valid for Xero")
+
+#         if not client.xero_contact_id:
+#             raise ValueError(f"Client {client.name} does not have a valid Xero contact ID. Sync the client with Xero first.")
+
+#         client = client.get_client_for_xero()
+
+#         total_project_revenue = float(job.latest_reality_pricing.total_revenue) or float("0.00")
+
+#         if job.description:
+#             description_line_item = LineItem(description=job.description)
+
+#         # Convert line items to Xero-compatible LineItem objects
+#         xero_line_items = [
+#             LineItem(
+#                 description="Price as quoted",
+#                 quantity=1,
+#                 unit_amount=total_project_revenue,
+#                 account_code=200,
+#             )
+#         ]
+
+#         if description_line_item:
+#             xero_line_items.append(description_line_item)
+
+#         xero_tenant_id = get_tenant_id()
+#         xero_api = AccountingApi(api_client)
+
+#         xero_contact = Contact(
+#             contact_id=job.client.xero_contact_id,
+#             name=job.client.name
+#         )
+
+#         xero_invoice = XeroInvoice(
+#             type="ACCREC",
+#             contact=xero_contact,
+#             line_items=xero_line_items,
+#             date=format_date(timezone.now()),
+#             due_date=format_date(timezone.now() + timedelta(days=30)),
+#             line_amount_types="Exclusive", # Line Amounts will always be Tax Exclusive, but Staff can edit it in Xero if needed
+#             reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
+#             currency_code="NZD",
+#             status="DRAFT"
+#         )
+
+#         try:
+#             # Xero only recognizes the LineItems of an Invoice if they are in the correct naming pattern, which in this case is PascalCase.
+#             payload = convert_to_pascal_case(clean_payload(xero_invoice.to_dict()))
+#             logger.debug(f"Serialized payload: {json.dumps(payload, indent=4)}")
+#         except Exception as e:
+#             logger.error(f"Error serializing XeroInvoice: {str(e)}")
+#             raise
+
+#         try:
+#             response, http_status, http_headers = xero_api.create_invoices(
+#                 xero_tenant_id,
+#                 invoices=payload,
+#                 _return_http_data_only=False
+#             )
+
+#             logger.debug(f"Response Content: {response}")
+#             logger.debug(f"HTTP Status: {http_status}")
+#             logger.debug(f"HTTP Headers: {http_headers}")
+#         except Exception as e:
+#             logger.error(f"Error sending invoice to Xero: {str(e)}")
+
+#             if hasattr(e, "body"):
+#                 logger.error(f"Response body: {e.body}")
+#             if hasattr(e, "headers"):
+#                 logger.error(f"Response headers: {e.headers}")
+#             raise
+
+#         if response and response.invoices:
+#             xero_invoice_data = response.invoices[0]
+#             xero_invoice_id = xero_invoice_data.invoice_id
+
+#             # This is the internal view of the invoice
+#             # Font: https://community.zapier.com/how-do-i-3/url-for-xero-invoice-1671
+#             invoice_url = f"https://invoicing.xero.com/edit/{xero_invoice_id}"
+
+#             invoice_json = json.dumps(response.to_dict(), default=str)
+
+#             invoice = Invoice.objects.create(
+#                         xero_id=xero_invoice_id,
+#                         client=job.client,
+#                         date=timezone.now().date(),
+#                         due_date=(timezone.now().date() + timedelta(days=30)),
+#                         status="Draft",
+#                         total_excl_tax=Decimal(xero_invoice_data.total),
+#                         tax=Decimal(xero_invoice_data.total_tax),
+#                         total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
+#                         amount_due=Decimal(xero_invoice_data.amount_due),
+#                         xero_last_modified=timezone.now(),
+#                         raw_json=invoice_json,
+#             )
+
+#             logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
+
+#             return JsonResponse({
+#                 "success": True,
+#                 "invoice_id": invoice.id,
+#                 "xero_id": invoice.xero_id,
+#                 "client": invoice.client.name,
+#                 "total_excl_tax": str(invoice.total_excl_tax),
+#                 "total_incl_tax": str(invoice.total_incl_tax),
+#                 "invoice_url": invoice_url
+#             })
+#         else:
+#             logger.error("No invoices found in the response or failed to update invoice.")
+#             return JsonResponse({"success": False, "error": "No invoices found in the response."}, status=400)
+
+#     except AccountingBadRequestException as e:
+#         logger.error(f"Error creating invoice in Xero: {e}")
+#         return JsonResponse({"success": False, "error": str(e)}, status=400)
+#     except Job.DoesNotExist:
+#         return JsonResponse({"success": False, "error": "Job not found."}, status=404)
+#     except Exception as e:
+#         logger.error(f"Unexpected error: {e}")
+#         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+class XeroDocumentCreator(ABC):
     """
-    try:
-        job = Job.objects.get(id=job_id)
+    Base class for creating Xero Documents (Invoices, Quotes).
+    Implements common logic and provides abstract methods for customization.
+    """
 
-        if not job.client:
+    def __init__(self, job):
+        self.job = job
+        self.client = job.client
+        self.xero_api = AccountingApi(api_client)
+        self.xero_tenant_id = get_tenant_id()
+
+    def validate_client(self):
+        """
+        Ensures the client exists and is synced with Xero
+        """
+        if not self.client:
             raise ValueError("Job does not have a client")
-
-        client = job.client
-
-        if not client.validate_for_xero():
+        if not self.client.validate_for_xero():
             raise ValueError("Client data is not valid for Xero")
-
-        if not client.xero_contact_id:
-            raise ValueError(f"Client {client.name} does not have a valid Xero contact ID. Sync the client with Xero first.")
-
-        client = client.get_client_for_xero()
-
-        total_project_revenue = float(job.latest_reality_pricing.total_revenue) or float("0.00")
-
-        if job.description:
-            description_line_item = LineItem(description=job.description)
-
-        # Convert line items to Xero-compatible LineItem objects
-        xero_line_items = [
-            LineItem(
-                description="Price as quoted",
-                quantity=1,
-                unit_amount=total_project_revenue,
-                account_code=200,
+        if not self.client.xero_contact_id:
+            raise ValueError(
+                f"Client {self.client.name} does not have a valid Xero contact ID. Sync the client with Xero first."
             )
-        ]
+        
+    def get_xero_contact(self):
+        """
+        Returns a Xero Contact object for the client
+        """
+        return Contact(contact_id=self.client.xero_contact_id, name=self.client.name)
+    
+    @abstractmethod
+    def get_line_items(self):
+        """
+        Returns a list of LineItem objects for the document
+        """
+        pass
 
-        if description_line_item:
-            xero_line_items.append(description_line_item)
+    @abstractmethod
+    def get_xero_document(self):
+        """
+        Returns a XeroDocument object for the document
+        """
+        pass
 
-        xero_tenant_id = get_tenant_id()
-        xero_api = AccountingApi(api_client)
+    def create_document(self):
+        """
+        Handles document creation and API communication with Xero.
+        """
+        self.validate_client()
 
-        xero_contact = Contact(
-            contact_id=job.client.xero_contact_id,
-            name=job.client.name
-        )
-
-        xero_invoice = XeroInvoice(
-            type="ACCREC",
-            contact=xero_contact,
-            line_items=xero_line_items,
-            date=format_date(timezone.now()),
-            due_date=format_date(timezone.now() + timedelta(days=30)),
-            line_amount_types="Exclusive", # Line Amounts will always be Tax Exclusive, but Staff can edit it in Xero if needed
-            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {job.id}",
-            currency_code="NZD",
-            status="DRAFT"
-        )
+        xero_document = self.get_xero_document()
 
         try:
-            # Xero only recognizes the LineItems of an Invoice if they are in the correct naming pattern, which in this case is PascalCase.
-            payload = convert_to_pascal_case(clean_payload(xero_invoice.to_dict()))
+            # Convert to PascalCase to match XeroAPI required format and clean payload
+            payload = convert_to_pascal_case(clean_payload(xero_document.to_dict()))
             logger.debug(f"Serialized payload: {json.dumps(payload, indent=4)}")
         except Exception as e:
-            logger.error(f"Error serializing XeroInvoice: {str(e)}")
+            logger.error(f"Error serializing XeroDocument: {str(e)}")
             raise
 
         try:
-            response, http_status, http_headers = xero_api.create_invoices(
-                xero_tenant_id,
+            response, http_status, http_headers = self.xero_api.create_invoices(
+                self.xero_tenant_id,
                 invoices=payload,
                 _return_http_data_only=False
             )
@@ -238,44 +370,145 @@ def create_xero_invoice(request, job_id):
             logger.debug(f"HTTP Status: {http_status}")
             logger.debug(f"HTTP Headers: {http_headers}")
         except Exception as e:
-            logger.error(f"Error sending invoice to Xero: {str(e)}")
-
+            logger.error(f"Error sending document to Xero: {str(e)}")
             if hasattr(e, "body"):
                 logger.error(f"Response body: {e.body}")
-            if hasattr(e, "headers"):
-                logger.error(f"Response headers: {e.headers}")
             raise
+
+        return response
+    
+
+class XeroQuoteCreator(XeroDocumentCreator):
+    """
+    Handles Quote creation in Xero.
+    """
+
+    def get_line_items(self):
+        """
+        Generate quote-specific LineItems.
+        """
+        line_items = [
+            LineItem(
+                description=self.job.description or f"Quote for Job {self.job.name}",
+                quantity=1,
+                unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
+                account_code=200,
+            )
+        ]
+
+        return line_items
+
+    def get_xero_document(self):
+        """
+        Creates a quote object for Xero.
+        """
+        return XeroQuote(
+            contact=self.get_xero_contact(),
+            line_items=self.get_line_items(),
+            date=format_date(timezone.now()),
+            expiry_date=format_date(timezone.now() + timedelta(days=30)),
+            line_amount_types="Exclusive",
+            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Quote for job {self.job.id}",
+            currency_code="NZD",
+            status="DRAFT"
+        )
+    
+    def create_document(self):
+        """Creates a quote and returns the quote URL."""
+        response = super().create_document()
+
+        if response and response.quotes:
+            xero_quote_data = response.quotes[0]
+            xero_quote_id = xero_quote_data.quote_id
+
+            quote_url = f"https://go.xero.com/app/quotes/edit/{xero_quote_id}"
+
+            logger.info(f"Quote created successfully for job {self.job.id}")
+
+            return JsonResponse({
+                "success": True,
+                "xero_id": xero_quote_id,
+                "client": self.client.name,
+                "quote_url": quote_url
+            })
+        else:
+            logger.error("No quotes found in the response or failed to create quote.")
+            return JsonResponse({"success": False, "error": "No quotes found in the response."}, status=400)
+    
+
+class XeroInvoiceCreator(XeroDocumentCreator):
+    """
+    Handles invoice creation in Xero.
+    """
+    
+    def get_line_items(self):
+        """
+        Generates invoice-specific LineItems.
+        """
+        description_line_item = LineItem(description=self.job.description) if self.job.description else None
+
+        xero_line_items = [
+            LineItem(
+                description="Price as quoted"
+                quantity=1,
+                unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
+                account_code=200
+            )
+        ]
+
+        if description_line_item:
+            xero_line_items.append(description_line_item)
+
+        return xero_line_items
+    
+    def get_xero_document(self):
+        """
+        Creates an invoice object for Xero. 
+        """
+        return XeroInvoice(
+            type="ACCREC",
+            contact=self.get_xero_contact(),
+            line_items=self.get_line_items(),
+            date=format_date(timezone.now()),
+            due_date=format_date(timezone.now() + timedelta(days=30)),
+            line_amount_types="Exclusive",
+            reference=f"(!) TESTING FOR WORKFLOW APP, PLEASE IGNORE - Invoice for job {self.job.id}",
+            currency_code="NZD",
+            status="DRAFT"
+        )
+
+    def create_document(self):
+        """Creates an invoice, processes response, and stores it in the database."""
+        response = super().create_document()
 
         if response and response.invoices:
             xero_invoice_data = response.invoices[0]
             xero_invoice_id = xero_invoice_data.invoice_id
 
-            # This is the internal view of the invoice
-            # Font: https://community.zapier.com/how-do-i-3/url-for-xero-invoice-1671
             invoice_url = f"https://invoicing.xero.com/edit/{xero_invoice_id}"
 
             invoice_json = json.dumps(response.to_dict(), default=str)
 
             invoice = Invoice.objects.create(
-                        xero_id=xero_invoice_id,
-                        client=job.client,
-                        date=timezone.now().date(),
-                        due_date=(timezone.now().date() + timedelta(days=30)),
-                        status="Draft",
-                        total_excl_tax=Decimal(xero_invoice_data.total),
-                        tax=Decimal(xero_invoice_data.total_tax),
-                        total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
-                        amount_due=Decimal(xero_invoice_data.amount_due),
-                        xero_last_modified=timezone.now(),
-                        raw_json=invoice_json,
+                xero_id=xero_invoice_id,
+                client=self.client,
+                date=timezone.now().date(),
+                due_date=(timezone.now().date() + timedelta(days=30)),
+                status="Draft",
+                total_excl_tax=Decimal(xero_invoice_data.total),
+                tax=Decimal(xero_invoice_data.total_tax),
+                total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
+                amount_due=Decimal(xero_invoice_data.amount_due),
+                xero_last_modified=timezone.now(),
+                raw_json=invoice_json,
             )
 
-            logger.info(f"Invoice {invoice.id} created successfully for job {job_id}")
+            logger.info(f"Invoice {invoice.id} created successfully for job {self.job.id}")
 
             return JsonResponse({
                 "success": True,
                 "invoice_id": invoice.id,
-                "xero_id": invoice.xero_id,
+                "xero_id": xero_invoice_id,
                 "client": invoice.client.name,
                 "total_excl_tax": str(invoice.total_excl_tax),
                 "total_incl_tax": str(invoice.total_incl_tax),
@@ -285,50 +518,74 @@ def create_xero_invoice(request, job_id):
             logger.error("No invoices found in the response or failed to update invoice.")
             return JsonResponse({"success": False, "error": "No invoices found in the response."}, status=400)
 
-    except AccountingBadRequestException as e:
-        logger.error(f"Error creating invoice in Xero: {e}")
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
-    except Job.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Job not found."}, status=404)
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
+def ensure_xero_authentication():
+    """
+    Ensure the user is authenticated with Xero and retrieves the tenand ID.
+    If authentication is missing, it returns a JSON response prompting login.
+    """
+    token = get_valid_token()
+    if not token:
+        return JsonResponse(
+            {
+                "success": False,
+                "redirect_to_auth": True,
+                "message": "Your Xero session has expired. Please log in again.",
+            },
+            status=401,
+        )
 
-def create_invoice_job(request, job_id):
-    try:
-        token = get_valid_token()
-        if not token:
+    tenant_id = cache.get("tenant_id")
+    if not tenant_id:
+        try:
+            tenant_id = get_tenant_id_from_connections()
+            cache.set("xero_tenant_id", tenant_id, timeout=1800)
+        except Exception as e:
+            logger.error(f"Error retrieving tenant ID: {e}")
             return JsonResponse(
                 {
                     "success": False,
                     "redirect_to_auth": True,
-                    "message": "Your Xero session has expired. Please log in again.",
+                    "message": "Unable to fetch Xero tenant ID. Please log in again.",
                 },
-                status=400,
+                status=401,
             )
+    return tenant_id
 
-        tenant_id = cache.get("xero_tenant_id")
-        if not tenant_id:
-            try:
-                tenant_id = get_tenant_id_from_connections()
-                cache.set("xero_tenant_id", tenant_id, timeout=3600)
-            except Exception as e:
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "redirect_to_auth": True,
-                        "message": "Unable to fetch Xero tenant ID. Please log in again.",
-                    },
-                    status=400,
-                )
 
-        response = create_xero_invoice(request, job_id)
-        if isinstance(response, JsonResponse):
-            return response
+def create_xero_invoice(request, job_id):
+    """
+    Creates an Invoice in Xero for a given job.
+    """
+    tenant_id = ensure_xero_authentication()
+    if isinstance(tenant_id, JsonResponse): # If the tenant ID is an error message, return it directly
+        return tenant_id
+
+    try:
+        job = Job.objects.get(id=job_id)
+        creator = XeroInvoiceCreator(job)
+        return creator.create_document()
 
     except Exception as e:
         logger.error(f"Error in create_invoice_job: {str(e)}")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+def create_xero_quote(request, job_id):
+    """
+    Creates a quote in Xero for a given job.
+    """
+    tenant_id = ensure_xero_authentication()
+    if isinstance(tenant_id, JsonResponse): # If the tenant ID is an error message, return it directly
+        return tenant_id
+    
+    try:
+        job = Job.objects.get(id=job_id)
+        creator = XeroQuoteCreator(job)
+        return creator.create_document()
+    
+    except Exception as e:
+        logger.error(f"Error in create_xero_quote: {str(e)}")
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 

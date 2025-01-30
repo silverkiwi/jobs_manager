@@ -606,16 +606,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 calculateTotalRevenue();
                 break;
 
-            case 'submitQuoteToClient':
-                console.log('Submitting quote to client for job:', jobId);
-
-                // TODO: add JSDocs to the following functions
-                openPdfPreview(jobId);
-                showQuoteModal(jobId);
+            case 'quoteJob':
+                createXeroDocument(jobId, 'quote');
                 break;
 
             case 'invoiceJobButton':
-                createInvoiceForJob(jobId);
+                createXeroDocument(jobId, 'invoice');
                 break;
 
             case 'printJobButton':
@@ -832,76 +828,150 @@ function handleSaveEventButtonClick(jobId) {
         });
 }
 
-function createInvoiceForJob(jobId) {
+// function createInvoiceForJob(jobId) {
+//     if (!jobId) {
+//         renderMessages([{ level: 'error', message: `Job id is missing!` }]);
+//         return;
+//     }
+
+//     fetch(`/api/xero/create_invoice/${jobId}`, {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+//         },
+//     })
+//         .then((response) => {
+//             if (!response.ok) {
+//                 return response.json().then((data) => {
+//                     if (data.redirect_to_auth) {
+//                         renderMessages([{ level: 'error', message: data.message }]);
+            
+//                         setTimeout(() => {
+//                             const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
+//                                 `${window.location.pathname}#workflow-section`
+//                             )}`;
+//                             window.location.href = redirectUrl;
+//                         }, 3000);
+
+//                         return;
+//                     }
+//                     throw new Error(data.message || 'Failed to create invoice.');
+//                 });
+//             }
+//             return response.json();
+//         })
+//         .then((data) => {
+//             try {
+//                 if (!data.invoice_id || !data.xero_id || !data.client || !data.total_excl_tax || !data.total_incl_tax || !data.success) {
+//                     renderMessages([{ level: 'error', message: 'Your Xero session has expired. You'll be redirected to Xero login in seconds.' }]);
+//                     return;
+//                 }
+                
+//                 const invoiceSummary = `
+//                     <div class='card'>
+//                         <div class='card-header bg-success text-white'>
+//                             Invoice Created Successfully
+//                         </div>
+//                         <div class='card-body'>
+//                             <p><strong>Invoice ID:</strong> ${data.invoice_id}</p>
+//                             <p><strong>Xero ID:</strong> ${data.xero_id}</p>
+//                             <p><strong>Client:</strong> ${data.client}</p>
+//                             <p><strong>Total (Excl. Tax):</strong> ${data.total_excl_tax}</p>
+//                             <p><strong>Total (Incl. Tax):</strong> ${data.total_incl_tax}</p>
+//                             ${data.invoice_url ? `<a href='${data.invoice_url}' target='_blank' class='btn btn-info' style='color: white;'>Go to Xero</a>` : ''}
+//                         </div>
+//                     </div>
+//                 `;
+
+//                 const modalBody = document.getElementById('alert-modal-body');
+//                 modalBody.innerHTML = invoiceSummary;
+
+//                 const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
+//                 alertModal.show();
+//             } catch (error) {
+//                 renderMessages([{ level: 'error', message: 'Your Xero session has expired. You'll be redirected to Xero login in seconds.' }]);
+//                 return;
+//             }
+//         })
+//         .catch((error) => {
+//             console.error('Error:', error);
+//             renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
+//         });
+// }
+
+function createXeroDocument(jobId, type) {
     if (!jobId) {
         renderMessages([{ level: 'error', message: `Job id is missing!` }]);
         return;
     }
 
-    fetch(`/api/xero/create_invoice/${jobId}`, {
+    const endpoint = type === 'invoice' 
+        ? `/api/xero/create_invoice/${jobId}` 
+        : `/api/xero/create_quote/${jobId}`;
+
+    fetch(endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
         },
     })
-        .then((response) => {
-            if (!response.ok) {
-                return response.json().then((data) => {
-                    if (data.redirect_to_auth) {
-                        renderMessages([{ level: "error", message: data.message }]);
-            
-                        setTimeout(() => {
-                            const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
-                                `${window.location.pathname}#workflow-section`
-                            )}`;
-                            window.location.href = redirectUrl;
-                        }, 3000);
-
-                        return;
+    .then((response) => {
+                    if (!response.ok) {
+                        return response.json().then((data) => {
+                            if (data.redirect_to_auth) {
+                                renderMessages(
+                                    [
+                                        { 
+                                            level: 'error', 
+                                            message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.' 
+                                        }
+                                    ]
+                                );
+                                
+                                const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
+                                setTimeout(() => {
+                                    const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
+                                        `${window.location.pathname}${sectionId}`
+                                    )}`;
+                                    window.location.href = redirectUrl;
+                                }, 3000);
+        
+                                return;
+                            }
+                            throw new Error(data.message || 'Failed to create document.');
+                        });
                     }
-                    throw new Error(data.message || "Failed to create invoice.");
-                });
-            }
-            return response.json();
-        })
-        .then((data) => {
-            try {
-                if (!data.invoice_id || !data.xero_id || !data.client || !data.total_excl_tax || !data.total_incl_tax || !data.success) {
-                    renderMessages([{ level: 'error', message: "Your Xero session has expired. You'll be redirected to Xero login in seconds." }]);
-                    return;
-                }
-                
-                const invoiceSummary = `
-                    <div class='card'>
-                        <div class='card-header bg-success text-white'>
-                            Invoice Created Successfully
-                        </div>
-                        <div class='card-body'>
-                            <p><strong>Invoice ID:</strong> ${data.invoice_id}</p>
-                            <p><strong>Xero ID:</strong> ${data.xero_id}</p>
-                            <p><strong>Client:</strong> ${data.client}</p>
-                            <p><strong>Total (Excl. Tax):</strong> ${data.total_excl_tax}</p>
-                            <p><strong>Total (Incl. Tax):</strong> ${data.total_incl_tax}</p>
-                            ${data.invoice_url ? `<a href="${data.invoice_url}" target="_blank" class="btn btn-info" style="color: white;">Go to Xero</a>` : ""}
-                        </div>
-                    </div>
-                `;
+                    return response.json();
+                })
+    .then(data => {
+        if (!data.success) {
+            renderMessages([{ level: 'error', message: data.error || 'An error occurred.' }]);
+            return;
+        }
+        
+        const documentSummary = `
+            <div class='card'>
+                <div class='card-header bg-success text-white'>
+                    ${type === 'invoice' ? 'Invoice' : 'Quote'} Created Successfully
+                </div>
+                <div class='card-body'>
+                    <p><strong>Xero ID:</strong> ${data.xero_id}</p>
+                    <p><strong>Client:</strong> ${data.client}</p>
+                    ${data.invoice_url ? `<a href='${data.invoice_url}' target='_blank' class='btn btn-info'>Go to Xero</a>` : ''}
+                    ${data.quote_url ? `<a href='${data.quote_url}' target='_blank' class='btn btn-info'>Go to Xero</a>` : ''}
+                </div>
+            </div>
+        `;
 
-                const modalBody = document.getElementById('alert-modal-body');
-                modalBody.innerHTML = invoiceSummary;
-
-                const alertModal = new bootstrap.Modal(document.getElementById('alert-container'));
-                alertModal.show();
-            } catch (error) {
-                renderMessages([{ level: 'error', message: "Your Xero session has expired. You'll be redirected to Xero login in seconds." }]);
-                return;
-            }
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-            renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
-        });
+        document.getElementById('alert-modal-body').innerHTML = documentSummary;
+        new bootstrap.Modal(document.getElementById('alert-container')).show();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
+    });
 }
 
 function exportCostsToPDF(costData, jobData) {

@@ -93,8 +93,13 @@ urlpatterns = [
     ),
     path(
         "api/xero/create_invoice/<uuid:job_id>",
-        xero_view.create_invoice_job,
+        xero_view.create_xero_invoice,
         name="create_invoice"
+    ),
+    path(
+        "api/xero/create_quote/<uuid:job_id>",
+        xero_view.create_xero_quote,
+        name="create_quote"
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
