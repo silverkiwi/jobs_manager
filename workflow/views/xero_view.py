@@ -217,11 +217,20 @@ class XeroDocumentCreator(ABC):
             raise
 
         try:
-            response, http_status, http_headers = self.xero_api.create_invoices(
-                self.xero_tenant_id,
-                invoices=payload,
-                _return_http_data_only=False
-            )
+            if isinstance(self, XeroInvoiceCreator):
+                response, http_status, http_headers = self.xero_api.create_invoices(
+                    self.xero_tenant_id,
+                    invoices=payload,
+                    _return_http_data_only=False
+                )
+            elif isinstance(self, XeroQuoteCreator):
+                response, http_status, http_headers = self.xero_api.create_quotes(
+                    self.xero_tenant_id,
+                    quotes=payload,
+                    _return_http_data_only=False
+                )
+            else:
+                raise ValueError("Unknown Xero document type.")
 
             logger.debug(f"Response Content: {response}")
             logger.debug(f"HTTP Status: {http_status}")
