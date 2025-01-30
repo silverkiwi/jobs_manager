@@ -869,7 +869,7 @@ function createXeroDocument(jobId, type) {
                     return response.json();
                 })
     .then(data => {
-        if (!data.success || !data.xero_id || !data.client) {
+        if (!data.xero_id || !data.client || !data.success) {
             renderMessages([{ level: 'error', message: data.error || 'An error occurred.' }]);
             return;
         }
