@@ -869,8 +869,13 @@ function createXeroDocument(jobId, type) {
                     return response.json();
                 })
     .then(data => {
-        if (!data.xero_id || !data.client || !data.success) {
-            renderMessages([{ level: 'error', message: data.error || 'An error occurred.' }]);
+        if (!data || !data.success) {
+            renderMessages([{ level: 'error', message: 'Your Xero session has expired. Please log in again' }]);
+            return;
+        }
+
+        if (!data.xero_id || !data.client) {
+            renderMessages([{ level: 'error', message: data.message }]);
             return;
         }
         
