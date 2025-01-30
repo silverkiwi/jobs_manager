@@ -258,7 +258,7 @@ def create_xero_invoice(request, job_id):
                 )
 
                 if invoice_response and invoice_response.online_invoices:
-                    invoice_url = invoice_response.online_invoices[0].online_invoice_url
+                    invoice_url = invoice_response.online_invoices["online_invoice_url"]
                     logger.info(f"Fetched Online Invoice URL: {invoice_url}")
 
             except Exception as e:
