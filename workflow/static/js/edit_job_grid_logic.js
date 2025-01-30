@@ -856,7 +856,7 @@ function createXeroDocument(jobId, type) {
                                 const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
                                 setTimeout(() => {
                                     const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
-                                        `${window.location.pathname}${sectionId}`
+                                        `${window.location.pathname}#${sectionId}`
                                     )}`;
                                     window.location.href = redirectUrl;
                                 }, 3000);
@@ -869,7 +869,7 @@ function createXeroDocument(jobId, type) {
                     return response.json();
                 })
     .then(data => {
-        if (!data.success) {
+        if (!data.success || !data.xero_id || !data.client) {
             renderMessages([{ level: 'error', message: data.error || 'An error occurred.' }]);
             return;
         }

@@ -403,7 +403,7 @@ def ensure_xero_authentication():
                 {
                     "success": False,
                     "redirect_to_auth": True,
-                    "message": "Unable to fetch Xero tenant ID. Please log in again.",
+                    "message": "Unable to fetch Xero tenant ID. Please log in Xero again.",
                 },
                 status=401,
             )
