@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleFiles(filesOrEvent) {
         const files = filesOrEvent.target?.files || filesOrEvent;
-        const jobNumber = document.getElementById('job_number_label').value;
 
         const formData = new FormData();
         formData.append('job_number', document.querySelector('[name="job_number"]').value);
@@ -79,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateFileList(newFiles) {
         if (!newFiles || newFiles.length === 0) return;
+        const jobNumber = document.getElementById('job_number_label').value;
 
         const list = document.querySelector('.job-files-list') || createNewFileList();
 
