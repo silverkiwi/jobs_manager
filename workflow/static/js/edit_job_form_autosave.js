@@ -496,7 +496,8 @@ async function handlePDF(pdfBlob, mode, jobData) {
             formData.append('job_number', jobData.job_number);
             formData.append('files', new File([pdfBlob], `${jobData.name}.pdf`, { type: 'application/pdf' }));
 
-            fetch('/api/upload-job-files/', {
+            // The correct endpoint for job file POST/GET is just "/api/job-files" 
+            fetch('/api/job-files/', {
                 method: 'POST',
                 headers: { 'X-CSRFToken': getCsrfToken() },
                 body: formData
