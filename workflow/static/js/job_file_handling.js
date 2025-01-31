@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleFiles(filesOrEvent) {
         const files = filesOrEvent.target?.files || filesOrEvent;
+        const jobNumber = document.getElementById('job_number_label').value;
 
         const formData = new FormData();
         formData.append('job_number', document.querySelector('[name="job_number"]').value);
@@ -85,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const li = document.createElement('li');
             li.innerHTML = `
                 <div class="file-info">
-                    <a href="/api/job-files/${filename}" target="_blank">
+                    <a href="/api/job-files/${jobNumber}/${filename}" target="_blank">
                         ${filename}
                     </a>
                     <span class="timestamp">(Just uploaded)</span>

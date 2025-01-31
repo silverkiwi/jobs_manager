@@ -41,7 +41,7 @@
             <input type="text" id="contact_phone" name="contact_phone" class="form-control autosave-input" value="{{ job.contact_phone|default_if_none:'' }}">
         </div>
         <div class="col-md-6">
-            <label for="job_number" class="form-label">Job Number</label>
+            <label id="job_number_label" for="job_number" class="form-label">Job Number</label>
             <input type="text" id="job_number" name="job_number" class="form-control autosave-input" value="{{ job.job_number }}" readonly>
         </div>
     </div>
