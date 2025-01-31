@@ -1,4 +1,4 @@
-import { createNewRow } from '/static/js/deseralise_job_pricing.js';
+import {createNewRow} from '/static/js/deseralise_job_pricing.js';
 
 let dropboxToken = null;
 
@@ -56,8 +56,32 @@ function checkJobValidity(data) {
     console.log('Data:', data);
     const requiredFields = ['name', 'client_id', 'contact_person', 'job_number'];
     const invalidFields = requiredFields.filter(field => !data[field] || data[field].trim() === '');
+
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+
     if (invalidFields.length > 0) {
         console.warn(`Invalid fields: ${invalidFields.join(', ')}`);
+
+
+        let firstInvalidElement = null;
+
+        invalidFields.forEach(field => {
+            const element = document.querySelector(`[name='${field}']`);
+            if (element) {
+                element.classList.add('is-invalid');
+                if (!firstInvalidElement) {
+                    firstInvalidElement = element;
+                }
+            }
+        });
+
+        // Scroll to the first invalid field
+        if (firstInvalidElement) {
+            firstInvalidElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstInvalidElement.focus();
+        }
+
         return false;
 
     } else {
@@ -403,6 +427,7 @@ export function autosaveData() {
     } else {
         console.log('Job is not valid. Skipping autosave.');
         renderMessages([{ level: 'error', message: 'Please complete all required fields before saving.' }], 'job-details');
+        return
     }
 }
 
@@ -504,6 +529,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Synchronize all elements with the 'autosave-input' class
     const autosaveInputs = document.querySelectorAll('.autosave-input');
 
+
     // Attach change event listener to handle special input types like checkboxes
     autosaveInputs.forEach(fieldElement => {
         fieldElement.addEventListener('blur', function () {
@@ -512,18 +538,12 @@ document.addEventListener('DOMContentLoaded', function () {
             debouncedAutosave();
         });
 
-        if (fieldElement.type === 'checkbox') {
+       if (fieldElement.type === 'checkbox' || fieldElement.tagName === 'SELECT') {
             fieldElement.addEventListener('change', function () {
-                console.log('Change event fired for checkbox:', fieldElement);
-                debouncedRemoveValidation(fieldElement);
-                debouncedAutosave();
-            });
-        }
-
-        if (fieldElement.tagName === 'SELECT') {
-            fieldElement.addEventListener('change', function () {
-                console.log('Change event fired for select:', fieldElement);
-                debouncedRemoveValidation(fieldElement);
+                if (fieldElement.classList.contains('is-invalid')) {
+                    fieldElement.classList.remove('is-invalid');
+                }
+                debouncedRemoveValidation(fieldElement)
                 debouncedAutosave();
             });
         }

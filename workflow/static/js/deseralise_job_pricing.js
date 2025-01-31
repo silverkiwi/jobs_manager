@@ -198,6 +198,7 @@ export function createNewRow(gridType) {
         quantity: 0,
         unit_cost: 0,
         unit_revenue: 0,
+        isManualOverride: false,
         revenue: 0,
         comments: '',
       };
