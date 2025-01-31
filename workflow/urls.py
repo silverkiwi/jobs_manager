@@ -141,6 +141,12 @@ urlpatterns = [
         CompanyProfitAndLossView.as_view(),
         name="company-profit-loss-report",
     ),
+    
+    path('api/company_defaults/', 
+         edit_job_view_ajax.get_company_defaults_api,
+         name='company_defaults_api'
+    ),
+    
 
     path(
         "timesheets/day/<str:date>/<uuid:staff_id>/",
