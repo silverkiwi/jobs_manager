@@ -2,6 +2,7 @@ import uuid
 from abc import abstractmethod
 from decimal import Decimal
 from django.db import models
+from django.utils import timezone
 from workflow.enums import InvoiceStatus
 
 
@@ -28,6 +29,7 @@ class BaseXeroInvoiceDocument(models.Model):
     raw_json = models.JSONField()
     django_created_at = models.DateTimeField(auto_now_add=True)
     django_updated_at = models.DateTimeField(auto_now=True)
+    xero_last_synced = models.DateTimeField(null=True, blank=True, default=timezone.now)
 
     class Meta:
         abstract = True
