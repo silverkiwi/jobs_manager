@@ -126,16 +126,20 @@ class TimesheetOverviewView(TemplateView):
             start_date: Date string in YYYY-MM-DD format
 
         Returns:
-            datetime.date object for start date or default date 7 days ago
+            datetime.date object for start date, defaulting to Monday of current week
         """
         if start_date:
             try:
                 return datetime.strptime(start_date, "%Y-%m-%d").date()
             except ValueError as e:
                 logger.warning(f"Invalid start date format: {str(e)}")
-                return timezone.now().date() - timezone.timedelta(days=7)
-        return timezone.now().date() - timezone.timedelta(days=7)
-
+                # Get Monday of current week
+                today = timezone.now().date()
+                return today - timezone.timedelta(days=today.weekday())
+        # Get Monday of current week if no start_date provided
+        today = timezone.now().date()
+        return today - timezone.timedelta(days=today.weekday())
+    
     def _get_week_days(self, start_date):
         """Generate list of weekdays from start date.
 
