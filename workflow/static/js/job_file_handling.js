@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateFileList(newFiles) {
         if (!newFiles || newFiles.length === 0) return;
-        const jobNumber = document.getElementById('job_number_label').value;
+        const jobNumber = document.getElementById('job_number').value;
 
         const list = document.querySelector('.job-files-list') || createNewFileList();
 
