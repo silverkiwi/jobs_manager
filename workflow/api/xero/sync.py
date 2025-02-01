@@ -31,7 +31,7 @@ def enqueue_client_sync_tasks():
     Enqueues synchronization of all clients to be processed by Celery    
     """
     clients_to_push = Client.objects.filter(
-        django_updated_at__gt=models.F('xero_last_modified')
+        django_updated_at__gt=models.F("xero_last_synced") # This fixes the bug where all local clients were being pushed
     )
 
     for client in clients_to_push:
