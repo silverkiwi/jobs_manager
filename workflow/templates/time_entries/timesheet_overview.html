@@ -36,17 +36,33 @@
     </div>
 
     <div class="row align-items-center mb-4">
-        <div class="col-md-6 text-start">
-            <h1>
+        <div class="col-md-12 text-center">
+            <h1 class="mb-3">
                 Timesheet Overview
             </h1>
-            <button class="btn btn-outline-primary rounded-2 p-2" data-bs-toggle="modal"
-                data-bs-target="#weekPickerModal">
-                Change Week
-            </button>
-            <span id="current-week-display" class="font-monospace bold p-2 bg-primary-subtle d-inline-block rounded-2">
-                {{ week_days.0|date:"jS F Y" }} - {{ week_days|last|date:"jS F Y" }}
-            </span>
+            <div class="d-flex justify-content-center align-items-center flex-wrap gap-2">
+                <div class="btn-group" role="group" aria-label="Week navigation" style="width: 450px;">
+                    <a href="{{ prev_week_url }}"
+                        class="btn btn-outline-primary rounded-start-2 d-flex align-items-center justify-content-center"
+                        style="width: 150px; height: 42px;">
+                        <i class="bi bi-chevron-left"></i> Previous Week
+                    </a>
+                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#weekPickerModal"
+                        style="width: 150px; height: 42px;">
+                        Change Week
+                    </button>
+                    <a href="{{ next_week_url }}"
+                        class="btn btn-outline-primary rounded-end-2 d-flex align-items-center justify-content-center"
+                        style="width: 150px; height: 42px;">
+                        Next Week <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+                <span id="current-week-display"
+                    class="font-monospace bold p-2 bg-primary-subtle d-inline-block rounded-2"
+                    style="width: 450px; font-size: 1.15rem; font-weight: bold; height: 42px;">
+                    {{ week_days.0|date:"jS F Y" }} - {{ week_days|last|date:"jS F Y" }}
+                </span>
+            </div>
         </div>
     </div>
 
@@ -75,7 +91,7 @@
             </div>
             <div class="card-body">
                 <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-lg btn-outline-success mt-2" data-bs-toggle="modal"
+                    <button class="btn btn-outline-success mt-2" data-bs-toggle="modal"
                         data-bs-target="#paidAbsenceModal">
                         Add Paid Absence
                     </button>
@@ -120,7 +136,7 @@
             <div class="container">
                 <div class="text-center">
                     <div class="d-flex justify-content-center overflow-auto">
-                        <div class="w-100">
+                        <div class="w-150">
                             {{ graphic|safe }}
                         </div>
                     </div>
