@@ -762,4 +762,3 @@ export function copyEstimateToQuote() {
         },
     ], 'estimate');
 }
-

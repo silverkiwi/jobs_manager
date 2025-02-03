@@ -381,7 +381,8 @@ document.addEventListener('DOMContentLoaded', function () {
             {
                 headerName: 'Wage Rate',
                 field: 'wage_rate',
-                editable: true,
+                editable: false,
+                hide: true,
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter,
                 minWidth: 100,
@@ -390,7 +391,8 @@ document.addEventListener('DOMContentLoaded', function () {
             {
                 headerName: 'Charge Rate',
                 field: 'charge_out_rate',
-                editable: true,
+                editable: false,
+                hide: true,
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter,
                 minWidth: 100,
@@ -410,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const materialsGridOptions = {
         ...commonGridOptions,
         columnDefs: [
-            { headerName: 'Item Code', field: 'item_code', editable: true },
+            { headerName: 'Item Code', field: 'item_code', editable: false, hide: true },
             { headerName: 'Description', field: 'description', editable: true, flex: 2 },
             { headerName: 'Quantity', field: 'quantity', editable: true, valueParser: numberParser },
             {
@@ -453,12 +455,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 valueParser: numberParser,
                 valueFormatter: currencyFormatter
             },
-            {
-                headerName: 'Revenue',
-                field: 'revenue',
-                editable: false,
-                valueFormatter: currencyFormatter
-            },
             { headerName: 'Comments', field: 'comments', editable: true, flex: 2 },
             trashCanColumn,
         ],
@@ -480,6 +476,18 @@ document.addEventListener('DOMContentLoaded', function () {
             let specificGridOptions;
             switch (gridType) {
                 case 'TimeTable':
+                    if (section === 'reality') {
+                        specificGridOptions = JSON.parse(JSON.stringify(timeGridOptions));
+                        specificGridOptions.columnDefs.forEach(col => {
+                            // Make all columns non-editable for reality section
+                            col.editable = false;
+                            // Preserve link column renderer but keep it non-editable
+                            if (col.field === 'link') {
+                                col.cellRenderer = timeGridOptions.columnDefs.find(c => c.field === 'link').cellRenderer;
+                            }
+                        });
+                        break;
+                    }
                     specificGridOptions = timeGridOptions;
                     break;
                 case 'MaterialsTable':
