@@ -52,12 +52,6 @@ class BaseXeroInvoiceDocument(models.Model):
     def total_amount(self):
         """Calculate the total amount by summing up the related line items."""
         return sum(item.line_amount_excl_tax for item in self.get_line_items())
-    
-    @property
-    @abstractmethod
-    def job(self):
-        """Abstract property that should return a Job foreign key."""
-        pass
 
 
 class BaseLineItem(models.Model):
@@ -103,7 +97,7 @@ class BaseLineItem(models.Model):
 
 
 class Invoice(BaseXeroInvoiceDocument):
-    job = models.ForeignKey("Job", on_delete=models.CASCADE, related_name="invoice")
+    job = models.OneToOneField("Job", on_delete=models.CASCADE, related_name="invoice", null=True, blank=True)
     online_url = models.URLField(null=True, blank=True)
 
     class Meta:
@@ -114,11 +108,7 @@ class Invoice(BaseXeroInvoiceDocument):
     def get_line_items(self):
         return self.line_items.all()
     
-    @property
-    def job(self):
-        """Return the related Job object"""
-        return self.job
-
+    
 class Bill(BaseXeroInvoiceDocument):
     class Meta:
         verbose_name = "Bill"
