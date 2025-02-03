@@ -162,11 +162,15 @@ class Job(models.Model):
 
     @property
     def quoted(self) -> bool:
-        return self.quote is not None
+        if hasattr(self, "quote") and self.quote is not None:
+            return self.quote
+        return False
 
     @property
     def invoiced(self) -> bool:
-        return self.invoice is not None
+        if hasattr(self, "invoice") and self.invoice is not None:
+            return self.invoice
+        return False
 
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"
