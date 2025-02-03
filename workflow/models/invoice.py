@@ -1,8 +1,13 @@
 import uuid
-from abc import abstractmethod
+
+from abc import abstractmethod, abstractproperty
+
 from decimal import Decimal
+
 from django.db import models
+
 from django.utils import timezone
+
 from workflow.enums import InvoiceStatus
 
 
@@ -26,6 +31,7 @@ class BaseXeroInvoiceDocument(models.Model):
     total_incl_tax = models.DecimalField(max_digits=10, decimal_places=2)
     amount_due = models.DecimalField(max_digits=10, decimal_places=2)
     xero_last_modified = models.DateTimeField()
+    xero_last_synced = models.DateTimeField(default=timezone.now)
     raw_json = models.JSONField()
     django_created_at = models.DateTimeField(auto_now_add=True)
     django_updated_at = models.DateTimeField(auto_now=True)
@@ -46,6 +52,12 @@ class BaseXeroInvoiceDocument(models.Model):
     def total_amount(self):
         """Calculate the total amount by summing up the related line items."""
         return sum(item.line_amount_excl_tax for item in self.get_line_items())
+    
+    @property
+    @abstractmethod
+    def job(self):
+        """Abstract property that should return a Job foreign key."""
+        pass
 
 
 class BaseLineItem(models.Model):
@@ -91,6 +103,9 @@ class BaseLineItem(models.Model):
 
 
 class Invoice(BaseXeroInvoiceDocument):
+    job = models.ForeignKey("Job", on_delete=models.CASCADE, related_name="invoice")
+    online_url = models.URLField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"
@@ -98,7 +113,11 @@ class Invoice(BaseXeroInvoiceDocument):
 
     def get_line_items(self):
         return self.line_items.all()
-
+    
+    @property
+    def job(self):
+        """Return the related Job object"""
+        return self.job
 
 class Bill(BaseXeroInvoiceDocument):
     class Meta:

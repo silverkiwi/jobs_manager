@@ -1020,7 +1020,9 @@ function createXeroDocument(jobId, type) {
                     </div>
                 </div>
             </div>
-        `;
+            `;
+
+            handleDocumentButtons(type, data.invoice_url || data.quote_url);
 
             document.getElementById('alert-modal-body').innerHTML = documentSummary;
             new bootstrap.Modal(document.getElementById('alert-container')).show();
@@ -1029,4 +1031,18 @@ function createXeroDocument(jobId, type) {
             console.error('Error:', error);
             renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
         });
+}
+
+function handleDocumentButtons(type, online_url) {
+    const documentButton = type === 'invoice' ? document.getElementById('invoiceJobButton') : document.getElementById('quoteJobButton');
+    documentButton.disabled = true;
+
+    const xeroLink = document.createElement('a');
+    xeroLink.className = type === 'invoice' ? 'btn btn-info' : 'btn btn-info mt-3';
+    xeroLink.href = online_url;
+    xeroLink.id = type === 'invoice' ? 'invoiceUrl' : 'quoteUrl';
+    xeroLink.innerText = type === 'invoice' ? 'Go to Invoice on Xero' : 'Go to Quote on Xero';
+
+    const linkContainer = document.getElementById(type === 'invoice' ? 'workflowActions' : 'quoteGrid');
+    linkContainer.append(xeroLink);
 }

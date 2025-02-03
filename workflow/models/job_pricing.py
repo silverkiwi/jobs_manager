@@ -38,8 +38,10 @@ class JobPricing(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    is_historical = models.BooleanField(default=False)  # New field to indicate historical records
+
+    is_historical = models.BooleanField(
+        default=False
+    )  # New field to indicate historical records
 
     class Meta:
         ordering = [
@@ -70,9 +72,7 @@ class JobPricing(models.Model):
     @property
     def total_time_revenue(self):
         """Calculate the total revenue for all time entries."""
-        return sum(
-            entry.revenue for entry in self.time_entries.all()
-        )
+        return sum(entry.revenue for entry in self.time_entries.all())
 
     @property
     def total_material_cost(self):

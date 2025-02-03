@@ -21,7 +21,6 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView
 from django.core.cache import cache
-from django.contrib import messages
 
 from xero_python.accounting import AccountingApi
 from xero_python.identity import IdentityApi
@@ -44,7 +43,9 @@ from workflow.api.xero.xero import (
     get_tenant_id,
     get_tenant_id_from_connections,
 )
-from workflow.models import Job, Invoice, InvoiceLineItem
+
+from workflow.enums import InvoiceStatus, QuoteStatus
+from workflow.models import Job, Invoice, Quote
 from datetime import timedelta
 from django.utils import timezone
 
@@ -127,7 +128,7 @@ def refresh_xero_data(request):
 
 
 def clean_payload(payload):
-    """Remove null fields from payload."""    
+    """Remove null fields from payload."""
     if isinstance(payload, dict):
         return {k: clean_payload(v) for k, v in payload.items() if v is not None}
     if isinstance(payload, list):
@@ -179,13 +180,21 @@ class XeroDocumentCreator(ABC):
             raise ValueError(
                 f"Client {self.client.name} does not have a valid Xero contact ID. Sync the client with Xero first."
             )
-        
+
+    @abstractmethod
+    def validate_job(self):
+        """
+        Ensures the job is valid for Xero document creation.
+        This is, if the job is already invoiced or quoted, then another document shouldn't be created.
+        """
+        pass
+
     def get_xero_contact(self):
         """
         Returns a Xero Contact object for the client
         """
         return Contact(contact_id=self.client.xero_contact_id, name=self.client.name)
-    
+
     @abstractmethod
     def get_line_items(self):
         """
@@ -205,6 +214,7 @@ class XeroDocumentCreator(ABC):
         Handles document creation and API communication with Xero.
         """
         self.validate_client()
+        self.validate_job()
 
         xero_document = self.get_xero_document()
 
@@ -219,15 +229,11 @@ class XeroDocumentCreator(ABC):
         try:
             if isinstance(self, XeroInvoiceCreator):
                 response, http_status, http_headers = self.xero_api.create_invoices(
-                    self.xero_tenant_id,
-                    invoices=payload,
-                    _return_http_data_only=False
+                    self.xero_tenant_id, invoices=payload, _return_http_data_only=False
                 )
             elif isinstance(self, XeroQuoteCreator):
                 response, http_status, http_headers = self.xero_api.create_quotes(
-                    self.xero_tenant_id,
-                    quotes=payload,
-                    _return_http_data_only=False
+                    self.xero_tenant_id, quotes=payload, _return_http_data_only=False
                 )
             else:
                 raise ValueError("Unknown Xero document type.")
@@ -242,12 +248,19 @@ class XeroDocumentCreator(ABC):
             raise
 
         return response
-    
+
 
 class XeroQuoteCreator(XeroDocumentCreator):
     """
     Handles Quote creation in Xero.
     """
+
+    def validate_job(self):
+        """
+        Ensures the job is valid for quote creation.
+        """
+        if self.job.quoted:
+            raise ValueError(f"Job {self.job.id} is already quoted.")
 
     def get_line_items(self):
         """
@@ -257,7 +270,8 @@ class XeroQuoteCreator(XeroDocumentCreator):
             LineItem(
                 description=self.job.description or f"Quote for Job {self.job.name}",
                 quantity=1,
-                unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
+                unit_amount=float(self.job.latest_reality_pricing.total_revenue)
+                or 0.00,
                 account_code=200,
             )
         ]
@@ -276,9 +290,9 @@ class XeroQuoteCreator(XeroDocumentCreator):
             line_amount_types="Exclusive",
             reference=f"Quote for job {self.job.id}",
             currency_code="NZD",
-            status="DRAFT"
+            status="DRAFT",
         )
-    
+
     def create_document(self):
         """Creates a quote and returns the quote URL."""
         response = super().create_document()
@@ -289,36 +303,65 @@ class XeroQuoteCreator(XeroDocumentCreator):
 
             quote_url = f"https://go.xero.com/app/quotes/edit/{xero_quote_id}"
 
-            logger.info(f"Quote created successfully for job {self.job.id}")
+            quote = Quote.objects.create(
+                xero_id=xero_quote_id,
+                job=self.job,
+                client=self.client,
+                date=timezone.now().date(),
+                status=QuoteStatus.DRAFT,
+                total_excl_tax=Decimal(xero_quote_data.sub_total),
+                total_incl_tax=Decimal(xero_quote_data.total),
+                xero_last_modified=timezone.now(),
+                xero_last_synced=timezone.now(),
+                online_url=quote_url,
+                raw_json=json.dumps(response.to_dict(), default=str),
+            )
 
-            return JsonResponse({
-                "success": True,
-                "xero_id": xero_quote_id,
-                "client": self.client.name,
-                "quote_url": quote_url
-            })
+            logger.info(f"Quote {quote.id} created successfully for job {self.job.id}")
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "xero_id": xero_quote_id,
+                    "client": self.client.name,
+                    "quote_url": quote_url,
+                }
+            )
         else:
             logger.error("No quotes found in the response or failed to create quote.")
-            return JsonResponse({"success": False, "error": "No quotes found in the response."}, status=400)
-    
+            return JsonResponse(
+                {"success": False, "error": "No quotes found in the response."},
+                status=400,
+            )
+
 
 class XeroInvoiceCreator(XeroDocumentCreator):
     """
     Handles invoice creation in Xero.
     """
-    
+
+    def validate_job(self):
+        """
+        Ensure job is valid for invoice creation.
+        """
+        if self.job.invoiced:
+            raise ValueError(f"Job {self.job.id} is already invoiced.")
+
     def get_line_items(self):
         """
         Generates invoice-specific LineItems.
         """
-        description_line_item = LineItem(description=self.job.description) if self.job.description else None
+        description_line_item = (
+            LineItem(description=self.job.description) if self.job.description else None
+        )
 
         xero_line_items = [
             LineItem(
                 description="Price as quoted",
                 quantity=1,
-                unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
-                account_code=200
+                unit_amount=float(self.job.latest_reality_pricing.total_revenue)
+                or 0.00,
+                account_code=200,
             )
         ]
 
@@ -326,10 +369,10 @@ class XeroInvoiceCreator(XeroDocumentCreator):
             xero_line_items.append(description_line_item)
 
         return xero_line_items
-    
+
     def get_xero_document(self):
         """
-        Creates an invoice object for Xero. 
+        Creates an invoice object for Xero.
         """
         return XeroInvoice(
             type="ACCREC",
@@ -340,7 +383,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
             line_amount_types="Exclusive",
             reference=f"Invoice for job {self.job.id}",
             currency_code="NZD",
-            status="DRAFT"
+            status="DRAFT",
         )
 
     def create_document(self):
@@ -357,31 +400,44 @@ class XeroInvoiceCreator(XeroDocumentCreator):
 
             invoice = Invoice.objects.create(
                 xero_id=xero_invoice_id,
+                job=self.job,
                 client=self.client,
                 date=timezone.now().date(),
                 due_date=(timezone.now().date() + timedelta(days=30)),
-                status="Draft",
+                status=InvoiceStatus.SUBMITTED,
                 total_excl_tax=Decimal(xero_invoice_data.total),
                 tax=Decimal(xero_invoice_data.total_tax),
-                total_incl_tax=Decimal(xero_invoice_data.total) + Decimal(xero_invoice_data.total_tax),
+                total_incl_tax=Decimal(xero_invoice_data.total)
+                + Decimal(xero_invoice_data.total_tax),
                 amount_due=Decimal(xero_invoice_data.amount_due),
+                xero_last_synced = timezone.now(),
                 xero_last_modified=timezone.now(),
+                online_url = invoice_url,
                 raw_json=invoice_json,
             )
 
-            logger.info(f"Invoice {invoice.id} created successfully for job {self.job.id}")
+            logger.info(
+                f"Invoice {invoice.id} created successfully for job {self.job.id}"
+            )
 
-            return JsonResponse({
-                "success": True,
-                "xero_id": xero_invoice_id,
-                "client": invoice.client.name,
-                "total_excl_tax": str(invoice.total_excl_tax),
-                "total_incl_tax": str(invoice.total_incl_tax),
-                "invoice_url": invoice_url
-            })
+            return JsonResponse(
+                {
+                    "success": True,
+                    "xero_id": xero_invoice_id,
+                    "client": invoice.client.name,
+                    "total_excl_tax": str(invoice.total_excl_tax),
+                    "total_incl_tax": str(invoice.total_incl_tax),
+                    "invoice_url": invoice_url,
+                }
+            )
         else:
-            logger.error("No invoices found in the response or failed to update invoice.")
-            return JsonResponse({"success": False, "error": "No invoices found in the response."}, status=400)
+            logger.error(
+                "No invoices found in the response or failed to update invoice."
+            )
+            return JsonResponse(
+                {"success": False, "error": "No invoices found in the response."},
+                status=400,
+            )
 
 
 def ensure_xero_authentication():
@@ -423,7 +479,9 @@ def create_xero_invoice(request, job_id):
     Creates an Invoice in Xero for a given job.
     """
     tenant_id = ensure_xero_authentication()
-    if isinstance(tenant_id, JsonResponse): # If the tenant ID is an error message, return it directly
+    if isinstance(
+        tenant_id, JsonResponse
+    ):  # If the tenant ID is an error message, return it directly
         return tenant_id
 
     try:
@@ -441,14 +499,16 @@ def create_xero_quote(request, job_id):
     Creates a quote in Xero for a given job.
     """
     tenant_id = ensure_xero_authentication()
-    if isinstance(tenant_id, JsonResponse): # If the tenant ID is an error message, return it directly
+    if isinstance(
+        tenant_id, JsonResponse
+    ):  # If the tenant ID is an error message, return it directly
         return tenant_id
-    
+
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
         return creator.create_document()
-    
+
     except Exception as e:
         logger.error(f"Error in create_xero_quote: {str(e)}")
         return JsonResponse({"success": False, "error": str(e)}, status=500)

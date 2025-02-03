@@ -104,7 +104,9 @@ class TimesheetOverviewView(TemplateView):
             return render(request, self.template_name, context)
         except Exception as e:
             logger.error(f"Error in TimesheetOverviewView.get: {str(e)}")
-            messages.error(request, "An error occurred while loading the timesheet overview.")
+            messages.error(
+                request, "An error occurred while loading the timesheet overview."
+            )
             return render(request, self.template_name, {"error": True})
 
     def _get_open_jobs(self):
@@ -141,7 +143,7 @@ class TimesheetOverviewView(TemplateView):
         # Get Monday of current week if no start_date provided
         today = timezone.now().date()
         return today - timezone.timedelta(days=today.weekday())
-    
+
     def _get_week_days(self, start_date):
         """Generate list of weekdays from start date.
 
@@ -159,10 +161,10 @@ class TimesheetOverviewView(TemplateView):
         except Exception as e:
             logger.error(f"Error generating week days: {str(e)}")
             return []
-        
+
     def _get_navigation_urls(self, start_date):
         """Get URLs for previous and next week navigation.
-        
+
         Args:
             start_date: datetime.date object for current week
 
@@ -173,8 +175,14 @@ class TimesheetOverviewView(TemplateView):
         next_week_date = start_date + timezone.timedelta(days=7)
 
         # Use Django's reverse() to build URLs using the named URL patterns.
-        prev_week_url = reverse("timesheet_overview_with_date", kwargs={"start_date": prev_week_date.strftime("%Y-%m-%d")})
-        next_week_url = reverse("timesheet_overview_with_date", kwargs={"start_date": next_week_date.strftime("%Y-%m-%d")})
+        prev_week_url = reverse(
+            "timesheet_overview_with_date",
+            kwargs={"start_date": prev_week_date.strftime("%Y-%m-%d")},
+        )
+        next_week_url = reverse(
+            "timesheet_overview_with_date",
+            kwargs={"start_date": next_week_date.strftime("%Y-%m-%d")},
+        )
 
         return prev_week_url, next_week_url
 

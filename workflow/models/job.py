@@ -10,6 +10,7 @@ from simple_history.models import HistoricalRecords  # type: ignore
 
 from jobs_manager import settings
 from workflow.models import CompanyDefaults
+from workflow.models.invoice import Invoice
 
 # We say . rather than workflow.models to avoid going through init,
 # otherwise it would have a circular import
@@ -151,14 +152,22 @@ class Job(models.Model):
             str(self.client_id) == "00000000-0000-0000-0000-000000000001"
         )  # This is the UUID for the shop client
 
-    @shop_job.setter 
+    @shop_job.setter
     def shop_job(self, value: bool) -> None:
         """Sets whether this is a shop job by updating the client ID."""
         if value:
             self.client_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
         else:
             self.client_id = None
-            
+
+    @property
+    def quoted(self) -> bool:
+        return self.quote is not None
+
+    @property
+    def invoiced(self) -> bool:
+        return self.invoice is not None
+
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"
         job_name = self.name if self.name else "No Job Name"
@@ -181,12 +190,15 @@ class Job(models.Model):
             company_defaults = CompanyDefaults.objects.first()
             self.charge_out_rate = company_defaults.charge_out_rate
 
-        if staff and not JobEvent.objects.filter(job=self, event_type="created").exists():
+        if (
+            staff
+            and not JobEvent.objects.filter(job=self, event_type="created").exists()
+        ):
             JobEvent.objects.create(
                 job=self,
                 event_type="created",
                 description=f"Job {self.name} created",
-                staff=staff
+                staff=staff,
             )
 
         if is_new:
@@ -225,7 +237,7 @@ class Job(models.Model):
                     job=self,
                     event_type="status_change",
                     description=f"Job status changed from {original_status} to {self.status}",
-                    staff=staff
+                    staff=staff,
                 )
 
             # Step 5: Save the Job to persist everything, including relationships

@@ -1,4 +1,5 @@
 # workflow/xero/sync.py
+from decimal import Decimal
 import logging
 import time
 from datetime import date, datetime, timedelta
@@ -20,6 +21,7 @@ from workflow.api.xero.xero import api_client, get_tenant_id
 from workflow.models import XeroJournal
 from workflow.models.client import Client
 from workflow.models.invoice import Bill, Invoice, CreditNote
+from workflow.models.quote import Quote
 from workflow.models.xero_account import XeroAccount
 from workflow.tasks import sync_client_task
 
@@ -482,6 +484,34 @@ def sync_accounts(xero_accounts):
             raise
 
 
+def sync_quotes(quotes):
+    """
+    Sync Quotes fetched from Xero API.
+    """
+    for quote_data in quotes:
+        xero_id = getattr(quote_data, "quote_id")
+        client = Client.objects.filter(
+            xero_contact_id=quote_data.contact.contact_id
+        ).first()
+
+        if not client:
+            logger.warning(f"Client not found for quote {xero_id}")
+            continue
+        
+        quote, created = Quote.objects.update_or_create(
+            xero_id=xero_id,
+            default={
+                "client": client,
+                "total_excl_tax": Decimal(quote_data.sub_total),
+                "total_incl_tax": Decimal(quote_data.total),
+                "quote_url": f"https://go.xero.com/app/quotes/edit/{xero_id}",
+                "raw_json": serialise_xero_object(quote_data),
+            },
+        )
+
+        logger.info(f"{'New' if created else 'Updated'} quote: {quote.xero_id} for client {client.name}")
+
+
 def sync_client_to_xero(client):
     """
     Sync a client from the local database to Xero - either create a new one or update an existing one.
@@ -762,12 +792,21 @@ def one_way_sync_all_xero_data():
         additional_params={"where": 'Type=="ACCREC"'},
         pagination_mode="page",
     )
+
     sync_xero_data(
         xero_entity_type="invoices",
         xero_api_function=accounting_api.get_invoices,
         sync_function=sync_bills,
         last_modified_time=our_latest_bill,
         additional_params={"where": 'Type=="ACCPAY"'},
+        pagination_mode="page",
+    )
+
+    sync_xero_data(
+        xero_entity_type="quotes",
+        xero_api_function=accounting_api.get_quotes,
+        sync_function=sync_quotes,
+        last_modified_time=get_last_modified_time(Quote),
         pagination_mode="page",
     )
 
