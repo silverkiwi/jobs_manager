@@ -373,7 +373,6 @@ class XeroInvoiceCreator(XeroDocumentCreator):
 
             return JsonResponse({
                 "success": True,
-                "invoice_id": invoice.id,
                 "xero_id": xero_invoice_id,
                 "client": invoice.client.name,
                 "total_excl_tax": str(invoice.total_excl_tax),

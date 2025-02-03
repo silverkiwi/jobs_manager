@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
             {
                 headerName: 'Description',
                 field: 'description',
-                editable: true, 
+                editable: true,
                 flex: 2,
                 minWidth: 100,
                 cellRenderer: (params) => {
@@ -341,39 +341,39 @@ document.addEventListener('DOMContentLoaded', function () {
                 width: 120,
                 minWidth: 100,
                 cellRenderer: (params) => {
-                    if (params.data.link && params.data.link.trim()) {                       
+                    if (params.data.link && params.data.link.trim()) {
                         const linkLabel =
                             params.data.link === '/timesheets/overview/'
                                 ? ''
                                 : 'View Timesheet';
 
                         if (linkLabel === '') {
-                            return `<span class="text-warning">Not found for this entry.</span>`;               
+                            return `<span class="text-warning">Not found for this entry.</span>`;
                         }
                         return `<a href='${params.data.link}' target='_blank' class='action-link'>${linkLabel}</a>`;
                     }
                     return 'Not found for this entry.';
                 }
             },
-            { 
-                headerName: 'Items', 
-                field: 'items', 
-                editable: true, 
+            {
+                headerName: 'Items',
+                field: 'items',
+                editable: true,
                 valueParser: numberParser,
                 minWidth: 80,
                 flex: 1
             },
-            { 
-                headerName: 'Mins/Item', 
-                field: 'mins_per_item', 
-                editable: true, 
+            {
+                headerName: 'Mins/Item',
+                field: 'mins_per_item',
+                editable: true,
                 valueParser: numberParser,
                 minWidth: 90,
                 flex: 1
             },
-            { 
-                headerName: 'Total Minutes', 
-                field: 'total_minutes', 
+            {
+                headerName: 'Total Minutes',
+                field: 'total_minutes',
                 editable: false,
                 minWidth: 110,
                 flex: 1
@@ -692,10 +692,10 @@ function getJobIdFromUrl() {
 function showQuoteModal(jobId, provider = 'gmail', contactOnly = false) {
     if (contactOnly) {
         sendQuoteEmail(jobId, provider, true)
-        .catch(error => {
-            console.error('Error sending quote email:', error);
-            renderMessages([{ level: 'error', message: 'Failed to send quote email.' }]);
-        });
+            .catch(error => {
+                console.error('Error sending quote email:', error);
+                renderMessages([{ level: 'error', message: 'Failed to send quote email.' }]);
+            });
         return;
     }
 
@@ -874,8 +874,8 @@ function createXeroDocument(jobId, type) {
         return;
     }
 
-    const endpoint = type === 'invoice' 
-        ? `/api/xero/create_invoice/${jobId}` 
+    const endpoint = type === 'invoice'
+        ? `/api/xero/create_invoice/${jobId}`
         : `/api/xero/create_quote/${jobId}`;
 
     fetch(endpoint, {
@@ -885,46 +885,46 @@ function createXeroDocument(jobId, type) {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
         },
     })
-    .then((response) => {
-                    if (!response.ok) {
-                        return response.json().then((data) => {
-                            if (data.redirect_to_auth) {
-                                renderMessages(
-                                    [
-                                        { 
-                                            level: 'error', 
-                                            message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.' 
-                                        }
-                                    ]
-                                );
-                                
-                                const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
-                                setTimeout(() => {
-                                    const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
-                                        `${window.location.pathname}#${sectionId}`
-                                    )}`;
-                                    window.location.href = redirectUrl;
-                                }, 3000);
-        
-                                return;
-                            }
-                            throw new Error(data.message || 'Failed to create document.');
-                        });
-                    }
-                    return response.json();
-                })
-    .then(data => {
-        if (!data || !data.success) {
-            renderMessages([{ level: 'error', message: 'Your Xero session has expired. Please log in again' }]);
-            return;
-        }
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((data) => {
+                    if (data.redirect_to_auth) {
+                        renderMessages(
+                            [
+                                {
+                                    level: 'error',
+                                    message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.'
+                                }
+                            ]
+                        );
 
-        if (!data.xero_id || !data.client) {
-            renderMessages([{ level: 'error', message: data.message }]);
-            return;
-        }
-        
-        const documentSummary = `
+                        const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
+                        setTimeout(() => {
+                            const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
+                                `${window.location.pathname}#${sectionId}`
+                            )}`;
+                            window.location.href = redirectUrl;
+                        }, 3000);
+
+                        return;
+                    }
+                    throw new Error(data.message || 'Failed to create document.');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data || !data.success) {
+                renderMessages([{ level: 'error', message: 'Your Xero session has expired. Please log in again' }]);
+                return;
+            }
+
+            if (!data.xero_id || !data.client) {
+                renderMessages([{ level: 'error', message: data.message }]);
+                return;
+            }
+
+            const documentSummary = `
             <div class='card'>
                 <div class='card-header bg-success text-white'>
                     ${type === 'invoice' ? 'Invoice' : 'Quote'} Created Successfully
@@ -934,15 +934,18 @@ function createXeroDocument(jobId, type) {
                     <p><strong>Client:</strong> ${data.client}</p>
                     ${data.invoice_url ? `<a href='${data.invoice_url}' target='_blank' class='btn btn-info'>Go to Xero</a>` : ''}
                     ${data.quote_url ? `<a href='${data.quote_url}' target='_blank' class='btn btn-info'>Go to Xero</a>` : ''}
+                    <div class="alert alert-info mt-3">
+                        <small>If the button above doesn't work, you can search for the Xero ID <strong>${data.xero_id}</strong> directly in Xero to find this document.</small>
+                    </div>
                 </div>
             </div>
         `;
 
-        document.getElementById('alert-modal-body').innerHTML = documentSummary;
-        new bootstrap.Modal(document.getElementById('alert-container')).show();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
-    });
+            document.getElementById('alert-modal-body').innerHTML = documentSummary;
+            new bootstrap.Modal(document.getElementById('alert-container')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
+        });
 }
