@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from django.utils import timezone
 from django.db import models
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,8 @@ class Client(models.Model):
     )  # For debugging, stores the raw JSON from Xero
     django_created_at = models.DateTimeField(auto_now_add=True)
     django_updated_at = models.DateTimeField(auto_now=True)
+
+    xero_last_synced = models.DateTimeField(null=True, blank=True, default=timezone.now)
 
     class Meta:
         ordering = ["name"]
