@@ -48,7 +48,7 @@
             Invoice Job
         </button>
         {% if invoiced and invoice_url %}
-            <a href="{% invoice_url %}" class="btn btn-info" id="invoiceUrl">
+            <a href="{{ invoice_url }}" class="btn btn-info" id="invoiceUrl">
                 Go to Invoice on Xero
             </a>
         {% endif %}
