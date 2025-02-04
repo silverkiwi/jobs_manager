@@ -1040,6 +1040,10 @@ function handleDocumentButtons(type, online_url) {
     const documentButton = type === 'invoice' ? document.getElementById('invoiceJobButton') : document.getElementById('quoteJobButton');
     documentButton.disabled = true;
 
+    const statusCheckbox = type === 'invoice' ? document.getElementById('invoiced_checkbox') : document.getElementById('quoted_checkbox');
+    statusCheckbox.disabled = false;
+    statusCheckbox.checked = true;
+
     const xeroLink = document.createElement('a');
     xeroLink.className = type === 'invoice' ? 'btn btn-info' : 'btn btn-info mt-3';
     xeroLink.href = online_url;
