@@ -248,6 +248,64 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function fetchMaterialsMarkup(rowData) {
+        if (rowData.materialsMarkup !== undefined) {
+            return Promise.resolve(rowData.materialsMarkup);
+        }
+    
+        return fetch('/api/company_defaults')
+            .then(response => response.json())
+            .then(companyDefaults => {
+                rowData.materialsMarkup = parseFloat(companyDefaults.materials_markup) || 0.2;
+                return rowData.materialsMarkup;
+            })
+            .catch(error => {
+                console.error('Error fetching company defaults:', error);
+                return 0.2;
+            });
+    }
+
+    function calculateRetailRate(costRate, markupRate) {
+        return costRate + (costRate * markupRate);
+    }
+
+    function getRetailRate(params) {
+        if (params.data.unit_revenue !== undefined) {
+            return params.data.unit_revenue; // Return stored value
+        }
+    
+        // Fetch markup asynchronously, but return the last known value immediately
+        fetchMaterialsMarkup(params.data).then(markupRate => {
+            if (!params.data.isManualOverride) {
+                params.data.unit_revenue = calculateRetailRate(params.data.unit_cost, markupRate);
+                params.api.refreshCells({ rowNodes: [params.node], columns: ['unit_revenue'], force: true });
+            }
+        });
+    
+        return params.data.unit_revenue || 0; // Default fallback value
+    }
+
+    function setRetailRate(params) {
+        let newValue = parseFloat(params.newValue);
+        let costRate = parseFloat(params.data.unit_cost) || 0;
+    
+        fetchMaterialsMarkup(params.data).then(markupRate => {
+            if (!isNaN(newValue) && newValue !== calculateRetailRate(costRate, markupRate)) {
+                params.data.isManualOverride = true;  
+            }
+    
+            if (!params.data.isManualOverride) {
+                params.data.unit_revenue = calculateRetailRate(costRate, markupRate);
+            } else {
+                params.data.unit_revenue = newValue;
+            }
+    
+            params.api.refreshCells({ rowNodes: [params.node], columns: ['unit_revenue'], force: true });
+        });
+    
+        return true;
+    }
+
     const commonGridOptions = {
         rowHeight: 28,
         headerHeight: 32,
@@ -293,12 +351,34 @@ document.addEventListener('DOMContentLoaded', function () {
         onCellValueChanged: function (event) {
             const gridType = event.context.gridType;
             const data = event.data;
+         
             if (gridType === 'TimeTable') {
                 data.total_minutes = (data.items || 0) * (data.mins_per_item || 0);
                 data.revenue = (data.total_minutes || 0) * (data.charge_out_rate / 60.0 || 0);
+
+                const hours = (data.total_minutes / 60).toFixed(1); 
+                data.total_minutes_display = `${data.total_minutes} (${hours} hours)`;
+
             } else if (gridType === 'MaterialsTable') {
+                if (event.column.colId === 'unit_cost') {
+                    if (!data.isManualOverride) {
+                        fetchMaterialsMarkup(data).then(markupRate => {
+                            data.unit_revenue = calculateRetailRate(data.unit_cost, markupRate);
+                            event.api.refreshCells({ rowNodes: [event.node], columns: ['unit_revenue'], force: true });
+                        });
+                    }
+                }
+            
+                if (event.column.colId === 'unit_revenue') {
+                    // Mark as manually overridden only if user types in this cell
+                    if (event.newValue !== null && event.newValue !== undefined) {
+                        data.isManualOverride = true;
+                    }
+                }
+            
                 data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
             }
+            
             event.api.refreshCells({ rowNodes: [event.node], columns: ['revenue', 'total_minutes'], force: true });
 
             debouncedAutosave(event);
@@ -378,29 +458,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 minWidth: 110,
                 flex: 1
             },
-            {
-                headerName: 'Wage Rate',
-                field: 'wage_rate',
-                editable: true,
-                valueParser: numberParser,
-                valueFormatter: currencyFormatter,
-                minWidth: 100,
-                flex: 1
-            },
-            {
-                headerName: 'Charge Rate',
-                field: 'charge_out_rate',
-                editable: true,
-                valueParser: numberParser,
-                valueFormatter: currencyFormatter,
-                minWidth: 100,
-                flex: 1
-            },
-            {
-                ...trashCanColumn,
-                minWidth: 40,
-                maxWidth: 40
-            }
+            { headerName: 'Items', field: 'items', editable: true, valueParser: numberParser },
+            { headerName: 'Mins/Item', field: 'mins_per_item', editable: true, valueParser: numberParser },
+            { headerName: 'Total Minutes', 
+                field: 'total_minutes', 
+                editable: false,
+                valueFormatter: (params) => {
+                    if (params.value !== undefined && params.value !== null) {
+                        const totalMinutes = parseFloat(params.value) || 0; 
+                        const decimalHours = (totalMinutes / 60).toFixed(1); 
+                        return `${totalMinutes} (${decimalHours} hours)`; 
+                    }
+                    return '0 (0.0 hours)'; 
+                },
+                valueParser: (params) => {
+                    return parseFloat(params.newValue) || 0;
+                },
+
+
+             },
         ],
         rowData: [],
         context: { gridType: 'TimeTable' },
@@ -424,8 +500,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 headerName: 'Retail Rate',
                 field: 'unit_revenue',
                 editable: true,
-                valueParser: numberParser,
-                valueFormatter: currencyFormatter
+                valueGetter: getRetailRate,
+                valueSetter: setRetailRate,
+                valueFormatter: currencyFormatter,
             },
             { headerName: 'Revenue', field: 'revenue', editable: false, valueFormatter: currencyFormatter },
             { headerName: 'Comments', field: 'comments', editable: true, flex: 2 },
@@ -537,7 +614,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { category: 'Total Time', estimate: 0, quote: 0, reality: 0 },
             { category: 'Total Materials', estimate: 0, quote: 0, reality: 0 },
             { category: 'Total Adjustments', estimate: 0, quote: 0, reality: 0 },
-            { category: 'Total Project Cost', estimate: 0, quote: 0, reality: 0 }
+            { category: 'Total Project Revenue', estimate: 0, quote: 0, reality: 0 }
         ],  // Default 4 rows
         domLayout: 'autoHeight',
         rowHeight: 28,

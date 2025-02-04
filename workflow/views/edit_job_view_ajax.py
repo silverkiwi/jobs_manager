@@ -23,6 +23,20 @@ from workflow.services.job_service import (
 logger = logging.getLogger(__name__)
 DEBUG_JSON = False  # Toggle for JSON debugging
 
+def get_company_defaults_api(request):
+    """
+    API endpoint to fetch company default settings.
+    Uses the get_company_defaults() helper function to ensure
+    a single instance is retrieved or created if it doesn't exist.
+    """
+    defaults = get_company_defaults()
+    return JsonResponse({
+        "materials_markup": float(defaults.materials_markup),
+        "time_markup": float(defaults.time_markup),
+        "charge_out_rate": float(defaults.charge_out_rate),
+        "wage_rate": float(defaults.wage_rate),
+    })
+    
 
 def create_job_view(request):
     return render(request, "jobs/create_job_and_redirect.html")

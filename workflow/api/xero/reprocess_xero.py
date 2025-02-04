@@ -14,6 +14,7 @@ from workflow.models.invoice import (
     CreditNoteLineItem,
 )
 from workflow.models.xero_account import XeroAccount
+from django.utils import timezone
 
 logger = logging.getLogger("xero")
 
@@ -69,6 +70,7 @@ def set_invoice_or_bill_fields(document, document_type):
     else:
         document.amount_due = raw_data.get("_amount_due")
     document.xero_last_modified = raw_data.get("_updated_date_utc")
+    document.xero_last_synced = timezone.now()
 
     # Set or create the client/supplier
     contact_data = raw_data.get("_contact", {})
@@ -173,6 +175,7 @@ def set_client_fields(client, new_from_xero=False):
         client.xero_last_modified = updated_date_utc
     else:
         raise ValueError("Xero last modified date is missing from the raw JSON.")
+    client.xero_last_synced = timezone.now()
 
 
     if new_from_xero:
