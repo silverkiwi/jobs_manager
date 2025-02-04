@@ -257,7 +257,7 @@ async function exportJobToPDF(jobData) {
                     sectionContent.push({ text: grid.label, style: 'gridHeader', margin: [0, 10, 0, 5] });
     
                     const gridApi = gridInstance.api;
-                    const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Actions');
+                    const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Timesheet');
                     const headers = columns.map(col => col.headerName || 'N/A');
     
                     const rowData = [];
@@ -306,7 +306,7 @@ async function exportJobToPDF(jobData) {
             
                 const title = gridKey === "revenueTable" ? "Revenue Details" : "Costs Details";
                 const gridApi = grid.api;
-                const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Actions');
+                const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Timesheet');
                 const headers = columns.map(col => col.headerName || 'N/A');
             
                 const rowData = [];
