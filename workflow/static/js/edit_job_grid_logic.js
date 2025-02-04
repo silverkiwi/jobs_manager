@@ -458,6 +458,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 minWidth: 110,
                 flex: 1
             },
+
+            // Made the following hidden and non-editable, as requested in this card: https://trello.com/c/G6gaunS1
             {
                 headerName: 'Wage Rate',
                 field: 'wage_rate',
@@ -478,6 +480,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 minWidth: 100,
                 flex: 1
             },
+            
             {
                 ...trashCanColumn,
                 minWidth: 40,
