@@ -408,23 +408,55 @@ document.addEventListener('DOMContentLoaded', function () {
             {
                 headerName: 'Description',
                 field: 'description',
-                editable: true,
+                editable: true, 
                 flex: 2,
+                minWidth: 100,
                 cellRenderer: (params) => {
-                    // Render the description normally
-                    let content = `<span>${params.value || 'No Description'}</span>`;
-
-                    // Check if the 'link' field exists and append the action link
-                    if (params.data.link) {
+                    return `<span>${params.value || 'No Description'}</span>`;
+                }
+            },
+            {
+                headerName: 'Timesheet',
+                field: 'link',
+                width: 120,
+                minWidth: 100,
+                cellRenderer: (params) => {
+                    if (params.data.link && params.data.link.trim()) {                       
                         const linkLabel =
                             params.data.link === '/timesheets/overview/'
                                 ? ''
                                 : 'View Timesheet';
-                        content += ` | <a href='${params.data.link}' target='_blank' class='action-link'>${linkLabel}</a>`;
-                    }
 
-                    return content;
-                },
+                        if (linkLabel === '') {
+                            return `<span class="text-warning">Not found for this entry.</span>`;               
+                        }
+                        return `<a href='${params.data.link}' target='_blank' class='action-link'>${linkLabel}</a>`;
+                    }
+                    return 'Not found for this entry.';
+                }
+            },
+            { 
+                headerName: 'Items', 
+                field: 'items', 
+                editable: true, 
+                valueParser: numberParser,
+                minWidth: 80,
+                flex: 1
+            },
+            { 
+                headerName: 'Mins/Item', 
+                field: 'mins_per_item', 
+                editable: true, 
+                valueParser: numberParser,
+                minWidth: 90,
+                flex: 1
+            },
+            { 
+                headerName: 'Total Minutes', 
+                field: 'total_minutes', 
+                editable: false,
+                minWidth: 110,
+                flex: 1
             },
             { headerName: 'Items', field: 'items', editable: true, valueParser: numberParser },
             { headerName: 'Mins/Item', field: 'mins_per_item', editable: true, valueParser: numberParser },
@@ -445,21 +477,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
              },
-            {
-                headerName: 'Wage Rate',
-                field: 'wage_rate',
-                editable: true,
-                valueParser: numberParser,
-                valueFormatter: currencyFormatter,
-            },
-            {
-                headerName: 'Charge Rate',
-                field: 'charge_out_rate',
-                editable: true,
-                valueParser: numberParser,
-                valueFormatter: currencyFormatter,
-            },
-            trashCanColumn,
         ],
         rowData: [],
         context: { gridType: 'TimeTable' },
