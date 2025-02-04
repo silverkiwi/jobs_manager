@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateFileList(newFiles) {
         if (!newFiles || newFiles.length === 0) return;
+        const jobNumber = document.getElementById('job_number').value;
 
         const list = document.querySelector('.job-files-list') || createNewFileList();
 
@@ -85,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const li = document.createElement('li');
             li.innerHTML = `
                 <div class="file-info">
-                    <a href="/api/job-files/${filename}" target="_blank">
+                    <a href="/api/job-files/Job-${jobNumber}/${filename}" target="_blank">
                         ${filename}
                     </a>
                     <span class="timestamp">(Just uploaded)</span>
