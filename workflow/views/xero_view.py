@@ -270,7 +270,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
             LineItem(
                 description=self.job.description or f"Quote for Job {self.job.name}",
                 quantity=1,
-                unit_amount=float(self.job.latest_reality_pricing.total_revenue)
+                unit_amount=float(self.job.latest_quote_pricing.total_revenue)
                 or 0.00,
                 account_code=200,
             )

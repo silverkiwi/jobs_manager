@@ -732,7 +732,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 calculateTotalRevenue();
                 break;
 
-            case 'quoteJob':
+            case 'quoteJobButton':
                 createXeroDocument(jobId, 'quote');
                 break;
 
