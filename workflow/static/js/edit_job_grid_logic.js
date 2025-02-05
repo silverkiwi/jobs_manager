@@ -1045,13 +1045,13 @@ function createXeroDocument(jobId, type) {
 }
 
 function handleDocumentButtons(type, online_url, method) {
-    const documentButton = getElementById(type === 'invoice' ? 'invoiceJobButton' : 'quoteJobButton');
+    const documentButton = document.getElementById(type === 'invoice' ? 'invoiceJobButton' : 'quoteJobButton');
 
-    const statusCheckbox = getElementById(type === 'invoice' ? 'invoiced_checkbox' : 'quoted_checkbox');
+    const statusCheckbox = document.getElementById(type === 'invoice' ? 'invoiced_checkbox' : 'quoted_checkbox');
 
-    const deleteButton = getElementById(type === 'invoice' ? 'deleteInvoiceButton' : 'deleteQuoteButton')
+    const deleteButton = document.getElementById(type === 'invoice' ? 'deleteInvoiceButton' : 'deleteQuoteButton')
 
-    const xeroLink = getElementById(type === 'invoice' ? 'invoiceUrl' : 'quoteUrl');
+    const xeroLink = document.getElementById(type === 'invoice' ? 'invoiceUrl' : 'quoteUrl');
 
     if (online_url) {
         xeroLink.href = online_url;
