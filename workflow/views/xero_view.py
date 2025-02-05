@@ -27,6 +27,7 @@ from xero_python.identity import IdentityApi
 from xero_python.accounting.models import (
     Invoice as XeroInvoice,
     Quote as XeroQuote,
+    QuoteStatusCodes as XeroQuoteStatus,
     LineItem,
     Contact,
 )
@@ -418,7 +419,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
         xero_quote_data = response.quotes[0]
         logger.debug(f"Xero Document Status: {xero_quote_data.status}")
 
-        if xero_quote_data.status != "DELETED":
+        if xero_quote_data.status != XeroQuoteStatus.DELETED:
             logger.debug(f"Failed to delete quote: {xero_quote_data}")
             return JsonResponse(
                 {"success": False, "error": "Failed to delete quote"},
