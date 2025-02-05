@@ -1094,7 +1094,34 @@ function deleteXeroDocument(jobId, type) {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
         },
     })
-    .then(response => response.json())
+    .then((response) => {
+        if (!response.ok) {
+            return response.json().then((data) => {
+                if (data.redirect_to_auth) {
+                    renderMessages(
+                        [
+                            {
+                                level: 'error',
+                                message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.'
+                            }
+                        ]
+                    );
+
+                    const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
+                    setTimeout(() => {
+                        const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
+                            `${window.location.pathname}#${sectionId}`
+                        )}`;
+                        window.location.href = redirectUrl;
+                    }, 3000);
+
+                    return;
+                }
+                throw new Error(data.message || 'Failed to delete document.');
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (!data.success) {
             renderMessages([{ level: 'error', message: data.message }]);
