@@ -426,7 +426,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
             )
 
         logger.info(f"Quote deleted successfully for job {self.job.id}")
-        Quote.objects.delete(xero_id=self.job.quote.xero_id)
+        Quote.objects.get(xero_id=self.job.quote.xero_id).delete()
         return JsonResponse({"success": True})
     
 
@@ -574,7 +574,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
             )
         
         logger.info(f"Invoice deleted successfully for job {self.job.job_number}")
-        Invoice.objects.delete(xero_id=self.job.invoice.xero_id)
+        Invoice.objects.get(xero_id=self.job.invoice.xero_id).delete()
         return JsonResponse({"success": True})
 
 
