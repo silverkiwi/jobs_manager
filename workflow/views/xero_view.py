@@ -491,6 +491,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                 )
             case "delete":
                 return XeroInvoice(
+                    type="ACCREC",
                     invoice_id=self.job.invoice.xero_id,
                     invoice_number=self.job.invoice.number,
                     reference=f"Deleted invoice.",
