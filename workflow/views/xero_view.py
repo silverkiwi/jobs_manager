@@ -358,7 +358,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
                 return XeroQuote(
                     quote_id=str(self.job.quote.xero_id),
                     contact=self.get_xero_contact(),
-                    line_items=LineItem(description="Quote deleted."),
+                    line_items=[LineItem(description="Quote deleted.")],
                     date=format_date(timezone.now()),
                     reference=f"Deleted quote.",
                     status="DELETED",
@@ -494,6 +494,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                     type="ACCREC",
                     invoice_id=str(self.job.invoice.xero_id),
                     invoice_number=self.job.invoice.number,
+                    line_items=[],
                     reference=f"Deleted invoice.",
                     status="DELETED",
                 )
