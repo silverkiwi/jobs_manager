@@ -491,6 +491,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                 )
             case "delete":
                 return XeroInvoice(
+                    invoice_id=self.job.invoice.xero_id,
                     invoice_number=self.job.invoice.number,
                     reference=f"Deleted invoice.",
                     status="DELETED",
@@ -512,6 +513,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                 xero_id=xero_invoice_id,
                 job=self.job,
                 client=self.client,
+                number=xero_invoice_data.invoice_number,
                 date=timezone.now().date(),
                 due_date=(timezone.now().date() + timedelta(days=30)),
                 status=InvoiceStatus.SUBMITTED,
