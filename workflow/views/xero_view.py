@@ -416,6 +416,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
             )
 
         xero_quote_data = response.quotes[0]
+        logger.debug(f"Xero Document Status: {xero_quote_data.status}")
 
         if xero_quote_data.status != "DELETED":
             logger.debug(f"Failed to delete quote: {xero_quote_data}")
@@ -563,8 +564,9 @@ class XeroInvoiceCreator(XeroDocumentCreator):
             )
         
         xero_invoice_data = response.invoices[0]
+        logger.debug(f"Xero Document Status: {xero_invoice_data.status}")
 
-        if not xero_invoice_data.status != "DELETED":
+        if xero_invoice_data.status != "DELETED":
             logger.debug(f"Failed to delete invoice: {xero_invoice_data}")
             return JsonResponse(
                 {"success": False, "error": "Failed to delete invoice"},
