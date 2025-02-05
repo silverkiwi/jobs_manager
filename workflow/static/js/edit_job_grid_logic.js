@@ -1045,20 +1045,28 @@ function createXeroDocument(jobId, type) {
 }
 
 function handleDocumentButtons(type, online_url, method) {
+    console.log(`Handling document buttons for type: ${type}, method: ${method}`);
+    
     const documentButton = document.getElementById(type === 'invoice' ? 'invoiceJobButton' : 'quoteJobButton');
+    console.log(`Document button found: ${documentButton ? 'yes' : 'no'}`);
 
     const statusCheckbox = document.getElementById(type === 'invoice' ? 'invoiced_checkbox' : 'quoted_checkbox');
+    console.log(`Status checkbox found: ${statusCheckbox ? 'yes' : 'no'}`);
 
     const deleteButton = document.getElementById(type === 'invoice' ? 'deleteInvoiceButton' : 'deleteQuoteButton')
+    console.log(`Delete button found: ${deleteButton ? 'yes' : 'no'}`);
 
     const xeroLink = document.getElementById(type === 'invoice' ? 'invoiceUrl' : 'quoteUrl');
+    console.log(`Xero link found: ${xeroLink ? 'yes' : 'no'}`);
 
     if (online_url) {
+        console.log(`Setting Xero link href to: ${online_url}`);
         xeroLink.href = online_url;
     }
 
     switch(method) {
         case 'POST':
+            console.log('Handling POST method');
             documentButton.disabled = true;
             deleteButton.style.display = 'inline-block';
 
@@ -1069,6 +1077,7 @@ function handleDocumentButtons(type, online_url, method) {
             break;
         
         case 'DELETE':
+            console.log('Handling DELETE method');
             documentButton.disabled = false;
             deleteButton.style.display = 'none';
 
@@ -1077,6 +1086,7 @@ function handleDocumentButtons(type, online_url, method) {
 
             xeroLink.style.display = 'none';
     }
+    console.log('Document button handling complete');
 }
 
 function deleteXeroDocument(jobId, type) {
