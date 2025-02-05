@@ -41,17 +41,16 @@
 
     <!-- Action Buttons -->
     <div class="workflow-actions mt-3" id="workflowActions">
-        <button type="button" class="btn btn-warning" id="invoiceJobButton"
-            {% if invoiced %}
-                disabled
-            {% endif %}>
+        <button type="button" class="btn btn-warning" id="invoiceJobButton" {% if invoiced %} disabled {% endif %}>
             Invoice Job
         </button>
-        {% if invoiced and invoice_url %}
-            <a href="{{ invoice_url }}" class="btn btn-info" id="invoiceUrl">
-                Go to Invoice on Xero
-            </a>
-        {% endif %}
+        <a {% if not invoiced %} style="display: none" {% endif %}
+            href="{% if invoice_url %}{{ invoice_url }}{% else %}#{% endif %}" class="btn btn-info mt-3" id="quoteUrl">
+            Go to Invoice on Xero
+        </a>
+        <button {% if not invoiced %} style="display: none" {% endif %} type="button" class="btn btn-danger" id="deleteInvoiceButton">
+            Delete Xero Invoice
+        </button>
         <button type="button" class="btn btn-info" id="contactClientButton">Contact Client about Job</button>
     </div>
 
@@ -60,14 +59,8 @@
         <h4>Job Status Tracking</h4>
         <div class="d-flex flex-column gap-3">
             <div class="form-check form-check-lg">
-                <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;" 
-                    id="quoted_checkbox" name="quoted"
-                    {% if quoted %}
-                        checked
-                    {% else %}
-                        disabled
-                    {% endif %}
-                >
+                <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
+                    id="quoted_checkbox" name="quoted" {% if quoted %} checked {% else %} disabled {% endif %}>
                 <label class="form-check-label ms-2 fs-5" for="quoted_checkbox">
                     Quoted Job
                 </label>
@@ -75,25 +68,15 @@
 
             <div class="form-check form-check-lg">
                 <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
-                    id="invoiced_checkbox" name="invoiced"
-                    {% if invoiced %}
-                        checked
-                    {% else %}
-                        disabled
-                    {% endif %}
-                >
+                    id="invoiced_checkbox" name="invoiced" {% if invoiced %} checked {% else %} disabled {% endif %}>
                 <label class="form-check-label ms-2 fs-5" for="invoiced_checkbox">
                     Invoiced Job
                 </label>
             </div>
 
             <div class="form-check form-check-lg">
-                <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
-                    id="paid_checkbox" name="paid" class="autosave-input"
-                    {% if job.paid %}
-                        checked
-                    {% endif %}
-                >
+                <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;" id="paid_checkbox"
+                    name="paid" class="autosave-input" {% if job.paid %} checked {% endif %}>
                 <label class="form-check-label ms-2 fs-5" for="paid_checkbox">
                     Job Paid
                 </label>

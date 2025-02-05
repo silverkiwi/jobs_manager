@@ -167,19 +167,13 @@ class XeroDocumentCreator(ABC):
         self.client = job.client
         self.xero_api = AccountingApi(api_client)
         self.xero_tenant_id = get_tenant_id()
-
-    def validate_client(self):
+    
+    @abstractmethod
+    def get_xero_id(self):
         """
-        Ensures the client exists and is synced with Xero
+        Returns the Xero ID for the document.
         """
-        if not self.client:
-            raise ValueError("Job does not have a client")
-        if not self.client.validate_for_xero():
-            raise ValueError("Client data is not valid for Xero")
-        if not self.client.xero_contact_id:
-            raise ValueError(
-                f"Client {self.client.name} does not have a valid Xero contact ID. Sync the client with Xero first."
-            )
+        pass
 
     @abstractmethod
     def validate_job(self):
@@ -188,12 +182,6 @@ class XeroDocumentCreator(ABC):
         This is, if the job is already invoiced or quoted, then another document shouldn't be created.
         """
         pass
-
-    def get_xero_contact(self):
-        """
-        Returns a Xero Contact object for the client
-        """
-        return Contact(contact_id=self.client.xero_contact_id, name=self.client.name)
 
     @abstractmethod
     def get_line_items(self):
@@ -208,6 +196,39 @@ class XeroDocumentCreator(ABC):
         Returns a XeroDocument object for the document
         """
         pass
+
+    @abstractmethod
+    def get_local_model(self):
+        """
+        Returns the local model for the document
+        """
+        pass
+
+    @abstractmethod
+    def get_xero_update_method(self):
+        """
+        Returns the update method for the document
+        """
+        pass
+
+    def validate_client(self):
+        """
+        Ensures the client exists and is synced with Xero
+        """
+        if not self.client:
+            raise ValueError("Job does not have a client")
+        if not self.client.validate_for_xero():
+            raise ValueError("Client data is not valid for Xero")
+        if not self.client.xero_contact_id:
+            raise ValueError(
+                f"Client {self.client.name} does not have a valid Xero contact ID. Sync the client with Xero first."
+            )
+    
+    def get_xero_contact(self):
+        """
+        Returns a Xero Contact object for the client
+        """
+        return Contact(contact_id=self.client.xero_contact_id, name=self.client.name)
 
     def create_document(self):
         """
@@ -248,12 +269,59 @@ class XeroDocumentCreator(ABC):
             raise
 
         return response
+    
+    def delete_document(self):
+        """
+        Updates document status in Xero to "DELETED" and removes it from the local database.
+        """
+        xero_id = self.get_xero_id()
+        update_method = self.get_xero_update_method()
+
+        if not xero_id:
+            return JsonResponse({
+                "success": False,
+                "error": "No document found to delete."
+            })
+
+        try: 
+            payload = {
+                f"{str(self.get_local_model()).lower()}_id": xero_id,
+                "contact": {"contact_id": self.client.xero_contact_id},
+                "date": format_date(timezone.now()),
+                "line_items": LineItem(description=f"{str(self.get_local_model)} deleted."),
+                "status": "DELETED"
+            }
+
+            response, http_status, http_headers = update_method(
+                self.xero_tenant_id, 
+                convert_to_pascal_case(payload),
+                _return_http_data_only=False
+            )
+            logger.debug(f"Xero API response: {response}")
+
+            self.get_local_model().objects.filter(xero_id=xero_id).delete()
+
+            return response
+        except Exception as e:
+            logger.error(f"Error sending document to Xero: {str(e)}")
+            if hasattr(e, "body"):
+                logger.error(f"Response body: {e.body}")
+            raise
 
 
 class XeroQuoteCreator(XeroDocumentCreator):
     """
     Handles Quote creation in Xero.
     """
+
+    def get_xero_id(self):
+        return self.job.quote.xero_id if hasattr(self.job, "quote") else None
+    
+    def get_xero_update_method(self):
+        return self.xero_api.update_or_create_quotes
+    
+    def get_local_model(self):
+        return Quote
 
     def validate_job(self):
         """
@@ -333,12 +401,42 @@ class XeroQuoteCreator(XeroDocumentCreator):
                 {"success": False, "error": "No quotes found in the response."},
                 status=400,
             )
+        
+    def delete_document(self):
+        response = super().delete_document()
 
+        if not response or not response.quotes:
+            logger.error("No quotes found in the response.")
+            return JsonResponse(
+                {"success": False, "error": "No quotes found in the response."},
+                status=400,
+            )
+
+        xero_quote_data = response.quotes[0]
+
+        if xero_quote_data.status != "DELETED":
+            logger.debug(f"Failed to delete quote: {xero_quote_data}")
+            return JsonResponse(
+                {"success": False, "error": "Failed to delete quote"},
+                status=400
+            )
+
+        logger.info(f"Quote deleted successfully for job {self.job.id}")
+        return JsonResponse({"success": True})
+    
 
 class XeroInvoiceCreator(XeroDocumentCreator):
     """
     Handles invoice creation in Xero.
     """
+    def get_xero_id(self):
+        return self.job.invoice.xero_id if hasattr(self.job, "invoice") else None
+
+    def get_xero_update_method(self):
+        return self.xero_api.update_or_create_invoices
+
+    def get_local_model(self):
+        return Invoice
 
     def validate_job(self):
         """
@@ -438,6 +536,27 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                 {"success": False, "error": "No invoices found in the response."},
                 status=400,
             )
+    def delete_document(self):
+        response = super().delete_document()
+
+        if not response or not response.invoices:
+            logger.error("No invoices found in the response.")
+            return JsonResponse(
+                {"success": False, "error": "No invoices found in the response."},
+                status=400,
+            )
+        
+        xero_invoice_data = response.invoices[0]
+
+        if not xero_invoice_data.status != "DELETED":
+            logger.debug(f"Failed to delete invoice: {xero_invoice_data}")
+            return JsonResponse(
+                {"success": False, "error": "Failed to delete invoice"},
+                status=400
+            )
+        
+        logger.info(f"Invoice deleted successfully for job {self.job.job_number}")
+        return JsonResponse({"success": True})
 
 
 def ensure_xero_authentication():
@@ -511,6 +630,44 @@ def create_xero_quote(request, job_id):
 
     except Exception as e:
         logger.error(f"Error in create_xero_quote: {str(e)}")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+    
+def delete_xero_invoice(request, job_id):
+    """
+    Deletes an invoice in Xero for a given job.
+    """
+    tenant_id = ensure_xero_authentication()
+    if isinstance(
+        tenant_id, JsonResponse
+    ):  # If the tenant ID is an error message, return it directly
+        return tenant_id
+
+    try:
+        job = Job.objects.get(id=job_id)
+        creator = XeroInvoiceCreator(job)
+        return creator.delete_document()
+
+    except Exception as e:
+        logger.error(f"Error in delete_xero_invoice: {str(e)}")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+    
+
+def delete_xero_quote(request, job_id):
+    """
+    Deletes a quote in Xero for a given job.
+    """
+    tenant_id = ensure_xero_authentication()
+    if isinstance(
+        tenant_id, JsonResponse
+    ):  # If the tenant ID is an error message, return it directly
+        return tenant_id
+    
+    try:
+        job = Job.objects.get(id=job_id)
+        creator = XeroQuoteCreator(job)
+        return creator.delete_document()
+    except Exception as e:
+        logger.error(f"Error in delete_xero_quote: {str(e)}")
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 

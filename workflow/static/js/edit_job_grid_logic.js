@@ -739,8 +739,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 createXeroDocument(jobId, 'quote');
                 break;
 
+            case 'deleteQuoteButton':
+                deleteXeroDocument(jobId, 'quote');
+                break;
+
             case 'invoiceJobButton':
                 createXeroDocument(jobId, 'invoice');
+                break;
+            
+            case 'deleteInvoiceButton':
+                deleteXeroDocument(jobId, 'invoice');
                 break;
 
             case 'printJobButton':
@@ -1036,20 +1044,70 @@ function createXeroDocument(jobId, type) {
         });
 }
 
-function handleDocumentButtons(type, online_url) {
-    const documentButton = type === 'invoice' ? document.getElementById('invoiceJobButton') : document.getElementById('quoteJobButton');
-    documentButton.disabled = true;
+function handleDocumentButtons(type, online_url, method) {
+    const documentButton = getElementById(type === 'invoice' ? 'invoiceJobButton' : 'quoteJobButton');
 
-    const statusCheckbox = type === 'invoice' ? document.getElementById('invoiced_checkbox') : document.getElementById('quoted_checkbox');
-    statusCheckbox.disabled = false;
-    statusCheckbox.checked = true;
+    const statusCheckbox = getElementById(type === 'invoice' ? 'invoiced_checkbox' : 'quoted_checkbox');
 
-    const xeroLink = document.createElement('a');
-    xeroLink.className = type === 'invoice' ? 'btn btn-info' : 'btn btn-info mt-3';
-    xeroLink.href = online_url;
-    xeroLink.id = type === 'invoice' ? 'invoiceUrl' : 'quoteUrl';
-    xeroLink.innerText = type === 'invoice' ? 'Go to Invoice on Xero' : 'Go to Quote on Xero';
+    const deleteButton = getElementById(type === 'invoice' ? 'deleteInvoiceButton' : 'deleteQuoteButton')
 
-    const linkContainer = document.getElementById(type === 'invoice' ? 'workflowActions' : 'quoteGrid');
-    linkContainer.append(xeroLink);
+    const xeroLink = getElementById(type === 'invoice' ? 'invoiceUrl' : 'quoteUrl');
+
+    if (online_url) {
+        xeroLink.href = online_url;
+    }
+
+    switch(method) {
+        case 'POST':
+            documentButton.disabled = true;
+            deleteButton.style.display = 'inline-block';
+
+            statusCheckbox.disabled = false;
+            statusCheckbox.checked = true;
+
+            xeroLink.style.display = 'inline-block';
+            break;
+        
+        case 'DELETE':
+            documentButton.disabled = false;
+            deleteButton.style.display = 'none';
+
+            statusCheckbox.disabled = true;
+            statusCheckbox.checked = false;
+
+            xeroLink.style.display = 'none';
+    }
+}
+
+function deleteXeroDocument(jobId, type) {
+    if (!confirm(`Are you sure you want to delete this ${type}?`)) {
+        return;
+    }
+
+    const endpoint = type === 'invoice'
+        ? `/api/xero/delete_invoice/${jobId}`
+        : `/api/xero/delete_quote/${jobId}`;
+
+    fetch(endpoint, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            renderMessages([{ level: 'error', message: data.message }]);
+            return;
+        }
+
+        renderMessages([{ level: 'success', message: data.message }]);
+        document.getElementById('alert-modal-body').innerHTML = '';
+        new bootstrap.Modal(document.getElementById('alert-container')).hide();
+        handleDocumentButtons(type, null, 'DELETE');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
+    });
 }
