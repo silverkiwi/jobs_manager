@@ -1033,7 +1033,7 @@ function createXeroDocument(jobId, type) {
             </div>
             `;
 
-            handleDocumentButtons(type, data.invoice_url || data.quote_url);
+            handleDocumentButtons(type, data.invoice_url || data.quote_url, "create");
 
             document.getElementById('alert-modal-body').innerHTML = documentSummary;
             new bootstrap.Modal(document.getElementById('alert-container')).show();
