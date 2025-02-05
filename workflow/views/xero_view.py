@@ -191,7 +191,7 @@ class XeroDocumentCreator(ABC):
         pass
 
     @abstractmethod
-    def get_xero_document(self):
+    def get_xero_document(self, type):
         """
         Returns a XeroDocument object for the document
         """
@@ -237,7 +237,7 @@ class XeroDocumentCreator(ABC):
         self.validate_client()
         self.validate_job()
 
-        xero_document = self.get_xero_document()
+        xero_document = self.get_xero_document(type="create")
 
         try:
             # Convert to PascalCase to match XeroAPI required format and clean payload
@@ -281,25 +281,17 @@ class XeroDocumentCreator(ABC):
             return JsonResponse({
                 "success": False,
                 "error": "No document found to delete."
-            })
+                })
 
         try: 
-            payload = {
-                f"{str(self.get_local_model()).lower()}_id": xero_id,
-                "contact": {"contact_id": self.client.xero_contact_id},
-                "date": format_date(timezone.now()),
-                "line_items": LineItem(description=f"{str(self.get_local_model)} deleted."),
-                "status": "DELETED"
-            }
+            xero_document = self.get_xero_document(type="delete")
 
             response, http_status, http_headers = update_method(
                 self.xero_tenant_id, 
-                convert_to_pascal_case(payload),
+                convert_to_pascal_case(clean_payload(xero_document.to_dict())),
                 _return_http_data_only=False
             )
             logger.debug(f"Xero API response: {response}")
-
-            self.get_local_model().objects.filter(xero_id=xero_id).delete()
 
             return response
         except Exception as e:
@@ -346,20 +338,31 @@ class XeroQuoteCreator(XeroDocumentCreator):
 
         return line_items
 
-    def get_xero_document(self):
+    def get_xero_document(self, type):
         """
-        Creates a quote object for Xero.
+        Creates a quote object for Xero creation or deletion.
         """
-        return XeroQuote(
-            contact=self.get_xero_contact(),
-            line_items=self.get_line_items(),
-            date=format_date(timezone.now()),
-            expiry_date=format_date(timezone.now() + timedelta(days=30)),
-            line_amount_types="Exclusive",
-            reference=f"Quote for job {self.job.id}",
-            currency_code="NZD",
-            status="DRAFT",
-        )
+        match type:
+            case "create":
+                return XeroQuote(
+                    contact=self.get_xero_contact(),
+                    line_items=self.get_line_items(),
+                    date=format_date(timezone.now()),
+                    expiry_date=format_date(timezone.now() + timedelta(days=30)),
+                    line_amount_types="Exclusive",
+                    reference=f"Quote for job {self.job.id}",
+                    currency_code="NZD",
+                    status="DRAFT",
+                )
+            case "delete":
+                return XeroQuote(
+                    quote_id=self.job.quote.xero_id,
+                    contact=self.get_xero_contact(),
+                    line_items=LineItem(description="Quote deleted."),
+                    date=format_date(timezone.now()),
+                    reference=f"Deleted quote.",
+                    status="DELETED",
+                )
 
     def create_document(self):
         """Creates a quote and returns the quote URL."""
@@ -422,6 +425,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
             )
 
         logger.info(f"Quote deleted successfully for job {self.job.id}")
+        Quote.objects.delete(xero_id=self.job.quote.xero_id)
         return JsonResponse({"success": True})
     
 
@@ -468,21 +472,29 @@ class XeroInvoiceCreator(XeroDocumentCreator):
 
         return xero_line_items
 
-    def get_xero_document(self):
+    def get_xero_document(self, type):
         """
-        Creates an invoice object for Xero.
+        Creates an invoice object for Xero creation or deletion.
         """
-        return XeroInvoice(
-            type="ACCREC",
-            contact=self.get_xero_contact(),
-            line_items=self.get_line_items(),
-            date=format_date(timezone.now()),
-            due_date=format_date(timezone.now() + timedelta(days=30)),
-            line_amount_types="Exclusive",
-            reference=f"Invoice for job {self.job.id}",
-            currency_code="NZD",
-            status="DRAFT",
-        )
+        match type:
+            case "create":
+                return XeroInvoice(
+                    type="ACCREC",
+                    contact=self.get_xero_contact(),
+                    line_items=self.get_line_items(),
+                    date=format_date(timezone.now()),
+                    due_date=format_date(timezone.now() + timedelta(days=30)),
+                    line_amount_types="Exclusive",
+                    reference=f"Invoice for job {self.job.id}",
+                    currency_code="NZD",
+                    status="DRAFT",
+                )
+            case "delete":
+                return XeroInvoice(
+                    invoice_number=self.job.invoice.number,
+                    reference=f"Deleted invoice.",
+                    status="DELETED",
+                )
 
     def create_document(self):
         """Creates an invoice, processes response, and stores it in the database."""
@@ -556,6 +568,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
             )
         
         logger.info(f"Invoice deleted successfully for job {self.job.job_number}")
+        Invoice.objects.delete(xero_id=self.job.invoice.xero_id)
         return JsonResponse({"success": True})
 
 
