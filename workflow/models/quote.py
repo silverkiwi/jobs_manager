@@ -23,4 +23,4 @@ class Quote(models.Model):
     raw_json = models.JSONField(null=True, blank=True)
 
     def __str__(self):
-        return f"Quote {self.number} ({self.status}) for Job {self.job.number}"
+        return f"Quote ({self.status}) for Job {self.job.number}"
