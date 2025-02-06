@@ -14,6 +14,7 @@ from workflow.views import (
     time_entry_view,
     time_overview_view,
     xero_view,
+    workshop_view,
 )
 from workflow.views import submit_quote_view
 from workflow.views.job_file_view import JobFileView
@@ -120,6 +121,7 @@ urlpatterns = [
     # Entry URLs
     path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
     path("job/<uuid:job_id>/", edit_job_view_ajax.edit_job_view_ajax, name="edit_job"),
+    path("job/<uuid:job_id>/workshop-pdf/", workshop_view.WorkshopPDFView.as_view(), name="workshop-pdf"),
     
     path("month-end/", edit_job_view_ajax.process_month_end, name="month_end"),
     

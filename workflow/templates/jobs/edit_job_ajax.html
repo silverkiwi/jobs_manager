@@ -62,7 +62,7 @@
             {% if job_files %}
                 <div class="job-files-grid">
                     {% for file in job_files %}
-                        <div class="file-card">
+                        <div class="file-card" data-file-id="{{ file.id }}">
                             {% if file.thumbnail_path %}
                                 <div class="thumbnail-container">
                                     <img src="{% url 'serve-job-file' file.thumbnail_path %}"
@@ -79,6 +79,18 @@
                                     {{ file.filename }}
                                 </a>
                                 <span class="timestamp">({{ file.uploaded_at|date:"Y-m-d H:i" }})</span>
+                                <div class="file-controls">
+                                    <label class="print-checkbox">
+                                        <input type="checkbox"
+                                               name="jobfile_{{ file.id }}_print_on_jobsheet"
+                                               class="print-on-jobsheet autosave-input"
+                                               {% if file.print_on_jobsheet %}checked{% endif %}>
+                                        Print on Job Sheet
+                                    </label>
+                                    <button class="btn btn-sm btn-danger delete-file" data-file-id="{{ file.id }}">
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     {% endfor %}
@@ -122,8 +134,8 @@
 
     <!-- Save/Cancel Buttons -->
     <div class="action-buttons">
-        <button type="button" class="btn btn-secondary" id="printJobButton">Print Job</button>
-        <button class="btn btn-primary" id="closeButton" onclick="window.location.href='/'">Close</button>
+        <button type="button" class="btn btn-secondary" id="printWorkshopButton">Print Job Sheet</button>
+        <button class="btn btn-primary" id="closeButton">Close</button>
     </div>
 {% endblock %}
 

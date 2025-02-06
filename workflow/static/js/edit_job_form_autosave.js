@@ -1,7 +1,5 @@
 import {createNewRow} from '/static/js/deseralise_job_pricing.js';
 
-let dropboxToken = null;
-
 // Debounce function to avoid frequent autosave calls
 function debounce(func, wait) {
     let timeout;
@@ -19,7 +17,25 @@ export function collectAllData() {
     const formElements = document.querySelectorAll('.autosave-input');
 
     formElements.forEach(element => {
-        let value = element.type === 'checkbox' ? element.checked : element.value.trim() || null;
+        let value;
+        if (element.type === 'checkbox') {
+            value = element.checked;
+            // Special handling for job file print_on_jobsheet checkboxes
+            if (element.classList.contains('print-on-jobsheet')) {
+                // Extract file ID from the name attribute (jobfile_<id>_print_on_jobsheet)
+                const fileId = element.name.split('_')[1];
+                if (!data.job_files) {
+                    data.job_files = {};
+                }
+                data.job_files[fileId] = {
+                    print_on_jobsheet: value
+                };
+                return; // Skip adding this to the main data object
+            }
+        } else {
+            value = element.value.trim() === "" ? null : element.value;
+        }
+
         if (element.name === 'client_id' && !value) {
             console.error('Client ID missing. Ensure client selection updates the hidden input.');
         }
@@ -162,66 +178,6 @@ function collectCostsData() {
     console.log("Collected Costs Data:", { headers, rows: rowData });
 
     return { headers, rows: rowData };
-}
-
-async function getDropboxToken() {
-    if (!dropboxToken) {
-        const response = await fetch('/api/get-env-variable/?var_name=DROPBOX_ACCESS_TOKEN');
-        if (response.ok) {
-            const data = await response.json();
-            dropboxToken = data.value; // Cache the token
-            console.log('Fetched and cached Dropbox token:', dropboxToken);
-        } else {
-            console.error('Failed to fetch Dropbox token');
-        }
-    }
-    return dropboxToken;
-}
-
-async function uploadToDropbox(file, dropboxPath) {
-    const accessToken = await getDropboxToken();
-    if (!accessToken) {
-        console.error('No Dropbox token available');
-        return false;
-    }
-
-    try {
-        const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Dropbox-API-Arg': JSON.stringify({
-                    path: dropboxPath,
-                    mode: 'overwrite',
-                    autorename: false,
-                    mute: false,
-                }),
-                'Content-Type': 'application/octet-stream',
-            },
-            body: file,
-        });
-
-        if (!response.ok) {
-            // Check Content-Type to handle non-JSON errors
-            const contentType = response.headers.get('Content-Type');
-            if (contentType && contentType.includes('application/json')) {
-                const errorData = await response.json();
-                console.error('Dropbox API error:', errorData);
-            } else {
-                const errorText = await response.text(); // Handle non-JSON responses
-                console.error('Dropbox upload failed (non-JSON):', errorText);
-            }
-            return false;
-        }
-
-        // Parse and log the successful response
-        const data = await response.json();
-        console.log('File uploaded to Dropbox:', data);
-        return true;
-    } catch (error) {
-        console.error('Dropbox upload failed:', error);
-        return false;
-    }
 }
 
 async function fetchImageAsBase64(url) {
@@ -509,12 +465,6 @@ async function handlePDF(pdfBlob, mode, jobData) {
     const pdfURL = URL.createObjectURL(pdfBlob);
 
     switch (mode) {
-        case 'dropbox': // Warning, hasn't been tested in a while
-            const dropboxPath = `/MSM Workflow/Job-${jobData.job_number}/JobSummary.pdf`;
-            if (!(await uploadToDropbox(pdfBlob, dropboxPath))) {
-                throw new Error(`Failed to upload PDF for Job ${jobData.job_number}`);
-            }
-            break;
         case 'upload':
             const formData = new FormData();
             formData.append('job_number', jobData.job_number);
@@ -549,6 +499,112 @@ async function handlePDF(pdfBlob, mode, jobData) {
             throw new Error(`Unsupported mode: ${mode}`);
     }
 }
+
+function addJobDetailsToPDF(doc, jobData) {
+    let startY = 10;
+    
+    // Job Details section
+    doc.setFontSize(16);
+    doc.text("Job Details", 10, startY);
+    doc.setFontSize(12);
+    startY += 10;
+
+    // Add job details table
+    const jobDetailsData = [
+        ["Job Number", jobData.job_number || ''],
+        ["Client", jobData.client_name || ''],
+        ["Contact Person", jobData.contact_person || ''],
+        ["Contact Phone", jobData.contact_phone || ''],
+        ["Description", jobData.description || ''],
+    ];
+
+    doc.autoTable({
+        body: jobDetailsData,
+        startY: startY,
+    });
+
+    return doc.lastAutoTable.finalY + 10;
+}
+
+function exportJobToWorkshopPDF(jobData) {
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Add job details
+    let startY = addJobDetailsToPDF(doc, jobData);
+
+    // Add files marked for printing
+    const printCheckboxes = document.querySelectorAll('.print-on-jobsheet:checked');
+    if (printCheckboxes.length > 0) {
+        doc.setFontSize(16);
+        doc.text("Attached Files", 10, startY);
+        doc.setFontSize(12);
+        startY += 10;
+
+        printCheckboxes.forEach(checkbox => {
+            const fileCard = checkbox.closest('.file-card');
+            const fileLink = fileCard.querySelector('a');
+            const fileName = fileLink.textContent.trim();
+            
+            doc.text(fileName, 10, startY);
+            startY += 10;
+
+            // If it's an image, try to add it to the PDF
+            if (fileName.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                const img = new Image();
+                img.src = fileLink.href;
+                try {
+                    doc.addImage(img, 'JPEG', 10, startY, 180, 0);
+                    startY += 100; // Adjust based on image height
+                } catch (error) {
+                    console.error('Failed to add image to PDF:', error);
+                }
+            }
+        });
+    }
+
+    return new Blob([doc.output("blob")], {type: "application/pdf"});
+}
+
+export async function handlePrintWorkshop() {
+    try {
+        // Collect the current job data
+        const collectedData = collectAllData();
+
+        // Validate the job before proceeding
+        if (!collectedData.job_is_valid) {
+            console.error("Job is not valid. Please complete all required fields before printing.");
+            return;
+        }
+
+        // Get the job ID from the URL
+        const jobId = window.location.pathname.split('/').filter(Boolean).pop();
+
+        // Get and print the workshop PDF (which now includes all marked files)
+        const workshopResponse = await fetch(`/job/${jobId}/workshop-pdf/`);
+        if (!workshopResponse.ok) {
+            throw new Error('Failed to generate workshop PDF');
+        }
+        const workshopBlob = await workshopResponse.blob();
+        const workshopUrl = URL.createObjectURL(workshopBlob);
+        const workshopWindow = window.open(workshopUrl, '_blank');
+        if (!workshopWindow) {
+            throw new Error('Popup blocked. Please allow popups to print the workshop sheet.');
+        }
+        workshopWindow.print();
+    } catch (error) {
+        console.error("Error during Print Workshop process:", error);
+        alert(`Error printing: ${error.message}`);
+    }
+}
+
+// Add event listeners for print buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const printWorkshopButton = document.getElementById('printWorkshopButton');
+    if (printWorkshopButton) {
+        printWorkshopButton.addEventListener('click', handlePrintWorkshop);
+    }
+});
 
 let isGeneratingPDF = false;
 
@@ -709,10 +765,54 @@ const debouncedRemoveValidation = debounce(function (element) {
 
 // Attach autosave to form elements (input, select, textarea)
 // Synchronize visible UI fields with hidden form fields
+// Handle close button functionality
+async function handleClose() {
+    try {
+        // 1. Trigger autosave
+        const collectedData = collectAllData();
+        if (!collectedData.job_is_valid) {
+            console.error('Job is not valid. Please complete all required fields before closing.');
+            return;
+        }
+        
+        // Save and wait for completion
+        await fetch('/api/autosave-job/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: JSON.stringify(collectedData),
+        });
+
+        // 2. Generate PDF and save to job files (which are in the Dropbox folder)
+        const pdfBlob = await exportJobToPDF(collectedData);
+        const formData = new FormData();
+        formData.append('job_number', collectedData.job_number);
+        formData.append('files', new File([pdfBlob], 'JobSummary.pdf', { type: 'application/pdf' }));
+        
+        await fetch('/api/job-files/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() },
+            body: formData
+        });
+
+        // 3. Redirect back to kanban
+        window.location.href = '/';
+    } catch (error) {
+        console.error('Error during close process:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // Synchronize all elements with the 'autosave-input' class
     const autosaveInputs = document.querySelectorAll('.autosave-input');
 
+    // Add close button handler
+    const closeButton = document.getElementById('closeButton');
+    if (closeButton) {
+        closeButton.addEventListener('click', handleClose);
+    }
 
     // Attach change event listener to handle special input types like checkboxes
     autosaveInputs.forEach(fieldElement => {
