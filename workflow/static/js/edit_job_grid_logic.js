@@ -1157,9 +1157,8 @@ function deleteXeroDocument(jobId, type) {
             return;
         }
 
-        if (!data.xero_id || !data.client || !data.success) {
-            console.error('Invalid response data:', data);
-            renderMessages(data.messages || [{ level: 'error', message: 'Failed to delete document: insufficient data.' }]);
+        if (!data.success) {
+            renderMessages(data.messages);
             return;
         }
 
