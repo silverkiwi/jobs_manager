@@ -961,7 +961,10 @@ function handleSaveEventButtonClick(jobId) {
 }
 
 function createXeroDocument(jobId, type) {
+    console.log(`Creating Xero ${type} for job ID: ${jobId}`);
+    
     if (!jobId) {
+        console.error('Job ID is missing');
         renderMessages([{ level: 'error', message: `Job id is missing!` }]);
         return;
     }
@@ -969,6 +972,8 @@ function createXeroDocument(jobId, type) {
     const endpoint = type === 'invoice'
         ? `/api/xero/create_invoice/${jobId}`
         : `/api/xero/create_quote/${jobId}`;
+        
+    console.log(`Making POST request to endpoint: ${endpoint}`);
 
     fetch(endpoint, {
         method: 'POST',
@@ -978,9 +983,12 @@ function createXeroDocument(jobId, type) {
         },
     })
         .then((response) => {
+            console.log(`Received response with status: ${response.status}`);
             if (!response.ok) {
                 return response.json().then((data) => {
+                    console.log('Response not OK, checking for redirect:', data);
                     if (data.redirect_to_auth) {
+                        console.log('Auth redirect required, preparing redirect message');
                         renderMessages(
                             [
                                 {
@@ -995,6 +1003,7 @@ function createXeroDocument(jobId, type) {
                             const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
                                 `${window.location.pathname}#${sectionId}`
                             )}`;
+                            console.log(`Redirecting to: ${redirectUrl}`);
                             window.location.href = redirectUrl;
                         }, 3000);
 
@@ -1006,15 +1015,21 @@ function createXeroDocument(jobId, type) {
             return response.json();
         })
         .then(data => {
+            console.log('Processing response data:', data);
+            
             if (!data) {
+                console.error('No data received from server');
                 renderMessages([{ level: 'error', message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.' }]);
                 return;
             }
 
             if (!data.success) {
+                console.error('Document creation failed:', data.messages);
                 renderMessages(data.messages || [{ level: 'error', message: 'Failed to delete document.' }]);
                 return;
             }
+
+            console.log(`${type} created successfully with Xero ID: ${data.xero_id}`);
 
             const documentSummary = `
             <div class='card'>
@@ -1033,13 +1048,14 @@ function createXeroDocument(jobId, type) {
             </div>
             `;
 
+            console.log('Updating document buttons and UI');
             handleDocumentButtons(type, data.invoice_url || data.quote_url, "POST");
 
             document.getElementById('alert-modal-body').innerHTML = documentSummary;
             new bootstrap.Modal(document.getElementById('alert-container')).show();
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Error creating Xero document:', error);
             renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
         });
 }
@@ -1090,13 +1106,18 @@ function handleDocumentButtons(type, online_url, method) {
 }
 
 function deleteXeroDocument(jobId, type) {
+    console.log(`Deleting Xero ${type} for job ID: ${jobId}`);
+
     if (!confirm(`Are you sure you want to delete this ${type}?`)) {
+        console.log('User cancelled delete operation');
         return;
     }
 
     const endpoint = type === 'invoice'
         ? `/api/xero/delete_invoice/${jobId}`
         : `/api/xero/delete_quote/${jobId}`;
+
+    console.log(`Making DELETE request to endpoint: ${endpoint}`);
 
     fetch(endpoint, {
         method: 'DELETE',
@@ -1105,14 +1126,18 @@ function deleteXeroDocument(jobId, type) {
         },
     })
     .then((response) => {
+        console.log(`Received response with status: ${response.status}`);
         if (!response.ok) {
             return response.json().then((data) => {
+                console.log('Response not OK, checking for redirect:', data);
                 if (data.redirect_to_auth) {
+                    console.log('Auth redirect required, preparing redirect message');
                     const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
                     setTimeout(() => {
                         const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
                             `${window.location.pathname}#${sectionId}`
                         )}`;
+                        console.log(`Redirecting to: ${redirectUrl}`);
                         window.location.href = redirectUrl;
                     }, 3000);
 
@@ -1124,21 +1149,26 @@ function deleteXeroDocument(jobId, type) {
         return response.json();
     })
     .then(data => {
+        console.log('Processing response data:', data);
+
         if (!data) {
+            console.error('No data received from server');
             renderMessages([{level: 'error', message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.'}]);
             return;
         }
 
         if (!data.xero_id || !data.client || !data.success) {
+            console.error('Invalid response data:', data);
             renderMessages(data.messages || [{ level: 'error', message: 'Failed to delete document: insufficient data.' }]);
             return;
         }
 
+        console.log('Document deleted successfully, updating UI');
         handleDocumentButtons(type, null, 'DELETE');
         renderMessages(data.messages);
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Error deleting Xero document:', error);
         renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
     });
 }
