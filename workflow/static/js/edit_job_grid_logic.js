@@ -1006,13 +1006,13 @@ function createXeroDocument(jobId, type) {
             return response.json();
         })
         .then(data => {
-            if (!data || !data.success) {
-                renderMessages([{ level: 'error', message: 'Your Xero session has expired. Please log in again' }]);
+            if (!data) {
+                renderMessages([{ level: 'error', message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.' }]);
                 return;
             }
 
-            if (!data.xero_id || !data.client) {
-                renderMessages([{ level: 'error', message: data.message }]);
+            if (!data.success) {
+                renderMessages(data.messages);
                 return;
             }
 
@@ -1108,15 +1108,6 @@ function deleteXeroDocument(jobId, type) {
         if (!response.ok) {
             return response.json().then((data) => {
                 if (data.redirect_to_auth) {
-                    renderMessages(
-                        [
-                            {
-                                level: 'error',
-                                message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.'
-                            }
-                        ]
-                    );
-
                     const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
                     setTimeout(() => {
                         const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
@@ -1133,14 +1124,17 @@ function deleteXeroDocument(jobId, type) {
         return response.json();
     })
     .then(data => {
-        if (!data.success) {
-            renderMessages([{ level: 'error', message: data.message }]);
+        if (!data) {
+            renderMessages([{level: 'error', message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.'}]);
             return;
         }
 
-        renderMessages([{ level: 'success', message: data.message }]);
-        document.getElementById('alert-modal-body').innerHTML = '';
-        new bootstrap.Modal(document.getElementById('alert-container')).hide();
+        if (!data.xero_id || !data.client || !data.success) {
+            renderMessages(data.messages);
+            return;
+        }
+
+        renderMessages(data.messages);
         handleDocumentButtons(type, null, 'DELETE');
     })
     .catch(error => {

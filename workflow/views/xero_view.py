@@ -21,6 +21,8 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView
 from django.core.cache import cache
+from django.utils import timezone
+from django.contrib import messages
 
 from xero_python.accounting import AccountingApi
 from xero_python.identity import IdentityApi
@@ -47,8 +49,7 @@ from workflow.api.xero.xero import (
 
 from workflow.enums import InvoiceStatus, QuoteStatus
 from workflow.models import Job, Invoice, Quote
-from datetime import timedelta
-from django.utils import timezone
+from workflow.utils import extract_messages
 
 logger = logging.getLogger("xero")
 
@@ -626,11 +627,21 @@ def create_xero_invoice(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroInvoiceCreator(job)
-        return creator.create_document()
+        response = creator.create_document()
+
+        if response["success"] == False:
+            messages.error(request, f"Failed to create invoice: {response["error"]}")
+            response["messages"] = extract_messages(request)
+            return response
+
+        messages.success(request, "Invoice created successfully")
+        response["messages"] = extract_messages(request)
+        return response
 
     except Exception as e:
         logger.error(f"Error in create_invoice_job: {str(e)}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        messages.error(request, "An error occurred while creating the invoice")
+        return JsonResponse({"success": False, "messages": extract_messages(request)}, status=500)
 
 
 def create_xero_quote(request, job_id):
@@ -646,11 +657,21 @@ def create_xero_quote(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        return creator.create_document()
+        response = creator.create_document()
+
+        if response["success"] == False:
+            messages.error(request, f"Failed to create quote: {response["error"]}")
+            response["messages"] = extract_messages(request)
+            return response
+        
+        messages.success(request, "Quote created successfully")
+        response["messages"] = extract_messages(request)
+        return response
 
     except Exception as e:
         logger.error(f"Error in create_xero_quote: {str(e)}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        messages.error(request, f"An error occurred while creating the quote: {str(e)}")
+        return JsonResponse({"success": False, "messages": extract_messages(request)}, status=500)
     
 def delete_xero_invoice(request, job_id):
     """

@@ -34,7 +34,7 @@
             Quote Job
         </button>
         <a {% if not quoted %} style="display: none" {% endif %}
-            href="{% if quote_url %}{{ quote_url }}{% else %}#{% endif %}" class="btn btn-info mt-3" id="quoteUrl">
+            href="{% if quote_url %}{{ quote_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info mt-3" id="quoteUrl">
             Go to Quote on Xero
         </a>
         <button {% if not quoted %} style="display: none" {% endif %} type="button" class="btn btn-danger mt-3" id="deleteQuoteButton">
