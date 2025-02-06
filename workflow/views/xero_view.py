@@ -627,7 +627,7 @@ def create_xero_invoice(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroInvoiceCreator(job)
-        response = creator.create_document()
+        response = json.loads(creator.create_document().content.decode())
 
         if not response.get('success'):
             messages.error(request, f"Failed to create invoice: {response.get('error')}")

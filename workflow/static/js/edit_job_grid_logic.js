@@ -1134,8 +1134,8 @@ function deleteXeroDocument(jobId, type) {
             return;
         }
 
-        renderMessages(data.messages);
         handleDocumentButtons(type, null, 'DELETE');
+        renderMessages(data.messages);
     })
     .catch(error => {
         console.error('Error:', error);
