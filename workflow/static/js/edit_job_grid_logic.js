@@ -556,7 +556,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const gridKey = `${section}${gridType}`;  // Create the full key for identifying the grid
             const gridElement = document.querySelector(`#${gridKey}`);
 
-
             let specificGridOptions;
             switch (gridType) {
                 case 'TimeTable':
@@ -572,7 +571,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         });
                         break;
                     }
-                    specificGridOptions = timeGridOptions;
+                    specificGridOptions = JSON.parse(JSON.stringify(timeGridOptions));
+                    // Hide link column for estimate and quote sections
+                    specificGridOptions.columnDefs = specificGridOptions.columnDefs.map(col => {
+                        if (col.field === 'link') {
+                            return {...col, hide: true};
+                        }
+                        return col;
+                    });
                     break;
                 case 'MaterialsTable':
                     specificGridOptions = materialsGridOptions;
@@ -586,7 +592,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('latest_job_pricings_json must be loaded before grid initialization');
             }
 
-
             const sectionData = latest_job_pricings_json[`${section}_pricing`];
             if (!sectionData) {
                 console.warn(`Data not found for section '${section}'. Assuming this is a new job.`);
@@ -597,25 +602,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 rowData = [createNewRow(gridType)];
             }
 
-            // console.log('Grid type: ', gridType, ', Section: ', section, ', Grid Key: ', gridKey);
-            // console.log('First row of rowData during grid initialization:', rowData[0]);
-
             const gridOptions = {
                 ...commonGridOptions,
                 ...specificGridOptions,
                 context: { section, gridType: `${gridType}`, gridKey: gridKey },
                 rowData: rowData  // Set initial row data in gridOptions
-
             };
 
             const gridInstance = agGrid.createGrid(gridElement, gridOptions);
 
             // Set row data after initializing the grid
             gridInstance.setGridOption('rowData', rowData);
-
         });
     });
-
 
     // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
     const revenueGridOptions = {
