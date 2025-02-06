@@ -1,8 +1,10 @@
 import uuid
 from abc import abstractmethod
 from decimal import Decimal
+
 from django.db import models
 from django.utils import timezone
+
 from workflow.enums import InvoiceStatus
 
 

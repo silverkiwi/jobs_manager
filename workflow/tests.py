@@ -1,28 +1,23 @@
 import os
+
 import django
 from django.core.management import call_command
 from django.test import Client, TestCase
-from django.urls import reverse
 from dotenv import load_dotenv
-from django.db.models import Model
-from django.forms import ModelForm
 from rest_framework import serializers
 from rest_framework.test import APITestCase
-from django.db.models.fields.reverse_related import ForeignObjectRel
-import json
 
+from workflow.enums import JobPricingType
 from workflow.models import (
     AdjustmentEntry,
     Job,
+    JobFile,
     JobPricing,
     MaterialEntry,
     TimeEntry,
-    JobFile,
-    Staff,
 )
-from workflow.serializers.job_serializer import JobSerializer
 from workflow.serializers.job_pricing_serializer import JobPricingSerializer
-from workflow.enums import JobPricingType, JobPricingStage
+from workflow.serializers.job_serializer import JobSerializer
 
 django.setup()  # Force initialization
 load_dotenv()
@@ -76,7 +71,6 @@ class SerializerFieldSyncTest(APITestCase):
         """Test for field coverage issues."""
         # Check JobFile fields
         jobfile_fields = self.get_model_fields(JobFile)
-        jobfile_field_names = {f["name"] for f in jobfile_fields}
 
         # Get serializer fields that handle JobFile data
         serializer = JobSerializer()

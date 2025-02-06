@@ -1,12 +1,13 @@
-from io import BytesIO
-import os
 import logging
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
+import os
+from io import BytesIO
+
 from django.conf import settings
 from PIL import Image
 from PyPDF2 import PdfWriter
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
 logger = logging.getLogger(__name__)
 

@@ -1,17 +1,14 @@
 import logging
-
-from rest_framework.renderers import JSONRenderer, BaseRenderer
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 import os
 
-from jobs_manager import settings
-
 from django.http import FileResponse
-from django.conf import settings
+from rest_framework import status
+from rest_framework.renderers import BaseRenderer, JSONRenderer
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from workflow.models import JobFile, Job
+from jobs_manager import settings
+from workflow.models import Job, JobFile
 
 logger = logging.getLogger(__name__)
 

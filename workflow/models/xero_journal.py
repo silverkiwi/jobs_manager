@@ -1,4 +1,5 @@
 import uuid
+
 from django.db import models
 from django.utils import timezone
 
@@ -32,12 +33,14 @@ class XeroJournalLineItem(models.Model):
         XeroJournal, on_delete=models.CASCADE, related_name="line_items"
     )
     xero_line_id = models.UUIDField(unique=True)
-    # Link to XeroAccount if possible. If it gets deleted or not found, we keep the line item as historical data.
+    # Link to XeroAccount if possible. If it gets deleted or not found,
+    # we keep the line item as historical data.
     account = models.ForeignKey(
         "XeroAccount", on_delete=models.SET_NULL, null=True, blank=True
     )
     description = models.TextField(null=True, blank=True)
-    # Typically journals contain both credit and debit lines. Net/Gross/Tax amounts might be needed.
+    # Typically journals contain both credit and debit lines.
+    # Net/Gross/Tax amounts might be needed.
     net_amount = models.DecimalField(max_digits=10, decimal_places=2)
     gross_amount = models.DecimalField(max_digits=10, decimal_places=2)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2)

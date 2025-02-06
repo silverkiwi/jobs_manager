@@ -1,23 +1,18 @@
-from django.http import JsonResponse, FileResponse
+import logging
+from io import BytesIO
 
 from django.contrib import messages
 from django.contrib.staticfiles.finders import find
-
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404
-
 from django.views.decorators.csrf import csrf_exempt
-
-from io import BytesIO
-
 from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle
 
 from workflow.models import Job
 from workflow.utils import extract_messages
-
-import logging
 
 logger = logging.getLogger(__name__)
 

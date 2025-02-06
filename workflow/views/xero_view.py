@@ -1,52 +1,35 @@
-from abc import ABC, abstractmethod
-
-import re
-
-import logging
-
-import uuid
-
-import traceback
-
 import json
-
-from typing import Any
-
+import logging
+import re
+import traceback
+import uuid
+from abc import ABC, abstractmethod
 from datetime import timedelta
-
 from decimal import Decimal
 
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView
-from django.core.cache import cache
-from django.contrib import messages
-
 from xero_python.accounting import AccountingApi
-from xero_python.identity import IdentityApi
-from xero_python.accounting.models import (
-    Invoice as XeroInvoice,
-    Quote as XeroQuote,
-    LineItem,
-    Contact,
-)
-from xero_python.exceptions import AccountingBadRequestException
+from xero_python.accounting.models import Contact
+from xero_python.accounting.models import Invoice as XeroInvoice
+from xero_python.accounting.models import LineItem
+from xero_python.accounting.models import Quote as XeroQuote
 
 from workflow.api.xero.sync import synchronise_xero_data
 from workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
     get_authentication_url,
-    get_token,
-    refresh_token,
-    get_valid_token,
     get_tenant_id,
     get_tenant_id_from_connections,
+    get_token,
+    get_valid_token,
+    refresh_token,
 )
-from workflow.models import Job, Invoice, InvoiceLineItem
-from datetime import timedelta
-from django.utils import timezone
+from workflow.models import Invoice, Job
 
 logger = logging.getLogger("xero")
 

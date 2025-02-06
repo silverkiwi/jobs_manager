@@ -1,10 +1,9 @@
-from rest_framework import serializers
-from workflow.helpers import decimal_to_float
-from workflow.models import TimeEntry
-
+import logging
 from decimal import Decimal
 
-import logging
+from rest_framework import serializers
+
+from workflow.models import TimeEntry
 
 logger = logging.getLogger(__name__)
 

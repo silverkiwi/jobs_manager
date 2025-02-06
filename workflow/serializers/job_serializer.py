@@ -3,8 +3,8 @@ import logging
 from rest_framework import serializers
 
 from workflow.models import Client, Job, JobFile
-from workflow.serializers.job_pricing_serializer import JobPricingSerializer
 from workflow.serializers.job_file_serializer import JobFileSerializer
+from workflow.serializers.job_pricing_serializer import JobPricingSerializer
 
 logger = logging.getLogger(__name__)
 DEBUG_SERIALIZER = False

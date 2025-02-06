@@ -4,21 +4,21 @@ from .adjustment_entry import AdjustmentEntry
 from .client import Client
 from .company_defaults import CompanyDefaults
 from .invoice import (
-    BaseXeroInvoiceDocument,
     BaseLineItem,
-    Invoice,
+    BaseXeroInvoiceDocument,
     Bill,
-    CreditNote,
-    InvoiceLineItem,
     BillLineItem,
+    CreditNote,
     CreditNoteLineItem,
+    Invoice,
+    InvoiceLineItem,
 )
 from .job import Job
+from .job_event import JobEvent
 from .job_file import JobFile
 from .job_pricing import JobPricing, QuotePricing
-from .job_event import JobEvent
 from .material_entry import MaterialEntry
-from .staff import StaffManager, Staff
+from .staff import Staff, StaffManager
 from .time_entry import TimeEntry
 from .xero_account import XeroAccount
 from .xero_journal import XeroJournal, XeroJournalLineItem

@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand
-from pyngrok import ngrok, conf
-import os
 from dotenv import load_dotenv
+from pyngrok import conf, ngrok
 
 
 class Command(BaseCommand):

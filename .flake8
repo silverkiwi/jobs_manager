@@ -1,3 +1,3 @@
 [flake8]
 max-line-length = 88
-exclude = migrations,__pycache__,.tox,venv
+exclude = migrations,__pycache__,.tox,venv,.venv

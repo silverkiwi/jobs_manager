@@ -1,7 +1,7 @@
-from .base import *
-from .local import STATIC_ROOT as LOCAL_STATIC_ROOT
 from dotenv import load_dotenv
 
+from .base import *  # noqa: F403
+from .local import STATIC_ROOT as LOCAL_STATIC_ROOT
 
 # If connection with Xero and Dropbox integration is needed, then DJANGO_ENV should be set to "production_like"
 load_dotenv(BASE_DIR / ".env")
@@ -13,7 +13,9 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "debug_toolbar"]
 
 MIDDLEWARE = [
-    mw for mw in MIDDLEWARE if mw != "debug_toolbar.middleware.DebugToolbarMiddleware"
+    mw
+    for mw in MIDDLEWARE
+    if mw != "debug_toolbar.middleware.DebugToolbarMiddleware"
 ]
 
 STATIC_URL = "/static/"

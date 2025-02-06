@@ -6,10 +6,10 @@ from .dashboard_view import DashboardView
 from .invoice_view import InvoiceListView, InvoiceUpdateView
 from .job_file_view import BinaryFileRenderer, JobFileView
 from .material_entry_view import CreateMaterialEntryView, MaterialEntryUpdateView
-from .report_view import ReportsIndexView, CompanyProfitAndLossView
-from .staff_view import StaffListView, StaffCreateView, StaffUpdateView
+from .report_view import CompanyProfitAndLossView, ReportsIndexView
+from .staff_view import StaffCreateView, StaffListView, StaffUpdateView
 from .time_entry_view import TimesheetEntryView
-from .time_overview_view import TimesheetOverviewView, TimesheetDailyView
+from .time_overview_view import TimesheetDailyView, TimesheetOverviewView
 
 __all__ = [
     "CreateAdjustmentEntryView",

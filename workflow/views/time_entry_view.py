@@ -1,22 +1,20 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 
-from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib import messages
 from django.core.cache import cache
-from django.template.loader import render_to_string
-from django.http import JsonResponse, Http404
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import CharField, Func, IntegerField, Value
+from django.db.models.functions import Coalesce, Concat
+from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
-from django.contrib import messages
-from django.db.models import Value, Func, IntegerField, CharField
-from django.db.models.functions import Coalesce, Concat
 
 from workflow.enums import RateType
-from workflow.models import Job, JobPricing, Staff, TimeEntry
-from workflow.forms import TimeEntryForm, PaidAbsenceForm
+from workflow.models import Job, Staff, TimeEntry
 from workflow.serializers.time_entry_serializer import (
     TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
 )

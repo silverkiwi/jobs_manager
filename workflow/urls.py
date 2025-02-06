@@ -11,17 +11,14 @@ from workflow.views import (
     invoice_view,
     kanban_view,
     staff_view,
+    submit_quote_view,
     time_entry_view,
     time_overview_view,
-    xero_view,
     workshop_view,
+    xero_view,
 )
-from workflow.views import submit_quote_view
 from workflow.views.job_file_view import JobFileView
-from workflow.views.report_view import (
-    CompanyProfitAndLossView,
-    ReportsIndexView,
-)
+from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 
 urlpatterns = [
     # Redirect to Kanban board
