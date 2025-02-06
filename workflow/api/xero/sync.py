@@ -93,7 +93,8 @@ def sync_xero_data(
         "if_modified_since": last_modified_time,
     }
 
-    if pagination_mode == "page":
+    # Only add pagination parameters for supported endpoints
+    if pagination_mode == "page" and xero_entity_type != "quotes":
         # Page mode uses UpdatedDateUTC ordering for consistent incremental fetching.
         base_params.update({"page_size": page_size, "order": "UpdatedDateUTC ASC"})
 
