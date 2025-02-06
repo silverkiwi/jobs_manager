@@ -667,7 +667,7 @@ def create_xero_quote(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        response = creator.create_document()
+        response = json.loads(creator.create_document().content.decode())
 
         if not response.get('success'):
             messages.error(request, f"Failed to create quote: {response.get('error')}")
@@ -704,7 +704,7 @@ def delete_xero_invoice(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroInvoiceCreator(job)
-        response = creator.delete_document()
+        response = json.loads(creator.delete_document().content.decode())
 
         if not response.get("success"):
             messages.error(request, f"Failed to delete invoice: {response.get("error")}")
@@ -739,7 +739,7 @@ def delete_xero_quote(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        response = creator.delete_document()
+        response = json.loads(creator.delete_document().content.decode())
         if not response.get("success"):
             logger.error(f"Failed to delete quote: {response.get("error")}")
             messages.error(request, f"Failed to delete quote: {response.get("error")}")
