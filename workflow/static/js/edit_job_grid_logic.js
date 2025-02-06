@@ -1012,7 +1012,7 @@ function createXeroDocument(jobId, type) {
             }
 
             if (!data.success) {
-                renderMessages(data.messages);
+                renderMessages(data.messages || [{ level: 'error', message: 'Failed to delete document.' }]);
                 return;
             }
 
@@ -1130,7 +1130,7 @@ function deleteXeroDocument(jobId, type) {
         }
 
         if (!data.xero_id || !data.client || !data.success) {
-            renderMessages(data.messages);
+            renderMessages(data.messages || [{ level: 'error', message: 'Failed to delete document: insufficient data.' }]);
             return;
         }
 
