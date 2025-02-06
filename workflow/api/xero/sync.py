@@ -501,7 +501,7 @@ def sync_quotes(quotes):
         
         quote, created = Quote.objects.update_or_create(
             xero_id=xero_id,
-            default={
+            defaults={
                 "client": client,
                 "total_excl_tax": Decimal(quote_data.sub_total),
                 "total_incl_tax": Decimal(quote_data.total),
