@@ -16,7 +16,7 @@ logger = logging.getLogger("xero")
 
 XERO_SCOPES = [
     "offline_access",
-    "openid", 
+    "openid",
     "profile",
     "email",
     "accounting.contacts",
@@ -58,7 +58,7 @@ def get_token() -> Optional[Dict[str, Any]]:
 def store_token(token: Dict[str, Any]) -> None:
     """Store token in cache with 29 minute timeout."""
     logger.info(f"\nStoring token!")
-    
+
     # For better logs if needed
     token_data = {
         "id_token": token.get("id_token"),
@@ -117,13 +117,15 @@ def get_valid_token() -> Optional[Dict[str, Any]]:
 def get_authentication_url(state: str) -> str:
     """Get the URL for initial Xero OAuth."""
     params = {
-        'response_type': 'code',
-        'client_id': settings.XERO_CLIENT_ID,
-        'redirect_uri': settings.XERO_REDIRECT_URI,
-        'scope': ' '.join(XERO_SCOPES),
-        'state': state,
+        "response_type": "code",
+        "client_id": settings.XERO_CLIENT_ID,
+        "redirect_uri": settings.XERO_REDIRECT_URI,
+        "scope": " ".join(XERO_SCOPES),
+        "state": state,
     }
-    logger.debug(f"\nGenerating authentication URL with params: \n{pretty_print(params)}")
+    logger.debug(
+        f"\nGenerating authentication URL with params: \n{pretty_print(params)}"
+    )
     url = f"https://login.xero.com/identity/connect/authorize?{urlencode(params)}"
     logger.debug(f"\nGenerated URL: {url}")
     return url
@@ -162,10 +164,10 @@ def exchange_code_for_token(code, state, session_state):
         response.raise_for_status()
         token = response.json()
         logger.debug(f"\nToken received!")
-        
+
         store_token(token)
         logger.debug("\nToken stored successfully after exchange!")
-        
+
         return token
     except requests.exceptions.HTTPError as e:
         logger.debug(f"\nHTTP Error: {response.status_code} - {response.text}")
@@ -184,7 +186,7 @@ def get_tenant_id() -> str:
         "xero_tenant_id"
     )  # Step 1: Try to retrieve the tenant ID from the cache.
     logger.debug(f"\nTenant ID from cache: {tenant_id}")
-    
+
     token = (
         get_valid_token()
     )  # Step 2: Ensure a valid token exists, refreshing if necessary.

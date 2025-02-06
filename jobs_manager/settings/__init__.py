@@ -11,9 +11,12 @@ AWS = os.getenv("AWS", False)
 
 if ENVIRONMENT == "production_like":
     from .production_like import *
+
     if AWS:
         DEBUG = False
     else:
-        DEBUG = True # Need to set it as True otherwise staticfiles won't be served locally
+        DEBUG = (
+            True  # Need to set it as True otherwise staticfiles won't be served locally
+        )
 else:
     from .local import *

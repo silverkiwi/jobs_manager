@@ -6,6 +6,7 @@ from django.db import models
 
 logger = logging.getLogger(__name__)
 
+
 class Client(models.Model):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
@@ -63,7 +64,8 @@ class Client(models.Model):
         # Ensure required fields are present
         if not self.name:
             raise ValueError(
-                f"Client {self.id} is missing a name, which is required for Xero.")
+                f"Client {self.id} is missing a name, which is required for Xero."
+            )
 
         # Prepare serialized data
         client_dict = {
@@ -95,5 +97,6 @@ class Supplier(Client):
     """
     A Supplier is simply a Client with additional semantics.
     """
+
     class Meta:
         proxy = True

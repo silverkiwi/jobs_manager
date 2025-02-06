@@ -2,7 +2,12 @@ from .base import *
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "msm-workflow.ngrok-free.app", "measured-enormously-man.ngrok-free.app"]
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "msm-workflow.ngrok-free.app",
+    "measured-enormously-man.ngrok-free.app",
+]
 
 INSTALLED_APPS += ["debug_toolbar"]
 
@@ -15,7 +20,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://msm-workflow.ngrok-free.app",
     "https://measured-enormously-man.ngrok-free.app",
     "http://localhost",
-    "http://127.0.0.1"
+    "http://127.0.0.1",
 ]
 
 STATIC_URL = "/static/"

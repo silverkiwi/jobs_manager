@@ -28,10 +28,12 @@ logger = logging.getLogger("xero")
 
 def enqueue_client_sync_tasks():
     """
-    Enqueues synchronization of all clients to be processed by Celery    
+    Enqueues synchronization of all clients to be processed by Celery
     """
     clients_to_push = Client.objects.filter(
-        django_updated_at__gt=models.F("xero_last_synced") # This fixes the bug where all local clients were being pushed
+        django_updated_at__gt=models.F(
+            "xero_last_synced"
+        )  # This fixes the bug where all local clients were being pushed
     )
 
     for client in clients_to_push:
@@ -528,13 +530,14 @@ def sync_client_to_xero(client):
             new_contact_id = response.contacts[0].contact_id
             client.xero_contact_id = new_contact_id
             client.save()
-            logger.info(f"Created new client {client.name} in Xero with ID {new_contact_id}.")
+            logger.info(
+                f"Created new client {client.name} in Xero with ID {new_contact_id}."
+            )
 
         return response.contacts if response.contacts else []
     except Exception as e:
         logger.error(f"Failed to sync client {client.name} to Xero: {str(e)}")
         raise
-
 
 
 def single_sync_client(
@@ -749,7 +752,7 @@ def one_way_sync_all_xero_data():
     sync_xero_data(
         xero_entity_type="contacts",
         xero_api_function=accounting_api.get_contacts,
-        sync_function=sync_clients, # Already enqueuing
+        sync_function=sync_clients,  # Already enqueuing
         last_modified_time=our_latest_contact,
         pagination_mode="page",
     )
@@ -802,4 +805,3 @@ def synchronise_xero_data(delay_between_requests=1):
     one_way_sync_all_xero_data()
 
     logger.info("Completed bi-directional Xero sync")
-    
