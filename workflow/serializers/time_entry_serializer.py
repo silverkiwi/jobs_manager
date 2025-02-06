@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
     """
     Serializer used for JobPricing context.
-    Includes the original fields of TimeEntrySerializer and adds staff_id and timesheet_date to display a link for the timesheet in edit_job_view_ajax.html
+    Includes the original fields of TimeEntrySerializer and adds staff_id and
+    timesheet_date to display a link for the timesheet in edit_job_view_ajax.html
     """
 
     total_minutes = serializers.SerializerMethodField()

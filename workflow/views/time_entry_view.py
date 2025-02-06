@@ -451,7 +451,10 @@ def autosave_timesheet_view(request):
                     if scheduled_hours < hours:
                         messages.warning(
                             request,
-                            f"Existing timesheet saved successfully, but hours exceed scheduled hours for {target_date}",
+                            (
+                                f"Existing timesheet saved successfully, but hours "
+                                f"exceed scheduled hours for {target_date}"
+                            ),
                         )
                     elif job.status in ["completed", "quoting"]:
                         messages.error(
@@ -460,7 +463,8 @@ def autosave_timesheet_view(request):
                         )
                     else:
                         messages.success(
-                            request, "Existing timesheet saved successfully."
+                            request,
+                            "Existing timesheet saved successfully"
                         )
                     logger.debug("Existing timesheet saved successfully")
 
@@ -524,7 +528,10 @@ def autosave_timesheet_view(request):
                 if scheduled_hours < hours:
                     messages.warning(
                         request,
-                        f"Timesheet created successfully, but hours exceed scheduled hours for today ({target_date})",
+                        (
+                            f"Timesheet created successfully, but hours exceed "
+                            f"scheduled hours for today ({target_date})"
+                        ),
                     )
                 elif job.status in ["completed", "quoting"]:
                     messages.error(

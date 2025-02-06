@@ -110,7 +110,10 @@ class JobSerializer(serializers.ModelSerializer):
                         )
                 except JobFile.DoesNotExist:
                     logger.warning(
-                        f"JobFile with id {file_data.get('id')} not found for job {instance.id}"
+                        (
+                            f"JobFile with id {file_data.get('id')} "
+                            f"not found for job {instance.id}"
+                        )
                     )
                 except Exception as e:
                     logger.error(f"Error updating JobFile: {str(e)}")

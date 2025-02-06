@@ -25,7 +25,8 @@ def collect_pricing_data(pricing):
         job_pricing (JobPricing): The JobPricing instance.
 
     Returns:
-        dict: A dictionary containing structured data for time, material, and adjustment entries.
+        dict: A dictionary containing structured data for time, material,
+            and adjustment entries.
     """
     time_entries = [
         [
@@ -291,7 +292,8 @@ def send_quote_email(request, job_id):
         body = (
             f"Hello {job.client.name if job.client else 'Client'},\n\n"
             f"We are reaching out regarding Job #{job.name}.\n\n"
-            f"Please let us know if you have any questions or require further information.\n\n"
+            f"Please let us know if you have any questions or require "
+            f"further information.\n\n"
             f"Best regards,\nMorris Sheetmetals Works"
             if contact_only
             else f"Please find the attached quote summary for {job.name}."
