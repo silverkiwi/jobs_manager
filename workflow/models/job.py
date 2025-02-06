@@ -10,6 +10,7 @@ from simple_history.models import HistoricalRecords  # type: ignore
 
 from jobs_manager import settings
 from workflow.models import CompanyDefaults
+from workflow.enums import JobPricingType
 
 # We say . rather than workflow.models to avoid going through init,
 # otherwise it would have a circular import
@@ -104,6 +105,13 @@ class Job(models.Model):
             null=False,  # Not nullable because save() ensures a value
             blank=False,  # Should be required in forms too
         )
+    )
+
+    pricing_type = models.CharField(
+        max_length=20,
+        choices=JobPricingType.choices,
+        default=JobPricingType.TIME_AND_MATERIALS,
+        help_text="Type of pricing for the job (fixed price or time and materials).",
     )
 
     # Direct relationships for estimate, quote, reality
