@@ -503,8 +503,12 @@ def sync_quotes(quotes):
             xero_id=xero_id,
             defaults={
                 "client": client,
+                "date": quote_data.date,
+                "status": quote_data.status,
                 "total_excl_tax": Decimal(quote_data.sub_total),
                 "total_incl_tax": Decimal(quote_data.total),
+                "xero_last_modified": quote_data.updated_date_utc,
+                "xero_last_synced": timezone.now(),
                 "online_url": f"https://go.xero.com/app/quotes/edit/{xero_id}",
                 "raw_json": serialise_xero_object(quote_data),
             },
