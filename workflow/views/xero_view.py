@@ -629,14 +629,24 @@ def create_xero_invoice(request, job_id):
         creator = XeroInvoiceCreator(job)
         response = creator.create_document()
 
-        if response["success"] == False:
-            messages.error(request, f"Failed to create invoice: {response["error"]}")
-            response["messages"] = extract_messages(request)
-            return response
+        if not response.get('success'):
+            messages.error(request, f"Failed to create invoice: {response.get('error')}")
+            return JsonResponse({
+                'success': False,
+                'error': response.get('error'),
+                'messages': extract_messages(request)
+            })
 
         messages.success(request, "Invoice created successfully")
-        response["messages"] = extract_messages(request)
-        return response
+        return JsonResponse({
+                "success": True,
+                "xero_id": response.get("xero_id"),
+                "client": response.get("client"),
+                "total_excl_tax": response.get("total_excl_tax"),
+                "total_incl_tax": response.get("total_incl_tax"),
+                "invoice_url": response.get("invoice_url"),
+                "messages": extract_messages(request)
+        })
 
     except Exception as e:
         logger.error(f"Error in create_invoice_job: {str(e)}")
@@ -659,15 +669,23 @@ def create_xero_quote(request, job_id):
         creator = XeroQuoteCreator(job)
         response = creator.create_document()
 
-        if response["success"] == False:
-            messages.error(request, f"Failed to create quote: {response["error"]}")
-            response["messages"] = extract_messages(request)
-            return response
+        if not response.get('success'):
+            messages.error(request, f"Failed to create quote: {response.get('error')}")
+            return JsonResponse({
+                'success': False,
+                'error': response.get('error'),
+                'messages': extract_messages(request)
+            })
         
         messages.success(request, "Quote created successfully")
-        response["messages"] = extract_messages(request)
-        return response
-
+        return JsonResponse({
+            'success': True,
+            'xero_id': response.get('xero_id'),
+            'client': response.get('client'),
+            'quote_url': response.get('quote_url'),
+            'messages': extract_messages(request)
+        }, status=200)
+    
     except Exception as e:
         logger.error(f"Error in create_xero_quote: {str(e)}")
         messages.error(request, f"An error occurred while creating the quote: {str(e)}")
@@ -686,11 +704,26 @@ def delete_xero_invoice(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroInvoiceCreator(job)
-        return creator.delete_document()
+        response = creator.delete_document()
+
+        if not response.get("success"):
+            messages.error(request, f"Failed to delete invoice: {response.get("error")}")
+            return JsonResponse({
+                "success": False, 
+                "error": response.get("error"),
+                "messages": extract_messages(request)
+            }, status=400)
+
+        messages.success(request, "Invoice deleted successfully")
+        return JsonResponse({
+            "success": True,
+            "messages": extract_messages(request)
+        })
 
     except Exception as e:
         logger.error(f"Error in delete_xero_invoice: {str(e)}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        messages.error(request, f"An error occurred while deleting the invoice: {str(e)}")
+        return JsonResponse({"success": False, "messages": extract_messages(request)}, status=500)
     
 
 def delete_xero_quote(request, job_id):
@@ -706,7 +739,19 @@ def delete_xero_quote(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        return creator.delete_document()
+        response = creator.delete_document()
+        if not response.get("success"):
+            logger.error(f"Failed to delete quote: {response.get("error")}")
+            messages.error(request, f"Failed to delete quote: {response.get("error")}")
+            return JsonResponse({
+                "success": True,
+                "messages": extract_messages(request)
+            })
+        messages.success(request, "Quote deleted successfully")
+        return JsonResponse({
+            "success": True,
+            "messages": extract_messages(request)
+        })
     except Exception as e:
         logger.error(f"Error in delete_xero_quote: {str(e)}")
         return JsonResponse({"success": False, "error": str(e)}, status=500)
