@@ -505,7 +505,7 @@ def sync_quotes(quotes):
                 "client": client,
                 "total_excl_tax": Decimal(quote_data.sub_total),
                 "total_incl_tax": Decimal(quote_data.total),
-                "quote_url": f"https://go.xero.com/app/quotes/edit/{xero_id}",
+                "online_url": f"https://go.xero.com/app/quotes/edit/{xero_id}",
                 "raw_json": serialise_xero_object(quote_data),
             },
         )
