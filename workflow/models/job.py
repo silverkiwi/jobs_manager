@@ -8,8 +8,8 @@ from simple_history.models import HistoricalRecords  # type: ignore
 
 from workflow.enums import JobPricingType
 from workflow.models import CompanyDefaults
-
-from .job_event import JobEvent
+from workflow.enums import JobPricingType
+from workflow.models.invoice import Invoice
 
 # We say . rather than workflow.models to avoid going through init,
 # otherwise it would have a circular import
