@@ -339,6 +339,32 @@ document.addEventListener('DOMContentLoaded', function () {
         enterNavigatesVertically: true,
         enterNavigatesVerticallyAfterEdit: true,
         stopEditingWhenCellsLoseFocus: true,
+        tabToNextCell: (params) => {
+            const lastCol = params.columnApi.getAllDisplayedColumns().length - 1;
+            const lastRow = params.api.getDisplayedRowCount() - 1;
+            
+            if (params.nextCellPosition === null) {
+                // If we're at the last cell, go to first cell of current/next row
+                if (params.previousCellPosition.column === lastCol) {
+                    if (params.previousCellPosition.rowIndex === lastRow) {
+                        // At very last cell - go to first cell of first row
+                        return {
+                            rowIndex: 0,
+                            column: params.columnApi.getAllDisplayedColumns()[0],
+                            floating: null
+                        };
+                    } else {
+                        // Go to first cell of next row
+                        return {
+                            rowIndex: params.previousCellPosition.rowIndex + 1,
+                            column: params.columnApi.getAllDisplayedColumns()[0],
+                            floating: null
+                        };
+                    }
+                }
+            }
+            return params.nextCellPosition;
+        },
         onCellKeyDown: onCellKeyDown,
         onRowDataUpdated: function (params) {  // Handles row updates
             const gridKey = params.context.gridKey;
