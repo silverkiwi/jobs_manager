@@ -340,32 +340,39 @@ document.addEventListener('DOMContentLoaded', function () {
         enterNavigatesVerticallyAfterEdit: true,
         stopEditingWhenCellsLoseFocus: true,
         tabToNextCell: (params) => {
-            const lastCol = params.columnApi.getAllDisplayedColumns().length - 1;
-            const lastRow = params.api.getDisplayedRowCount() - 1;
-            
-            // If we're at the last cell of a row
-            if (params.previousCellPosition.column === lastCol) {
-                if (params.previousCellPosition.rowIndex === lastRow) {
-                    // At very last cell - go to first cell of first row
+            const displayedColumns = params.columnApi.getAllDisplayedColumns();
+            const lastColIndex = displayedColumns.length - 1;
+            const lastRowIndex = params.api.getDisplayedRowCount() - 1;
+        
+            const currentColIndex = displayedColumns.findIndex(col => col.getColId() === params.previousCellPosition.column.getColId());
+        
+            if (currentColIndex === -1) {
+                return null; // If column not found, prevent error
+            }
+        
+            if (currentColIndex === lastColIndex) {
+                // Is in the last column of the row
+                if (params.previousCellPosition.rowIndex === lastRowIndex) {
+                    // Last cell of the last row → Return to beginning
                     return {
                         rowIndex: 0,
-                        column: params.columnApi.getAllDisplayedColumns()[0],
+                        column: displayedColumns[0],
                         floating: null
                     };
                 } else {
-                    // Go to first cell of next row
+                    // Last column of a row, go to next row and first column
                     return {
                         rowIndex: params.previousCellPosition.rowIndex + 1,
-                        column: params.columnApi.getAllDisplayedColumns()[0],
+                        column: displayedColumns[0],
                         floating: null
                     };
                 }
             }
-            
-            // For all other cells, move to the next column in the same row
+        
+            // For all other cells, just advance in the same row
             return {
                 rowIndex: params.previousCellPosition.rowIndex,
-                column: params.columnApi.getAllDisplayedColumns()[params.previousCellPosition.column.getColId() + 1],
+                column: displayedColumns[currentColIndex + 1],
                 floating: null
             };
         },
