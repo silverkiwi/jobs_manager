@@ -343,27 +343,31 @@ document.addEventListener('DOMContentLoaded', function () {
             const lastCol = params.columnApi.getAllDisplayedColumns().length - 1;
             const lastRow = params.api.getDisplayedRowCount() - 1;
             
-            if (params.nextCellPosition === null) {
-                // If we're at the last cell, go to first cell of current/next row
-                if (params.previousCellPosition.column === lastCol) {
-                    if (params.previousCellPosition.rowIndex === lastRow) {
-                        // At very last cell - go to first cell of first row
-                        return {
-                            rowIndex: 0,
-                            column: params.columnApi.getAllDisplayedColumns()[0],
-                            floating: null
-                        };
-                    } else {
-                        // Go to first cell of next row
-                        return {
-                            rowIndex: params.previousCellPosition.rowIndex + 1,
-                            column: params.columnApi.getAllDisplayedColumns()[0],
-                            floating: null
-                        };
-                    }
+            // If we're at the last cell of a row
+            if (params.previousCellPosition.column === lastCol) {
+                if (params.previousCellPosition.rowIndex === lastRow) {
+                    // At very last cell - go to first cell of first row
+                    return {
+                        rowIndex: 0,
+                        column: params.columnApi.getAllDisplayedColumns()[0],
+                        floating: null
+                    };
+                } else {
+                    // Go to first cell of next row
+                    return {
+                        rowIndex: params.previousCellPosition.rowIndex + 1,
+                        column: params.columnApi.getAllDisplayedColumns()[0],
+                        floating: null
+                    };
                 }
             }
-            return params.nextCellPosition;
+            
+            // For all other cells, move to the next column in the same row
+            return {
+                rowIndex: params.previousCellPosition.rowIndex,
+                column: params.columnApi.getAllDisplayedColumns()[params.previousCellPosition.column.getColId() + 1],
+                floating: null
+            };
         },
         onCellKeyDown: onCellKeyDown,
         onRowDataUpdated: function (params) {  // Handles row updates
