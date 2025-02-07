@@ -1,8 +1,8 @@
+import os
 import uuid
 
-from django.db import models
 from django.conf import settings
-import os
+from django.db import models
 
 from workflow.helpers import get_job_folder_path
 from workflow.services.file_service import get_thumbnail_folder
@@ -20,6 +20,7 @@ class JobFile(models.Model):
         choices=[("active", "Active"), ("deleted", "Deleted")],
         default="active",
     )
+    print_on_jobsheet = models.BooleanField(default=True)
 
     @property
     def full_path(self):

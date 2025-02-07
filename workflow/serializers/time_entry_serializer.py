@@ -1,10 +1,9 @@
-from rest_framework import serializers
-from workflow.helpers import decimal_to_float
-from workflow.models import TimeEntry
-
+import logging
 from decimal import Decimal
 
-import logging
+from rest_framework import serializers
+
+from workflow.models import TimeEntry
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +11,8 @@ logger = logging.getLogger(__name__)
 class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
     """
     Serializer used for JobPricing context.
-    Includes the original fields of TimeEntrySerializer and adds staff_id and timesheet_date to display a link for the timesheet in edit_job_view_ajax.html
+    Includes the original fields of TimeEntrySerializer and adds staff_id and
+    timesheet_date to display a link for the timesheet in edit_job_view_ajax.html
     """
 
     total_minutes = serializers.SerializerMethodField()

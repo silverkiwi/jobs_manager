@@ -64,37 +64,50 @@
 <hr />
 
 
-<!-- Attached Files Section -->
-<div class="job-files-section">
-    <h2>Attached Files</h2>
-    <div id="file-list">
-        {% if job_files %}
-        <div class="job-files-grid">
-            {% for file in job_files %}
-            <div class="file-card">
-                {% if file.thumbnail_path %}
-                <div class="thumbnail-container">
-                    <img src="{% url 'serve-job-file' file.thumbnail_path %}" alt="{{ file.filename }}"
-                        class="file-thumbnail">
+    <!-- Attached Files Section -->
+    <div class="job-files-section">
+        <h2>Attached Files</h2>
+        <div id="file-list">
+            {% if job_files %}
+                <div class="job-files-grid">
+                    {% for file in job_files %}
+                        <div class="file-card" data-file-id="{{ file.id }}">
+                            {% if file.thumbnail_path %}
+                                <div class="thumbnail-container">
+                                    <img src="{% url 'serve-job-file' file.thumbnail_path %}"
+                                         alt="{{ file.filename }}"
+                                         class="file-thumbnail">
+                                </div>
+                            {% else %}
+                                <div class="thumbnail-container no-thumb">
+                                    <span class="file-extension">{{ file.filename|filesizeformat }}</span>
+                                </div>
+                            {% endif %}
+                            <div class="file-info">
+                                <a href="{% url 'serve-job-file' file.file_path %}" target="_blank">
+                                    {{ file.filename }}
+                                </a>
+                                <span class="timestamp">({{ file.uploaded_at|date:"Y-m-d H:i" }})</span>
+                                <div class="file-controls">
+                                    <label class="print-checkbox">
+                                        <input type="checkbox"
+                                               name="jobfile_{{ file.id }}_print_on_jobsheet"
+                                               class="print-on-jobsheet autosave-input"
+                                               {% if file.print_on_jobsheet %}checked{% endif %}>
+                                        Print on Job Sheet
+                                    </label>
+                                    <button class="btn btn-sm btn-danger delete-file" data-file-id="{{ file.id }}">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
-                {% else %}
-                <div class="thumbnail-container no-thumb">
-                    <span class="file-extension">{{ file.filename|filesizeformat }}</span>
-                </div>
-                {% endif %}
-                <div class="file-info">
-                    <a href="{% url 'serve-job-file' file.file_path %}" target="_blank">
-                        {{ file.filename }}
-                    </a>
-                    <span class="timestamp">({{ file.uploaded_at|date:"Y-m-d H:i" }})</span>
-                </div>
-            </div>
-            {% endfor %}
+            {% else %}
+                <p>No files attached to this job.</p>
+            {% endif %}
         </div>
-        {% else %}
-        <p>No files attached to this job.</p>
-        {% endif %}
-    </div>
 
     <div class="file-upload-area">
         <label for="file-input" class="file-drop-zone">
@@ -128,11 +141,11 @@
 
 <hr />
 
-<!-- Save/Cancel Buttons -->
-<div class="action-buttons">
-    <button type="button" class="btn btn-secondary" id="printJobButton">Print Job</button>
-    <button class="btn btn-primary" id="closeButton" onclick="window.location.href='/'">Close</button>
-</div>
+    <!-- Save/Cancel Buttons -->
+    <div class="action-buttons">
+        <button type="button" class="btn btn-secondary" id="printWorkshopButton">Print Job Sheet</button>
+        <button class="btn btn-primary" id="closeButton">Close</button>
+    </div>
 {% endblock %}
 
 {% block extra_js %}

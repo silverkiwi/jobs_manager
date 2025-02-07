@@ -6,7 +6,7 @@ from decimal import Decimal
 from django.apps import apps
 from django.db import models, transaction
 
-from workflow.enums import JobPricingStage, JobPricingType
+from workflow.enums import JobPricingStage
 from workflow.models import CompanyDefaults
 
 logger = logging.getLogger(__name__)
@@ -25,12 +25,6 @@ class JobPricing(models.Model):
         choices=JobPricingStage.choices,
         default=JobPricingStage.ESTIMATE,
         help_text="Stage of the job pricing (estimate, quote, or reality).",
-    )
-    pricing_type = models.CharField(
-        max_length=20,
-        choices=JobPricingType.choices,
-        default=JobPricingType.TIME_AND_MATERIALS,
-        help_text="Type of pricing for the job (fixed price or time and materials).",
     )
 
     revision_number = models.PositiveIntegerField(
@@ -201,10 +195,7 @@ class JobPricing(models.Model):
         job = self.job
         job_name = job.name if job else "No Job"
         job_name_str = (
-            f"{job_name} - "
-            f"{self.get_pricing_stage_display()} "
-            f"({self.get_pricing_type_display()})"
-            f"{revision_str}"
+            f"{job_name} - " f"{self.get_pricing_stage_display()}" f"{revision_str}"
         )
         return job_name_str
 
@@ -221,7 +212,6 @@ def snapshot_and_add_time_entry(job_pricing, hours_worked):
     snapshot_pricing = JobPricing.objects.create(
         job=job_pricing.job,
         pricing_stage=job_pricing.pricing_stage,
-        pricing_type=job_pricing.pricing_type,
         created_at=job_pricing.created_at,
         updated_at=job_pricing.updated_at,
     )

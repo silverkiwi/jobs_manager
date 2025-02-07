@@ -31,8 +31,10 @@ A Django-based jobs/quotes/work management system customized for **Morris Sheetm
 1. **CRM**: Tracks companies, projects, and quotes.  
 2. **Time Sheets**: Enter, manage, and invoice hours.  
 3. **Dashboards**: Visibility into each project’s budget.  
-4. **Payroll**: Monthly summaries with overtime/leave.  
-5. **Integrations**: Dropbox for file storage, Xero for invoicing/payroll.  
+4. **Payroll**: Monthly summaries with overtime/leave.
+5. **Integrations**:
+   - **Dropbox**: Files are saved to a local Dropbox folder and synced via the Dropbox desktop app
+   - **Xero**: Integration for invoicing/payroll
 
 ---
 
@@ -86,11 +88,22 @@ Follow these steps for a **local development** environment:
 5. **Start the development server**:
     
     ```bash
+    # In VSCode, use the "Django" launch configuration for debugging
+    # Or run directly in terminal:
     poetry run python manage.py runserver
     ```
     
     Then open http://127.0.0.1:8000 in your browser.
+
+6. **For Xero integration, run ngrok in a separate terminal**:
     
+    ```bash
+    # In a new terminal:
+    python manage.py launch_ngrok
+    ```
+    
+    This tries to make your local server available at msm-workflow.ngrok-free.app for Xero OAuth callbacks.
+    If that domain is unavailable, it will fall back to an automatically assigned domain (e.g., measured-enormously-man.ngrok-free.app).
 
 ---
 
@@ -98,11 +111,11 @@ Follow these steps for a **local development** environment:
 
 This project uses a **modular settings** approach under the `settings/` directory, with files like:
 
-- `base.py`
-- `local.py`
-- `production.py`
+- `base.py` - Base settings shared across environments
+- `local.py` - Development settings with debug tools
+- `production_like.py` - Settings for Xero/Dropbox integration with additional security
 
-By default, Django loads `settings/__init__.py`, which imports either `local` or `production` depending on the environment variable `DJANGO_ENV`. For example:
+By default, Django loads `settings/__init__.py`, which imports either `local` or `production_like` depending on the environment variable `DJANGO_ENV`. For example:
 
 ```python
 # settings/__init__.py
@@ -110,14 +123,19 @@ import os
 
 ENVIRONMENT = os.getenv('DJANGO_ENV', 'local')
 
-if ENVIRONMENT == 'production':
-    from .production import *
+if ENVIRONMENT == 'production_like':
+    from .production_like import *  # For Xero/Dropbox integration
 else:
-    from .local import *
+    from .local import *  # Default development settings
 ```
 
-- **Local development**: `DJANGO_ENV=local`
-- **Production**: `DJANGO_ENV=production`
+- **Local development**: `DJANGO_ENV=local` (default)
+- **Integration mode**: `DJANGO_ENV=production_like` (requires Redis/Celery)
+
+Note: production_like.py enables Xero/Dropbox integration but requires additional services:
+- Redis for caching
+- Celery for background tasks
+- Stricter security settings
 
 ---
 
@@ -143,19 +161,17 @@ Our application expects a **MariaDB 11.5.2** (or MySQL-compatible) database.
 
 ## Environment Variables
 
-Create a file named **`.env`** in the project root (or configure them in your environment). Below are the commonly used vars:
+Create a file named **`.env`** in the project root (or configure them in your environment). Below are the commonly used vars (check .env.example for a full list).
 
 ```bash
 DEBUG=True
 SECRET_KEY=your-django-secret-key
-ALLOWED_HOSTS=localhost,127.0.0.1
+ALLOWED_HOSTS=localhost,127.0.0.1,msm-workflow.ngrok-free.app
 
-# None of these needed for local setup
-XERO_CLIENT_ID=your-xero-client-id
-XERO_CLIENT_SECRET=your-xero-client-secret
-XERO_REDIRECT_URI=https://yourdomain.com/xero/callback
-DROPBOX_ACCESS_TOKEN=your-dropbox-access-token
+# Ngrok configuration (for Xero integration)
+NGROK_DOMAIN=msm-workflow.ngrok-free.app
 
+# Database configuration
 MSM_DB_USER=your-db-user
 DB_PASSWORD=your-db-password
 DB_PORT=your-db-port

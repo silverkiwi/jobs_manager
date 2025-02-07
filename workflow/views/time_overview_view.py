@@ -1,33 +1,28 @@
-import json
-
-import io
-
 import base64
-
-import matplotlib
-
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
-
+import io
+import json
+import logging
 from datetime import datetime
-
-from django.core.serializers.json import DjangoJSONEncoder
-from django.http import JsonResponse
-from django.urls import reverse
-from django.shortcuts import render
-from django.utils import timezone
-from django.utils.html import format_html
-from django.contrib import messages
-from django.views.generic import TemplateView
 from decimal import Decimal
 
-from workflow.models import Job, JobPricing, Staff, TimeEntry
-from workflow.forms import PaidAbsenceForm
-from workflow.utils import extract_messages
-
-import logging
+# matplotlib.use('Agg') must be called before importing matplotlib.pyplot
+# This configures matplotlib to work without a GUI backend
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+from django.contrib import messages
+from django.core.serializers.json import DjangoJSONEncoder
+from django.http import JsonResponse
+from django.shortcuts import render
 from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.html import format_html
+from django.views.generic import TemplateView
+
+from workflow.forms import PaidAbsenceForm
+from workflow.models import Job, JobPricing, Staff, TimeEntry
+from workflow.utils import extract_messages
 
 # Configure logging to only show logs from this module
 logger = logging.getLogger(__name__)

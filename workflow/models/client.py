@@ -1,8 +1,8 @@
 import logging
 import uuid
 
-from django.utils import timezone
 from django.db import models
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
