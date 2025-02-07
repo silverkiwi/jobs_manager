@@ -26,15 +26,12 @@ class JobPricingSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "pricing_stage",
-            "pricing_type",
             "revision_number",
             "created_at",
             "updated_at",
             "time_entries",
             "material_entries",
             "adjustment_entries",
-            "created_at",
-            "updated_at",
         ]
 
     def to_representation(self, instance):
