@@ -69,6 +69,11 @@ urlpatterns = [
     path("api/job-event/<uuid:job_id>/add-event/", edit_job_view_ajax.add_job_event, name="add-event"),
     path("api/job-files/", JobFileView.as_view(), name="job-files"),  # For POST/upload
     path(
+        "api/job-files/<int:job_number>",
+        JobFileView.as_view(), 
+        name="get-job-file"
+    ),  # To check if file already exists
+    path(
         "api/job-files/<path:file_path>", JobFileView.as_view(), name="serve-job-file"
     ),  # For GET/download
     path(

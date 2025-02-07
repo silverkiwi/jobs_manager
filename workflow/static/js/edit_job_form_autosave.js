@@ -1,4 +1,4 @@
-import {createNewRow} from '/static/js/deseralise_job_pricing.js';
+import { createNewRow } from '/static/js/deseralise_job_pricing.js';
 
 let dropboxToken = null;
 
@@ -247,43 +247,49 @@ async function exportJobToPDF(jobData) {
     return new Promise(async (resolve, reject) => {
         try {
             const logoBase64 = await fetchImageAsBase64('/static/logo_msm.png');
-    
+
             const pricingSections = [
-                { section: "Estimate", grids: [
-                    {name: "estimateTimeTable", label: "Time"},
-                    {name: "estimateMaterialsTable", label: "Materials"}, 
-                    {name: "estimateAdjustmentsTable", label: "Adjustments"}
-                ]},
-                { section: "Quote", grids: [
-                    {name: "quoteTimeTable", label: "Time"},
-                    {name: "quoteMaterialsTable", label: "Materials"},
-                    {name: "quoteAdjustmentsTable", label: "Adjustments"}
-                ]},
-                { section: "Reality", grids: [
-                    {name: "realityTimeTable", label: "Time"},
-                    {name: "realityMaterialsTable", label: "Materials"},
-                    {name: "realityAdjustmentsTable", label: "Adjustments"}
-                ]},
+                {
+                    section: "Estimate", grids: [
+                        { name: "estimateTimeTable", label: "Time" },
+                        { name: "estimateMaterialsTable", label: "Materials" },
+                        { name: "estimateAdjustmentsTable", label: "Adjustments" }
+                    ]
+                },
+                {
+                    section: "Quote", grids: [
+                        { name: "quoteTimeTable", label: "Time" },
+                        { name: "quoteMaterialsTable", label: "Materials" },
+                        { name: "quoteAdjustmentsTable", label: "Adjustments" }
+                    ]
+                },
+                {
+                    section: "Reality", grids: [
+                        { name: "realityTimeTable", label: "Time" },
+                        { name: "realityMaterialsTable", label: "Materials" },
+                        { name: "realityAdjustmentsTable", label: "Adjustments" }
+                    ]
+                },
             ];
-    
+
             const pricingContent = pricingSections.map(({ section, grids }) => {
                 const sectionContent = [
                     { text: section, style: 'sectionHeader', margin: [0, 20, 0, 10] },
                 ];
-    
+
                 grids.forEach((grid) => {
                     const gridInstance = window.grids[grid.name];
                     if (!gridInstance || !gridInstance.api) {
                         sectionContent.push({ text: `Grid '${grid.name}' not found or missing API.`, style: 'error' });
                         return;
                     }
-    
+
                     sectionContent.push({ text: grid.label, style: 'gridHeader', margin: [0, 10, 0, 5] });
-    
+
                     const gridApi = gridInstance.api;
                     const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Timesheet');
                     const headers = columns.map(col => col.headerName || 'N/A');
-    
+
                     const rowData = [];
                     gridApi.forEachNode(node => {
                         const row = columns.map(col => {
@@ -295,7 +301,7 @@ async function exportJobToPDF(jobData) {
                         });
                         rowData.push(row);
                     });
-    
+
                     if (rowData.length > 0) {
                         sectionContent.push({
                             table: {
@@ -318,21 +324,21 @@ async function exportJobToPDF(jobData) {
                         sectionContent.push({ text: `No data available for '${grid.label}'.`, style: 'error' });
                     }
                 });
-    
+
                 return sectionContent;
             }).flat();
-    
+
             const revenueAndCostsContent = ["revenueTable", "costsTable"].map((gridKey) => {
                 const grid = window.grids[gridKey];
                 if (!grid || !grid.api) {
                     return { text: `Grid '${gridKey}' not found or missing API.`, style: 'error' };
                 }
-            
+
                 const title = gridKey === "revenueTable" ? "Revenue Details" : "Costs Details";
                 const gridApi = grid.api;
                 const columns = gridApi.getColumnDefs().filter(col => col.headerName !== '' && col.headerName !== 'Timesheet');
                 const headers = columns.map(col => col.headerName || 'N/A');
-            
+
                 const rowData = [];
                 gridApi.forEachNode(node => {
                     const row = columns.map(col => {
@@ -344,7 +350,7 @@ async function exportJobToPDF(jobData) {
                     });
                     rowData.push(row);
                 });
-            
+
                 return [
                     { text: title, style: 'sectionHeader', margin: [0, 20, 0, 10] },
                     {
@@ -366,7 +372,7 @@ async function exportJobToPDF(jobData) {
                     },
                 ];
             }).flat();
-    
+
             const docDefinition = {
                 content: [
                     {
@@ -416,7 +422,7 @@ async function exportJobToPDF(jobData) {
                     error: { fontSize: 12, color: 'red', italic: true },
                 },
             };
-    
+
             pdfMake.createPdf(docDefinition).getBlob((blob) => {
                 resolve(blob);
             });
@@ -428,7 +434,7 @@ async function exportJobToPDF(jobData) {
 
 async function exportCostsToPDF(costsData, jobData) {
     try {
-        const logoBase64 = await fetchImageAsBase64('/static/logo_msm.png');    
+        const logoBase64 = await fetchImageAsBase64('/static/logo_msm.png');
         const docDefinition = {
             content: [
                 {
@@ -480,7 +486,7 @@ async function exportCostsToPDF(costsData, jobData) {
                 sectionHeader: { fontSize: 16, bold: true, margin: [0, 20, 0, 10] },
             },
         };
-    
+
         pdfMake.createPdf(docDefinition).open();
     } catch (error) {
         console.error('Error fetching logo:', error);
@@ -507,6 +513,7 @@ function addGridToPDF(doc, title, rowData, startY) {
 
 async function handlePDF(pdfBlob, mode, jobData) {
     const pdfURL = URL.createObjectURL(pdfBlob);
+    const pdfFileName = `${jobData.name}.pdf`
 
     switch (mode) {
         case 'dropbox': // Warning, hasn't been tested in a while
@@ -516,20 +523,35 @@ async function handlePDF(pdfBlob, mode, jobData) {
             }
             break;
         case 'upload':
-            const formData = new FormData();
-            formData.append('job_number', jobData.job_number);
-            formData.append('files', new File([pdfBlob], `${jobData.name}.pdf`, { type: 'application/pdf' }));
+            try {
+                console.log('Starting PDF upload process for job:', jobData.job_number);
+                const fileExists = await checkExistingJobFile(jobData.job_number, pdfFileName);
+                console.log('File exists check result:', fileExists);
 
-            // The correct endpoint for job file POST/GET is just "/api/job-files" 
-            fetch('/api/job-files/', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': getCsrfToken() },
-                body: formData
-            }).then(response => {
+                const formData = new FormData();
+                formData.append('job_number', jobData.job_number);
+                formData.append('files', new File([pdfBlob], `${jobData.name}.pdf`, { type: 'application/pdf' }));
+                console.log('FormData created with job number and PDF file');
+
+                const fetchOptions = {
+                    method: fileExists ? 'PUT' : 'POST',
+                    headers: { 'X-CSRFToken': getCsrfToken() },
+                    body: formData
+                };
+                console.log('Using HTTP method:', fetchOptions.method);
+
+                const response = await fetch(`/api/job-files/`, fetchOptions);
+                console.log('Upload response status:', response.status);
+                
                 if (!response.ok) {
-                    console.error(`Failed to upload PDF for Job ${jobData.job_number}`);
+                    console.error('Upload failed with status:', response.status);
+                    throw new Error(`Failed to upload/update PDF for Job ${jobData.job_number}`);
                 }
-            });
+                console.log('PDF upload completed successfully');
+            } catch (error) {
+                console.error('Error during file upload:', error);
+                throw error;
+            }
             break;
         case 'print':
             const newWindow = window.open(pdfURL, '_blank');
@@ -547,6 +569,26 @@ async function handlePDF(pdfBlob, mode, jobData) {
             break;
         default:
             throw new Error(`Unsupported mode: ${mode}`);
+    }
+}
+
+async function checkExistingJobFile(jobNumber, fileName) {
+    try {
+        console.log(`Checking for existing job file: ${jobNumber} / ${fileName}`);
+        const response = await fetch(`/api/job-files/${jobNumber}`);
+        if (!response.ok) {
+            console.log('Response not OK when checking job files');
+            return false;
+        }
+
+        const files = await response.json();
+        console.log('Retrieved files:', files);
+        const exists = files.some(file => file.filename === fileName);
+        console.log(`File ${fileName} exists: ${exists}`);
+        return exists;
+    } catch (error) {
+        console.error('Error checking existing job file:', error);
+        return false;
     }
 }
 
@@ -722,7 +764,7 @@ document.addEventListener('DOMContentLoaded', function () {
             debouncedAutosave();
         });
 
-       if (fieldElement.type === 'checkbox' || fieldElement.tagName === 'SELECT') {
+        if (fieldElement.type === 'checkbox' || fieldElement.tagName === 'SELECT') {
             fieldElement.addEventListener('change', function () {
                 if (fieldElement.classList.contains('is-invalid')) {
                     fieldElement.classList.remove('is-invalid');
