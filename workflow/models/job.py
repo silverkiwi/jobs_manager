@@ -8,12 +8,13 @@ from simple_history.models import HistoricalRecords  # type: ignore
 
 from workflow.enums import JobPricingType
 from workflow.models import CompanyDefaults
-
-from .job_event import JobEvent
+from workflow.enums import JobPricingType
 
 # We say . rather than workflow.models to avoid going through init,
 # otherwise it would have a circular import
 from .job_pricing import JobPricing
+from .job_event import JobEvent
+
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +168,18 @@ class Job(models.Model):
             self.client_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
         else:
             self.client_id = None
+
+    @property
+    def quoted(self) -> bool:
+        if hasattr(self, "quote") and self.quote is not None:
+            return self.quote
+        return False
+
+    @property
+    def invoiced(self) -> bool:
+        if hasattr(self, "invoice") and self.invoice is not None:
+            return self.invoice
+        return False
 
     def __str__(self) -> str:
         client_name = self.client.name if self.client else "No Client"

@@ -15,6 +15,7 @@ from workflow.services.job_service import (
     get_historical_job_pricings,
     get_job_with_pricings,
     get_latest_job_pricings,
+    archive_and_reset_job_pricing,
 )
 
 logger = logging.getLogger(__name__)
@@ -166,6 +167,10 @@ def edit_job_view_ajax(request, job_id=None):
         "job": job,
         "job_id": job.id,
         "events": events,
+        "quoted": job.quoted,
+        "invoiced": job.invoiced,
+        "quote_url": job.quote.online_url if job.quoted else None,
+        "invoice_url": job.invoice.online_url if job.invoiced else None,
         "client_name": job.client.name if job.client else "No Client",
         "created_at": job.created_at.isoformat(),
         "company_defaults": company_defaults,

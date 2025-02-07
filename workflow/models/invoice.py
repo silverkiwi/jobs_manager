@@ -1,8 +1,11 @@
 import uuid
-from abc import abstractmethod
+
+from abc import abstractmethod, abstractproperty
+
 from decimal import Decimal
 
 from django.db import models
+
 from django.utils import timezone
 
 from workflow.enums import InvoiceStatus
@@ -28,6 +31,7 @@ class BaseXeroInvoiceDocument(models.Model):
     total_incl_tax = models.DecimalField(max_digits=10, decimal_places=2)
     amount_due = models.DecimalField(max_digits=10, decimal_places=2)
     xero_last_modified = models.DateTimeField()
+    xero_last_synced = models.DateTimeField(default=timezone.now)
     raw_json = models.JSONField()
     django_created_at = models.DateTimeField(auto_now_add=True)
     django_updated_at = models.DateTimeField(auto_now=True)
@@ -93,6 +97,9 @@ class BaseLineItem(models.Model):
 
 
 class Invoice(BaseXeroInvoiceDocument):
+    job = models.OneToOneField("Job", on_delete=models.CASCADE, related_name="invoice", null=True, blank=True)
+    online_url = models.URLField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"
@@ -100,8 +107,8 @@ class Invoice(BaseXeroInvoiceDocument):
 
     def get_line_items(self):
         return self.line_items.all()
-
-
+    
+    
 class Bill(BaseXeroInvoiceDocument):
     class Meta:
         verbose_name = "Bill"

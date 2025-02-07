@@ -99,9 +99,19 @@ urlpatterns = [
         name="create_invoice",
     ),
     path(
+        "api/xero/delete_invoice/<uuid:job_id>",
+        xero_view.delete_xero_invoice,
+        name="delete_invoice"
+    ),
+    path(
         "api/xero/create_quote/<uuid:job_id>",
         xero_view.create_xero_quote,
         name="create_quote",
+    ),
+        path(
+        "api/xero/delete_quote/<uuid:job_id>",
+        xero_view.delete_xero_quote,
+        name="delete_quote"
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),

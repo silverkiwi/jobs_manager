@@ -23,6 +23,15 @@ class InvoiceStatus(models.TextChoices):
     PAID = "PAID", "Paid"
 
 
+class QuoteStatus(models.TextChoices):
+    DRAFT = "DRAFT", "Draft"
+    SENT = "SENT", "Sent"
+    DECLINED = "DECLINED", "Declined"
+    ACCEPTED = "ACCEPTED", "Accepted"
+    INVOICED = "INVOICED", "Invoiced"
+    DELETED = "DELETED", "Deleted"
+
+
 class RateType(models.TextChoices):
     ORDINARY = "Ord", "Ordinary Time"
     TIME_AND_HALF = "1.5", "Time and a Half"

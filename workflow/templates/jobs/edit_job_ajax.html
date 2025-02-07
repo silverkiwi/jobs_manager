@@ -2,135 +2,130 @@
 {% load static %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
-    <link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
-    <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
+<link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
+<script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
 {% endblock %}
 
 {% block content %}
-    <!-- Job Details Section -->
-    {% include "jobs/edit_job_detail_section.html" %}
-    <p class="d-none" id="job-client-name">{{ client_name }}</p>
-    <p class="d-none" id="job-created-at">{{ created_at }}</p>
-    <hr/>
+<!-- Job Details Section -->
+{% include "jobs/edit_job_detail_section.html" %}
+<p class="d-none" id="job-client-name">{{ client_name }}</p>
+<p class="d-none" id="job-created-at">{{ created_at }}</p>
+<hr />
 
-    <div class="job-pricing-sections">
-        <div class="job-grid-section">
-            <h2>Estimate</h2>
-            <div id="estimateTimeTable" class="ag-theme-alpine price-entry-table"></div>
-            <div id="estimateMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
-            <div id="estimateAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
-            <button id="copyEstimateToQuote" class="btn btn-primary mt-3">Copy Estimate to Quote</button>
-        </div>
-
-        <div id="estimate" class="alert-container"></div>
-
-        <div class="job-grid-section">
-            <h2>Quote</h2>
-            <div id="quoteTimeTable" class="ag-theme-alpine price-entry-table"></div>
-            <div id="quoteMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
-            <div id="quoteAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
-            <button id="quoteJob" class="btn btn-primary mt-3">Quote Job</button>
-        </div>
-
-        <div class="job-grid-section">
-            <h2>Reality</h2>
-            <div id="realityTimeTable" class="ag-theme-alpine price-entry-table"></div>
-            <div id="realityMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
-            <div id="realityAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
-        </div>
-
-        <div class="table-container">
-            <div class="summary-table-section">
-                <h2>Revenue</h2>
-                <div id="revenueTable" class="ag-theme-alpine summary-grid"></div>
-            </div>
-            <div class="summary-table-section">
-                <h2>Costs</h2>
-                <div id="costsTable" class="ag-theme-alpine summary-grid"></div>
-            </div>
-        </div>
+<div class="job-pricing-sections">
+    <div class="job-grid-section">
+        <h2>Estimate</h2>
+        <div id="estimateTimeTable" class="ag-theme-alpine price-entry-table"></div>
+        <div id="estimateMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+        <div id="estimateAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+        <button id="copyEstimateToQuote" class="btn btn-primary mt-3">Copy Estimate to Quote</button>
     </div>
 
-<hr/>
+    <div id="estimate" class="alert-container"></div>
 
-
-    <!-- Attached Files Section -->
-    <div class="job-files-section">
-        <h2>Attached Files</h2>
-        <div id="file-list">
-            {% if job_files %}
-                <div class="job-files-grid">
-                    {% for file in job_files %}
-                        <div class="file-card" data-file-id="{{ file.id }}">
-                            {% if file.thumbnail_path %}
-                                <div class="thumbnail-container">
-                                    <img src="{% url 'serve-job-file' file.thumbnail_path %}"
-                                         alt="{{ file.filename }}"
-                                         class="file-thumbnail">
-                                </div>
-                            {% else %}
-                                <div class="thumbnail-container no-thumb">
-                                    <span class="file-extension">{{ file.filename|filesizeformat }}</span>
-                                </div>
-                            {% endif %}
-                            <div class="file-info">
-                                <a href="{% url 'serve-job-file' file.file_path %}" target="_blank">
-                                    {{ file.filename }}
-                                </a>
-                                <span class="timestamp">({{ file.uploaded_at|date:"Y-m-d H:i" }})</span>
-                                <div class="file-controls">
-                                    <label class="print-checkbox">
-                                        <input type="checkbox"
-                                               name="jobfile_{{ file.id }}_print_on_jobsheet"
-                                               class="print-on-jobsheet autosave-input"
-                                               {% if file.print_on_jobsheet %}checked{% endif %}>
-                                        Print on Job Sheet
-                                    </label>
-                                    <button class="btn btn-sm btn-danger delete-file" data-file-id="{{ file.id }}">
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p>No files attached to this job.</p>
-            {% endif %}
-        </div>
-
-        <div class="file-upload-area">
-            <label for="file-input" class="file-drop-zone">
-                <div class="drop-zone-text">
-                    Drop files here or click to select files
-                </div>
-                <input type="file" id="file-input" multiple class="file-input">
-            </label>
-        </div>
+    <div class="job-grid-section" id="quoteGrid">
+        <h2>Quote</h2>
+        <div id="quoteTimeTable" class="ag-theme-alpine price-entry-table"></div>
+        <div id="quoteMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+        <div id="quoteAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+        <button id="quoteJobButton" class="btn btn-primary mt-3" {% if quoted %} disabled {% endif %}>
+            Quote Job
+        </button>
+        <a {% if not quoted %} style="display: none" {% endif %}
+            href="{% if quote_url %}{{ quote_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info mt-3" id="quoteUrl">
+            Go to Quote on Xero
+        </a>
+        <button {% if not quoted %} style="display: none" {% endif %} type="button" class="btn btn-danger mt-3" id="deleteQuoteButton">
+            Delete Xero Quote
+        </button>
     </div>
 
-    <hr/>
+    <div class="job-grid-section">
+        <h2>Reality</h2>
+        <div id="realityTimeTable" class="ag-theme-alpine price-entry-table"></div>
+        <div id="realityMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+        <div id="realityAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+    </div>
 
-    <!-- Workflow Section -->
-    {% include "jobs/edit_job_workflow_section.html" %}
-
-    <hr/>
-
-    {% if job_form.errors %}
-        <div class="alert alert-danger">
-            <ul>
-                {% for field, errors in job_form.errors.items %}
-                    <li>{{ field }}: {{ errors }}</li>
-                {% endfor %}
-            </ul>
+    <div class="table-container">
+        <div class="summary-table-section">
+            <h2>Revenue</h2>
+            <div id="revenueTable" class="ag-theme-alpine summary-grid"></div>
         </div>
-    {% endif %}
+        <div class="summary-table-section">
+            <h2>Costs</h2>
+            <div id="costsTable" class="ag-theme-alpine summary-grid"></div>
+        </div>
+    </div>
+</div>
 
-    {% include "jobs/add_job_event_modal.html" %}
-    {% include "jobs/job_event_section.html" %}
+<hr>
 
-    <hr/>
+<!-- Attached Files Section -->
+<div class="job-files-section">
+    <h2>Attached Files</h2>
+    <div id="file-list">
+        {% if job_files %}
+        <div class="job-files-grid">
+            {% for file in job_files %}
+            <div class="file-card">
+                {% if file.thumbnail_path %}
+                <div class="thumbnail-container">
+                    <img src="{% url 'serve-job-file' file.thumbnail_path %}" alt="{{ file.filename }}"
+                        class="file-thumbnail">
+                </div>
+                {% else %}
+                <div class="thumbnail-container no-thumb">
+                    <span class="file-extension">{{ file.filename|filesizeformat }}</span>
+                </div>
+                {% endif %}
+                <div class="file-info">
+                    <a href="{% url 'serve-job-file' file.file_path %}" target="_blank">
+                        {{ file.filename }}
+                    </a>
+                    <span class="timestamp">({{ file.uploaded_at|date:"Y-m-d H:i" }})</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No files attached to this job.</p>
+        {% endif %}
+    </div>
+
+    <div class="file-upload-area">
+        <label for="file-input" class="file-drop-zone">
+            <div class="drop-zone-text">
+                Drop files here or click to select files
+            </div>
+            <input type="file" id="file-input" multiple class="file-input">
+        </label>
+    </div>
+</div>
+
+<hr>
+
+<!-- Workflow Section -->
+{% include "jobs/edit_job_workflow_section.html" %}
+
+<hr />
+
+{% if job_form.errors %}
+<div class="alert alert-danger">
+    <ul>
+        {% for field, errors in job_form.errors.items %}
+        <li>{{ field }}: {{ errors }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% include "jobs/add_job_event_modal.html" %}
+{% include "jobs/job_event_section.html" %}
+
+<hr />
 
     <!-- Save/Cancel Buttons -->
     <div class="action-buttons">
@@ -140,21 +135,23 @@
 {% endblock %}
 
 {% block extra_js %}
-    <!-- AG Grid -->
-    <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
-    <!-- jsPDF -->
-    <script src="{% static 'jspdf/jspdf.umd.min.js' %}"></script>
-    <script src="{% static 'jspdf-autotable/jspdf.plugin.autotable.min.js' %}"></script>
-    <!-- PDFMake -->
-    <script src="{% static 'pdfmake/pdfmake.js' %}"></script>
-    <script src="{% static 'pdfmake/vfs_fonts.js' %}"></script>
-    <!-- Custom JS -->
-    <script type="application/json" id="latestJobPricingsData" style="display:none;">{{ latest_job_pricings_json|safe }}</script>
-    <script type="application/json" id="historicalJobPricingsData" style="display:none;">{{ historical_job_pricings_json|safe }}</script>
-    <script type="module" src="{% static 'js/deseralise_job_pricing.js' %}"></script>
-    <script type="module" src="{% static 'js/edit_job_form_autosave.js' %}"></script>
-    <script type="module" src="{% static 'js/job_file_handling.js' %}"></script>
-    <script type="module" src="{% static 'js/client_lookup.js' %}"></script>
-    <script type="module" src="{% static 'js/edit_job_grid_logic.js' %}"></script>
-    <script type="module" src="{% static 'js/time_conversion.js' %}"></script>
+<!-- AG Grid -->
+<script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
+<!-- jsPDF -->
+<script src="{% static 'jspdf/jspdf.umd.min.js' %}"></script>
+<script src="{% static 'jspdf-autotable/jspdf.plugin.autotable.min.js' %}"></script>
+<!-- PDFMake -->
+<script src="{% static 'pdfmake/pdfmake.js' %}"></script>
+<script src="{% static 'pdfmake/vfs_fonts.js' %}"></script>
+<!-- Custom JS -->
+<script type="application/json" id="latestJobPricingsData"
+    style="display:none;">{{ latest_job_pricings_json|safe }}</script>
+<script type="application/json" id="historicalJobPricingsData"
+    style="display:none;">{{ historical_job_pricings_json|safe }}</script>
+<script type="module" src="{% static 'js/deseralise_job_pricing.js' %}"></script>
+<script type="module" src="{% static 'js/edit_job_form_autosave.js' %}"></script>
+<script type="module" src="{% static 'js/job_file_handling.js' %}"></script>
+<script type="module" src="{% static 'js/client_lookup.js' %}"></script>
+<script type="module" src="{% static 'js/edit_job_grid_logic.js' %}"></script>
+<script type="module" src="{% static 'js/time_conversion.js' %}"></script>
 {% endblock %}

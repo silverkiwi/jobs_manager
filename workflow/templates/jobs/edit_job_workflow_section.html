@@ -27,20 +27,12 @@
         </div>
     </div>
 
-    <!-- Job Paid Checkbox -->
-    <div class="form-group">
-        <label for="paid_checkbox">
-            <input type="checkbox" id="paid_checkbox" name="paid" class="autosave-input" {% if job.paid %}checked{% endif %}>
-            Job Paid
-        </label>
-    </div>
-
     <!-- Quote Acceptance Date -->
     <div class="row mb-3">
         <div class="col-md-6">
             <!-- Hidden ISO Date Field (Autosaved when quote is accepted) -->
             <input type="hidden" id="quote_acceptance_date_iso" name="quote_acceptance_date_iso" class="autosave-input"
-                   value="{{ job.quote_acceptance_date|default:''|date:'c' }}">
+                value="{{ job.quote_acceptance_date|default:''|date:'c' }}">
 
             <!-- Accept Quote Button -->
             <button type="button" id="acceptQuoteButton" class="btn btn-primary">Accept Quote</button>
@@ -48,8 +40,47 @@
     </div>
 
     <!-- Action Buttons -->
-    <div class="workflow-actions mt-3">
-        <button type="button" class="btn btn-warning" id="invoiceJobButton">Invoice Job</button>
+    <div class="workflow-actions mt-3" id="workflowActions">
+        <button type="button" class="btn btn-warning" id="invoiceJobButton" {% if invoiced %} disabled {% endif %}>
+            Invoice Job
+        </button>
+        <a {% if not invoiced %} style="display: none" {% endif %}
+            href="{% if invoice_url %}{{ invoice_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info" id="invoiceUrl">
+            Go to Invoice on Xero
+        </a>
+        <button {% if not invoiced %} style="display: none" {% endif %} type="button" class="btn btn-danger" id="deleteInvoiceButton">
+            Delete Xero Invoice
+        </button>
         <button type="button" class="btn btn-info" id="contactClientButton">Contact Client about Job</button>
+    </div>
+
+    <!-- Job Status Checkboxes -->
+    <div class="form-group mt-4">
+        <h4>Job Status Tracking</h4>
+        <div class="d-flex flex-column gap-3">
+            <div class="form-check form-check-lg">
+                <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
+                    id="quoted_checkbox" name="quoted" {% if quoted %} checked {% else %} disabled {% endif %}>
+                <label class="form-check-label ms-2 fs-5" for="quoted_checkbox">
+                    Quoted Job
+                </label>
+            </div>
+
+            <div class="form-check form-check-lg">
+                <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
+                    id="invoiced_checkbox" name="invoiced" {% if invoiced %} checked {% else %} disabled {% endif %}>
+                <label class="form-check-label ms-2 fs-5" for="invoiced_checkbox">
+                    Invoiced Job
+                </label>
+            </div>
+
+            <div class="form-check form-check-lg">
+                <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;" id="paid_checkbox"
+                    name="paid" class="autosave-input" {% if job.paid %} checked {% endif %}>
+                <label class="form-check-label ms-2 fs-5" for="paid_checkbox">
+                    Job Paid
+                </label>
+            </div>
+        </div>
     </div>
 </div>

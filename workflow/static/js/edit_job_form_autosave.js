@@ -882,4 +882,3 @@ export function copyEstimateToQuote() {
         },
     ], 'estimate');
 }
-

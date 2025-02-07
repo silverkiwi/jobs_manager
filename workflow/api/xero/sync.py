@@ -1,3 +1,4 @@
+from decimal import Decimal
 import logging
 import time
 from datetime import date, datetime, timedelta
@@ -14,7 +15,7 @@ from workflow.api.xero.reprocess_xero import (
     set_journal_fields,
 )
 from workflow.api.xero.xero import api_client, get_tenant_id
-from workflow.models import XeroJournal
+from workflow.models import XeroJournal, Quote
 from workflow.models.client import Client
 from workflow.models.invoice import Bill, CreditNote, Invoice
 from workflow.models.xero_account import XeroAccount
@@ -93,7 +94,8 @@ def sync_xero_data(
         "if_modified_since": last_modified_time,
     }
 
-    if pagination_mode == "page":
+    # Only add pagination parameters for supported endpoints
+    if pagination_mode == "page" and xero_entity_type != "quotes":
         # Page mode uses UpdatedDateUTC ordering for consistent incremental fetching.
         base_params.update({"page_size": page_size, "order": "UpdatedDateUTC ASC"})
 
@@ -498,6 +500,38 @@ def sync_accounts(xero_accounts):
             raise
 
 
+def sync_quotes(quotes):
+    """
+    Sync Quotes fetched from Xero API.
+    """
+    for quote_data in quotes:
+        xero_id = getattr(quote_data, "quote_id")
+        client = Client.objects.filter(
+            xero_contact_id=quote_data.contact.contact_id
+        ).first()
+
+        if not client:
+            logger.warning(f"Client not found for quote {xero_id}")
+            continue
+        
+        quote, created = Quote.objects.update_or_create(
+            xero_id=xero_id,
+            defaults={
+                "client": client,
+                "date": quote_data.date,
+                "status": quote_data.status,
+                "total_excl_tax": Decimal(quote_data.sub_total),
+                "total_incl_tax": Decimal(quote_data.total),
+                "xero_last_modified": quote_data.updated_date_utc,
+                "xero_last_synced": timezone.now(),
+                "online_url": f"https://go.xero.com/app/quotes/edit/{xero_id}",
+                "raw_json": serialise_xero_object(quote_data),
+            },
+        )
+
+        logger.info(f"{'New' if created else 'Updated'} quote: {quote.xero_id} for client {client.name}")
+
+
 def sync_client_to_xero(client):
     """
     Sync a client from the local database to Xero - either create a new one or update an existing one.
@@ -785,12 +819,21 @@ def one_way_sync_all_xero_data():
         additional_params={"where": 'Type=="ACCREC"'},
         pagination_mode="page",
     )
+
     sync_xero_data(
         xero_entity_type="invoices",
         xero_api_function=accounting_api.get_invoices,
         sync_function=sync_bills,
         last_modified_time=our_latest_bill,
         additional_params={"where": 'Type=="ACCPAY"'},
+        pagination_mode="page",
+    )
+
+    sync_xero_data(
+        xero_entity_type="quotes",
+        xero_api_function=accounting_api.get_quotes,
+        sync_function=sync_quotes,
+        last_modified_time=get_last_modified_time(Quote),
         pagination_mode="page",
     )
 
