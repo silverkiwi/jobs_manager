@@ -1,22 +1,20 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 
-from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib import messages
 from django.core.cache import cache
-from django.template.loader import render_to_string
-from django.http import JsonResponse, Http404
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import CharField, Func, IntegerField, Value
+from django.db.models.functions import Coalesce, Concat
+from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
-from django.contrib import messages
-from django.db.models import Value, Func, IntegerField, CharField
-from django.db.models.functions import Coalesce, Concat
 
 from workflow.enums import RateType
-from workflow.models import Job, JobPricing, Staff, TimeEntry
-from workflow.forms import TimeEntryForm, PaidAbsenceForm
+from workflow.models import Job, Staff, TimeEntry
 from workflow.serializers.time_entry_serializer import (
     TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
 )
@@ -50,7 +48,7 @@ class TimesheetEntryView(TemplateView):
 
     template_name = "time_entries/timesheet_entry.html"
 
-    # Excluding app users ID's to avoid them being loaded in timesheet views because they do not have entries 
+    # Excluding app users ID's to avoid them being loaded in timesheet views because they do not have entries
     # (Valerie and Corrin included as they are not supposed to enter hours)
     EXCLUDED_STAFF_IDS = [
         "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
@@ -107,26 +105,28 @@ class TimesheetEntryView(TemplateView):
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
         except ValueError:
             raise ValueError("Invalid date format. Expected YYYY-MM-DD.")
-        
+
         if staff_id in self.EXCLUDED_STAFF_IDS:
             raise PermissionError("Access denied for this staff member")
-        
+
         try:
             staff_member = Staff.objects.get(id=staff_id)
         except Staff.DoesNotExist:
             raise Http404("Staff member not found")
-        
+
         all_staff = self._get_staff_navigation_list(self.EXCLUDED_STAFF_IDS)
-        
+
         # Locate the index of the current staff.
-        staff_index = next((index for index, s in enumerate(all_staff) if s["id"] == staff_id), None)
+        staff_index = next(
+            (index for index, s in enumerate(all_staff) if s["id"] == staff_id), None
+        )
         if staff_index is None:
             raise Http404("Staff member not found in ordered list")
-        
+
         # Compute circular navigation indexes.
         next_index = (staff_index + 1) % len(all_staff)
         prev_index = (staff_index - 1) % len(all_staff)
-        
+
         next_staff = {
             "id": all_staff[next_index]["id"],
             "name": all_staff[next_index]["display_full_name"],
@@ -170,10 +170,9 @@ class TimesheetEntryView(TemplateView):
             for entry in time_entries
         ]
 
-        open_jobs = (
-            Job.objects.filter(status__in=["quoting", "approved", "in_progress", "special"])
-            .select_related("client", "latest_estimate_pricing", "latest_reality_pricing")
-        )
+        open_jobs = Job.objects.filter(
+            status__in=["quoting", "approved", "in_progress", "special"]
+        ).select_related("client", "latest_estimate_pricing", "latest_reality_pricing")
 
         jobs_data = [
             {
@@ -181,8 +180,16 @@ class TimesheetEntryView(TemplateView):
                 "job_number": job.job_number,
                 "name": job.name,
                 "job_display_name": f"{job.job_number} - {job.name}",
-                "estimated_hours": job.latest_estimate_pricing.total_hours if job.latest_estimate_pricing else 0,
-                "hours_spent": job.latest_reality_pricing.total_hours if job.latest_reality_pricing else 0,
+                "estimated_hours": (
+                    job.latest_estimate_pricing.total_hours
+                    if job.latest_estimate_pricing
+                    else 0
+                ),
+                "hours_spent": (
+                    job.latest_reality_pricing.total_hours
+                    if job.latest_reality_pricing
+                    else 0
+                ),
                 "client_name": job.client.name if job.client else "NO CLIENT!?",
                 "charge_out_rate": float(job.charge_out_rate),
                 "job_status": job.status,
@@ -200,7 +207,9 @@ class TimesheetEntryView(TemplateView):
                     "id": staff_member.id,
                     "name": f"{staff_member.first_name} {staff_member.last_name}",
                     "wage_rate": staff_member.wage_rate,
-                    "scheduled_hours": float(staff_member.get_scheduled_hours(target_date)),
+                    "scheduled_hours": float(
+                        staff_member.get_scheduled_hours(target_date)
+                    ),
                 },
                 cls=DjangoJSONEncoder,
             ),
@@ -212,21 +221,21 @@ class TimesheetEntryView(TemplateView):
         }
 
         return render(request, self.template_name, context)
-    
+
     def _get_staff_navigation_list(self, excluded_ids, cache_timeout=3600):
         """
         Retrieves the ordered staff list for navigation, annotated with a computed display_full_name.
-        
+
         Intention:
         - Compute the display_first_name using only the first token of the preferred_name (or first_name).
         - Concatenate it with the full last_name to get display_full_name.
         - Order by display_full_name.
         - Cache the resulting list to reduce database load if the staff list does not change frequently.
-        
+
         Parameters:
         - excluded_ids: List or set of staff IDs to exclude.
         - cache_timeout (int): The time in seconds for which the result should be cached.
-        
+
         Returns:
         - A list of dictionaries with keys 'id' and 'display_full_name'.
         """
@@ -237,17 +246,22 @@ class TimesheetEntryView(TemplateView):
                 Staff.objects.exclude(id__in=excluded_ids)
                 .annotate(
                     display_first_name=Func(
-                        Coalesce('preferred_name', 'first_name'),
-                        Value(' '),
+                        Coalesce("preferred_name", "first_name"),
+                        Value(" "),
                         Value(1, output_field=IntegerField()),
-                        function='substring_index',
-                        output_field=CharField()
+                        function="substring_index",
+                        output_field=CharField(),
                     )
                 )
                 .annotate(
-                    display_full_name=Concat('display_first_name', Value(' '), 'last_name', output_field=CharField())
+                    display_full_name=Concat(
+                        "display_first_name",
+                        Value(" "),
+                        "last_name",
+                        output_field=CharField(),
+                    )
                 )
-                .order_by('display_full_name')
+                .order_by("display_full_name")
             )
             staff_list = list(staff_queryset.values("id", "display_full_name"))
             cache.set(cache_key, staff_list, timeout=cache_timeout)
@@ -437,7 +451,10 @@ def autosave_timesheet_view(request):
                     if scheduled_hours < hours:
                         messages.warning(
                             request,
-                            f"Existing timesheet saved successfully, but hours exceed scheduled hours for {target_date}",
+                            (
+                                f"Existing timesheet saved successfully, but hours "
+                                f"exceed scheduled hours for {target_date}"
+                            ),
                         )
                     elif job.status in ["completed", "quoting"]:
                         messages.error(
@@ -446,7 +463,8 @@ def autosave_timesheet_view(request):
                         )
                     else:
                         messages.success(
-                            request, "Existing timesheet saved successfully."
+                            request,
+                            "Existing timesheet saved successfully"
                         )
                     logger.debug("Existing timesheet saved successfully")
 
@@ -510,7 +528,10 @@ def autosave_timesheet_view(request):
                 if scheduled_hours < hours:
                     messages.warning(
                         request,
-                        f"Timesheet created successfully, but hours exceed scheduled hours for today ({target_date})",
+                        (
+                            f"Timesheet created successfully, but hours exceed "
+                            f"scheduled hours for today ({target_date})"
+                        ),
                     )
                 elif job.status in ["completed", "quoting"]:
                     messages.error(

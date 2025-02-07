@@ -1,8 +1,8 @@
+import os
 import uuid
 
-from django.db import models
 from django.conf import settings
-import os
+from django.db import models
 
 from workflow.helpers import get_job_folder_path
 from workflow.services.file_service import get_thumbnail_folder

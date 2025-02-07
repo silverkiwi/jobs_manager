@@ -11,17 +11,14 @@ from workflow.views import (
     invoice_view,
     kanban_view,
     staff_view,
+    submit_quote_view,
     time_entry_view,
     time_overview_view,
-    xero_view,
     workshop_view,
+    xero_view,
 )
-from workflow.views import submit_quote_view
 from workflow.views.job_file_view import JobFileView
-from workflow.views.report_view import (
-    CompanyProfitAndLossView,
-    ReportsIndexView,
-)
+from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 
 urlpatterns = [
     # Redirect to Kanban board
@@ -67,7 +64,11 @@ urlpatterns = [
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
     ),
-    path("api/job-event/<uuid:job_id>/add-event/", edit_job_view_ajax.add_job_event, name="add-event"),
+    path(
+        "api/job-event/<uuid:job_id>/add-event/",
+        edit_job_view_ajax.add_job_event,
+        name="add-event",
+    ),
     path("api/job-files/", JobFileView.as_view(), name="job-files"),  # For POST/upload
     path(
         "api/job-files/<path:file_path>", JobFileView.as_view(), name="serve-job-file"
@@ -95,12 +96,12 @@ urlpatterns = [
     path(
         "api/xero/create_invoice/<uuid:job_id>",
         xero_view.create_xero_invoice,
-        name="create_invoice"
+        name="create_invoice",
     ),
     path(
         "api/xero/create_quote/<uuid:job_id>",
         xero_view.create_xero_quote,
-        name="create_quote"
+        name="create_quote",
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
@@ -121,10 +122,12 @@ urlpatterns = [
     # Entry URLs
     path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
     path("job/<uuid:job_id>/", edit_job_view_ajax.edit_job_view_ajax, name="edit_job"),
-    path("job/<uuid:job_id>/workshop-pdf/", workshop_view.WorkshopPDFView.as_view(), name="workshop-pdf"),
-    
+    path(
+        "job/<uuid:job_id>/workshop-pdf/",
+        workshop_view.WorkshopPDFView.as_view(),
+        name="workshop-pdf",
+    ),
     path("month-end/", edit_job_view_ajax.process_month_end, name="month_end"),
-    
     path(
         "jobs/<uuid:job_id>/update_status/",
         kanban_view.update_job_status,
@@ -143,13 +146,11 @@ urlpatterns = [
         CompanyProfitAndLossView.as_view(),
         name="company-profit-loss-report",
     ),
-    
-    path('api/company_defaults/', 
-         edit_job_view_ajax.get_company_defaults_api,
-         name='company_defaults_api'
+    path(
+        "api/company_defaults/",
+        edit_job_view_ajax.get_company_defaults_api,
+        name="company_defaults_api",
     ),
-    
-
     path(
         "timesheets/day/<str:date>/<uuid:staff_id>/",
         time_entry_view.TimesheetEntryView.as_view(),
@@ -171,14 +172,10 @@ urlpatterns = [
         time_overview_view.TimesheetDailyView.as_view(),
         name="timesheet_daily_view",
     ),
-
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
-
-
     # Login/Logout views
     path("login/", auth_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-
     # This URL doesn't match our naming pattern - need to fix.
     # Probably should be in api/internal?
     path(

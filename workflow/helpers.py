@@ -1,6 +1,5 @@
 import decimal
 import json
-import mimetypes
 import os
 from decimal import Decimal
 

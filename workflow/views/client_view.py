@@ -1,17 +1,15 @@
 import logging
 
-from django.db.models import Q
-from django.http import JsonResponse, HttpResponseRedirect
 from django.contrib import messages
-
-from django.shortcuts import render, redirect
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView
 from django_tables2 import SingleTableView
 
 from workflow.api.xero.sync import single_sync_client, sync_client_to_xero
 from workflow.api.xero.xero import get_valid_token
-
 from workflow.forms import ClientForm
 from workflow.models import Client
 
@@ -71,9 +69,10 @@ def all_clients(request):
     """
     API endpoint to return all clients as JSON for AJAX table population.
     """
-    clients = Client.objects.values('id', 'name', 'email', 'phone', 'address', 'is_account_customer')
+    clients = Client.objects.values(
+        "id", "name", "email", "phone", "address", "is_account_customer"
+    )
     return JsonResponse(list(clients), safe=False)
-
 
 
 def AddClient(request):
@@ -81,7 +80,9 @@ def AddClient(request):
         # Check for stub creation mode
         if request.GET.get("mode") == "redirect":
             name = request.GET.get("name", "")
-            client = Client.objects.create(name=name) if name else Client.objects.create()
+            client = (
+                Client.objects.create(name=name) if name else Client.objects.create()
+            )
             return redirect("update_client", pk=client.id)
 
         # Default: Serve the add client form

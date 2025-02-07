@@ -10,7 +10,7 @@ class Command(BaseCommand):
         # Define shop job details
         shop_jobs = [
             {
-                "name": "Business Development", 
+                "name": "Business Development",
                 "description": "Sales without a specific client",
             },
             {

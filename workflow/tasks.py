@@ -1,5 +1,6 @@
-from celery import shared_task
 import logging
+
+from celery import shared_task
 
 logger = logging.getLogger("xero")
 
@@ -20,4 +21,3 @@ def sync_client_task(self, client_id):
     except Exception as e:
         logger.error(f"Error syncing client {client_id}: {str(e)}")
         raise self.retry(exc=e)
-

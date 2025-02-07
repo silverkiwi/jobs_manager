@@ -1,9 +1,8 @@
+import logging
 import uuid
 from decimal import Decimal
 
 from django.db import models
-
-import logging
 
 logger = logging.getLogger(__name__)
 

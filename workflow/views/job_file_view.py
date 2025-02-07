@@ -1,17 +1,14 @@
 import logging
-
-from rest_framework.renderers import JSONRenderer, BaseRenderer
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 import os
 
-from jobs_manager import settings
-
 from django.http import FileResponse
-from django.conf import settings
+from rest_framework import status
+from rest_framework.renderers import BaseRenderer, JSONRenderer
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from workflow.models import JobFile, Job
+from jobs_manager import settings
+from workflow.models import Job, JobFile
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +77,13 @@ class JobFileView(APIView):
                     print_on_jobsheet=True,  # Default to True as per model
                 )
                 # Match template's file object structure
-                uploaded_files.append({
-                    'id': str(job_file.id),
-                    'filename': job_file.filename,
-                    'file_path': job_file.file_path
-                })
+                uploaded_files.append(
+                    {
+                        "id": str(job_file.id),
+                        "filename": job_file.filename,
+                        "file_path": job_file.file_path,
+                    }
+                )
                 logger.debug(f"Created JobFile record for {file.name}")
 
             except Exception as e:
@@ -157,15 +156,17 @@ class JobFileView(APIView):
         try:
             # Get the JobFile by ID
             job_file = JobFile.objects.get(id=file_path)
-            
+
             # Delete the physical file
-            full_path = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path)
+            full_path = os.path.join(
+                settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path
+            )
             if os.path.exists(full_path):
                 os.remove(full_path)
-            
+
             # Delete the database record
             job_file.delete()
-            
+
             return Response(status=status.HTTP_204_NO_CONTENT)
         except JobFile.DoesNotExist:
             return Response(

@@ -2,8 +2,8 @@
 import logging
 
 from django import forms
-from django.db.models import Q
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.db.models import Q
 
 from workflow.models import (
     AdjustmentEntry,
@@ -15,8 +15,6 @@ from workflow.models import (
     Staff,
     TimeEntry,
 )
-
-from workflow.models.purchase import PurchaseLine
 
 logger = logging.getLogger(__name__)
 DEBUG_FORM = False  # Toggle form debugging
@@ -101,7 +99,8 @@ class TimeEntryForm(forms.ModelForm):
 
     def __init__(self, *args, staff_member=None, timesheet_date=None, **kwargs):
         """
-        Form constructor. Main function is to prepopulate certain fields (such as the staff and its information, alongside with the date, which are all provided by the view)
+        Form constructor. Main function is to prepopulate certain fields (such as the staff
+        and its information, alongside with the date, which are all provided by the view)
         """
         super().__init__(*args, **kwargs)
 
@@ -124,7 +123,8 @@ class TimeEntryForm(forms.ModelForm):
 
         self.fields["wage_rate_multiplier"].initial = 1.0
         self.fields["wage_rate_multiplier"].help_text = (
-            "Multiplier for hourly rate. Ord (1.0), Ovt (1.5), Dt (2.0), Unpaid (0.0)"
+            "Multiplier for hourly rate. "
+            "Ord (1.0), Ovt (1.5), Dt (2.0), Unpaid (0.0)"
         )
 
         self.fields["charge_out_rate"].initial = 1.0

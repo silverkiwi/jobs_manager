@@ -1,27 +1,25 @@
 import json
 import logging
 
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
-from django.utils.timezone import localtime
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_http_methods
 
 from workflow.helpers import DecimalEncoder, get_company_defaults
-from workflow.services.file_service import sync_job_folder
 from workflow.models import Job, JobEvent
 from workflow.serializers import JobPricingSerializer, JobSerializer
+from workflow.services.file_service import sync_job_folder
 from workflow.services.job_service import (
+    archive_and_reset_job_pricing,
     get_historical_job_pricings,
     get_job_with_pricings,
     get_latest_job_pricings,
-    archive_and_reset_job_pricing,  
 )
 
 logger = logging.getLogger(__name__)
 DEBUG_JSON = False  # Toggle for JSON debugging
+
 
 def get_company_defaults_api(request):
     """
@@ -30,13 +28,15 @@ def get_company_defaults_api(request):
     a single instance is retrieved or created if it doesn't exist.
     """
     defaults = get_company_defaults()
-    return JsonResponse({
-        "materials_markup": float(defaults.materials_markup),
-        "time_markup": float(defaults.time_markup),
-        "charge_out_rate": float(defaults.charge_out_rate),
-        "wage_rate": float(defaults.wage_rate),
-    })
-    
+    return JsonResponse(
+        {
+            "materials_markup": float(defaults.materials_markup),
+            "time_markup": float(defaults.time_markup),
+            "charge_out_rate": float(defaults.charge_out_rate),
+            "wage_rate": float(defaults.wage_rate),
+        }
+    )
+
 
 def create_job_view(request):
     return render(request, "jobs/create_job_and_redirect.html")
@@ -268,6 +268,7 @@ def autosave_job_view(request):
         logger.exception(f"Unexpected error during autosave: {str(e)}")
         return JsonResponse({"error": "Unexpected error"}, status=500)
 
+
 @require_http_methods(["POST"])
 def process_month_end(request):
     """Handles month-end processing for selected jobs."""
@@ -280,13 +281,14 @@ def process_month_end(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
+
 @login_required
 @require_http_methods(["POST"])
 def add_job_event(request, job_id):
     """
     Create a new job event for a specific job.
 
-    This view handles the creation of manual note events for jobs. It requires 
+    This view handles the creation of manual note events for jobs. It requires
     authentication and accepts only POST requests with JSON payload.
 
     Args:
@@ -326,25 +328,32 @@ def add_job_event(request, job_id):
         if not description:
             logger.warning(f"Missing description for job event on job {job_id}")
             return JsonResponse({"error": "Description required"}, status=400)
-            
-        logger.debug(f"Creating job event for job {job_id} with description: {description}")
+
+        logger.debug(
+            f"Creating job event for job {job_id} with description: {description}"
+        )
         event = JobEvent.objects.create(
-            job=job, 
-            staff=request.user, 
+            job=job,
+            staff=request.user,
             description=description,
-            event_type="manual_note"
-            )
-        
+            event_type="manual_note",
+        )
+
         logger.info(f"Successfully created job event {event.id} for job {job_id}")
-        return JsonResponse({
-            "success": True,
-            "event": {
-                "timestamp": event.timestamp.isoformat(),
-                "event_type": "manual_note", 
-                "description": event.description,
-                "staff": request.user.get_display_name() if request.user else "System"
-            }
-            }, status=201)
+        return JsonResponse(
+            {
+                "success": True,
+                "event": {
+                    "timestamp": event.timestamp.isoformat(),
+                    "event_type": "manual_note",
+                    "description": event.description,
+                    "staff": (
+                        request.user.get_display_name() if request.user else "System"
+                    ),
+                },
+            },
+            status=201,
+        )
 
     except Job.DoesNotExist:
         logger.error(f"Job {job_id} not found when creating event")
@@ -353,7 +362,9 @@ def add_job_event(request, job_id):
     except json.JSONDecodeError:
         logger.error(f"Invalid JSON payload for job {job_id}")
         return JsonResponse({"error": "Invalid JSON"}, status=400)
-        
+
     except Exception as e:
-        logger.exception(f"Unexpected error creating job event for job {job_id}: {str(e)}")
+        logger.exception(
+            f"Unexpected error creating job event for job {job_id}: {str(e)}"
+        )
         return JsonResponse({"error": "An unexpected error occurred"}, status=500)

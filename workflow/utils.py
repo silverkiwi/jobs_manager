@@ -1,6 +1,7 @@
 def extract_messages(request):
     """
-    Extracts messages from the request object and returns them as a list of dictionaries.
+    Extracts messages from the request object and returns them as a list of
+    dictionaries.
     Each dictionary contains the message level tag and the message text.
 
     Args:

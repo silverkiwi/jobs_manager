@@ -1,25 +1,22 @@
-# workflow/xero/sync.py
 import logging
 import time
 from datetime import date, datetime, timedelta
 from uuid import UUID
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.db import transaction
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
-
 from xero_python.accounting import AccountingApi
 
 from workflow.api.xero.reprocess_xero import (
+    set_client_fields,
     set_invoice_or_bill_fields,
     set_journal_fields,
-    set_client_fields,
 )
 from workflow.api.xero.xero import api_client, get_tenant_id
 from workflow.models import XeroJournal
 from workflow.models.client import Client
-from workflow.models.invoice import Bill, Invoice, CreditNote
+from workflow.models.invoice import Bill, CreditNote, Invoice
 from workflow.models.xero_account import XeroAccount
 from workflow.tasks import sync_client_task
 
@@ -28,10 +25,12 @@ logger = logging.getLogger("xero")
 
 def enqueue_client_sync_tasks():
     """
-    Enqueues synchronization of all clients to be processed by Celery    
+    Enqueues synchronization of all clients to be processed by Celery
     """
     clients_to_push = Client.objects.filter(
-        django_updated_at__gt=models.F("xero_last_synced") # This fixes the bug where all local clients were being pushed
+        django_updated_at__gt=models.F(
+            "xero_last_synced"
+        )  # This fixes the bug where all local clients were being pushed
     )
 
     for client in clients_to_push:
@@ -78,7 +77,10 @@ def sync_xero_data(
         raise TypeError("We only support journals for offset currently")
 
     logger.info(
-        f"Starting sync for {xero_entity_type}, mode={pagination_mode}, since={last_modified_time}"
+        "Starting sync for %s, mode=%s, since=%s",
+        xero_entity_type,
+        pagination_mode,
+        last_modified_time,
     )
 
     xero_tenant_id = get_tenant_id()
@@ -114,10 +116,12 @@ def sync_xero_data(
             logger.info("No items to sync.")
             return
 
-        # Process the current batch of items, enqueuing it if it's a Celery task, otherwise run it directly
+        # Process the current batch of items
         if callable(getattr(sync_function, "delay", None)):
+            # If it's a Celery task, enqueue it
             sync_function.delay(items)
         else:
+            # Otherwise, run it directly
             sync_function(items)
 
         # Update parameters to ensure progress in pagination.
@@ -144,7 +148,8 @@ def get_last_modified_time(model):
         "xero_last_modified__max"
     ]
     if last_modified_time:
-        # The handling of milliseconds differs between django and Xero.  This simplifies things by simply syncing them again
+        # The handling of milliseconds differs between django and Xero.
+        # This simplifies things by simply syncing them again
         last_modified_time = last_modified_time - timedelta(seconds=1)
 
     if last_modified_time:
@@ -250,11 +255,13 @@ def sync_invoices(invoices):
             # Log whether the invoice was created or updated
             if created:
                 logger.info(
-                    f"New invoice added: {invoice.number} updated_at={invoice.xero_last_modified}"
+                    f"New invoice added: {invoice.number} "
+                    f"updated_at={invoice.xero_last_modified}"
                 )
             else:
                 logger.info(
-                    f"Updated invoice: {invoice.number} updated_at={invoice.xero_last_modified}"
+                    f"Updated invoice: {invoice.number} "
+                    f"updated_at={invoice.xero_last_modified}"
                 )
 
         except Exception as e:
@@ -297,11 +304,13 @@ def sync_bills(bills):
             # Log whether the bill was created or updated
             if created:
                 logger.info(
-                    f"New bill added: {bill.number} updated_at={bill.xero_last_modified}"
+                    f"New bill added: {bill.number} "
+                    f"updated_at={bill.xero_last_modified}"
                 )
             else:
                 logger.info(
-                    f"Updated bill: {bill.number} updated_at={bill.xero_last_modified}"
+                    f"Updated bill: {bill.number} "
+                    f"updated_at={bill.xero_last_modified}"
                 )
 
         except Exception as e:
@@ -317,7 +326,8 @@ def sync_credit_notes(notes):
         dirty_raw_json = serialise_xero_object(note_data)
         raw_json = clean_raw_json(dirty_raw_json)
         note_number = raw_json["_credit_note_number"]
-        # Retrieve the client for the credit note first
+        
+        # Retrieve the client for the credit note
         client = Client.objects.filter(
             xero_contact_id=note_data.contact.contact_id
         ).first()
@@ -333,7 +343,7 @@ def sync_credit_notes(notes):
             note = CreditNote(xero_id=xero_id, client=client)
             created = True
 
-        # Now perform the rest of the operations, ensuring everything is set before saving
+        # Now perform the rest of the operations
         try:
             # Update raw_json and other necessary fields
             note.raw_json = raw_json
@@ -344,11 +354,13 @@ def sync_credit_notes(notes):
             # Log whether the credit note was created or updated
             if created:
                 logger.info(
-                    f"New credit note added: {note.number} updated_at={note.xero_last_modified}"
+                    f"New credit note added: {note.number} "
+                    f"updated_at={note.xero_last_modified}"
                 )
             else:
                 logger.info(
-                    f"Updated credit note: {note.number} updated_at={note.xero_last_modified}"
+                    f"Updated credit note: {note.number} "
+                    f"updated_at={note.xero_last_modified}"
                 )
 
         except Exception as e:
@@ -376,7 +388,7 @@ def sync_journals(journals):
             journal = XeroJournal(xero_id=xero_id)
             created = True
 
-        # Now perform the rest of the operations, ensuring everything is set before saving
+        # Now perform the rest of the operations
         try:
             # Update raw_json
             journal.raw_json = raw_json
@@ -387,11 +399,13 @@ def sync_journals(journals):
             # Log whether the journal was created or updated
             if created:
                 logger.info(
-                    f"New journal added: {journal_number} updated_at={journal.xero_last_modified}"
+                    f"New journal added: {journal_number} "
+                    f"updated_at={journal.xero_last_modified}"
                 )
             else:
                 logger.info(
-                    f"Updated journal: {journal_number} updated_at={journal.xero_last_modified}"
+                    f"Updated journal: {journal_number} "
+                    f"updated_at={journal.xero_last_modified}"
                 )
 
         except Exception as e:
@@ -418,7 +432,8 @@ def sync_clients(xero_contacts):
                 client.raw_json = raw_json
                 set_client_fields(client, new_from_xero=False)
                 logger.info(
-                    f"Updated client: {client.name} updated_at={client.xero_last_modified}"
+                    f"Updated client: {client.name} "
+                    f"updated_at={client.xero_last_modified}"
                 )
             else:
                 client = Client.objects.create(
@@ -428,7 +443,8 @@ def sync_clients(xero_contacts):
                 )
                 set_client_fields(client, new_from_xero=True)
                 logger.info(
-                    f"New client added: {client.name} updated_at={client.xero_last_modified}"
+                    f"New client added: {client.name} "
+                    f"updated_at={client.xero_last_modified}"
                 )
 
             # Queue synchronization for each client
@@ -528,13 +544,14 @@ def sync_client_to_xero(client):
             new_contact_id = response.contacts[0].contact_id
             client.xero_contact_id = new_contact_id
             client.save()
-            logger.info(f"Created new client {client.name} in Xero with ID {new_contact_id}.")
+            logger.info(
+                f"Created new client {client.name} in Xero with ID {new_contact_id}."
+            )
 
         return response.contacts if response.contacts else []
     except Exception as e:
         logger.error(f"Failed to sync client {client.name} to Xero: {str(e)}")
         raise
-
 
 
 def single_sync_client(
@@ -564,7 +581,8 @@ def single_sync_client(
 
             if clients.count() > 1:
                 raise MultipleObjectsReturned(
-                    f"Multiple clients found for name {client_name}. Please refine the search."
+                    f"Multiple clients found for name {client_name}. "
+                    "Please refine the search."
                 )
             elif clients.count() == 1:
                 client = clients.first()
@@ -622,7 +640,8 @@ def single_sync_client(
         xero_client = contacts[0]  # Assuming the first match
     except Exception as e:
         logger.error(
-            f"Failed to fetch client {client_name or client_identifier} from Xero: {str(e)}"
+            f"Failed to fetch client {client_name or client_identifier} "
+            f"from Xero: {str(e)}"
         )
         raise
 
@@ -630,11 +649,13 @@ def single_sync_client(
     try:
         sync_clients([xero_client])  # Call your existing sync function for clients
         logger.info(
-            f"Successfully synced client {client_name or client_identifier} back into the database."
+            f"Successfully synced client {client_name or client_identifier} "
+            "back into the database."
         )
     except Exception as e:
         logger.error(
-            f"Failed to sync client {client_name or client_identifier} into the database: {str(e)}"
+            f"Failed to sync client {client_name or client_identifier} "
+            f"into the database: {str(e)}"
         )
         raise
 
@@ -662,7 +683,8 @@ def single_sync_invoice(
 
             if invoices.count() > 1:
                 raise MultipleObjectsReturned(
-                    f"Multiple invoices found for number {invoice_number}. Please refine the search."
+                    f"Multiple invoices found for number {invoice_number}. "
+                    "Please refine the search."
                 )
             elif invoices.count() == 1:
                 invoice = invoices.first()
@@ -745,11 +767,12 @@ def one_way_sync_all_xero_data():
         pagination_mode="single",
     )
 
-    # Since clients seem to be the highest volume sync object, we continue to queue them to avoid hitting the Xero API call per minute limit.
+    # Since clients seem to be the highest volume sync object, we continue to queue them
+    # to avoid hitting the Xero API call per minute limit.
     sync_xero_data(
         xero_entity_type="contacts",
         xero_api_function=accounting_api.get_contacts,
-        sync_function=sync_clients, # Already enqueuing
+        sync_function=sync_clients,  # Already enqueuing
         last_modified_time=our_latest_contact,
         pagination_mode="page",
     )
@@ -792,8 +815,6 @@ def synchronise_xero_data(delay_between_requests=1):
     """Bidirectional sync with Xero - pushes changes TO Xero, then pulls FROM Xero"""
     logger.info("Starting bi-directional Xero sync")
 
-    accounting_api = AccountingApi(api_client)
-
     # PUSH changes TO Xero
     # Queue client synchronization
     enqueue_client_sync_tasks()
@@ -802,4 +823,3 @@ def synchronise_xero_data(delay_between_requests=1):
     one_way_sync_all_xero_data()
 
     logger.info("Completed bi-directional Xero sync")
-    

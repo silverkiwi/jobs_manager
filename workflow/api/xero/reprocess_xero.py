@@ -1,20 +1,20 @@
 # workflow/xero/reprocess_xero.py
 import logging
+import uuid
 from decimal import Decimal
 
-import uuid
+from django.utils import timezone
 
 from workflow.models import BillLineItem, XeroJournal, XeroJournalLineItem
 from workflow.models.client import Client
 from workflow.models.invoice import (
     Bill,
-    Invoice,
-    InvoiceLineItem,
     CreditNote,
     CreditNoteLineItem,
+    Invoice,
+    InvoiceLineItem,
 )
 from workflow.models.xero_account import XeroAccount
-from django.utils import timezone
 
 logger = logging.getLogger("xero")
 
@@ -30,7 +30,8 @@ def set_invoice_or_bill_fields(document, document_type):
 
     if not document.raw_json:
         raise ValueError(
-            f"{document_type.title()} raw_json is empty. We better not try to process it"
+            f"{document_type.title()} raw_json is empty. "
+            "We better not try to process it"
         )
 
     is_invoice = document.raw_json.get("_type") == "ACCREC"
@@ -47,7 +48,8 @@ def set_invoice_or_bill_fields(document, document_type):
     # Validate the document matches the type
     if document_type != json_document_type:
         raise ValueError(
-            f"Document type mismatch. Got {document_type} but document appears to be a {json_document_type}"
+            f"Document type mismatch. Got {document_type} "
+            f"but document appears to be a {json_document_type}"
         )
 
     raw_data = document.raw_json
@@ -75,7 +77,6 @@ def set_invoice_or_bill_fields(document, document_type):
     # Set or create the client/supplier
     contact_data = raw_data.get("_contact", {})
     contact_id = contact_data.get("_contact_id")
-    contact_name = contact_data.get("_name")
     client = Client.objects.filter(xero_contact_id=contact_id).first()
     if not client:
         raise ValueError(
@@ -91,14 +92,16 @@ def set_invoice_or_bill_fields(document, document_type):
 
     # Determine which line item model to use
     LineItemModel = (
-        InvoiceLineItem
-        if is_invoice
-        else BillLineItem if is_bill else CreditNoteLineItem if is_credit_note else None
+        InvoiceLineItem if is_invoice
+        else BillLineItem if is_bill
+        else CreditNoteLineItem if is_credit_note
+        else None
     )
     document_field = (
-        "invoice"
-        if is_invoice
-        else "bill" if is_bill else "credit_note" if is_credit_note else None
+        "invoice" if is_invoice
+        else "bill" if is_bill
+        else "credit_note" if is_credit_note
+        else None
     )
 
     for line_item_data in line_items_data:
@@ -176,7 +179,6 @@ def set_client_fields(client, new_from_xero=False):
     else:
         raise ValueError("Xero last modified date is missing from the raw JSON.")
     client.xero_last_synced = timezone.now()
-
 
     if new_from_xero:
         client.django_created_at = client.xero_last_modified
