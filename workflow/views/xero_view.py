@@ -12,6 +12,8 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView
+from django.contrib import messages
+
 from xero_python.accounting import AccountingApi
 from xero_python.accounting.models import Contact
 from xero_python.accounting.models import Invoice as XeroInvoice
@@ -29,7 +31,10 @@ from workflow.api.xero.xero import (
     get_valid_token,
     refresh_token,
 )
+from workflow.enums import InvoiceStatus, QuoteStatus
 from workflow.models import Invoice, Job
+from workflow.models.quote import Quote
+from workflow.utils import extract_messages
 
 logger = logging.getLogger("xero")
 

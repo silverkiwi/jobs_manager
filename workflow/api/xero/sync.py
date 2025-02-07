@@ -1,3 +1,4 @@
+from decimal import Decimal
 import logging
 import time
 from datetime import date, datetime, timedelta
@@ -14,7 +15,7 @@ from workflow.api.xero.reprocess_xero import (
     set_journal_fields,
 )
 from workflow.api.xero.xero import api_client, get_tenant_id
-from workflow.models import XeroJournal
+from workflow.models import XeroJournal, Quote
 from workflow.models.client import Client
 from workflow.models.invoice import Bill, CreditNote, Invoice
 from workflow.models.xero_account import XeroAccount
