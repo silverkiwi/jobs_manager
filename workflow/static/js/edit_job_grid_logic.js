@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (rowData.materialsMarkup !== undefined) {
             return Promise.resolve(rowData.materialsMarkup);
         }
-    
+
         return fetch('/api/company_defaults')
             .then(response => response.json())
             .then(companyDefaults => {
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (params.data.unit_revenue !== undefined) {
             return params.data.unit_revenue; // Return stored value
         }
-    
+
         // Fetch markup asynchronously, but return the last known value immediately
         fetchMaterialsMarkup(params.data).then(markupRate => {
             if (!params.data.isManualOverride) {
@@ -281,28 +281,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 params.api.refreshCells({ rowNodes: [params.node], columns: ['unit_revenue'], force: true });
             }
         });
-    
+
         return params.data.unit_revenue || 0; // Default fallback value
     }
 
     function setRetailRate(params) {
         let newValue = parseFloat(params.newValue);
         let costRate = parseFloat(params.data.unit_cost) || 0;
-    
+
         fetchMaterialsMarkup(params.data).then(markupRate => {
             if (!isNaN(newValue) && newValue !== calculateRetailRate(costRate, markupRate)) {
-                params.data.isManualOverride = true;  
+                params.data.isManualOverride = true;
             }
-    
+
             if (!params.data.isManualOverride) {
                 params.data.unit_revenue = calculateRetailRate(costRate, markupRate);
             } else {
                 params.data.unit_revenue = newValue;
             }
-    
+
             params.api.refreshCells({ rowNodes: [params.node], columns: ['unit_revenue'], force: true });
         });
-    
+
         return true;
     }
 
@@ -340,39 +340,75 @@ document.addEventListener('DOMContentLoaded', function () {
         enterNavigatesVerticallyAfterEdit: true,
         stopEditingWhenCellsLoseFocus: true,
         tabToNextCell: (params) => {
-            const displayedColumns = params.columnApi.getAllDisplayedColumns();
-            const lastColIndex = displayedColumns.length - 1;
-            const lastRowIndex = params.api.getDisplayedRowCount() - 1;
-        
-            const currentColIndex = displayedColumns.findIndex(col => col.getColId() === params.previousCellPosition.column.getColId());
-        
-            if (currentColIndex === -1) {
-                return null; // If column not found, prevent error
+            const allColumns = params.api.getAllDisplayedColumns();
+
+            // Filter only "leaf columns" (real cells) - i.e., those that don't have children
+            const displayedColumns = allColumns.filter(col => !col.getColDef().children);
+
+            const rowCount = params.api.getDisplayedRowCount();
+            let { rowIndex, column, floating } = params.previousCellPosition;
+
+            // If focus came from header, force start at first body row
+            if (floating) {
+                rowIndex = 0;
             }
-        
-            if (currentColIndex === lastColIndex) {
-                // Is in the last column of the row
-                if (params.previousCellPosition.rowIndex === lastRowIndex) {
-                    // Last cell of the last row → Return to beginning
-                    return {
-                        rowIndex: 0,
-                        column: displayedColumns[0],
-                        floating: null
-                    };
-                } else {
-                    // Last column of a row, go to next row and first column
-                    return {
-                        rowIndex: params.previousCellPosition.rowIndex + 1,
-                        column: displayedColumns[0],
-                        floating: null
-                    };
+
+            // Find current column index within filtered array
+            let currentColIndex = displayedColumns.findIndex(col => col.getColId() === column.getColId());
+            if (currentColIndex === -1) return null;
+
+            let nextColIndex = currentColIndex;
+            let nextRowIndex = rowIndex;
+
+            // Total number of cells to avoid infinite loop
+            const totalCells = rowCount * displayedColumns.length;
+            let count = 0;
+
+            // Helper function to test if a cell is editable,
+            // providing expected parameters for isCellEditable
+            function isEditable(rowIndex, colIndex) {
+                // Get rowNode for current row (assuming client-side rowModel)
+                const rowNode = params.api.getDisplayedRowAtIndex(rowIndex);
+                const col = displayedColumns[colIndex];
+
+                // Build parameters object for isCellEditable
+                const cellParams = {
+                    node: rowNode,
+                    column: col,
+                    colDef: col.getColDef(),
+                    rowIndex: rowIndex,
+                    data: rowNode ? rowNode.data : null,
+                    api: params.api,
+                    context: params.context
+                };
+
+                return col.isCellEditable(cellParams);
+            }
+
+            // Search for next editable column
+            do {
+                nextColIndex++; // Advance to next column
+                if (nextColIndex >= displayedColumns.length) {
+                    // If past last column, return to first and advance row
+                    nextColIndex = 0;
+                    nextRowIndex++;
+                    // If we reached end of rows, return null to avoid invalid index
+                    if (nextRowIndex >= rowCount) {
+                        return null;
+                    }
                 }
-            }
-        
-            // For all other cells, just advance in the same row
+                count++;
+                if (count > totalCells) {
+                    return null; // Avoid infinite loop if no cell is editable
+                }
+            } while (!isEditable(nextRowIndex, nextColIndex));
+
+            // Ensure row is visible (automatic scroll)
+            params.api.ensureIndexVisible(nextRowIndex);
+
             return {
-                rowIndex: params.previousCellPosition.rowIndex,
-                column: displayedColumns[currentColIndex + 1],
+                rowIndex: nextRowIndex,
+                column: displayedColumns[nextColIndex],
                 floating: null
             };
         },
@@ -388,12 +424,12 @@ document.addEventListener('DOMContentLoaded', function () {
         onCellValueChanged: function (event) {
             const gridType = event.context.gridType;
             const data = event.data;
-         
+
             if (gridType === 'TimeTable') {
                 data.total_minutes = (data.items || 0) * (data.mins_per_item || 0);
                 data.revenue = (data.total_minutes || 0) * (data.charge_out_rate / 60.0 || 0);
 
-                const hours = (data.total_minutes / 60).toFixed(1); 
+                const hours = (data.total_minutes / 60).toFixed(1);
                 data.total_minutes_display = `${data.total_minutes} (${hours} hours)`;
 
             } else if (gridType === 'MaterialsTable') {
@@ -405,17 +441,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         });
                     }
                 }
-            
+
                 if (event.column.colId === 'unit_revenue') {
                     // Mark as manually overridden only if user types in this cell
                     if (event.newValue !== null && event.newValue !== undefined) {
                         data.isManualOverride = true;
                     }
                 }
-            
+
                 data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
             }
-            
+
             event.api.refreshCells({ rowNodes: [event.node], columns: ['revenue', 'total_minutes'], force: true });
 
             debouncedAutosave(event);
@@ -517,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 minWidth: 100,
                 flex: 1
             },
-            
+
             {
                 ...trashCanColumn,
                 minWidth: 40,
@@ -612,7 +648,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Hide link column for estimate and quote sections
                     specificGridOptions.columnDefs = specificGridOptions.columnDefs.map(col => {
                         if (col.field === 'link') {
-                            return {...col, hide: true};
+                            return { ...col, hide: true };
                         }
                         return col;
                     });
@@ -782,7 +818,7 @@ document.addEventListener('DOMContentLoaded', function () {
             case 'invoiceJobButton':
                 createXeroDocument(jobId, 'invoice');
                 break;
-            
+
             case 'deleteInvoiceButton':
                 deleteXeroDocument(jobId, 'invoice');
                 break;
@@ -998,7 +1034,7 @@ function handleSaveEventButtonClick(jobId) {
 
 function createXeroDocument(jobId, type) {
     console.log(`Creating Xero ${type} for job ID: ${jobId}`);
-    
+
     if (!jobId) {
         console.error('Job ID is missing');
         renderMessages([{ level: 'error', message: `Job id is missing!` }]);
@@ -1008,7 +1044,7 @@ function createXeroDocument(jobId, type) {
     const endpoint = type === 'invoice'
         ? `/api/xero/create_invoice/${jobId}`
         : `/api/xero/create_quote/${jobId}`;
-        
+
     console.log(`Making POST request to endpoint: ${endpoint}`);
 
     fetch(endpoint, {
@@ -1052,7 +1088,7 @@ function createXeroDocument(jobId, type) {
         })
         .then(data => {
             console.log('Processing response data:', data);
-            
+
             if (!data) {
                 console.error('No data received from server');
                 renderMessages([{ level: 'error', message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.' }]);
@@ -1098,7 +1134,7 @@ function createXeroDocument(jobId, type) {
 
 function handleDocumentButtons(type, online_url, method) {
     console.log(`Handling document buttons for type: ${type}, method: ${method}`);
-    
+
     const documentButton = document.getElementById(type === 'invoice' ? 'invoiceJobButton' : 'quoteJobButton');
     console.log(`Document button found: ${documentButton ? 'yes' : 'no'}`);
 
@@ -1116,7 +1152,7 @@ function handleDocumentButtons(type, online_url, method) {
         xeroLink.href = online_url;
     }
 
-    switch(method) {
+    switch (method) {
         case 'POST':
             console.log('Handling POST method');
             documentButton.disabled = true;
@@ -1127,7 +1163,7 @@ function handleDocumentButtons(type, online_url, method) {
 
             xeroLink.style.display = 'inline-block';
             break;
-        
+
         case 'DELETE':
             console.log('Handling DELETE method');
             documentButton.disabled = false;
@@ -1161,49 +1197,49 @@ function deleteXeroDocument(jobId, type) {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
         },
     })
-    .then((response) => {
-        console.log(`Received response with status: ${response.status}`);
-        if (!response.ok) {
-            return response.json().then((data) => {
-                console.log('Response not OK, checking for redirect:', data);
-                if (data.redirect_to_auth) {
-                    console.log('Auth redirect required, preparing redirect message');
-                    const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
-                    setTimeout(() => {
-                        const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
-                            `${window.location.pathname}#${sectionId}`
-                        )}`;
-                        console.log(`Redirecting to: ${redirectUrl}`);
-                        window.location.href = redirectUrl;
-                    }, 3000);
+        .then((response) => {
+            console.log(`Received response with status: ${response.status}`);
+            if (!response.ok) {
+                return response.json().then((data) => {
+                    console.log('Response not OK, checking for redirect:', data);
+                    if (data.redirect_to_auth) {
+                        console.log('Auth redirect required, preparing redirect message');
+                        const sectionId = type === 'invoice' ? 'workflow-section' : 'quoteTimeTable';
+                        setTimeout(() => {
+                            const redirectUrl = `/api/xero/authenticate/?next=${encodeURIComponent(
+                                `${window.location.pathname}#${sectionId}`
+                            )}`;
+                            console.log(`Redirecting to: ${redirectUrl}`);
+                            window.location.href = redirectUrl;
+                        }, 3000);
 
-                    return;
-                }
-                throw new Error(data.message || 'Failed to delete document.');
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Processing response data:', data);
+                        return;
+                    }
+                    throw new Error(data.message || 'Failed to delete document.');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Processing response data:', data);
 
-        if (!data) {
-            console.error('No data received from server');
-            renderMessages([{level: 'error', message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.'}]);
-            return;
-        }
+            if (!data) {
+                console.error('No data received from server');
+                renderMessages([{ level: 'error', message: 'Your Xero session seems to have ended. Redirecting you to the Xero login in seconds.' }]);
+                return;
+            }
 
-        if (!data.success) {
+            if (!data.success) {
+                renderMessages(data.messages);
+                return;
+            }
+
+            console.log('Document deleted successfully, updating UI');
+            handleDocumentButtons(type, null, 'DELETE');
             renderMessages(data.messages);
-            return;
-        }
-
-        console.log('Document deleted successfully, updating UI');
-        handleDocumentButtons(type, null, 'DELETE');
-        renderMessages(data.messages);
-    })
-    .catch(error => {
-        console.error('Error deleting Xero document:', error);
-        renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
-    });
+        })
+        .catch(error => {
+            console.error('Error deleting Xero document:', error);
+            renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
+        });
 }
