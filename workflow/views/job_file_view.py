@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 
 from jobs_manager import settings
 
-from django.http import FileResponse
+from django.http import FileResponse, JsonResponse
 from django.conf import settings
 
 from workflow.models import Job, JobFile

@@ -553,7 +553,15 @@ def create_xero_quote(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        return creator.create_document()
+        response = json.loads(creator.create_document().content.decode())
+
+        if not response.get('success'):
+            messages.error(request, f"Failed to create quote: {response.get('error')}")
+            return JsonResponse({
+                'success': False,
+                'error': response.get('error'),
+                'messages': extract_messages(request)
+            })
 
     except Exception as e:
         logger.error(f"Error in create_xero_quote: {str(e)}")

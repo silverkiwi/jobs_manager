@@ -750,7 +750,7 @@ function saveDataToServer(collectedData) {
                 });
         })
         .catch(error => {
-            renderMessages([{ level: 'error', message: `Autosave failed: ${error.message}` }]);
+            renderMessages([{ level: 'error', message: `Autosave failed: ${error.message}` }], 'job-details');
         });
 }
 
