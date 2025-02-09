@@ -87,6 +87,18 @@
                     </a>
                     <span class="timestamp">({{ file.uploaded_at|date:"Y-m-d H:i" }})</span>
                 </div>
+                <div class="file-controls">
+                    <label class="print-checkbox">
+                        <input type="checkbox"
+                               name="jobfile_{{ file.id }}_print_on_jobsheet"
+                               class="print-on-jobsheet autosave-input"
+                               {% if file.print_on_jobsheet %}checked{% endif %}>
+                        Print on Job Sheet
+                    </label>
+                    <button class="btn btn-sm btn-danger delete-file" data-file-id="{{ file.id }}">
+                        Delete
+                    </button>
+                </div>
             </div>
             {% endfor %}
         </div>
