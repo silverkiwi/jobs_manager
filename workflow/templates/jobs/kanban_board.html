@@ -8,42 +8,60 @@
 {% block content %}
 
 <div id="monthEndModal" class="modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Select Jobs for Month-End Processing</h5>
-     
-        </div>
-        <div class="modal-body">
-          <form id="monthEndForm">
-            <label for="jobSelector">Jobs</label>
-            <select id="jobSelector" class="form-control" multiple>
-              {% for job in jobs %}
-                <option value="{{ job.id }}">{{ job.name }}</option>
-              {% endfor %}
-            </select>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="button" id="confirmMonthEnd" class="btn btn-primary">Process</button>
-        </div>
-     </div>
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Select Jobs for Month-End Processing</h5>
+
+      </div>
+      <div class="modal-body">
+        <form id="monthEndForm">
+          <label for="jobSelector">Jobs</label>
+          <select id="jobSelector" class="form-control" multiple>
+            {% for job in jobs %}
+            <option value="{{ job.id }}">{{ job.name }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" id="confirmMonthEnd" class="btn btn-primary">Process</button>
+      </div>
     </div>
+  </div>
 </div>
 
 <div class="search-container">
-    <input type="text" id="search" placeholder="Search jobs...">
+  <input type="text" id="search" class="form-control" placeholder="🔍 Search jobs...">
+
+  <div class="left-container">
     <button id="monthEndButton" class="btn btn-primary">Month End</button>
+    <div class="job-controls">
+      <label for="jobPageSize" class="form-label">Jobs per page:</label>
+      <select id="jobPageSize" class="form-select">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+  </div>
 </div>
 
 <div class="kanban-board">
-    {% for status_key, status_label in status_choices %}
-    <div id="{{ status_key }}" class="kanban-column">
-        <div class="column-header">{{ status_label }}</div>
-        <div class="job-list"></div>
-    </div>
-    {% endfor %}
+  {% for status_key, status_label in status_choices %}
+  <div id="{{ status_key }}" class="kanban-column">
+      <div class="column-header">{{ status_label }} (<span id="{{ status_key }}-count">0</span> of <span id="{{ status_key }}-total">0</span>)</div>
+      <div class="job-list"></div>
+      
+      <div id="{{ status_key }}-load-more-container" class="load-more-container mb-2" style="display: none;">
+          <button id="{{ status_key }}-load-more" class="load-more btn btn-secondary" data-status="{{ status_key }}">
+              Load More
+          </button>
+      </div>
+  </div>
+  {% endfor %}  
 </div>
 {% endblock %}
 
