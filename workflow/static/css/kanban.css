@@ -92,23 +92,45 @@ body {
 
 
 .search-container {
-    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 10px 20px;
     background-color: #f4f5f7;
     border-bottom: 1px solid #dfe1e6;
-    position: relative;
-    overflow: hidden; /* Clear floats */
 }
-#monthEndButton {
-    float: right; /* Ensure the button stays on the right */
+
+.job-controls {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.styled-select {
+    padding: 6px 12px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: white;
+    cursor: pointer;
 }
 
 #search {
+    flex-grow: 1;
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid #dfe1e6;
     width: 100%;
     float: left;
     max-width: 300px;
-    padding: 8px;
-    border-radius: 3px;
-    border: 1px solid #dfe1e6;
+}
+
+#monthEndButton {
+    padding: 8px 12px;
+    font-size: 14px;
+    float: right; /* Ensure the button stays on the right */
 }
 
 .job-card-dragging {
@@ -144,4 +166,22 @@ body {
 .kanban-board::-webkit-scrollbar-track,
 .job-list::-webkit-scrollbar-track {
     background: #f4f5f7;
+}
+
+.load-more-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.left-container {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.left-container .btn {
+    max-width: fit-content;
+    white-space: nowrap;
 }

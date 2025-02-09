@@ -43,24 +43,35 @@ def update_job_status(request: HttpRequest, job_id: UUID) -> HttpResponse:
 
 
 def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
-    max_jobs = int(request.GET.get("max_jobs", 10))  # Default to 10 if not provided
-    jobs = Job.objects.filter(status=status)[:max_jobs]
-    total_jobs = Job.objects.filter(status=status).count()
+    try:
+        page = int(request.GET.get("page", 1))
+        page_size = min(int(request.GET.get("page_size", 10)), 100)  # Limits to maximum 100 jobs per page
+        offset = (page - 1) * page_size
 
-    job_data = [
-        {
-            "id": job.id,
-            "name": job.name,
-            "description": job.description,
-            "job_number": job.job_number,
-            "client_name": getattr(
-                job.client, "name", ""
-            ),  # Handle None for client name.  Shouldn't ever happen
-            "contact_person": job.contact_person,  # Add contact person
-            "status": job.get_status_display(),  # Human-readable status
-            "paid": job.paid,  # Paid status
-        }
-        for job in jobs
-    ]
+        total_jobs = Job.objects.filter(status=status).count()  # Total counter
+        jobs = Job.objects.filter(status=status).order_by('-created_at')[offset:offset + page_size]
 
-    return JsonResponse({"jobs": job_data, "total": total_jobs})
+        job_data = [
+            {
+                "id": job.id,
+                "name": job.name,
+                "description": job.description,
+                "job_number": job.job_number,
+                "client_name": job.client.name if job.client else "",
+                "contact_person": job.contact_person,
+                "status": job.get_status_display(),
+                "paid": job.paid,
+            }
+            for job in jobs
+        ]
+
+        return JsonResponse({
+            "jobs": job_data,
+            "total_jobs": total_jobs,
+            "current_page": page,
+            "page_size": page_size,
+            "has_next": (offset + page_size) < total_jobs  # Indicates if there are more jobs to load
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
