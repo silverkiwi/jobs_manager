@@ -1,8 +1,16 @@
+from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
-from django.db import transaction
 
-from workflow.models import AdjustmentEntry, Job, MaterialEntry, TimeEntry, JobPricing, CompanyDefaults
+from workflow.models import (
+    AdjustmentEntry,
+    CompanyDefaults,
+    Job,
+    JobPricing,
+    MaterialEntry,
+    TimeEntry,
+)
+
 
 def archive_and_reset_job_pricing(job_id):
     """Archives current pricing and resets to defaults based on company defaults."""
@@ -23,8 +31,8 @@ def archive_and_reset_job_pricing(job_id):
         # Create new pricing for "estimate"
         estimate_pricing = JobPricing.objects.create(
             job=job,
-            pricing_stage='estimate',
-            pricing_type='time_and_materials',
+            pricing_stage="estimate",
+            pricing_type="time_and_materials",
         )
         estimate_pricing.time_entries.create(
             wage_rate=company_defaults.wage_rate,
@@ -34,19 +42,20 @@ def archive_and_reset_job_pricing(job_id):
         # Create new pricing for "quote"
         quote_pricing = JobPricing.objects.create(
             job=job,
-            pricing_stage='quote',
-            pricing_type='fixed_price',
+            pricing_stage="quote",
+            pricing_type="fixed_price",
         )
         quote_pricing.adjustment_entries.create(
             cost_adjustment=company_defaults.time_markup,
-            price_adjustment=company_defaults.charge_out_rate * company_defaults.time_markup,
+            price_adjustment=company_defaults.charge_out_rate
+            * company_defaults.time_markup,
         )
 
         # Create new pricing for "reality"
         reality_pricing = JobPricing.objects.create(
             job=job,
-            pricing_stage='reality',
-            pricing_type='time_and_materials',
+            pricing_stage="reality",
+            pricing_type="time_and_materials",
         )
         reality_pricing.material_entries.create(
             unit_cost=company_defaults.wage_rate,
@@ -58,6 +67,7 @@ def archive_and_reset_job_pricing(job_id):
         job.latest_quote_pricing = quote_pricing
         job.latest_reality_pricing = reality_pricing
         job.save()
+
 
 def get_job_with_pricings(job_id):
     """Fetches a Job object with all relevant latest JobPricing data,

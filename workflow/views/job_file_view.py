@@ -1,17 +1,18 @@
 import logging
-
-from rest_framework.renderers import JSONRenderer, BaseRenderer
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 import os
+
+from django.http import FileResponse
+from rest_framework import status
+from rest_framework.renderers import BaseRenderer, JSONRenderer
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from jobs_manager import settings
 
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse
 from django.conf import settings
 
-from workflow.models import JobFile, Job
+from workflow.models import Job, JobFile
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +78,16 @@ class JobFileView(APIView):
                     filename=file.name,
                     file_path=relative_path,
                     mime_type=file.content_type,
+                    print_on_jobsheet=True,  # Default to True as per model
                 )
-                uploaded_files.append(job_file.filename)
+                # Match template's file object structure
+                uploaded_files.append(
+                    {
+                        "id": str(job_file.id),
+                        "filename": job_file.filename,
+                        "file_path": job_file.file_path,
+                    }
+                )
                 logger.debug(f"Created JobFile record for {file.name}")
 
             except Exception as e:
@@ -230,3 +239,32 @@ class JobFileView(APIView):
                 "status": "error",
                 "message": "File not found for update"
             }, status=404)
+
+    def delete(self, request, file_path=None):
+        """Delete a job file."""
+        try:
+            # Get the JobFile by ID
+            job_file = JobFile.objects.get(id=file_path)
+
+            # Delete the physical file
+            full_path = os.path.join(
+                settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path
+            )
+            if os.path.exists(full_path):
+                os.remove(full_path)
+
+            # Delete the database record
+            job_file.delete()
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except JobFile.DoesNotExist:
+            return Response(
+                {"status": "error", "message": "File not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            logger.exception(f"Error deleting file {file_path}")
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

@@ -1,22 +1,20 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 
-from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib import messages
 from django.core.cache import cache
-from django.template.loader import render_to_string
-from django.http import JsonResponse, Http404
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import CharField, Func, IntegerField, Value
+from django.db.models.functions import Coalesce, Concat
+from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
-from django.contrib import messages
-from django.db.models import Value, Func, IntegerField, CharField
-from django.db.models.functions import Coalesce, Concat
 
 from workflow.enums import RateType
-from workflow.models import Job, JobPricing, Staff, TimeEntry
-from workflow.forms import TimeEntryForm, PaidAbsenceForm
+from workflow.models import Job, Staff, TimeEntry
 from workflow.serializers.time_entry_serializer import (
     TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
 )
@@ -453,7 +451,10 @@ def autosave_timesheet_view(request):
                     if scheduled_hours < hours:
                         messages.warning(
                             request,
-                            f"Existing timesheet saved successfully, but hours exceed scheduled hours for {target_date}",
+                            (
+                                f"Existing timesheet saved successfully, but hours "
+                                f"exceed scheduled hours for {target_date}"
+                            ),
                         )
                     elif job.status in ["completed", "quoting"]:
                         messages.error(
@@ -462,7 +463,8 @@ def autosave_timesheet_view(request):
                         )
                     else:
                         messages.success(
-                            request, "Existing timesheet saved successfully."
+                            request,
+                            "Existing timesheet saved successfully"
                         )
                     logger.debug("Existing timesheet saved successfully")
 
@@ -526,7 +528,10 @@ def autosave_timesheet_view(request):
                 if scheduled_hours < hours:
                     messages.warning(
                         request,
-                        f"Timesheet created successfully, but hours exceed scheduled hours for today ({target_date})",
+                        (
+                            f"Timesheet created successfully, but hours exceed "
+                            f"scheduled hours for today ({target_date})"
+                        ),
                     )
                 elif job.status in ["completed", "quoting"]:
                     messages.error(

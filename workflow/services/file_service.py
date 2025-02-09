@@ -1,8 +1,10 @@
+import logging
 import mimetypes
 import os
-import logging
-from PIL import Image
+
 from pdf2image import convert_from_path
+from PIL import Image
+
 from workflow.helpers import get_job_folder_path
 
 logger = logging.getLogger(__name__)

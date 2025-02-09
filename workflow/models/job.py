@@ -1,6 +1,4 @@
 import logging
-import mimetypes
-import os
 import uuid
 from datetime import datetime
 from typing import Dict, List
@@ -8,14 +6,15 @@ from typing import Dict, List
 from django.db import models, transaction
 from simple_history.models import HistoricalRecords  # type: ignore
 
-from jobs_manager import settings
+from workflow.enums import JobPricingType
 from workflow.models import CompanyDefaults
-from workflow.models.invoice import Invoice
+from workflow.enums import JobPricingType
 
 # We say . rather than workflow.models to avoid going through init,
 # otherwise it would have a circular import
 from .job_pricing import JobPricing
 from .job_event import JobEvent
+
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +67,10 @@ class Job(models.Model):
     material_gauge_quantity: str = models.TextField(  # type: ignore
         blank=True,
         null=True,
-        help_text="Internal notes such as the material to use.  Not shown on the invoice",
+        help_text=(
+            "Internal notes such as the material to use. "
+            "Not shown on the invoice"
+        ),
     )
     description: str = models.TextField(
         blank=True,
@@ -105,6 +107,13 @@ class Job(models.Model):
             null=False,  # Not nullable because save() ensures a value
             blank=False,  # Should be required in forms too
         )
+    )
+
+    pricing_type = models.CharField(
+        max_length=20,
+        choices=JobPricingType.choices,
+        default=JobPricingType.TIME_AND_MATERIALS,
+        help_text="Type of pricing for the job (fixed price or time and materials).",
     )
 
     # Direct relationships for estimate, quote, reality
@@ -240,7 +249,10 @@ class Job(models.Model):
                 JobEvent.objects.create(
                     job=self,
                     event_type="status_change",
-                    description=f"Job status changed from {original_status} to {self.status}",
+                    description=(
+                        f"Job status changed from {original_status} "
+                        f"to {self.status}"
+                    ),
                     staff=staff,
                 )
 

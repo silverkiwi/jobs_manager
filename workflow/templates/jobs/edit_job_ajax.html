@@ -61,8 +61,7 @@
     </div>
 </div>
 
-<hr />
-
+<hr>
 
 <!-- Attached Files Section -->
 <div class="job-files-section">
@@ -88,6 +87,18 @@
                     </a>
                     <span class="timestamp">({{ file.uploaded_at|date:"Y-m-d H:i" }})</span>
                 </div>
+                <div class="file-controls">
+                    <label class="print-checkbox">
+                        <input type="checkbox"
+                               name="jobfile_{{ file.id }}_print_on_jobsheet"
+                               class="print-on-jobsheet autosave-input"
+                               {% if file.print_on_jobsheet %}checked{% endif %}>
+                        Print on Job Sheet
+                    </label>
+                    <button class="btn btn-sm btn-danger delete-file" data-file-id="{{ file.id }}">
+                        Delete
+                    </button>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -106,7 +117,7 @@
     </div>
 </div>
 
-<hr />
+<hr>
 
 <!-- Workflow Section -->
 {% include "jobs/edit_job_workflow_section.html" %}
@@ -128,11 +139,11 @@
 
 <hr />
 
-<!-- Save/Cancel Buttons -->
-<div class="action-buttons">
-    <button type="button" class="btn btn-secondary" id="printJobButton">Print Job</button>
-    <button class="btn btn-primary" id="closeButton" onclick="window.location.href='/'">Close</button>
-</div>
+    <!-- Save/Cancel Buttons -->
+    <div class="action-buttons">
+        <button type="button" class="btn btn-secondary" id="printWorkshopButton">Print Job Sheet</button>
+        <button class="btn btn-primary" id="closeButton">Close</button>
+    </div>
 {% endblock %}
 
 {% block extra_js %}

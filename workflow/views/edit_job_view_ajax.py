@@ -1,17 +1,17 @@
 import json
 import logging
 
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_http_methods
 
 from workflow.helpers import DecimalEncoder, get_company_defaults
-from workflow.services.file_service import sync_job_folder
 from workflow.models import Job, JobEvent
 from workflow.serializers import JobPricingSerializer, JobSerializer
+from workflow.services.file_service import sync_job_folder
 from workflow.services.job_service import (
+    archive_and_reset_job_pricing,
     get_historical_job_pricings,
     get_job_with_pricings,
     get_latest_job_pricings,
@@ -21,6 +21,7 @@ from workflow.services.job_service import (
 logger = logging.getLogger(__name__)
 DEBUG_JSON = False  # Toggle for JSON debugging
 
+
 def get_company_defaults_api(request):
     """
     API endpoint to fetch company default settings.
@@ -28,13 +29,15 @@ def get_company_defaults_api(request):
     a single instance is retrieved or created if it doesn't exist.
     """
     defaults = get_company_defaults()
-    return JsonResponse({
-        "materials_markup": float(defaults.materials_markup),
-        "time_markup": float(defaults.time_markup),
-        "charge_out_rate": float(defaults.charge_out_rate),
-        "wage_rate": float(defaults.wage_rate),
-    })
-    
+    return JsonResponse(
+        {
+            "materials_markup": float(defaults.materials_markup),
+            "time_markup": float(defaults.time_markup),
+            "charge_out_rate": float(defaults.charge_out_rate),
+            "wage_rate": float(defaults.wage_rate),
+        }
+    )
+
 
 def create_job_view(request):
     return render(request, "jobs/create_job_and_redirect.html")

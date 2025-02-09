@@ -1,23 +1,18 @@
-from django.http import JsonResponse, FileResponse
+import logging
+from io import BytesIO
 
 from django.contrib import messages
 from django.contrib.staticfiles.finders import find
-
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404
-
 from django.views.decorators.csrf import csrf_exempt
-
-from io import BytesIO
-
 from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle
 
 from workflow.models import Job
 from workflow.utils import extract_messages
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +25,8 @@ def collect_pricing_data(pricing):
         job_pricing (JobPricing): The JobPricing instance.
 
     Returns:
-        dict: A dictionary containing structured data for time, material, and adjustment entries.
+        dict: A dictionary containing structured data for time, material,
+            and adjustment entries.
     """
     time_entries = [
         [
@@ -296,7 +292,8 @@ def send_quote_email(request, job_id):
         body = (
             f"Hello {job.client.name if job.client else 'Client'},\n\n"
             f"We are reaching out regarding Job #{job.name}.\n\n"
-            f"Please let us know if you have any questions or require further information.\n\n"
+            f"Please let us know if you have any questions or require "
+            f"further information.\n\n"
             f"Best regards,\nMorris Sheetmetals Works"
             if contact_only
             else f"Please find the attached quote summary for {job.name}."

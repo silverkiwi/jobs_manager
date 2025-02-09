@@ -6,6 +6,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle file selection
     fileInput.addEventListener('change', handleFiles);
 
+    // Handle file deletion
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-file')) {
+            const fileId = e.target.dataset.fileId;
+            if (fileId) {
+                deleteFile(fileId);
+            }
+        }
+    });
+
     // Prevent default drag behaviors
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, preventDefaults, false);
@@ -76,33 +86,79 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function deleteFile(fileId) {
+        if (!confirm('Are you sure you want to delete this file?')) {
+            return;
+        }
+
+        fetch(`/api/job-files/${fileId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Remove the file card from the UI
+                const fileCard = document.querySelector(`.file-card[data-file-id="${fileId}"]`);
+                if (fileCard) {
+                    fileCard.remove();
+                }
+            } else {
+                console.error('Failed to delete file');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
     function updateFileList(newFiles) {
         if (!newFiles || newFiles.length === 0) return;
         const jobNumber = document.getElementById('job_number').value;
 
-        const list = document.querySelector('.job-files-list') || createNewFileList();
+        const grid = document.querySelector('.job-files-grid') || createNewFileGrid();
 
-        newFiles.forEach(filename => {
-            const li = document.createElement('li');
-            li.innerHTML = `
+        newFiles.forEach(file => {
+            // Create card matching template structure
+            const card = document.createElement('div');
+            card.className = 'file-card';
+            card.dataset.fileId = file.id;
+
+            card.innerHTML = `
+                <div class="thumbnail-container no-thumb">
+                    <span class="file-extension">${file.filename}</span>
+                </div>
                 <div class="file-info">
-                    <a href="/api/job-files/Job-${jobNumber}/${filename}" target="_blank">
-                        ${filename}
+                    <a href="/api/job-files/${file.file_path}" target="_blank">
+                        ${file.filename}
                     </a>
                     <span class="timestamp">(Just uploaded)</span>
+                    <div class="file-controls">
+                        <label class="print-checkbox">
+                            <input type="checkbox"
+                                   name="jobfile_${file.id}_print_on_jobsheet"
+                                   class="print-on-jobsheet autosave-input"
+                                   checked>
+                            Print on Job Sheet
+                        </label>
+                        <button class="btn btn-sm btn-danger delete-file" data-file-id="${file.id}">
+                            Delete
+                        </button>
+                    </div>
                 </div>
             `;
-            list.appendChild(li);
+            grid.appendChild(card);
         });
     }
 
-    function createNewFileList() {
+    function createNewFileGrid() {
         const noFilesMsg = document.querySelector('#file-list p');
         if (noFilesMsg) noFilesMsg.remove();
 
-        const ul = document.createElement('ul');
-        ul.className = 'job-files-list';
-        document.querySelector('#file-list').appendChild(ul);
-        return ul;
+        const grid = document.createElement('div');
+        grid.className = 'job-files-grid';
+        document.querySelector('#file-list').appendChild(grid);
+        return grid;
     }
 });

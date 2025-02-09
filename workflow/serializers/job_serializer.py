@@ -2,7 +2,8 @@ import logging
 
 from rest_framework import serializers
 
-from workflow.models import Client, Job
+from workflow.models import Client, Job, JobFile
+from workflow.serializers.job_file_serializer import JobFileSerializer
 from workflow.serializers.job_pricing_serializer import JobPricingSerializer
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ class JobSerializer(serializers.ModelSerializer):
     )
     client_name = serializers.CharField(source="client.name", read_only=True)
     job_status = serializers.CharField(source="status")
+    job_files = JobFileSerializer(source="files", many=True, required=False)
 
     class Meta:
         model = Job
@@ -44,6 +46,9 @@ class JobSerializer(serializers.ModelSerializer):
             "paid",
             "quote_acceptance_date",
             "job_is_valid",
+            "job_files",
+            "charge_out_rate",
+            "pricing_type",
         ]
 
     def validate(self, attrs):
@@ -82,7 +87,39 @@ class JobSerializer(serializers.ModelSerializer):
         logger.debug(f"JobSerializer update called for instance {instance.id}")
         logger.debug(f"Validated data received: {validated_data}")
 
-        # Handle basic job fields first
+        # Handle job files data first
+        files_data = validated_data.pop("files", None)
+        if files_data:
+            for file_data in files_data:
+                try:
+                    job_file = JobFile.objects.get(id=file_data["id"], job=instance)
+                    file_serializer = JobFileSerializer(
+                        instance=job_file,
+                        data=file_data,
+                        partial=True,
+                        context=self.context,
+                    )
+                    if file_serializer.is_valid():
+                        file_serializer.save()
+                    else:
+                        logger.error(
+                            f"JobFile validation failed: {file_serializer.errors}"
+                        )
+                        raise serializers.ValidationError(
+                            {"job_files": file_serializer.errors}
+                        )
+                except JobFile.DoesNotExist:
+                    logger.warning(
+                        (
+                            f"JobFile with id {file_data.get('id')} "
+                            f"not found for job {instance.id}"
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Error updating JobFile: {str(e)}")
+                    raise serializers.ValidationError(f"Error updating file: {str(e)}")
+
+        # Handle basic job fields next
         for attr, value in validated_data.items():
             if attr not in [
                 "latest_estimate_pricing",
@@ -115,7 +152,6 @@ class JobSerializer(serializers.ModelSerializer):
                     context=self.context,
                 )
 
-                # Temporary validation check for debugging
                 if pricing_serializer.is_valid():
                     logger.debug(f"{pricing_type} serializer is valid")
                     pricing_serializer.save()
@@ -130,7 +166,7 @@ class JobSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {pricing_type: pricing_serializer.errors}
                     )
-                
+
         staff = self.context["request"].user if "request" in self.context else None
         instance.save(staff=staff)
         return instance
