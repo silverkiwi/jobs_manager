@@ -528,11 +528,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 headerName: 'Total Minutes',
                 field: 'total_minutes',
                 editable: false,
-                minWidth: 110,
-                flex: 1
+                valueFormatter: (params) => {
+                    if (params.value !== undefined && params.value !== null) {
+                        const totalMinutes = parseFloat(params.value) || 0;
+                        const decimalHours = (totalMinutes / 60).toFixed(1);
+                        return `${totalMinutes} (${decimalHours} hours)`;
+                    }
+                    return '0 (0.0 hours)';
+                },
+                valueParser: (params) => {
+                    return parseFloat(params.newValue) || 0;
+                },
             },
-
-            // Made the following hidden and non-editable, as requested in this card: https://trello.com/c/G6gaunS1
             {
                 headerName: 'Wage Rate',
                 field: 'wage_rate',
