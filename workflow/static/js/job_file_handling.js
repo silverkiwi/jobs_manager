@@ -11,7 +11,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.classList.contains('delete-file')) {
             const fileId = e.target.dataset.fileId;
             if (fileId) {
+                console.log('Delete button clicked for file ID:', fileId);
                 deleteFile(fileId);
+            } else {
+                console.warn('Delete button clicked but no file ID found');
             }
         }
     });
@@ -91,6 +94,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        console.log(`Attempting to delete file with ID: ${fileId}`);
+
         fetch(`/api/job-files/${fileId}`, {
             method: 'DELETE',
             headers: {
@@ -99,17 +104,23 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => {
             if (response.ok) {
+                console.log(`Successfully deleted file with ID: ${fileId}`);
+
                 // Remove the file card from the UI
-                const fileCard = document.querySelector(`.file-card[data-file-id="${fileId}"]`);
+                // Using closest() to find the parent file-card element from the delete button
+                const fileCard = document.querySelector(`[data-file-id="${fileId}"]`).closest('.file-card');
                 if (fileCard) {
                     fileCard.remove();
+                    console.log('File card removed from UI');
+                } else {
+                    console.log('File card not found in UI');
                 }
             } else {
-                console.error('Failed to delete file');
+                console.error(`Failed to delete file with ID: ${fileId}. Status: ${response.status}`);
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Error deleting file:', error);
         });
     }
 
