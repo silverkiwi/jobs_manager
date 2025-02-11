@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Adicionar evento para os botões "Load More"
+    // Add event for "Load More" buttons
     document.querySelectorAll('.load-more').forEach(button => {
         button.addEventListener('click', function () {
             const status = this.getAttribute('data-status');
@@ -55,6 +55,9 @@ function fetchStatusValues() {
                 currentPage[status] = 1;
                 loadJobs(status, true);
             });
+
+            // After loading statuses, initialize drag and drop functionality
+            initializeDragAndDrop();
         })
         .catch(error => console.error('Error fetching status values:', error));
 }
@@ -82,6 +85,9 @@ function loadJobs(status, reset = false) {
             totalDisplay.textContent = data.total_jobs;
 
             loadMoreContainer.style.display = data.has_next ? 'flex' : 'none';
+
+            // Reinitialize SortableJS after loading new jobs
+            initializeDragAndDrop();
         })
         .catch(error => console.error(`Error fetching ${status} jobs:`, error));
 }
@@ -99,6 +105,37 @@ function createJobCard(job) {
         <p>${job.description ?? ''}</p>
     `;
     return card;
+}
+
+// Initialize SortableJS to allow moving jobs between columns
+function initializeDragAndDrop() {
+    document.querySelectorAll('.job-list').forEach(container => {
+        new Sortable(container, {
+            group: 'shared',
+            animation: 150,
+            ghostClass: 'job-card-ghost',
+            chosenClass: 'job-card-chosen',
+            dragClass: 'job-card-drag',
+            onEnd: function (evt) {
+                const itemEl = evt.item;
+                const oldStatus = evt.from.closest('.kanban-column').id;
+                const newStatus = evt.to.closest('.kanban-column').id;
+                const jobId = itemEl.getAttribute('data-id');
+
+                if (!oldStatus || !newStatus || oldStatus === newStatus) {
+                    return;
+                }
+
+                console.log(`Job ${jobId} moved from ${oldStatus} to ${newStatus}`);
+
+                updateJobStatus(jobId, newStatus);
+
+                // Update affected column counters
+                updateColumnHeader(oldStatus);
+                updateColumnHeader(newStatus);
+            }
+        });
+    });
 }
 
 function updateJobStatus(jobId, newStatus) {
@@ -119,6 +156,19 @@ function updateJobStatus(jobId, newStatus) {
     .catch(error => {
         console.error('Error updating job status:', error);
     });
+}
+
+function updateColumnHeader(status) {
+    const column = document.getElementById(status);
+    if (!column) {
+        console.error(`Column not found for status: ${status}`);
+        return;
+    }
+
+    const jobCards = column.querySelectorAll('.job-card');
+    const countDisplay = document.querySelector(`#${status}-count`);
+
+    countDisplay.textContent = jobCards.length;
 }
 
 function filterJobs() {
