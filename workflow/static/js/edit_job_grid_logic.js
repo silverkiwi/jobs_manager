@@ -830,10 +830,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 deleteXeroDocument(jobId, 'invoice');
                 break;
 
-            case 'printJobButton':
-                handlePrintJob();
-                break;
-
             case 'acceptQuoteButton':
                 const currentDateTimeISO = new Date().toISOString();
                 document.getElementById('quote_acceptance_date_iso').value = currentDateTimeISO;

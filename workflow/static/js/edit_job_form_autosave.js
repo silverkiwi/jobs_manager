@@ -469,7 +469,7 @@ function addGridToPDF(doc, title, rowData, startY) {
 
 async function handlePDF(pdfBlob, mode, jobData) {
     const pdfURL = URL.createObjectURL(pdfBlob);
-    const pdfFileName = `${jobData.name}.pdf`
+    const pdfFileName = `JobSummary.pdf`
 
     switch (mode) {
         case 'upload':
@@ -480,7 +480,7 @@ async function handlePDF(pdfBlob, mode, jobData) {
 
                 const formData = new FormData();
                 formData.append('job_number', jobData.job_number);
-                formData.append('files', new File([pdfBlob], `${jobData.name}.pdf`, { type: 'application/pdf' }));
+                formData.append('files', new File([pdfBlob], pdfFileName, { type: 'application/pdf' }));
                 console.log('FormData created with job number and PDF file');
 
                 const fetchOptions = {
@@ -669,7 +669,7 @@ export function handlePrintJob() {
 
         exportJobToPDF(collectedData)
             .then((pdfBlob) => {
-                handlePDF(pdfBlob, 'preview', collectedData);
+                handlePDF(pdfBlob, 'upload', collectedData);
                 isGeneratingPDF = false;
             })
             .catch((error) => {
@@ -827,19 +827,25 @@ async function handleClose() {
             body: JSON.stringify(collectedData),
         });
 
-        // 2. Generate PDF and save to job files (which are in the Dropbox folder)
+        // 2. Generate PDF
         const pdfBlob = await exportJobToPDF(collectedData);
+
+        // 3. Check if JobSummary.pdf already exists
+        const fileExists = await checkExistingJobFile(collectedData.job_number, 'JobSummary.pdf');
+
+        // 4. Prepare form data
         const formData = new FormData();
         formData.append('job_number', collectedData.job_number);
         formData.append('files', new File([pdfBlob], 'JobSummary.pdf', { type: 'application/pdf' }));
 
+        // 5. Upload or update the JobSummary.pdf
         await fetch('/api/job-files/', {
-            method: 'POST',
+            method: fileExists ? 'PUT' : 'POST',  // PUT if exists, POST if not
             headers: { 'X-CSRFToken': getCsrfToken() },
             body: formData
         });
 
-        // 3. Redirect back to kanban
+        // 6. Redirect back to kanban
         window.location.href = '/';
     } catch (error) {
         console.error('Error during close process:', error);
