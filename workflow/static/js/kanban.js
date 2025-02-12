@@ -102,8 +102,38 @@ function createJobCard(job) {
     card.setAttribute('data-job-number', job.job_number);
     card.innerHTML = `
         <h3><a href="/job/${job.id}/">Job ${job.job_number}: ${job.name}</a></h3>
-        <p>${job.description ?? ''}</p>
+        
     `;
+
+    // Tooltip container (Hidden initially)
+    let tooltip = document.createElement('div');
+    tooltip.className = 'job-tooltip';
+    tooltip.textContent = job.description;
+    tooltip.style.display = 'none';
+
+    // Append tooltip to document body (so it floats near cursor)
+    document.body.appendChild(tooltip);
+
+    // Show tooltip on hover
+    card.addEventListener('mouseenter', (event) => {
+        if (job.description) {
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${event.pageX + 10}px`;
+            tooltip.style.top = `${event.pageY + 10}px`;
+        }
+    });
+
+    // Move tooltip with cursor
+    card.addEventListener('mousemove', (event) => {
+        tooltip.style.left = `${event.pageX + 10}px`;
+        tooltip.style.top = `${event.pageY + 10}px`;
+    });
+
+    // Hide tooltip on mouse leave
+    card.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+    });
+    
     return card;
 }
 
