@@ -189,7 +189,7 @@ async function fetchImageAsBase64(url) {
         const blob = await response.blob();
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result); // Base64 da imagem
+            reader.onloadend = () => resolve(reader.result);
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
@@ -639,14 +639,6 @@ export async function handlePrintWorkshop() {
         alert(`Error printing: ${error.message}`);
     }
 }
-
-// Add event listeners for print buttons
-document.addEventListener('DOMContentLoaded', function () {
-    const printWorkshopButton = document.getElementById('printWorkshopButton');
-    if (printWorkshopButton) {
-        printWorkshopButton.addEventListener('click', handlePrintWorkshop);
-    }
-});
 
 let isGeneratingPDF = false;
 

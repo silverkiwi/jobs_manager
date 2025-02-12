@@ -31,7 +31,7 @@
  */
 
 import { createNewRow, getGridData } from '/static/js/deseralise_job_pricing.js';
-import { handlePrintJob, handleExportCosts, debouncedAutosave, copyEstimateToQuote, collectAllData } from './edit_job_form_autosave.js';
+import { handlePrintJob, handleExportCosts, debouncedAutosave, copyEstimateToQuote, collectAllData, handlePrintWorkshop } from './edit_job_form_autosave.js';
 import { renderMessages } from './timesheet/timesheet_entry/messages.js';
 
 // console.log('Grid logic script is running');
@@ -843,6 +843,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             case 'saveEventButton':
                 handleSaveEventButtonClick(jobId);
+                break;
+            
+            case 'printWorkshopButton':
+                handlePrintWorkshop();
                 break;
 
             default:
