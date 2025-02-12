@@ -11,7 +11,6 @@ from workflow.models import Job, JobEvent
 from workflow.serializers import JobPricingSerializer, JobSerializer
 from workflow.services.file_service import sync_job_folder
 from workflow.services.job_service import (
-    archive_and_reset_job_pricing,
     get_historical_job_pricings,
     get_job_with_pricings,
     get_latest_job_pricings,
