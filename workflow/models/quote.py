@@ -9,7 +9,9 @@ from workflow.enums import QuoteStatus
 class Quote(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     xero_id = models.UUIDField(unique=True)
-    job = models.OneToOneField("Job", on_delete=models.CASCADE, related_name="quote", null=True, blank=True)
+    job = models.OneToOneField(
+        "Job", on_delete=models.CASCADE, related_name="quote", null=True, blank=True
+    )
     client = models.ForeignKey("Client", on_delete=models.CASCADE)
     date = models.DateField()
     status = models.CharField(

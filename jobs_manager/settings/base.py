@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from concurrent_log_handler import ConcurrentRotatingFileHandler
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -219,4 +220,25 @@ XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID", "")
 XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET", "")
 XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI", "")
 
-DROPBOX_WORKFLOW_FOLDER = os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow")
+DROPBOX_WORKFLOW_FOLDER = os.getenv('DROPBOX_WORKFLOW_FOLDER', os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow"))
+
+def validate_required_settings():
+    """Validate that all required settings are properly configured."""
+    required_settings = {
+        'SECRET_KEY': SECRET_KEY,
+        'DROPBOX_WORKFLOW_FOLDER': DROPBOX_WORKFLOW_FOLDER,
+        'XERO_CLIENT_ID': XERO_CLIENT_ID,
+        'XERO_CLIENT_SECRET': XERO_CLIENT_SECRET,
+        'XERO_REDIRECT_URI': XERO_REDIRECT_URI,
+    }
+    
+    missing_settings = [key for key, value in required_settings.items() if not value]
+    
+    if missing_settings:
+        raise ImproperlyConfigured(
+            f"The following required settings are missing or empty: {', '.join(missing_settings)}\n"
+            f"Please check your .env file and ensure all required settings are configured."
+        )
+
+# Validate required settings after all settings are loaded
+validate_required_settings()

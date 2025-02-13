@@ -59,25 +59,62 @@ Morris Sheetmetal Works is a small jobbing shop specializing in custom metal fab
 
 - Job-level profitability analysis.
 - Efficiency tracking for individual staff members.
-- Insights into quoting accuracy (e.g., time spent quoting jobs that don’t materialize).
+- Insights into quoting accuracy (e.g., time spent quoting jobs that don't materialize).
+
+---
+
+## **Technical Documentation**
+
+### **Settings Module**
+
+This project uses a **modular settings** approach under the `settings/` directory:
+
+- `base.py` - Base settings shared across environments
+- `local.py` - Development settings with debug tools (includes ngrok)
+- `production_like.py` - Settings for things like gunicorn, backups, security.
+
+By default, Django loads `settings/__init__.py`, which imports either `local` or `production_like` depending on the environment variable `DJANGO_ENV`:
+
+- **Local development**: `DJANGO_ENV=local` (default)
+- **Integration mode**: `DJANGO_ENV=production_like` (requires Redis/Celery)
+
+Note: production_like.py enables Xero/Dropbox integration but requires additional services:
+- Redis for caching
+- Celery for background tasks
+- Stricter security settings
+
+### **Installation and Updates**
+
+- For first-time installation instructions, see [initial_install.md](initial_install.md)
+- For updating an existing installation, see [updating.md](updating.md)
 
 ---
 
 ## **Typical Workflow**
 
 1. **Initial Contact**: Customer describes the problem.
-2. **Quoting & Estimation**:
-    - Quotes Manager estimates work and provides a formal quote.
+2. **Estimation**: 
+    - GM, quotes manager or similar describes the job 
+    - Then they estimate the size of the job.
+    - It can either be a simple estimate (time estimate + materials estimate + any adjustments)
+    - or more complex with time/materials/adjustments broken out
+2. **Quoting**:
+    - If the customer wants a formal quote then you copy the estimate to a quote 
+    - Adjust the quote as appropriate, e.g. adding contingency
     - Customer approves the quote.
 3. **Production**:
+    - The job sheet is printed and handed to the staff member who will work on the job.
     - Jobs are tracked using a Kanban board.
-    - Staff record their daily hours for each job.
-4. **Materials Management**:
-    - Materials are ordered or used from inventory.
-    - Costs are added to the job and billed to the customer.
-5. **Completion & Invoicing**:
+    - Staff record their daily hours for each job using a paper time card
+3. **Time Sheets**:
+    - Every day you collect the staff time cards and enter them
+    - Check for whether it looks sensible, e.g. total and billable hours
+    - Use this opportunity to track progress on each job against the estimate
+5. **Materials Management**:
+    - Enter materials used on a job directly on the job form (this will change in the future).
+6. **Completion & Invoicing**:
     - Jobs are marked as complete.
-    - Customers are billed, and staff hours are logged for payroll.
+    - Customers are billed.
 
 ---
 
