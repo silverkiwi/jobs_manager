@@ -658,9 +658,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                 col.cellRenderer = timeGridOptions.columnDefs.find(c => c.field === 'link').cellRenderer;
                             }
                         });
+                        specificGridOptions.columnDefs = specificGridOptions.columnDefs.filter(col => col.field !== '');
                         break;
                     }
-                    specificGridOptions = JSON.parse(JSON.stringify(timeGridOptions));
+                    specificGridOptions = { ...timeGridOptions }; // Now using shallow copying to keep the renderer functions
+                    
                     // Hide link column for estimate and quote sections
                     specificGridOptions.columnDefs = specificGridOptions.columnDefs.map(col => {
                         if (col.field === 'link') {
