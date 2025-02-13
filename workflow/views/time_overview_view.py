@@ -8,6 +8,7 @@ from decimal import Decimal
 # matplotlib.use('Agg') must be called before importing matplotlib.pyplot
 # This configures matplotlib to work without a GUI backend
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from django.contrib import messages

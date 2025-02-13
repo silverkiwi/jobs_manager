@@ -8,23 +8,22 @@ from simple_history.models import HistoricalRecords  # type: ignore
 
 from workflow.enums import JobPricingType
 from workflow.models import CompanyDefaults
-from workflow.enums import JobPricingType
 
 # We say . rather than workflow.models to avoid going through init,
 # otherwise it would have a circular import
-from .job_pricing import JobPricing
 from .job_event import JobEvent
+from .job_pricing import JobPricing
 
 
 logger = logging.getLogger(__name__)
 
 
 class Job(models.Model):
-    name = models.CharField(max_length=100, null=False, blank=False)  # type: ignore
+    name: str = models.CharField(max_length=100, null=False, blank=False)
 
     id: uuid.UUID = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
-    )  # type: ignore
+    )
 
     JOB_STATUS_CHOICES: List[tuple[str, str]] = [
         ("quoting", "Quoting"),
@@ -54,11 +53,11 @@ class Job(models.Model):
         null=True,
         related_name="jobs",  # Allows reverse lookup of jobs for a client
     )
-    order_number: str = models.CharField(
+    order_number: str | None = models.CharField(
         max_length=100, null=True, blank=True
-    )  # type: ignore
-    contact_person: str = models.CharField(max_length=100)  # type: ignore
-    contact_phone: str = models.CharField(  # type: ignore
+    )
+    contact_person: str = models.CharField(max_length=100)
+    contact_phone: str | None = models.CharField(
         max_length=15,
         null=True,
         blank=True,
@@ -68,8 +67,7 @@ class Job(models.Model):
         blank=True,
         null=True,
         help_text=(
-            "Internal notes such as the material to use. "
-            "Not shown on the invoice"
+            "Internal notes such as the material to use. " "Not shown on the invoice"
         ),
     )
     description: str = models.TextField(

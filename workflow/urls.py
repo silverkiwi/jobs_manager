@@ -71,9 +71,7 @@ urlpatterns = [
     ),
     path("api/job-files/", JobFileView.as_view(), name="job-files"),  # For POST/upload
     path(
-        "api/job-files/<int:job_number>",
-        JobFileView.as_view(), 
-        name="get-job-file"
+        "api/job-files/<int:job_number>", JobFileView.as_view(), name="get-job-file"
     ),  # To check if file already exists
     path(
         "api/job-files/<path:file_path>", JobFileView.as_view(), name="serve-job-file"
@@ -106,17 +104,17 @@ urlpatterns = [
     path(
         "api/xero/delete_invoice/<uuid:job_id>",
         xero_view.delete_xero_invoice,
-        name="delete_invoice"
+        name="delete_invoice",
     ),
     path(
         "api/xero/create_quote/<uuid:job_id>",
         xero_view.create_xero_quote,
         name="create_quote",
     ),
-        path(
+    path(
         "api/xero/delete_quote/<uuid:job_id>",
         xero_view.delete_xero_quote,
-        name="delete_quote"
+        name="delete_quote",
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),

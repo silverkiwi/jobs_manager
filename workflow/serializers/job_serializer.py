@@ -21,7 +21,9 @@ class JobSerializer(serializers.ModelSerializer):
     )
     client_name = serializers.CharField(source="client.name", read_only=True)
     job_status = serializers.CharField(source="status")
-    job_files = JobFileSerializer(source="files", many=False, required=False) # To prevent conflicts with PUTTING only one file
+    job_files = JobFileSerializer(
+        source="files", many=False, required=False
+    )  # To prevent conflicts with PUTTING only one file
 
     class Meta:
         model = Job

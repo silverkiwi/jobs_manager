@@ -32,7 +32,6 @@ def archive_and_reset_job_pricing(job_id):
         estimate_pricing = JobPricing.objects.create(
             job=job,
             pricing_stage="estimate",
-
         )
         estimate_pricing.time_entries.create(
             wage_rate=company_defaults.wage_rate,

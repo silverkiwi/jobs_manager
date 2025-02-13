@@ -145,7 +145,11 @@ def sync_xero_data(
 
 
 def get_last_modified_time(model):
-    """Fetch the latest 'last_modified' from the given model, or default to a far past date."""
+    """
+    Fetch the latest 'last_modified' from the given model, or default to a far past date.
+    We use this to see what needs to sync to Xero.  Anything newer than this in Xero
+    needs to be synced to us
+    """
     last_modified_time = model.objects.aggregate(models.Max("xero_last_modified"))[
         "xero_last_modified__max"
     ]
@@ -328,7 +332,7 @@ def sync_credit_notes(notes):
         dirty_raw_json = serialise_xero_object(note_data)
         raw_json = clean_raw_json(dirty_raw_json)
         note_number = raw_json["_credit_note_number"]
-        
+
         # Retrieve the client for the credit note
         client = Client.objects.filter(
             xero_contact_id=note_data.contact.contact_id
@@ -513,7 +517,7 @@ def sync_quotes(quotes):
         if not client:
             logger.warning(f"Client not found for quote {xero_id}")
             continue
-        
+
         quote, created = Quote.objects.update_or_create(
             xero_id=xero_id,
             defaults={
@@ -529,7 +533,9 @@ def sync_quotes(quotes):
             },
         )
 
-        logger.info(f"{'New' if created else 'Updated'} quote: {quote.xero_id} for client {client.name}")
+        logger.info(
+            f"{'New' if created else 'Updated'} quote: {quote.xero_id} for client {client.name}"
+        )
 
 
 def sync_client_to_xero(client):

@@ -1,15 +1,14 @@
 import logging
 import os
 
-from django.http import FileResponse
+from django.http import FileResponse, JsonResponse
 from rest_framework import status
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from jobs_manager import settings
-
-from django.http import FileResponse, JsonResponse
+# Use django.conf.settings to access the fully configured Django settings
+# This ensures we get settings after all imports and env vars are processed
 from django.conf import settings
 
 from workflow.models import Job, JobFile
@@ -134,10 +133,13 @@ class JobFileView(APIView):
         if not job_files.exists():
             return Response([], status=status.HTTP_200_OK)
 
-        return Response([
-            {"filename": file.filename, "file_path": file.file_path}
-            for file in job_files
-        ], status=status.HTTP_200_OK)
+        return Response(
+            [
+                {"filename": file.filename, "file_path": file.file_path}
+                for file in job_files
+            ],
+            status=status.HTTP_200_OK,
+        )
 
     def _get_by_path(self, file_path):
         """
@@ -155,11 +157,14 @@ class JobFileView(APIView):
             response = FileResponse(open(full_path, "rb"))
 
             import mimetypes
+
             content_type, _ = mimetypes.guess_type(full_path)
             if content_type:
                 response["Content-Type"] = content_type
 
-            response["Content-Disposition"] = f'inline; filename="{os.path.basename(file_path)}"'
+            response["Content-Disposition"] = (
+                f'inline; filename="{os.path.basename(file_path)}"'
+            )
             return response
         except Exception as e:
             logger.exception(f"Error serving file {file_path}")
@@ -170,7 +175,7 @@ class JobFileView(APIView):
 
     def get(self, request, file_path=None, job_number=None):
         """
-        Based on the request, serve a file for download or return the file list of the job. 
+        Based on the request, serve a file for download or return the file list of the job.
         """
         if job_number:
             return self._get_by_number(job_number)
@@ -178,32 +183,33 @@ class JobFileView(APIView):
             return self._get_by_path(file_path)
         else:
             return Response(
-                {"status": "error", "message": "Invalid request, provide file_path or job_number"},
+                {
+                    "status": "error",
+                    "message": "Invalid request, provide file_path or job_number",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
     def put(self, request):
         """
         Updates an existing file.
         """
         logger.debug("Processing PUT request to update file")
-        
+
         job_number = request.data.get("job_number")
         if not job_number:
             logger.error("Job number not provided in request")
-            return Response({
-                "status": "error", 
-                "message": "Job number is required"
-            }, status=400)
-        
+            return Response(
+                {"status": "error", "message": "Job number is required"}, status=400
+            )
+
         file_obj = request.FILES.get("files")
         if not file_obj:
             logger.error("No file provided in request")
-            return JsonResponse({
-                "status": "error",
-                "message": "No file provided"
-            }, status=400)
-        
+            return JsonResponse(
+                {"status": "error", "message": "No file provided"}, status=400
+            )
+
         try:
             job = Job.objects.get(job_number=job_number)
             logger.debug(f"Found job with number {job_number}")
@@ -214,7 +220,9 @@ class JobFileView(APIView):
         existing_files = JobFile.objects.filter(job=job, filename=file_obj.name)
         if existing_files.exists():
             job_file = existing_files.first()
-            file_path = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path)
+            file_path = os.path.join(
+                settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path
+            )
             logger.debug(f"Found existing file at path: {file_path}")
 
             try:
@@ -223,22 +231,23 @@ class JobFileView(APIView):
                         destination.write(chunk)
                 logger.info(f"Successfully updated file: {file_path}")
 
-                return Response({
-                    "status": "success",
-                    "message": "File updated successfully"
-                }, status=200)
+                return Response(
+                    {"status": "success", "message": "File updated successfully"},
+                    status=200,
+                )
             except Exception as e:
                 logger.exception(f"Error updating file {file_path}: {str(e)}")
-                return Response({
-                    "status": "error",
-                    "message": f"Error updating file: {str(e)}"
-                }, status=500)
+                return Response(
+                    {"status": "error", "message": f"Error updating file: {str(e)}"},
+                    status=500,
+                )
         else:
-            logger.error(f"No existing file found for job {job_number} with name {file_obj.name}")
-            return Response({
-                "status": "error",
-                "message": "File not found for update"
-            }, status=404)
+            logger.error(
+                f"No existing file found for job {job_number} with name {file_obj.name}"
+            )
+            return Response(
+                {"status": "error", "message": "File not found for update"}, status=404
+            )
 
     def delete(self, request, file_path=None):
         """Delete a job file."""
