@@ -127,7 +127,7 @@ class JobFileView(APIView):
 
         return Response(
             [
-                {"filename": file.filename, "file_path": file.file_path}
+                {"filename": file.filename, "file_path": file.file_path, "id": file.id}
                 for file in job_files
             ],
             status=status.HTTP_200_OK,
