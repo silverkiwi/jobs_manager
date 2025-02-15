@@ -1,4 +1,5 @@
 import { createNewRow } from '/static/js/deseralise_job_pricing.js';
+import { uploadJobFile, checkExistingJobFile } from '/static/js/job_file_handling.js';
 
 let dropboxToken = null;
 
@@ -22,17 +23,13 @@ export function collectAllData() {
         let value;
         if (element.type === 'checkbox') {
             value = element.checked;
-            // Special handling for job file print_on_jobsheet checkboxes
             if (element.classList.contains('print-on-jobsheet')) {
-                // Extract file ID from the name attribute (jobfile_<id>_print_on_jobsheet)
-                const fileId = element.name.split('_')[1];
+                const fileId = element.name.match(/jobfile_([a-f0-9-]+)_print_on_jobsheet/)[1];
                 if (!data.job_files) {
                     data.job_files = {};
                 }
-                data.job_files[fileId] = {
-                    print_on_jobsheet: value
-                };
-                return; // Skip adding this to the main data object
+                data.job_files[fileId] = { print_on_jobsheet: value };
+                return; // Skip adding this checkbox to the main data object
             }
         } else {
             value = element.value.trim() === "" ? null : element.value;
@@ -478,25 +475,8 @@ async function handlePDF(pdfBlob, mode, jobData) {
                 const fileExists = await checkExistingJobFile(jobData.job_number, pdfFileName);
                 console.log('File exists check result:', fileExists);
 
-                const formData = new FormData();
-                formData.append('job_number', jobData.job_number);
-                formData.append('files', new File([pdfBlob], pdfFileName, { type: 'application/pdf' }));
-                console.log('FormData created with job number and PDF file');
+                await uploadJobFile(jobData.job_number, new File([pdfBlob], pdfFileName, { type: 'application/pdf' }), fileExists ? 'PUT' : 'POST');
 
-                const fetchOptions = {
-                    method: fileExists ? 'PUT' : 'POST',
-                    headers: { 'X-CSRFToken': getCsrfToken() },
-                    body: formData
-                };
-                console.log('Using HTTP method:', fetchOptions.method);
-
-                const response = await fetch(`/api/job-files/`, fetchOptions);
-                console.log('Upload response status:', response.status);
-                
-                if (!response.ok) {
-                    console.error('Upload failed with status:', response.status);
-                    throw new Error(`Failed to upload/update PDF for Job ${jobData.job_number}`);
-                }
                 console.log('PDF upload completed successfully');
             } catch (error) {
                 console.error('Error during file upload:', error);
@@ -519,26 +499,6 @@ async function handlePDF(pdfBlob, mode, jobData) {
             break;
         default:
             throw new Error(`Unsupported mode: ${mode}`);
-    }
-}
-
-async function checkExistingJobFile(jobNumber, fileName) {
-    try {
-        console.log(`Checking for existing job file: ${jobNumber} / ${fileName}`);
-        const response = await fetch(`/api/job-files/${jobNumber}`);
-        if (!response.ok) {
-            console.log('Response not OK when checking job files');
-            return false;
-        }
-
-        const files = await response.json();
-        console.log('Retrieved files:', files);
-        const exists = files.some(file => file.filename === fileName);
-        console.log(`File ${fileName} exists: ${exists}`);
-        return exists;
-    } catch (error) {
-        console.error('Error checking existing job file:', error);
-        return false;
     }
 }
 
@@ -809,6 +769,8 @@ async function handleClose() {
             return;
         }
 
+        console.log('Collected data before closing:', collectedData);
+
         // Save and wait for completion
         await fetch('/api/autosave-job/', {
             method: 'POST',
@@ -822,22 +784,11 @@ async function handleClose() {
         // 2. Generate PDF
         const pdfBlob = await exportJobToPDF(collectedData);
 
-        // 3. Check if JobSummary.pdf already exists
+        // 3. Check if JobSummary.pdf already exists and upload/update accordingly
         const fileExists = await checkExistingJobFile(collectedData.job_number, 'JobSummary.pdf');
+        await uploadJobFile(collectedData.job_number, new File([pdfBlob], 'JobSummary.pdf', { type: 'application/pdf' }), fileExists ? 'PUT' : 'POST');
 
-        // 4. Prepare form data
-        const formData = new FormData();
-        formData.append('job_number', collectedData.job_number);
-        formData.append('files', new File([pdfBlob], 'JobSummary.pdf', { type: 'application/pdf' }));
-
-        // 5. Upload or update the JobSummary.pdf
-        await fetch('/api/job-files/', {
-            method: fileExists ? 'PUT' : 'POST',  // PUT if exists, POST if not
-            headers: { 'X-CSRFToken': getCsrfToken() },
-            body: formData
-        });
-
-        // 6. Redirect back to kanban
+        // 4. Redirect back to kanban
         window.location.href = '/';
     } catch (error) {
         console.error('Error during close process:', error);

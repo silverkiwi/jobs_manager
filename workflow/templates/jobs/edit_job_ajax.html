@@ -34,10 +34,12 @@
             Quote Job
         </button>
         <a {% if not quoted %} style="display: none" {% endif %}
-            href="{% if quote_url %}{{ quote_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info mt-3" id="quoteUrl">
+            href="{% if quote_url %}{{ quote_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info mt-3"
+            id="quoteUrl">
             Go to Quote on Xero
         </a>
-        <button {% if not quoted %} style="display: none" {% endif %} type="button" class="btn btn-danger mt-3" id="deleteQuoteButton">
+        <button {% if not quoted %} style="display: none" {% endif %} type="button" class="btn btn-danger mt-3"
+            id="deleteQuoteButton">
             Delete Xero Quote
         </button>
     </div>
@@ -70,6 +72,7 @@
         {% if job_files %}
         <div class="job-files-grid">
             {% for file in job_files %}
+            {% if file.filename != 'JobSummary.pdf' %}
             <div class="file-card">
                 {% if file.thumbnail_path %}
                 <div class="thumbnail-container">
@@ -78,7 +81,7 @@
                 </div>
                 {% else %}
                 <div class="thumbnail-container no-thumb">
-                    <span class="file-extension">{{ file.filename|filesizeformat }}</span>
+                    <span class="file-extension">{% if file.size == 0 %}Very small{% else %}{{ file.size|filesizeformat }}{% endif %}</span>                
                 </div>
                 {% endif %}
                 <div class="file-info">
@@ -89,10 +92,8 @@
                 </div>
                 <div class="file-controls">
                     <label class="print-checkbox">
-                        <input type="checkbox"
-                               name="jobfile_{{ file.id }}_print_on_jobsheet"
-                               class="print-on-jobsheet autosave-input"
-                               {% if file.print_on_jobsheet %}checked{% endif %}>
+                        <input type="checkbox" name="jobfile_{{ file.id }}_print_on_jobsheet" data-file-id="{{ file.id }}"
+                            class="print-on-jobsheet" {% if file.print_on_jobsheet %}checked{% endif %}>
                         Print on Job Sheet
                     </label>
                     <button class="btn btn-sm btn-danger delete-file" data-file-id="{{ file.id }}">
@@ -100,6 +101,7 @@
                     </button>
                 </div>
             </div>
+            {% endif %}
             {% endfor %}
         </div>
         {% else %}
@@ -139,11 +141,11 @@
 
 <hr />
 
-    <!-- Save/Cancel Buttons -->
-    <div class="action-buttons">
-        <button type="button" class="btn btn-secondary" id="printWorkshopButton">Print Job Sheet</button>
-        <button class="btn btn-primary" id="closeButton">Close</button>
-    </div>
+<!-- Save/Cancel Buttons -->
+<div class="action-buttons">
+    <button type="button" class="btn btn-secondary" id="printWorkshopButton">Print Job Sheet</button>
+    <button class="btn btn-primary" id="closeButton">Close</button>
+</div>
 {% endblock %}
 
 {% block extra_js %}
