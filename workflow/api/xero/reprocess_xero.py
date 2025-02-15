@@ -92,16 +92,14 @@ def set_invoice_or_bill_fields(document, document_type):
 
     # Determine which line item model to use
     LineItemModel = (
-        InvoiceLineItem if is_invoice
-        else BillLineItem if is_bill
-        else CreditNoteLineItem if is_credit_note
-        else None
+        InvoiceLineItem
+        if is_invoice
+        else BillLineItem if is_bill else CreditNoteLineItem if is_credit_note else None
     )
     document_field = (
-        "invoice" if is_invoice
-        else "bill" if is_bill
-        else "credit_note" if is_credit_note
-        else None
+        "invoice"
+        if is_invoice
+        else "bill" if is_bill else "credit_note" if is_credit_note else None
     )
 
     for line_item_data in line_items_data:
@@ -146,8 +144,8 @@ def set_invoice_or_bill_fields(document, document_type):
         )
         # print(f"{'Created' if created else 'Updated'} Line Item: "
         #       f"Amount Excl. Tax: {line_item.line_amount_excl_tax}, "
-        #       f"Tax Amount: {line_item.tax_amount}, Total Incl. Tax: {line_item.line_amount_incl_tax}")
-
+        #       f"Tax Amount: {line_item.tax_amount}, "
+        #       f"Total Incl. Tax: {line_item.line_amount_incl_tax}")
 
 def set_client_fields(client, new_from_xero=False):
     # Extract relevant fields from raw_json
@@ -214,7 +212,8 @@ def set_journal_fields(journal: XeroJournal):
     if xero_id and str(journal.xero_id) != str(xero_id):
         # This would be unusual. Raise an error to detect data mismatches early.
         raise ValueError(
-            f"XeroJournal {journal.id} has xero_id={journal.xero_id}, but raw_json has {xero_id}."
+            f"XeroJournal {journal.id} has xero_id={journal.xero_id}, "
+            f"but raw_json has {xero_id}."
         )
 
     journal.journal_date = journal_date
@@ -323,7 +322,8 @@ def reprocess_journals():
             logger.info(f"Reprocessed journal: {jrnl.journal_number or jrnl.xero_id}")
         except Exception as e:
             logger.error(
-                f"Error reprocessing journal {jrnl.journal_number or jrnl.xero_id}: {str(e)}"
+                f"Error reprocessing journal "
+                f"{jrnl.journal_number or jrnl.xero_id}: {str(e)}"
             )
 
 

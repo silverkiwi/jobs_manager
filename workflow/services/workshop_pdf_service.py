@@ -1,6 +1,8 @@
 import logging
+import mimetypes
 import os
 from io import BytesIO
+import time
 
 from django.conf import settings
 from PIL import Image
@@ -36,6 +38,51 @@ def get_image_dimensions(image_path):
             img_height_pt *= scale
 
         return img_width_pt, img_height_pt
+
+
+def is_valid_file(file_path):
+    """Checks if the file exists and can be opened"""
+    if not os.path.exists(file_path):
+        logger.error(f"File not found: {file_path}")
+        return False
+
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        logger.error(f"Could not determine mime type for file {file_path}")
+        return False
+
+    try:
+        # Try opening the file and reading a small chunk to verify it's readable
+        with open(file_path, 'rb') as f:
+            f.read(1024)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to open file {file_path}: {e}")
+        return False
+
+
+def is_locked(filepath):
+    locked = None
+    file_object = None
+    if os.path.exists(filepath):
+        try:
+            buffer_size = 8
+            # Opening file in append mode and read the first 8 characters.
+            file_object = open(filepath, 'a', buffer_size)
+            if file_object:
+                locked = False
+        except IOError as message:
+            locked = True
+        finally:
+            if file_object:
+                file_object.close()
+    return locked
+
+
+def wait_for_file(filepath):
+    wait_time = 3
+    while is_locked(filepath):
+        time.sleep(wait_time)
 
 
 def create_workshop_pdf(job):
@@ -106,9 +153,14 @@ def create_workshop_pdf(job):
                 y_position -= 20
 
                 file_path = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path)
-                if not os.path.exists(file_path):
+                
+                logger.debug(f"Processing file: {file_path}")
+                if not is_valid_file(file_path):
+                    logger.warning(f"Skipping invalid file: {file_path}")
                     continue
 
+                logger.debug(f"File {file_path} is valid")
+                wait_for_file(file_path)
                 if job_file.mime_type.startswith("image/"):
                     try:
                         width, height = get_image_dimensions(file_path)
@@ -124,8 +176,10 @@ def create_workshop_pdf(job):
                         y_position -= height + 20
                     except Exception as e:
                         logger.error(f"Failed to add image {job_file.filename}: {e}")
-                        pdf.drawString(MARGIN + 20, y_position, f"Error adding image: {str(e)}")
-                        y_position -= 20
+                        error_text = Paragraph(f"Error adding image: {str(e)}", description_style)
+                        error_text.wrapOn(pdf, CONTENT_WIDTH - 40, PAGE_HEIGHT)
+                        error_text.drawOn(pdf, MARGIN + 20, y_position - 20)
+                        y_position -= 40
 
                 elif job_file.mime_type == "application/pdf":
                     pdf.drawString(MARGIN + 20, y_position, "PDF will be appended")

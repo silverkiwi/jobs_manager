@@ -45,11 +45,15 @@ def update_job_status(request: HttpRequest, job_id: UUID) -> HttpResponse:
 def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
     try:
         page = int(request.GET.get("page", 1))
-        page_size = min(int(request.GET.get("page_size", 10)), 100)  # Limits to maximum 100 jobs per page
+        page_size = min(
+            int(request.GET.get("page_size", 10)), 100
+        )  # Limits to maximum 100 jobs per page
         offset = (page - 1) * page_size
 
         total_jobs = Job.objects.filter(status=status).count()  # Total counter
-        jobs = Job.objects.filter(status=status).order_by('-created_at')[offset:offset + page_size]
+        jobs = Job.objects.filter(status=status).order_by("-created_at")[
+            offset : offset + page_size
+        ]
 
         job_data = [
             {
@@ -65,13 +69,16 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
             for job in jobs
         ]
 
-        return JsonResponse({
-            "jobs": job_data,
-            "total_jobs": total_jobs,
-            "current_page": page,
-            "page_size": page_size,
-            "has_next": (offset + page_size) < total_jobs  # Indicates if there are more jobs to load
-        })
+        return JsonResponse(
+            {
+                "jobs": job_data,
+                "total_jobs": total_jobs,
+                "current_page": page,
+                "page_size": page_size,
+                "has_next": (offset + page_size)
+                < total_jobs,  # Indicates if there are more jobs to load
+            }
+        )
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

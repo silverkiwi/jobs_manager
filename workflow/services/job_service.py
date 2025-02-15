@@ -32,7 +32,6 @@ def archive_and_reset_job_pricing(job_id):
         estimate_pricing = JobPricing.objects.create(
             job=job,
             pricing_stage="estimate",
-            pricing_type="time_and_materials",
         )
         estimate_pricing.time_entries.create(
             wage_rate=company_defaults.wage_rate,
@@ -43,7 +42,6 @@ def archive_and_reset_job_pricing(job_id):
         quote_pricing = JobPricing.objects.create(
             job=job,
             pricing_stage="quote",
-            pricing_type="fixed_price",
         )
         quote_pricing.adjustment_entries.create(
             cost_adjustment=company_defaults.time_markup,
@@ -55,7 +53,6 @@ def archive_and_reset_job_pricing(job_id):
         reality_pricing = JobPricing.objects.create(
             job=job,
             pricing_stage="reality",
-            pricing_type="time_and_materials",
         )
         reality_pricing.material_entries.create(
             unit_cost=company_defaults.wage_rate,

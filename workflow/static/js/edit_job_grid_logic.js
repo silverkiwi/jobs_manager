@@ -303,6 +303,8 @@ document.addEventListener('DOMContentLoaded', function () {
             params.api.refreshCells({ rowNodes: [params.node], columns: ['unit_revenue'], force: true });
         });
 
+        console.log(`New Retail Rate calculated: ${params.data.unit_revenue}`);
+
         return true;
     }
 
@@ -421,35 +423,41 @@ document.addEventListener('DOMContentLoaded', function () {
             // console.log(`Grid Key: ${gridKey}, Updated Grid Height: ${newHeight}`);
             gridElement.style.height = `${newHeight}px`;
         },
+        
         onCellValueChanged: function (event) {
             const gridType = event.context.gridType;
             const data = event.data;
 
             if (gridType === 'TimeTable') {
-                data.total_minutes = (data.items || 0) * (data.mins_per_item || 0);
-                data.revenue = (data.total_minutes || 0) * (data.charge_out_rate / 60.0 || 0);
-
-                const hours = (data.total_minutes / 60).toFixed(1);
-                data.total_minutes_display = `${data.total_minutes} (${hours} hours)`;
-
+                if (['mins_per_item', 'items'].includes(event.column.colId)) {
+                    const totalMinutes = event.data.items * event.data.mins_per_item;
+                    const hours = (totalMinutes / 60).toFixed(1);
+                    event.data.total_minutes = `${totalMinutes} (${hours} hours)`;
+                    event.api.refreshCells({ rowNodes: [event.node], columns: ['total_minutes'], force: true });
+                }
             } else if (gridType === 'MaterialsTable') {
                 if (event.column.colId === 'unit_cost') {
-                    if (!data.isManualOverride) {
+                    
                         fetchMaterialsMarkup(data).then(markupRate => {
                             data.unit_revenue = calculateRetailRate(data.unit_cost, markupRate);
                             event.api.refreshCells({ rowNodes: [event.node], columns: ['unit_revenue'], force: true });
+
+                            
+
+
                         });
-                    }
+                
                 }
 
-                if (event.column.colId === 'unit_revenue') {
-                    // Mark as manually overridden only if user types in this cell
-                    if (event.newValue !== null && event.newValue !== undefined) {
-                        data.isManualOverride = true;
-                    }
-                }
+                // if (event.column.colId === 'unit_revenue') {
+                //     // Mark as manually overridden only if user types in this cell
+                //     if (event.newValue !== null && event.newValue !== undefined && event.newValue != 0) {
+                //         data.isManualOverride = true;
+                //     }
+                // }
 
                 data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
+                event.api.refreshCells({ rowNodes: [event.node], columns: ['revenue'], force: true });
             }
 
             event.api.refreshCells({ rowNodes: [event.node], columns: ['revenue', 'total_minutes'], force: true });
@@ -458,7 +466,8 @@ document.addEventListener('DOMContentLoaded', function () {
             calculateTotalRevenue();
             calculateTotalCost();
 
-        }
+        },
+        
     };
 
     const trashCanColumn = {
@@ -649,9 +658,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                 col.cellRenderer = timeGridOptions.columnDefs.find(c => c.field === 'link').cellRenderer;
                             }
                         });
+                        specificGridOptions.columnDefs = specificGridOptions.columnDefs.filter(col => col.field !== '');
                         break;
                     }
-                    specificGridOptions = JSON.parse(JSON.stringify(timeGridOptions));
+                    specificGridOptions = { ...timeGridOptions }; // Now using shallow copying to keep the renderer functions
+                    
                     // Hide link column for estimate and quote sections
                     specificGridOptions.columnDefs = specificGridOptions.columnDefs.map(col => {
                         if (col.field === 'link') {

@@ -1,6 +1,6 @@
 import uuid
 
-from abc import abstractmethod, abstractproperty
+from abc import abstractmethod
 
 from decimal import Decimal
 
@@ -97,7 +97,9 @@ class BaseLineItem(models.Model):
 
 
 class Invoice(BaseXeroInvoiceDocument):
-    job = models.OneToOneField("Job", on_delete=models.CASCADE, related_name="invoice", null=True, blank=True)
+    job = models.OneToOneField(
+        "Job", on_delete=models.CASCADE, related_name="invoice", null=True, blank=True
+    )
     online_url = models.URLField(null=True, blank=True)
 
     class Meta:
@@ -107,8 +109,8 @@ class Invoice(BaseXeroInvoiceDocument):
 
     def get_line_items(self):
         return self.line_items.all()
-    
-    
+
+
 class Bill(BaseXeroInvoiceDocument):
     class Meta:
         verbose_name = "Bill"

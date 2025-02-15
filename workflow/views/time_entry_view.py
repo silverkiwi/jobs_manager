@@ -29,12 +29,14 @@ class TimesheetEntryView(TemplateView):
 
     Purpose:
     - Centralizes the logic for rendering the timesheet entry page.
-    - Dynamically loads staff, jobs, and timesheet data based on the provided date and staff ID.
+    - Dynamically loads staff, jobs, and timesheet data based on the provided
+      date and staff ID.
     - Ensures access control and context consistency for the user interface.
 
     Key Features:
     - Excludes specific staff members (e.g., app/system users) from being displayed.
-    - Prepares the context with data necessary for rendering the timesheet entry page.
+    - Prepares the context with data necessary for rendering the timesheet
+      entry page.
     - Supports navigation between staff members for the same timesheet date.
 
     Attributes:
@@ -339,7 +341,7 @@ def autosave_timesheet_view(request):
                 try:
                     entry = TimeEntry.objects.get(id=entry_id)
                     related_jobs.add(entry.job_pricing.job_id)
-                    messages.success(request, f"Timesheet deleted successfully")
+                    messages.success(request, "Timesheet deleted successfully")
                     entry.delete()
                     logger.debug(f"Entry with ID {entry_id} deleted successfully")
 
@@ -402,7 +404,7 @@ def autosave_timesheet_view(request):
                     continue
 
                 target_date = datetime.strptime(timesheet_date, "%Y-%m-%d").date()
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 logger.error(
                     f"Invalid timesheet_date format: {entry_data.get("timesheet_date")}"
                 )
@@ -459,12 +461,12 @@ def autosave_timesheet_view(request):
                     elif job.status in ["completed", "quoting"]:
                         messages.error(
                             request,
-                            f"Existing timesheet saved successfully, but current job is {job.status}.",
+                            f"Timesheet saved, but note job status "
+                            f"is {job.status}.",
                         )
                     else:
                         messages.success(
-                            request,
-                            "Existing timesheet saved successfully"
+                            request, "Existing timesheet saved successfully"
                         )
                     logger.debug("Existing timesheet saved successfully")
 
@@ -529,14 +531,14 @@ def autosave_timesheet_view(request):
                     messages.warning(
                         request,
                         (
-                            f"Timesheet created successfully, but hours exceed "
-                            f"scheduled hours for today ({target_date})"
+                            "Timesheet created successfully, but hours exceed "
+                            f"scheduled hours for {target_date}"
                         ),
                     )
                 elif job.status in ["completed", "quoting"]:
                     messages.error(
                         request,
-                        f"Timesheet created successfully, but current job is {job.status}.",
+                        f"Timesheet created successfully, but note job status is {job.status}.",
                     )
                 else:
                     messages.success(request, "Timesheet created successfully.")

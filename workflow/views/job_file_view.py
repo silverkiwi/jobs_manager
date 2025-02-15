@@ -1,15 +1,14 @@
 import logging
 import os
 
-from django.http import FileResponse
+from django.http import FileResponse, JsonResponse
 from rest_framework import status
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from jobs_manager import settings
-
-from django.http import FileResponse, JsonResponse
+# Use django.conf.settings to access the fully configured Django settings
+# This ensures we get settings after all imports and env vars are processed
 from django.conf import settings
 
 from workflow.models import Job, JobFile
@@ -126,10 +125,13 @@ class JobFileView(APIView):
         if not job_files.exists():
             return Response([], status=status.HTTP_200_OK)
 
-        return Response([
-            {"filename": file.filename, "file_path": file.file_path, "id": file.id}
-            for file in job_files
-        ], status=status.HTTP_200_OK)
+        return Response(
+            [
+                {"filename": file.filename, "file_path": file.file_path}
+                for file in job_files
+            ],
+            status=status.HTTP_200_OK,
+        )
 
     def _get_by_path(self, file_path):
         """
@@ -147,11 +149,14 @@ class JobFileView(APIView):
             response = FileResponse(open(full_path, "rb"))
 
             import mimetypes
+
             content_type, _ = mimetypes.guess_type(full_path)
             if content_type:
                 response["Content-Type"] = content_type
 
-            response["Content-Disposition"] = f'inline; filename="{os.path.basename(file_path)}"'
+            response["Content-Disposition"] = (
+                f'inline; filename="{os.path.basename(file_path)}"'
+            )
             return response
         except Exception as e:
             logger.exception(f"Error serving file {file_path}")
@@ -162,7 +167,7 @@ class JobFileView(APIView):
 
     def get(self, request, file_path=None, job_number=None):
         """
-        Based on the request, serve a file for download or return the file list of the job. 
+        Based on the request, serve a file for download or return the file list of the job.
         """
         if job_number:
             return self._get_by_number(job_number)
@@ -170,14 +175,19 @@ class JobFileView(APIView):
             return self._get_by_path(file_path)
         else:
             return Response(
-                {"status": "error", "message": "Invalid request, provide file_path or job_number"},
+                {
+                    "status": "error",
+                    "message": "Invalid request, provide file_path or job_number",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
     def put(self, request):
         """
         Update an existing job file, replacing the file and updating `print_on_jobsheet`.
         """
+        logger.debug("Processing PUT request to update file")
+
         job_number = request.data.get("job_number")
         file_obj = request.FILES.get("files")
         print_on_jobsheet = str(request.data.get("print_on_jobsheet")) in ["true", "True", "1"]
@@ -185,10 +195,17 @@ class JobFileView(APIView):
         logger.info(f"Received PUT request - job_number: {job_number}, filename: {file_obj.name if file_obj else None}, print_on_jobsheet: {print_on_jobsheet}")
 
         if not job_number:
-            return Response({"status": "error", "message": "Job number is required"}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error("Job number not provided in request")
+            return Response(
+                {"status": "error", "message": "Job number is required"}, status=400
+            )
 
+        file_obj = request.FILES.get("files")
         if not file_obj:
-            return Response({"status": "error", "message": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error("No file provided in request")
+            return JsonResponse(
+                {"status": "error", "message": "No file provided"}, status=400
+            )
 
         try:
             job = Job.objects.get(job_number=job_number)

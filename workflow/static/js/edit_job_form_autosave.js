@@ -67,9 +67,9 @@ export function collectAllData() {
 
 function checkJobValidity(data) {
     console.log('Checking job validity...');
-    console.log('Data:', data);
-    const requiredFields = ['name', 'client_id', 'contact_person', 'job_number'];
-    const invalidFields = requiredFields.filter(field => !data[field] || data[field].trim() === '');
+
+    const requiredFields = ['name', 'client_name', 'contact_person', 'job_number'];
+    const invalidFields = requiredFields.filter(field => !data[field] || data[field].trim() === '' || data[field] == null);
 
     document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
@@ -90,10 +90,13 @@ function checkJobValidity(data) {
 
         // Scroll to the first invalid field
         if (firstInvalidElement) {
-            firstInvalidElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            firstInvalidElement.focus();
+            setTimeout(() => {
+                firstInvalidElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstInvalidElement.focus();
+            }, 100); // Delay prevents multiple focus calls();
         }
 
+        renderMessages([{ level: 'error', message: '⚠️ You must complete all required fields before proceeding.' }], 'job-details');
         return false;
 
     } else {
@@ -655,13 +658,14 @@ export function autosaveData() {
     const collectedData = collectAllData();
 
     // Skip autosave if the job is not yet ready for saving
-    if (collectedData.job_is_valid) {
-        saveDataToServer(collectedData);
-    } else {
+    if (!collectedData.job_is_valid) {
         console.log('Job is not valid. Skipping autosave.');
         renderMessages([{ level: 'error', message: 'Please complete all required fields before saving.' }], 'job-details');
         return
-    }
+    } 
+    // Only save if the job is valid
+    saveDataToServer(collectedData);
+    
 }
 
 
@@ -698,7 +702,7 @@ function saveDataToServer(collectedData) {
                 .then((pdfBlob) => {
                     handlePDF(pdfBlob, 'upload', collectedData);
                     console.log('Autosave successful:', data);
-                    renderMessages([{ level: 'success', message: 'Job updated successfully.' }], 'job-details');
+                    // renderMessages([{ level: 'success', message: 'Job updated successfully.' }], 'job-details');
                 });
         })
         .catch(error => {
@@ -766,6 +770,7 @@ async function handleClose() {
         const collectedData = collectAllData();
         if (!collectedData.job_is_valid) {
             console.error('Job is not valid. Please complete all required fields before closing.');
+            renderMessages([{ level: 'error', message: '⚠️ You must complete all required fields before closing.' }], 'job-details');
             return;
         }
 

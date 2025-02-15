@@ -90,7 +90,19 @@ body {
     color: #0052CC;
 }
 
-
+.job-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 12px;
+    max-width: 250px;
+    white-space: normal;
+    z-index: 1000;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    transition: opacity 0.2s ease-in-out;
+}
 .search-container {
     display: flex;
     align-items: center;
