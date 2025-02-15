@@ -9,25 +9,15 @@ async function handlePrintCheckboxChange(e) {
     const fileId = e.target.dataset.fileId;
     const jobNumber = document.querySelector('[name="job_number"]').value;
     const printOnJobsheet = e.target.checked;
-
-    console.log(`Updating file ${fileId}: print_on_jobsheet=${printOnJobsheet}`);
     await updateJobFile(fileId, jobNumber, printOnJobsheet);
 }
 
 export async function uploadJobFile(jobNumber, file, method) {
-    console.log(`Starting file upload for job ${jobNumber} using method ${method}`);
-    console.log('File details:', {
-        name: file.name,
-        size: file.size,
-        type: file.type
-    });
-
     const formData = new FormData();
     formData.append('job_number', jobNumber);
     formData.append('files', file);
 
     try {
-        console.log('Sending request to /api/job-files/');
         const response = await fetch('/api/job-files/', {
             method: method,
             headers: { 'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value },
@@ -35,14 +25,8 @@ export async function uploadJobFile(jobNumber, file, method) {
         });
 
         const data = await response.json();
-        console.log('Response received:', {
-            status: response.status,
-            ok: response.ok,
-            data: data
-        });
 
         if (response.ok) {
-            console.log('File upload successful, updating file list');
             updateFileList(data.uploaded);
         } else {
             console.error(`Failed to ${method} file:`, data.message);
@@ -96,73 +80,36 @@ export async function checkExistingJobFile(jobNumber, fileName) {
 
 export async function updateJobFile(fileId, jobNumber, printOnJobsheet) {
     try {
-        console.log(`Updating job file ${fileId} for job ${jobNumber} with print_on_jobsheet=${printOnJobsheet}`);
-        console.log('Starting file fetch request');
-
         const response = await fetch(`/api/job-files/${jobNumber}`);
-        console.log('File fetch response:', {
-            status: response.status,
-            ok: response.ok
-        });
 
         if (!response.ok) {
-            console.error(`Failed to fetch job files for job ${jobNumber}`);
-            console.error('Response details:', {
-                status: response.status,
-                statusText: response.statusText
-            });
             return;
         }
 
         const files = await response.json();
-        console.log('Files retrieved:', files.length);
-        console.log('Files:', files);
-
         const fileData = files.find(file => file.id === fileId);
-        console.log('Found file data:', fileData);
 
         if (!fileData) {
-            console.error(`File ${fileId} not found in job ${jobNumber}`);
             return;
         }
 
-        console.log('Preparing form data for update');
         const formData = new FormData();
         formData.append('job_number', jobNumber);
         formData.append('files', new File([], fileData.filename, { type: fileData.mime_type }));
         formData.append('print_on_jobsheet', printOnJobsheet ? 'true' : 'false');
 
-        console.log('Sending update request');
         const updateResponse = await fetch(`/api/job-files/`, {
             method: 'PUT',
             headers: { 'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value },
             body: formData
         });
 
-        console.log('Update response received:', {
-            status: updateResponse.status,
-            ok: updateResponse.ok
-        });
-
-        if (!updateResponse.ok) {
-            console.error(`Failed to update file ${fileId}`);
-            console.error('Update response details:', {
-                status: updateResponse.status,
-                statusText: updateResponse.statusText
-            });
-        } else {
-            console.log(`Successfully updated file ${fileId}`);
-            const responseData = await updateResponse.json();
-            console.log('Update response data:', responseData);
+        if (updateResponse.ok) {
+            await updateResponse.json();
             attachPrintCheckboxListeners();
         }
     } catch (error) {
-        console.error('Error updating job file:', error);
-        console.error('Error details:', {
-            fileId,
-            jobNumber,
-            errorMessage: error.message
-        });
+        console.error('Error updating job file:', error)
     }
 }
 
