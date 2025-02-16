@@ -13,59 +13,64 @@ async function handlePrintCheckboxChange(e) {
 }
 
 export async function uploadJobFile(jobNumber, file, method) {
+    console.log(`[uploadJobFile] Starting file upload/update for job ${jobNumber} using ${method}`);
+    console.log(`[uploadJobFile] File details: name=${file.name}, size=${file.size}, type=${file.type}`);
+
     const formData = new FormData();
     formData.append('job_number', jobNumber);
     formData.append('files', file);
 
     try {
-        const response = await fetch('/api/job-files/', {
+        const endpoint = '/api/job-files/';
+        console.log(`[uploadJobFile] Sending request to ${endpoint} (method=${method})`);
+
+        const response = await fetch(endpoint, {
             method: method,
-            headers: { 'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value },
+            headers: {
+                'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+            },
             body: formData
         });
 
         const data = await response.json();
+        console.log(`[uploadJobFile] Response: status=${response.status}, ok=${response.ok}`, data);
 
         if (response.ok) {
             updateFileList(data.uploaded);
         } else {
-            console.error(`Failed to ${method} file:`, data.message);
-            console.error('Response details:', {
-                status: response.status,
-                statusText: response.statusText,
-                data: data
-            });
+            console.error(`[uploadJobFile] Failed to ${method} file.`, data);
         }
     } catch (error) {
-        console.error(`Error during ${method} request:`, error);
-        console.error('Error details:', {
-            jobNumber,
-            fileName: file.name,
-            errorMessage: error.message
-        });
+        console.error(`[uploadJobFile] Error during ${method} request:`, error);
     }
 }
 
 export async function deleteFile(fileId) {
+    console.log(`[deleteFile] Deleting file with ID=${fileId}`);
     if (!confirm('Are you sure you want to delete this file?')) return;
 
     try {
         const response = await fetch(`/api/job-files/${fileId}`, {
             method: 'DELETE',
-            headers: { 'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value }
+            headers: {
+                'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+            }
         });
 
         if (response.ok) {
+            console.log(`[deleteFile] File with ID=${fileId} deleted successfully`);
             document.querySelector(`[data-file-id="${fileId}"]`)?.closest('.file-card')?.remove();
         } else {
-            console.error(`Failed to delete file ID: ${fileId}. Status: ${response.status}`);
+            console.error(`[deleteFile] Failed to delete file ID=${fileId}. Response status: ${response.status}`);
         }
     } catch (error) {
-        console.error('Error deleting file:', error);
+        console.error('[deleteFile] Error deleting file:', error);
     }
 }
 
 export async function checkExistingJobFile(jobNumber, fileName) {
+    console.log(`[checkExistingJobFile] Checking if fileName="${fileName}" exists for job ${jobNumber}`);
+
     try {
         const response = await fetch(`/api/job-files/${jobNumber}`);
         if (!response.ok) return false;
@@ -79,10 +84,12 @@ export async function checkExistingJobFile(jobNumber, fileName) {
 }
 
 export async function updateJobFile(fileId, jobNumber, printOnJobsheet) {
+    console.log(`[updateJobFile] Starting update for fileId=${fileId}, jobNumber=${jobNumber}, printOnJobsheet=${printOnJobsheet}`);
     try {
         const response = await fetch(`/api/job-files/${jobNumber}`);
 
         if (!response.ok) {
+            console.log(`[updateJobFile] Failed to fetch file data. Response status: ${response.status}`);
             return;
         }
 
@@ -90,13 +97,21 @@ export async function updateJobFile(fileId, jobNumber, printOnJobsheet) {
         const fileData = files.find(file => file.id === fileId);
 
         if (!fileData) {
+            console.log(`[updateJobFile] No file found with ID=${fileId}`);
             return;
         }
 
+        console.log(`[updateJobFile] Found file data:`, fileData);
+
         const formData = new FormData();
-        formData.append('job_number', jobNumber);
-        formData.append('files', new File([], fileData.filename, { type: fileData.mime_type }));
+        formData.append('filename', fileData.filename);
+        // formData.append('files', new File([], fileData.filename, { type: fileData.mime_type }));
         formData.append('print_on_jobsheet', printOnJobsheet ? 'true' : 'false');
+
+        console.log(`[updateJobFile] Sending update request with formData:`, {
+            filename: fileData.filename,
+            printOnJobsheet: printOnJobsheet
+        });
 
         const updateResponse = await fetch(`/api/job-files/`, {
             method: 'PUT',
@@ -105,11 +120,14 @@ export async function updateJobFile(fileId, jobNumber, printOnJobsheet) {
         });
 
         if (updateResponse.ok) {
-            await updateResponse.json();
+            const data = await updateResponse.json();
+            console.log(`[updateJobFile] Update successful:`, data);
             attachPrintCheckboxListeners();
+        } else {
+            console.log(`[updateJobFile] Update failed. Response status: ${updateResponse.status}`);
         }
     } catch (error) {
-        console.error('Error updating job file:', error)
+        console.error('[updateJobFile] Error updating job file:', error)
     }
 }
 
@@ -183,6 +201,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const jobNumber = document.querySelector('[name="job_number"]').value;
 
         for (let file of files) {
+            if (file.size === 0) {
+                alert(`Cannot upload 0-byte file: ${file.name}`);
+                continue;
+            }
+
             const fileExists = await checkExistingJobFile(jobNumber, file.name);
             await uploadJobFile(jobNumber, file, fileExists ? 'PUT' : 'POST');
         }

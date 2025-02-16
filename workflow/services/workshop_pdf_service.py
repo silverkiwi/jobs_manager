@@ -5,7 +5,7 @@ from io import BytesIO
 import time
 
 from django.conf import settings
-from PIL import Image
+from PIL import Image, ImageFile
 from PyPDF2 import PdfWriter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -24,9 +24,25 @@ CONTENT_WIDTH = PAGE_WIDTH - (2 * MARGIN)
 styles = getSampleStyleSheet()
 description_style = styles["Normal"]
 
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+
+def wait_until_file_ready(file_path, max_wait=10):
+    """Tenta abrir o arquivo e fecha imediatamente. Se falhar, aguarda um pouco."""
+    wait_time = 0
+    while wait_time < max_wait:
+        try:
+            with open(file_path, 'rb') as f:
+                f.read(10)
+            return
+        except OSError:
+            time.sleep(1)
+            wait_time += 1
+
 
 def get_image_dimensions(image_path):
     """Gets the image dimensions and scales it if larger than content width."""
+    wait_until_file_ready(image_path)
     with Image.open(image_path) as img:
         img_width, img_height = img.size
         # Considering 1 pixel = 1 point
@@ -38,51 +54,6 @@ def get_image_dimensions(image_path):
             img_height_pt *= scale
 
         return img_width_pt, img_height_pt
-
-
-def is_valid_file(file_path):
-    """Checks if the file exists and can be opened"""
-    if not os.path.exists(file_path):
-        logger.error(f"File not found: {file_path}")
-        return False
-
-    mime_type, _ = mimetypes.guess_type(file_path)
-    if not mime_type:
-        logger.error(f"Could not determine mime type for file {file_path}")
-        return False
-
-    try:
-        # Try opening the file and reading a small chunk to verify it's readable
-        with open(file_path, 'rb') as f:
-            f.read(1024)
-        return True
-    except Exception as e:
-        logger.error(f"Failed to open file {file_path}: {e}")
-        return False
-
-
-def is_locked(filepath):
-    locked = None
-    file_object = None
-    if os.path.exists(filepath):
-        try:
-            buffer_size = 8
-            # Opening file in append mode and read the first 8 characters.
-            file_object = open(filepath, 'a', buffer_size)
-            if file_object:
-                locked = False
-        except IOError as message:
-            locked = True
-        finally:
-            if file_object:
-                file_object.close()
-    return locked
-
-
-def wait_for_file(filepath):
-    wait_time = 3
-    while is_locked(filepath):
-        time.sleep(wait_time)
 
 
 def create_workshop_pdf(job):
@@ -152,18 +123,19 @@ def create_workshop_pdf(job):
                 pdf.drawString(MARGIN, y_position, job_file.filename)
                 y_position -= 20
 
-                file_path = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path)
-                
-                logger.debug(f"Processing file: {file_path}")
-                if not is_valid_file(file_path):
-                    logger.warning(f"Skipping invalid file: {file_path}")
+                # Get full path to file
+                file_path = os.path.join(
+                    settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path
+                )
+                if not os.path.exists(file_path):
                     continue
 
-                logger.debug(f"File {file_path} is valid")
-                wait_for_file(file_path)
+                # Handle different file types
                 if job_file.mime_type.startswith("image/"):
                     try:
                         width, height = get_image_dimensions(file_path)
+
+                        # Center the image
                         x = MARGIN + (CONTENT_WIDTH - width) / 2
 
                         # If image won't fit on page, create a new page
@@ -172,7 +144,12 @@ def create_workshop_pdf(job):
                             y_position = PAGE_HEIGHT - MARGIN
 
                         # Add image with mask='auto' parameter to handle transparency
-                        pdf.drawImage(file_path, x, y_position - height, width=width, height=height, mask='auto')
+                        pdf.drawImage(
+                            file_path, 
+                            x, y_position - height, 
+                            width=width, 
+                            height=height
+                        )
                         y_position -= height + 20
                     except Exception as e:
                         logger.error(f"Failed to add image {job_file.filename}: {e}")
@@ -189,17 +166,20 @@ def create_workshop_pdf(job):
                     pdf.showPage()
                     y_position = PAGE_HEIGHT - 100
 
+        # Save the main document
         pdf.save()
         buffer.seek(0)
 
-        # If there are attached PDFs, merge them
+        # If we have PDF attachments, merge them
         pdf_files = [f for f in files_to_print if f.mime_type == "application/pdf"]
         if not pdf_files:
             return buffer
 
+        # Create a PDF merger with our main document
         merger = PdfWriter()
         merger.append(buffer)
 
+        # Add each PDF attachment
         for job_file in pdf_files:
             file_path = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path)
             if os.path.exists(file_path):
@@ -208,10 +188,12 @@ def create_workshop_pdf(job):
                 except Exception as e:
                     logger.error(f"Failed to merge PDF {job_file.filename}: {e}")
 
+        # Write the merged PDF to a new buffer
         merged_buffer = BytesIO()
         merger.write(merged_buffer)
         merged_buffer.seek(0)
 
+        # Clean up and return
         buffer.close()
         return merged_buffer
 
