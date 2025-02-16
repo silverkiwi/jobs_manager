@@ -112,7 +112,7 @@ class JobFileView(APIView):
         if not files:
             return Response({"status": "error", "message": "No files uploaded"}, status=status.HTTP_400_BAD_REQUEST)
 
-        print_on_jobsheet = request.data.get("print_on_jobsheet") in ["true", "True", "1"]
+        print_on_jobsheet = True
         uploaded_files = []
         errors = []
 
