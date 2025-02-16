@@ -9,7 +9,7 @@ async function handlePrintCheckboxChange(e) {
     const fileId = e.target.dataset.fileId;
     const jobNumber = document.querySelector('[name="job_number"]').value;
     const printOnJobsheet = e.target.checked;
-    await updateJobFile(fileId, jobNumber, printOnJobsheet);
+    await updatePrintOnJobsheet(fileId, jobNumber, printOnJobsheet);
 }
 
 export async function uploadJobFile(jobNumber, file, method) {
@@ -83,13 +83,13 @@ export async function checkExistingJobFile(jobNumber, fileName) {
     }
 }
 
-export async function updateJobFile(fileId, jobNumber, printOnJobsheet) {
-    console.log(`[updateJobFile] Starting update for fileId=${fileId}, jobNumber=${jobNumber}, printOnJobsheet=${printOnJobsheet}`);
+export async function updatePrintOnJobsheet(fileId, jobNumber, printOnJobsheet) {
+    console.log(`[updatePrintOnJobsheet] Starting update for fileId=${fileId}, jobNumber=${jobNumber}, printOnJobsheet=${printOnJobsheet}`);
     try {
         const response = await fetch(`/api/job-files/${jobNumber}`);
 
         if (!response.ok) {
-            console.log(`[updateJobFile] Failed to fetch file data. Response status: ${response.status}`);
+            console.log(`[updatePrintOnJobsheet] Failed to fetch file data. Response status: ${response.status}`);
             return;
         }
 
@@ -97,19 +97,18 @@ export async function updateJobFile(fileId, jobNumber, printOnJobsheet) {
         const fileData = files.find(file => file.id === fileId);
 
         if (!fileData) {
-            console.log(`[updateJobFile] No file found with ID=${fileId}`);
+            console.log(`[updatePrintOnJobsheet] No file found with ID=${fileId}`);
             return;
         }
 
-        console.log(`[updateJobFile] Found file data:`, fileData);
+        console.log(`[updatePrintOnJobsheet] Found file data:`, fileData);
 
         const formData = new FormData();
         formData.append('job_number', jobNumber);
         formData.append('filename', fileData.filename);
-        // formData.append('files', new File([], fileData.filename, { type: fileData.mime_type }));
         formData.append('print_on_jobsheet', printOnJobsheet ? 'true' : 'false');
 
-        console.log(`[updateJobFile] Sending update request with formData:`, {
+        console.log(`[updatePrintOnJobsheet] Sending update request with formData:`, {
             filename: fileData.filename,
             printOnJobsheet: printOnJobsheet
         });
@@ -122,13 +121,13 @@ export async function updateJobFile(fileId, jobNumber, printOnJobsheet) {
 
         if (updateResponse.ok) {
             const data = await updateResponse.json();
-            console.log(`[updateJobFile] Update successful:`, data);
+            console.log(`[updatePrintOnJobsheet] Update successful:`, data);
             attachPrintCheckboxListeners();
         } else {
-            console.log(`[updateJobFile] Update failed. Response status: ${updateResponse.status}`);
+            console.log(`[updatePrintOnJobsheet] Update failed. Response status: ${updateResponse.status}`);
         }
     } catch (error) {
-        console.error('[updateJobFile] Error updating job file:', error)
+        console.error('[updatePrintOnJobsheet] Error updating job file:', error)
     }
 }
 
@@ -168,6 +167,8 @@ function updateFileList(newFiles) {
 
         grid.appendChild(card);
     });
+
+    attachPrintCheckboxListeners();
 }
 
 function createNewFileGrid() {
