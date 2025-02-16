@@ -108,7 +108,33 @@ def create_workshop_pdf(job):
 
         table_width, table_height = details_table.wrap(CONTENT_WIDTH, PAGE_HEIGHT)
         details_table.drawOn(pdf, MARGIN, y_position - table_height)
-        y_position -= table_height + 20
+        y_position -= table_height + 40
+
+        # Add Materials Notes title
+        pdf.setFont("Helvetica-Bold", 14)
+        pdf.drawString(MARGIN, y_position, "Materials Notes")
+        y_position -= 25
+
+        # Add materials table
+        materials_data = [["Description", "Quantity", "Comments"]]
+        materials_data.extend([["", "", ""] for _ in range(5)])  # Add 5 empty rows
+
+        materials_table = Table(materials_data, colWidths=[CONTENT_WIDTH * 0.4, CONTENT_WIDTH * 0.2, CONTENT_WIDTH * 0.4])
+        materials_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004aad")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ]))
+
+        materials_width, materials_height = materials_table.wrap(CONTENT_WIDTH, PAGE_HEIGHT)
+        materials_table.drawOn(pdf, MARGIN, y_position - materials_height)
+        y_position -= materials_height + 20
 
         # Attach Files Marked for Printing
         files_to_print = job.files.filter(print_on_jobsheet=True)
