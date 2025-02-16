@@ -32,7 +32,7 @@ def wait_until_file_ready(file_path, max_wait=10):
     wait_time = 0
     while wait_time < max_wait:
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 f.read(10)
             return
         except OSError:
@@ -73,8 +73,8 @@ def create_workshop_pdf(job):
             logo = ImageReader(logo_path)
             # Calculate x position to center the image
             x = MARGIN + (CONTENT_WIDTH - 150) / 2  # 150 is the image width
-            pdf.drawImage(logo, x, y_position - 150, width=150, height=150, mask='auto')            
-            y_position -= 200 # Space to avoid overlap
+            pdf.drawImage(logo, x, y_position - 150, width=150, height=150, mask="auto")
+            y_position -= 200  # Space to avoid overlap
 
         # Add main title
         pdf.setFillColor(colors.HexColor("#004aad"))
@@ -89,22 +89,26 @@ def create_workshop_pdf(job):
             ["Client", job.client.name if job.client else "N/A"],
             ["Contact", job.contact_person or "N/A"],
             # Using Paragraph for description ensures text will wrap automatically
-            ["Description", Paragraph(job.description or "N/A", description_style)]
+            ["Description", Paragraph(job.description or "N/A", description_style)],
         ]
 
         details_table = Table(job_details, colWidths=[150, CONTENT_WIDTH - 150])
-        details_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004aad")),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
-            ('LEFTPADDING', (0, 0), (-1, -1), 5),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ]))
+        details_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#004aad")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.gray),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
 
         table_width, table_height = details_table.wrap(CONTENT_WIDTH, PAGE_HEIGHT)
         details_table.drawOn(pdf, MARGIN, y_position - table_height)
@@ -119,20 +123,29 @@ def create_workshop_pdf(job):
         materials_data = [["Description", "Quantity", "Comments"]]
         materials_data.extend([["", "", ""] for _ in range(5)])  # Add 5 empty rows
 
-        materials_table = Table(materials_data, colWidths=[CONTENT_WIDTH * 0.4, CONTENT_WIDTH * 0.2, CONTENT_WIDTH * 0.4])
-        materials_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#004aad")),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
-            ('LEFTPADDING', (0, 0), (-1, -1), 5),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-        ]))
+        materials_table = Table(
+            materials_data,
+            colWidths=[CONTENT_WIDTH * 0.4, CONTENT_WIDTH * 0.2, CONTENT_WIDTH * 0.4],
+        )
+        materials_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#004aad")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.gray),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+                ]
+            )
+        )
 
-        materials_width, materials_height = materials_table.wrap(CONTENT_WIDTH, PAGE_HEIGHT)
+        materials_width, materials_height = materials_table.wrap(
+            CONTENT_WIDTH, PAGE_HEIGHT
+        )
         materials_table.drawOn(pdf, MARGIN, y_position - materials_height)
         y_position -= materials_height + 20
 
@@ -171,15 +184,18 @@ def create_workshop_pdf(job):
 
                         # Add image with mask='auto' parameter to handle transparency
                         pdf.drawImage(
-                            file_path, 
-                            x, y_position - height, 
-                            width=width, 
-                            height=height
+                            file_path,
+                            x,
+                            y_position - height,
+                            width=width,
+                            height=height,
                         )
                         y_position -= height + 20
                     except Exception as e:
                         logger.error(f"Failed to add image {job_file.filename}: {e}")
-                        error_text = Paragraph(f"Error adding image: {str(e)}", description_style)
+                        error_text = Paragraph(
+                            f"Error adding image: {str(e)}", description_style
+                        )
                         error_text.wrapOn(pdf, CONTENT_WIDTH - 40, PAGE_HEIGHT)
                         error_text.drawOn(pdf, MARGIN + 20, y_position - 20)
                         y_position -= 40
@@ -207,7 +223,9 @@ def create_workshop_pdf(job):
 
         # Add each PDF attachment
         for job_file in pdf_files:
-            file_path = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path)
+            file_path = os.path.join(
+                settings.DROPBOX_WORKFLOW_FOLDER, job_file.file_path
+            )
             if os.path.exists(file_path):
                 try:
                     merger.append(file_path)
