@@ -104,6 +104,7 @@ export async function updateJobFile(fileId, jobNumber, printOnJobsheet) {
         console.log(`[updateJobFile] Found file data:`, fileData);
 
         const formData = new FormData();
+        formData.append('job_number', jobNumber);
         formData.append('filename', fileData.filename);
         // formData.append('files', new File([], fileData.filename, { type: fileData.mime_type }));
         formData.append('print_on_jobsheet', printOnJobsheet ? 'true' : 'false');
