@@ -15,9 +15,13 @@ async function handlePrintCheckboxChange(e) {
 export async function uploadJobFile(jobNumber, file, method) {
     console.log(`[uploadJobFile] Starting file upload/update for job ${jobNumber} using ${method}`);
     console.log(`[uploadJobFile] File details: name=${file.name}, size=${file.size}, type=${file.type}`);
-
+    console.log(`[uploadJobFile] Getting print_on_jobsheet value for file ID=${file.id}`);
+    const printOnJobsheet = document.querySelector(`[data-file-id="${file.id}"] .print-on-jobsheet`)?.checked || false;
+    console.log(`[uploadJobFile] print_on_jobsheet=${printOnJobsheet}`);
+    
     const formData = new FormData();
     formData.append('job_number', jobNumber);
+    formData.append('print_on_jobsheet', printOnJobsheet ? 'true' : 'false');
     formData.append('files', file);
 
     try {
