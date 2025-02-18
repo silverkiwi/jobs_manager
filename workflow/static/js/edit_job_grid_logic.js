@@ -59,256 +59,254 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// This listener is for the job pricing grid
-document.addEventListener('DOMContentLoaded', function () {
-    function currencyFormatter(params) {
-        if (params.value === undefined) {
-            // console.error('currencyFormatter error: value is undefined for the following params:', params);
-            return '$0.00';  // Return a fallback value so the grid doesn't break
-        }
-        return '$' + params.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Defining globally since it's reused by a lot of functions
+const sections = ['estimate', 'quote', 'reality'];
+const workType = ['Time', 'Materials', 'Adjustments'];
+
+// Main DOM functions
+function currencyFormatter(params) {
+    if (params.value === undefined) {
+        // console.error('currencyFormatter error: value is undefined for the following params:', params);
+        return '$0.00';  // Return a fallback value so the grid doesn't break
     }
+    return '$' + params.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
-    function numberParser(params) {
-        return Number(params.newValue);
+function numberParser(params) {
+    return Number(params.newValue);
+}
+
+function calculateGridHeight(gridApi, numRows) {
+    const rowHeight = gridApi.getSizesForCurrentTheme().rowHeight || 28;
+    const headerElement = document.querySelector('.ag-header');
+    const headerHeight = headerElement ? headerElement.offsetHeight : 32;
+
+    return numRows * rowHeight + headerHeight;
+}
+
+function deleteIconCellRenderer(params) {
+    const isLastRow = params.api.getDisplayedRowCount() === 1;
+    const iconClass = isLastRow ? 'delete-icon disabled' : 'delete-icon';
+    return `<span class='${iconClass}'>🗑️</span>`;
+}
+
+function onDeleteIconClicked(params) {
+    if (params.api.getDisplayedRowCount() > 1) {
+        params.api.applyTransaction({ remove: [params.node.data] });
+        calculateTotalRevenue(); // Recalculate totals after row deletion
     }
-
-    function calculateGridHeight(gridApi, numRows) {
-        const rowHeight = gridApi.getSizesForCurrentTheme().rowHeight || 28;
-        const headerElement = document.querySelector('.ag-header');
-        const headerHeight = headerElement ? headerElement.offsetHeight : 32;
-
-        return numRows * rowHeight + headerHeight;
-    }
-
-    function deleteIconCellRenderer(params) {
-        const isLastRow = params.api.getDisplayedRowCount() === 1;
-        const iconClass = isLastRow ? 'delete-icon disabled' : 'delete-icon';
-        return `<span class='${iconClass}'>🗑️</span>`;
-    }
-
-    function onDeleteIconClicked(params) {
-        if (params.api.getDisplayedRowCount() > 1) {
-            params.api.applyTransaction({ remove: [params.node.data] });
-            calculateTotalRevenue(); // Recalculate totals after row deletion
-        }
-    }
+}
 
 
-    function onCellKeyDown(params) {
-        if (params.event.key === 'Enter') {
-            const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
-            if (isLastRow) {
-                const newRow = createNewRow(params.context.gridType);
-                if (newRow) {
-                    params.api.applyTransaction({ add: [newRow] });
-                    setTimeout(() => {
-                        params.api.setFocusedCell(params.rowIndex + 1, params.column.colId);
-                        params.api.startEditingCell({
-                            rowIndex: params.rowIndex + 1,
-                            colKey: params.column.colId
-                        });
-                    }, 0);
-                }
-            }
-        }
-    }
-
-    function createDefaultRowData(gridType) {
-        return [createNewRow(gridType) || {}];  // Return the result of createNewRow as an array
-    }
-
-    function calculateTotalRevenue() {
-        const revenueTotals = {
-            time: { estimate: 0, quote: 0, reality: 0 },
-            materials: { estimate: 0, quote: 0, reality: 0 },
-            adjustments: { estimate: 0, quote: 0, reality: 0 }
-        };
-
-        const sections = ['estimate', 'quote', 'reality'];
-        const gridTypes = ['Time', 'Materials', 'Adjustments'];
-
-        sections.forEach(section => {
-            gridTypes.forEach(gridType => {
-                const gridKey = `${section}${gridType}Table`;
-                const gridData = window.grids[gridKey];
-                if (gridData && gridData.api) {
-                    gridData.api.forEachNode(node => {
-                        const rowCost = parseFloat(node.data.cost) || 0;
-                        const rowRevenue = parseFloat(node.data.revenue) || 0;
-                        const revenueType = gridType.toLowerCase();
-                        revenueTotals[revenueType][section] += rowRevenue;
+function onCellKeyDown(params) {
+    if (params.event.key === 'Enter') {
+        const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
+        if (isLastRow) {
+            const newRow = createNewRow(params.context.gridType);
+            if (newRow) {
+                params.api.applyTransaction({ add: [newRow] });
+                setTimeout(() => {
+                    params.api.setFocusedCell(params.rowIndex + 1, params.column.colId);
+                    params.api.startEditingCell({
+                        rowIndex: params.rowIndex + 1,
+                        colKey: params.column.colId
                     });
-                }
-            });
-        });
-
-        const revenueGrid = window.grids['revenueTable'];
-        if (revenueGrid && revenueGrid.api) {
-            revenueGrid.api.forEachNode((node, index) => {
-                const data = node.data;
-                switch (index) {
-                    case 0: // Total Time
-                        data.estimate = revenueTotals.time.estimate;
-                        data.quote = revenueTotals.time.quote;
-                        data.reality = revenueTotals.time.reality;
-                        break;
-                    case 1: // Total Materials
-                        data.estimate = revenueTotals.materials.estimate;
-                        data.quote = revenueTotals.materials.quote;
-                        data.reality = revenueTotals.materials.reality;
-                        break;
-                    case 2: // Total Adjustments
-                        data.estimate = revenueTotals.adjustments.estimate;
-                        data.quote = revenueTotals.adjustments.quote;
-                        data.reality = revenueTotals.adjustments.reality;
-                        break;
-                    case 3: // Total Project Cost
-                        data.estimate = revenueTotals.time.estimate + revenueTotals.materials.estimate + revenueTotals.adjustments.estimate;
-                        data.quote = revenueTotals.time.quote + revenueTotals.materials.quote + revenueTotals.adjustments.quote;
-                        data.reality = revenueTotals.time.reality + revenueTotals.materials.reality + revenueTotals.adjustments.reality;
-                        break;
-                }
-            })
-        }
-
-        revenueGrid.api.refreshCells();
-    }
-
-
-    function calculateTotalCost() {
-        const totals = {
-            time: { estimate: 0, quote: 0, reality: 0 },
-            materials: { estimate: 0, quote: 0, reality: 0 },
-            adjustments: { estimate: 0, quote: 0, reality: 0 }
-        };
-
-        const sections = ['estimate', 'quote', 'reality'];
-        const gridTypes = ['Time', 'Materials', 'Adjustments'];
-
-        sections.forEach(section => {
-            gridTypes.forEach(gridType => {
-                const gridKey = `${section}${gridType}Table`;
-                const gridData = window.grids[gridKey];
-                if (gridData && gridData.api) {
-                    gridData.api.forEachNode(node => {
-                        let rowCost = 0;
-
-                        // Different cost calculation for each type
-                        if (gridType === 'Time') {
-                            // Cost = (minutes * wage_rate) / 60
-                            const minutes = parseFloat(node.data.total_minutes) || 0;
-                            const wageRate = parseFloat(node.data.wage_rate) || 0;
-                            rowCost = (minutes * wageRate) / 60;
-                        } else if (gridType === 'Materials') {
-                            // Cost = quantity * unit_cost
-                            const quantity = parseFloat(node.data.quantity) || 0;
-                            const unitCost = parseFloat(node.data.unit_cost) || 0;
-                            rowCost = quantity * unitCost;
-                        } else if (gridType === 'Adjustments') {
-                            // Cost = cost_adjustment
-                            rowCost = parseFloat(node.data.cost_adjustment) || 0;
-                        }
-
-                        const costType = gridType.toLowerCase();
-                        totals[costType][section] += rowCost;
-                    });
-                }
-            });
-        });
-
-        const costGrid = window.grids['costsTable'];
-        if (costGrid && costGrid.api) {
-            costGrid.api.forEachNode((node, index) => {
-                const data = node.data;
-                switch (index) {
-                    case 0: // Total Time
-                        data.estimate = totals.time.estimate;
-                        data.quote = totals.time.quote;
-                        data.reality = totals.time.reality;
-                        break;
-                    case 1: // Total Materials
-                        data.estimate = totals.materials.estimate;
-                        data.quote = totals.materials.quote;
-                        data.reality = totals.materials.reality;
-                        break;
-                    case 2: // Total Adjustments
-                        data.estimate = totals.adjustments.estimate;
-                        data.quote = totals.adjustments.quote;
-                        data.reality = totals.adjustments.reality;
-                        break;
-                    case 3: // Total Project Cost
-                        data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
-                        data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
-                        data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
-                        break;
-                }
-            });
-            costGrid.api.refreshCells();
+                }, 0);
+            }
         }
     }
+}
 
-    function fetchMaterialsMarkup(rowData) {
-        if (rowData.materialsMarkup !== undefined) {
-            return Promise.resolve(rowData.materialsMarkup);
-        }
+function calculateTotalRevenue() {
+    const revenueTotals = {
+        time: { estimate: 0, quote: 0, reality: 0 },
+        materials: { estimate: 0, quote: 0, reality: 0 },
+        adjustments: { estimate: 0, quote: 0, reality: 0 }
+    };
 
-        return fetch('/api/company_defaults')
-            .then(response => response.json())
-            .then(companyDefaults => {
-                rowData.materialsMarkup = parseFloat(companyDefaults.materials_markup) || 0.2;
-                return rowData.materialsMarkup;
-            })
-            .catch(error => {
-                console.error('Error fetching company defaults:', error);
-                return 0.2;
-            });
-    }
+    const gridTypes = ['Time', 'Materials', 'Adjustments'];
 
-    function calculateRetailRate(costRate, markupRate) {
-        return costRate + (costRate * markupRate);
-    }
-
-    function getRetailRate(params) {
-        if (params.data.unit_revenue !== undefined) {
-            return params.data.unit_revenue; // Return stored value
-        }
-
-        // Fetch markup asynchronously, but return the last known value immediately
-        fetchMaterialsMarkup(params.data).then(markupRate => {
-            if (!params.data.isManualOverride) {
-                params.data.unit_revenue = calculateRetailRate(params.data.unit_cost, markupRate);
-                params.api.refreshCells({ rowNodes: [params.node], columns: ['unit_revenue'], force: true });
+    sections.forEach(section => {
+        gridTypes.forEach(gridType => {
+            const gridKey = `${section}${gridType}Table`;
+            const gridData = window.grids[gridKey];
+            if (gridData && gridData.api) {
+                gridData.api.forEachNode(node => {
+                    const rowCost = parseFloat(node.data.cost) || 0;
+                    const rowRevenue = parseFloat(node.data.revenue) || 0;
+                    const revenueType = gridType.toLowerCase();
+                    revenueTotals[revenueType][section] += rowRevenue;
+                });
             }
         });
+    });
 
-        return params.data.unit_revenue || 0; // Default fallback value
+    const revenueGrid = window.grids['revenueTable'];
+    if (revenueGrid && revenueGrid.api) {
+        revenueGrid.api.forEachNode((node, index) => {
+            const data = node.data;
+            switch (index) {
+                case 0: // Total Time
+                    data.estimate = revenueTotals.time.estimate;
+                    data.quote = revenueTotals.time.quote;
+                    data.reality = revenueTotals.time.reality;
+                    break;
+                case 1: // Total Materials
+                    data.estimate = revenueTotals.materials.estimate;
+                    data.quote = revenueTotals.materials.quote;
+                    data.reality = revenueTotals.materials.reality;
+                    break;
+                case 2: // Total Adjustments
+                    data.estimate = revenueTotals.adjustments.estimate;
+                    data.quote = revenueTotals.adjustments.quote;
+                    data.reality = revenueTotals.adjustments.reality;
+                    break;
+                case 3: // Total Project Cost
+                    data.estimate = revenueTotals.time.estimate + revenueTotals.materials.estimate + revenueTotals.adjustments.estimate;
+                    data.quote = revenueTotals.time.quote + revenueTotals.materials.quote + revenueTotals.adjustments.quote;
+                    data.reality = revenueTotals.time.reality + revenueTotals.materials.reality + revenueTotals.adjustments.reality;
+                    break;
+            }
+        })
     }
 
-    function setRetailRate(params) {
-        let newValue = parseFloat(params.newValue);
-        let costRate = parseFloat(params.data.unit_cost) || 0;
+    revenueGrid.api.refreshCells();
+}
 
-        fetchMaterialsMarkup(params.data).then(markupRate => {
-            if (!isNaN(newValue) && newValue !== calculateRetailRate(costRate, markupRate)) {
-                params.data.isManualOverride = true;
+
+function calculateTotalCost() {
+    const totals = {
+        time: { estimate: 0, quote: 0, reality: 0 },
+        materials: { estimate: 0, quote: 0, reality: 0 },
+        adjustments: { estimate: 0, quote: 0, reality: 0 }
+    };
+
+    const gridTypes = ['Time', 'Materials', 'Adjustments'];
+
+    sections.forEach(section => {
+        gridTypes.forEach(gridType => {
+            const gridKey = `${section}${gridType}Table`;
+            const gridData = window.grids[gridKey];
+            if (gridData && gridData.api) {
+                gridData.api.forEachNode(node => {
+                    let rowCost = 0;
+
+                    // Different cost calculation for each type
+                    if (gridType === 'Time') {
+                        // Cost = (minutes * wage_rate) / 60
+                        const minutes = parseFloat(node.data.total_minutes) || 0;
+                        const wageRate = parseFloat(node.data.wage_rate) || 0;
+                        rowCost = (minutes * wageRate) / 60;
+                    } else if (gridType === 'Materials') {
+                        // Cost = quantity * unit_cost
+                        const quantity = parseFloat(node.data.quantity) || 0;
+                        const unitCost = parseFloat(node.data.unit_cost) || 0;
+                        rowCost = quantity * unitCost;
+                    } else if (gridType === 'Adjustments') {
+                        // Cost = cost_adjustment
+                        rowCost = parseFloat(node.data.cost_adjustment) || 0;
+                    }
+
+                    const costType = gridType.toLowerCase();
+                    totals[costType][section] += rowCost;
+                });
             }
+        });
+    });
 
-            if (!params.data.isManualOverride) {
-                params.data.unit_revenue = calculateRetailRate(costRate, markupRate);
-            } else {
-                params.data.unit_revenue = newValue;
+    const costGrid = window.grids['costsTable'];
+    if (costGrid && costGrid.api) {
+        costGrid.api.forEachNode((node, index) => {
+            const data = node.data;
+            switch (index) {
+                case 0: // Total Time
+                    data.estimate = totals.time.estimate;
+                    data.quote = totals.time.quote;
+                    data.reality = totals.time.reality;
+                    break;
+                case 1: // Total Materials
+                    data.estimate = totals.materials.estimate;
+                    data.quote = totals.materials.quote;
+                    data.reality = totals.materials.reality;
+                    break;
+                case 2: // Total Adjustments
+                    data.estimate = totals.adjustments.estimate;
+                    data.quote = totals.adjustments.quote;
+                    data.reality = totals.adjustments.reality;
+                    break;
+                case 3: // Total Project Cost
+                    data.estimate = totals.time.estimate + totals.materials.estimate + totals.adjustments.estimate;
+                    data.quote = totals.time.quote + totals.materials.quote + totals.adjustments.quote;
+                    data.reality = totals.time.reality + totals.materials.reality + totals.adjustments.reality;
+                    break;
             }
+        });
+        costGrid.api.refreshCells();
+    }
+}
 
+function fetchMaterialsMarkup(rowData) {
+    if (rowData.materialsMarkup !== undefined) {
+        return Promise.resolve(rowData.materialsMarkup);
+    }
+
+    return fetch('/api/company_defaults')
+        .then(response => response.json())
+        .then(companyDefaults => {
+            rowData.materialsMarkup = parseFloat(companyDefaults.materials_markup) || 0.2;
+            return rowData.materialsMarkup;
+        })
+        .catch(error => {
+            console.error('Error fetching company defaults:', error);
+            return 0.2;
+        });
+}
+
+function calculateRetailRate(costRate, markupRate) {
+    return costRate + (costRate * markupRate);
+}
+
+function getRetailRate(params) {
+    if (params.data.unit_revenue !== undefined) {
+        return params.data.unit_revenue; // Return stored value
+    }
+
+    // Fetch markup asynchronously, but return the last known value immediately
+    fetchMaterialsMarkup(params.data).then(markupRate => {
+        if (!params.data.isManualOverride) {
+            params.data.unit_revenue = calculateRetailRate(params.data.unit_cost, markupRate);
             params.api.refreshCells({ rowNodes: [params.node], columns: ['unit_revenue'], force: true });
-        });
+        }
+    });
 
-        console.log(`New Retail Rate calculated: ${params.data.unit_revenue}`);
+    return params.data.unit_revenue || 0; // Default fallback value
+}
 
-        return true;
-    }
+function setRetailRate(params) {
+    let newValue = parseFloat(params.newValue);
+    let costRate = parseFloat(params.data.unit_cost) || 0;
 
-    const commonGridOptions = {
+    fetchMaterialsMarkup(params.data).then(markupRate => {
+        if (!isNaN(newValue) && newValue !== calculateRetailRate(costRate, markupRate)) {
+            params.data.isManualOverride = true;
+        }
+
+        if (!params.data.isManualOverride) {
+            params.data.unit_revenue = calculateRetailRate(costRate, markupRate);
+        } else {
+            params.data.unit_revenue = newValue;
+        }
+
+        params.api.refreshCells({ rowNodes: [params.node], columns: ['unit_revenue'], force: true });
+    });
+
+    console.log(`New Retail Rate calculated: ${params.data.unit_revenue}`);
+
+    return true;
+}
+
+function createCommonGridOptions() {
+    return {
         rowHeight: 28,
         headerHeight: 32,
         domLayout: 'autoHeight',
@@ -324,11 +322,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const gridElement = document.querySelector(`#${gridKey}`);
             const initialNumRows = 1; // Default initial number of rows
             const initialGridHeight = calculateGridHeight(params.api, initialNumRows);
-            //            console.log(`Grid Key: ${gridKey}, Initial Grid Height: ${initialGridHeight}`);
             gridElement.style.height = `${initialGridHeight}px`;
 
             window.grids[gridKey] = { api: params.api };
-            // console.log(`Grid ${gridKey} initialized with API:`, window.grids[gridKey]);
 
             params.api.sizeColumnsToFit();
         },
@@ -423,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // console.log(`Grid Key: ${gridKey}, Updated Grid Height: ${newHeight}`);
             gridElement.style.height = `${newHeight}px`;
         },
-        
+
         onCellValueChanged: function (event) {
             const gridType = event.context.gridType;
             const data = event.data;
@@ -437,24 +433,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } else if (gridType === 'MaterialsTable') {
                 if (event.column.colId === 'unit_cost') {
-                    
-                        fetchMaterialsMarkup(data).then(markupRate => {
-                            data.unit_revenue = calculateRetailRate(data.unit_cost, markupRate);
-                            event.api.refreshCells({ rowNodes: [event.node], columns: ['unit_revenue'], force: true });
-
-                            
-
-
-                        });
-                
+                    fetchMaterialsMarkup(data).then(markupRate => {
+                        data.unit_revenue = calculateRetailRate(data.unit_cost, markupRate);
+                        event.api.refreshCells({ rowNodes: [event.node], columns: ['unit_revenue'], force: true });
+                    });
                 }
-
-                // if (event.column.colId === 'unit_revenue') {
-                //     // Mark as manually overridden only if user types in this cell
-                //     if (event.newValue !== null && event.newValue !== undefined && event.newValue != 0) {
-                //         data.isManualOverride = true;
-                //     }
-                // }
 
                 data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
                 event.api.refreshCells({ rowNodes: [event.node], columns: ['revenue'], force: true });
@@ -467,10 +450,11 @@ document.addEventListener('DOMContentLoaded', function () {
             calculateTotalCost();
 
         },
-        
     };
+}
 
-    const trashCanColumn = {
+function createTrashCanColumn() {
+    return {
         headerName: '',
         field: '',
         width: 40,
@@ -483,8 +467,10 @@ document.addEventListener('DOMContentLoaded', function () {
             padding: 0
         }
     };
+}
 
-    const timeGridOptions = {
+function createTimeGridOptions(commonGridOptions, trashCanColumn) {
+    return {
         ...commonGridOptions,
         columnDefs: [
             {
@@ -579,9 +565,10 @@ document.addEventListener('DOMContentLoaded', function () {
         rowData: [],
         context: { gridType: 'TimeTable' },
     };
+}
 
-
-    const materialsGridOptions = {
+function createMaterialsGridOptions(commonGridOptions, trashCanColumn) {
+    return {
         ...commonGridOptions,
         columnDefs: [
             { headerName: 'Item Code', field: 'item_code', editable: false, hide: true },
@@ -609,8 +596,10 @@ document.addEventListener('DOMContentLoaded', function () {
         rowData: [],
         context: { gridType: 'MaterialsTable' }
     };
+}
 
-    const adjustmentsGridOptions = {
+function createAdjustmentsGridOptions(commonGridOptions, trashCanColumn) {
+    return {
         ...commonGridOptions,
         columnDefs: [
             { headerName: 'Description', field: 'description', editable: true, flex: 2 },
@@ -634,81 +623,125 @@ document.addEventListener('DOMContentLoaded', function () {
         rowData: [],
         context: { gridType: 'AdjustmentTable' }
     };
+}
 
-    const sections = ['estimate', 'quote', 'reality'];
-    const workType = ['Time', 'Materials', 'Adjustments'];
+function initializeGrids(commonGridOptions, timeGridOptions, materialsGridOptions, adjustmentsGridOptions) {
     window.grids = {};
 
+    console.log('Starting grid initialization...');
+
     sections.forEach(section => {
+        console.log(`Initializing grids for section: ${section}`);
         workType.forEach(work => {
-            const gridType = `${work}Table`;  // Assigning the grid type dynamically based on the work type
-            const gridKey = `${section}${gridType}`;  // Create the full key for identifying the grid
-            const gridElement = document.querySelector(`#${gridKey}`);
-
-            let specificGridOptions;
-            switch (gridType) {
-                case 'TimeTable':
-                    if (section === 'reality') {
-                        specificGridOptions = JSON.parse(JSON.stringify(timeGridOptions));
-                        specificGridOptions.columnDefs.forEach(col => {
-                            // Make all columns non-editable for reality section
-                            col.editable = false;
-                            // Preserve link column renderer but keep it non-editable
-                            if (col.field === 'link') {
-                                col.cellRenderer = timeGridOptions.columnDefs.find(c => c.field === 'link').cellRenderer;
-                            }
-                        });
-                        specificGridOptions.columnDefs = specificGridOptions.columnDefs.filter(col => col.field !== '');
-                        break;
-                    }
-                    specificGridOptions = { ...timeGridOptions }; // Now using shallow copying to keep the renderer functions
-                    
-                    // Hide link column for estimate and quote sections
-                    specificGridOptions.columnDefs = specificGridOptions.columnDefs.map(col => {
-                        if (col.field === 'link') {
-                            return { ...col, hide: true };
-                        }
-                        return col;
-                    });
-                    break;
-                case 'MaterialsTable':
-                    specificGridOptions = materialsGridOptions;
-                    break;
-                case 'AdjustmentsTable':
-                    specificGridOptions = adjustmentsGridOptions;
-                    break;
-            }
-
-            if (!latest_job_pricings_json) {
-                throw new Error('latest_job_pricings_json must be loaded before grid initialization');
-            }
-
-            const sectionData = latest_job_pricings_json[`${section}_pricing`];
-            if (!sectionData) {
-                console.warn(`Data not found for section '${section}'. Assuming this is a new job.`);
-            }
-
-            let rowData = getGridData(section, gridType);
-            if (rowData.length === 0) {
-                rowData = [createNewRow(gridType)];
-            }
-
-            const gridOptions = {
-                ...commonGridOptions,
-                ...specificGridOptions,
-                context: { section, gridType: `${gridType}`, gridKey: gridKey },
-                rowData: rowData  // Set initial row data in gridOptions
-            };
-
-            const gridInstance = agGrid.createGrid(gridElement, gridOptions);
-
-            // Set row data after initializing the grid
-            gridInstance.setGridOption('rowData', rowData);
+            console.log(`Creating grid for ${section} ${work}`);
+            console.log('Grids below:');
+            console.log(`commonGridOptions:`, commonGridOptions);
+            console.log(`timeGridOptions:`, timeGridOptions);
+            console.log('materialsGridOptions:', materialsGridOptions);
+            console.log(`adjustmentsGridOptions:`, adjustmentsGridOptions);
+            createGrid(section, work, commonGridOptions, timeGridOptions, materialsGridOptions, adjustmentsGridOptions);
         });
     });
 
-    // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
-    const revenueGridOptions = {
+    console.log('Grid initialization complete');
+}
+
+function createGrid(section, work, commonGridOptions, timeGridOptions, materialsGridOptions, adjustmentsGridOptions) {
+    const gridType = `${work}Table`;
+    const gridKey = `${section}${gridType}`;
+    const gridElement = document.querySelector(`#${gridKey}`);
+
+    const specificGridOptions = getSpecificGridOptions(section, work, gridType, timeGridOptions, materialsGridOptions, adjustmentsGridOptions);
+    const rowData = getInitialRowData(section, gridType);
+    
+    const gridOptions = createGridOptions(section, gridType, gridKey, commonGridOptions, specificGridOptions, rowData);
+    const gridInstance = agGrid.createGrid(gridElement, gridOptions);
+    
+    gridInstance.setGridOption('rowData', rowData);
+}
+
+function getSpecificGridOptions(section, work, gridType, timeGridOptions, materialsGridOptions, adjustmentsGridOptions) {
+    let specificGridOptions;
+    
+    switch(gridType) {
+        case 'TimeTable':
+            specificGridOptions = getTimeTableOptions(section, timeGridOptions);
+            break;
+        case 'MaterialsTable':
+            specificGridOptions = materialsGridOptions;
+            break;
+        case 'AdjustmentsTable':
+            specificGridOptions = adjustmentsGridOptions;
+            break;
+    }
+    
+    return specificGridOptions;
+}
+
+function getTimeTableOptions(section, timeGridOptions) {
+    if (section === 'reality') {
+        return createRealityTimeTableOptions(timeGridOptions);
+    }
+    return createRegularTimeTableOptions(timeGridOptions);
+}
+
+function createRealityTimeTableOptions(timeGridOptions) {
+    const options = JSON.parse(JSON.stringify(timeGridOptions));
+    options.columnDefs.forEach(col => {
+        col.editable = false;
+        if (col.field === 'link') {
+            col.cellRenderer = timeGridOptions.columnDefs.find(c => c.field === 'link').cellRenderer;
+        }
+    });
+    options.columnDefs = options.columnDefs.filter(col => col.field !== '');
+    return options;
+}
+
+function createRegularTimeTableOptions(timeGridOptions) {
+    const options = { ...timeGridOptions };
+    options.columnDefs = options.columnDefs.map(col => {
+        if (col.field === 'link') {
+            return { ...col, hide: true };
+        }
+        return col;
+    });
+    return options;
+}
+
+function getInitialRowData(section, gridType) {
+    if (!latest_job_pricings_json) {
+        throw new Error('latest_job_pricings_json must be loaded before grid initialization');
+    }
+
+    const sectionData = latest_job_pricings_json[`${section}_pricing`];
+    if (!sectionData) {
+        console.warn(`Data not found for section '${section}'. Assuming this is a new job.`);
+    }
+
+    let rowData = getGridData(section, gridType);
+    if (rowData.length === 0) {
+        rowData = [createNewRow(gridType)];
+    }
+    
+    return rowData;
+}
+
+function createGridOptions(section, gridType, gridKey, commonGridOptions, specificGridOptions, rowData) {
+    return {
+        ...commonGridOptions,
+        ...specificGridOptions,
+        context: { 
+            section, 
+            gridType: `${gridType}`, 
+            gridKey: gridKey 
+        },
+        rowData: rowData
+    };
+}
+
+// Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
+function createRevenueGridOptions() {
+    return {
         columnDefs: [
             { headerName: 'Category', field: 'category', editable: false },
             { headerName: 'Estimate', field: 'estimate', editable: false, valueFormatter: currencyFormatter },
@@ -739,8 +772,10 @@ document.addEventListener('DOMContentLoaded', function () {
             type: 'fitCellContents'
         }
     };
+}
 
-    const costGridOptions = {
+function createCostGridOptions() {
+    return {
         columnDefs: [
             { headerName: 'Category', field: 'category', editable: false },
             { headerName: 'Estimate', field: 'estimate', editable: false, valueFormatter: currencyFormatter },
@@ -771,13 +806,13 @@ document.addEventListener('DOMContentLoaded', function () {
             type: 'fitCellContents'
         }
     };
+}
 
-
+function createTotalTables(revenueGridOptions, costGridOptions) {
     const revenueTableEl = document.querySelector('#revenueTable');
     if (revenueTableEl) {
         try {
             agGrid.createGrid(revenueTableEl, revenueGridOptions);
-            // console.log('Revenue table initialized:', revenueGrid);
         } catch (error) {
             console.error('Error initializing revenue table:', error);
         }
@@ -789,88 +824,111 @@ document.addEventListener('DOMContentLoaded', function () {
     if (costsTableEl) {
         try {
             agGrid.createGrid(costsTableEl, costGridOptions);
-            // console.log('Revenue table initialized:', revenueGrid);
         } catch (error) {
             console.error('Error initializing costs table:', error);
         }
     } else {
         console.error('Costs table element not found');
     }
+}
 
+function checkGridInitialization() {
+    const expectedGridCount = sections.length * workType.length + 2;
+    const actualGridCount = Object.keys(window.grids).length;
 
-    setTimeout(() => {
-        const expectedGridCount = sections.length * workType.length + 2; // 3 secionds of 3 grids, plus revenue and costs totals
-        const actualGridCount = Object.keys(window.grids).length;
-
-        if (actualGridCount !== expectedGridCount) {
-            console.error(`Not all grids were initialized. Expected: ${expectedGridCount}, Actual: ${actualGridCount}`);
-        } else {
-            console.log('All grids successfully initialized.');
-        }
-    }, 3000); // 3-second delay to allow all grids to finish initializing
-
-
-    setTimeout(() => {
-        calculateTotalRevenue();
-    }, 1000);
-
-    document.body.addEventListener('click', function (event) {
-        const buttonId = event.target.id;
-        const jobId = getJobIdFromUrl();
-
-        switch (buttonId) {
-            case 'copyEstimateToQuote':
-                copyEstimateToQuote();
-                calculateTotalCost();
-                calculateTotalRevenue();
-                break;
-
-            case 'quoteJobButton':
-                createXeroDocument(jobId, 'quote');
-                break;
-
-            case 'deleteQuoteButton':
-                deleteXeroDocument(jobId, 'quote');
-                break;
-
-            case 'invoiceJobButton':
-                createXeroDocument(jobId, 'invoice');
-                break;
-
-            case 'deleteInvoiceButton':
-                deleteXeroDocument(jobId, 'invoice');
-                break;
-
-            case 'acceptQuoteButton':
-                const currentDateTimeISO = new Date().toISOString();
-                document.getElementById('quote_acceptance_date_iso').value = currentDateTimeISO;
-                console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
-                debouncedAutosave();
-                break;
-
-            case 'contactClientButton':
-                showQuoteModal(jobId, 'gmail', true);
-                break;
-
-            case 'saveEventButton':
-                handleSaveEventButtonClick(jobId);
-                break;
-            
-            case 'printWorkshopButton':
-                handlePrintWorkshop();
-                break;
-
-            default:
-                // Random clicks not on buttons don't count - don't even log them
-                break;
-        }
-    });
-});
+    if (actualGridCount !== expectedGridCount) {
+        console.error(`Not all grids were initialized. Expected: ${expectedGridCount}, Actual: ${actualGridCount}`);
+    } else {
+        console.log('All grids successfully initialized.');
+    }
+}
 
 function getJobIdFromUrl() {
     return window.location.pathname.split('/')[2];
 }
 
+function handleButtonClick(event) {
+    const buttonId = event.target.id;
+    const jobId = getJobIdFromUrl();
+
+    switch (buttonId) {
+        case 'copyEstimateToQuote':
+            copyEstimateToQuote();
+            calculateTotalCost();
+            calculateTotalRevenue();
+            break;
+
+        case 'quoteJobButton':
+            createXeroDocument(jobId, 'quote');
+            break;
+
+        case 'deleteQuoteButton':
+            deleteXeroDocument(jobId, 'quote');
+            break;
+
+        case 'invoiceJobButton':
+            createXeroDocument(jobId, 'invoice');
+            break;
+
+        case 'deleteInvoiceButton':
+            deleteXeroDocument(jobId, 'invoice');
+            break;
+
+        case 'acceptQuoteButton':
+            const currentDateTimeISO = new Date().toISOString();
+            document.getElementById('quote_acceptance_date_iso').value = currentDateTimeISO;
+            console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
+            debouncedAutosave();
+            break;
+
+        case 'contactClientButton':
+            showQuoteModal(jobId, 'gmail', true);
+            break;
+
+        case 'saveEventButton':
+            handleSaveEventButtonClick(jobId);
+            break;
+
+        case 'printWorkshopButton':
+            handlePrintWorkshop();
+            break;
+
+        case 'toggleGridButton':
+            toggleGrid();
+            break;
+
+        default:
+            // Random clicks not on buttons don't count - don't even log them
+            break;
+    }
+}
+
+// Main DOM for grids
+document.addEventListener('DOMContentLoaded', function () {
+
+    const trashCanColumn = createTrashCanColumn();
+
+    // Grid creation
+    const commonGridOptions = createCommonGridOptions();
+    const timeGridOptions = createTimeGridOptions(commonGridOptions, trashCanColumn);
+    const materialsGridOptions = createMaterialsGridOptions(commonGridOptions, trashCanColumn);
+    const adjustmentsGridOptions = createAdjustmentsGridOptions(commonGridOptions, trashCanColumn);
+
+    initializeGrids(commonGridOptions, timeGridOptions, materialsGridOptions, adjustmentsGridOptions);
+
+    // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
+    const revenueGridOptions = createRevenueGridOptions();
+    const costGridOptions = createCostGridOptions();
+
+    createTotalTables(revenueGridOptions, costGridOptions);
+
+    setTimeout(checkGridInitialization, 3000);
+    setTimeout(calculateTotalRevenue, 1000);
+
+    document.body.addEventListener('click', handleButtonClick);
+});
+
+// handleButtonClick() helper functions
 function showQuoteModal(jobId, provider = 'gmail', contactOnly = false) {
     if (contactOnly) {
         sendQuoteEmail(jobId, provider, true)
@@ -1260,4 +1318,142 @@ function deleteXeroDocument(jobId, type) {
             console.error('Error deleting Xero document:', error);
             renderMessages([{ level: 'error', message: `An error occurred: ${error.message}` }]);
         });
+}
+
+// Not being used yet
+function toggleGrid(commonGridOptions, trashCanColumn) {
+    const simpleTimeGridOptions = {
+        ...commonGridOptions,
+        columnDefs: [
+            {
+                headerName: 'Description',
+                field: 'description',
+                editable: true,
+                hide: true,
+                flex: 2
+            },
+            {
+                headerName: 'Hours',
+                field: 'hours',
+                editable: true,
+                valueParser: numberParser,
+                minWidth: 80
+            },
+            {
+                headerName: 'Cost of Time ($)',
+                field: 'cost_of_time',
+                editable: false,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter,
+                minWidth: 80
+            },
+            {
+                headerName: 'Value of Time ($)',
+                field: 'value_of_time',
+                editable: false,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter,
+                minWidth: 80
+            },
+            trashCanColumn
+        ],
+        rowData: [
+            { 'description': 'Single time entry', 'hours': 0 },
+        ],
+        context: { gridType: 'SimpleTimeTable' }
+    };
+
+    const simpleMaterialsGridOptions = {
+        ...commonGridOptions,
+        columnDefs: [
+            {
+                headerName: 'Material Description',
+                field: 'description',
+                editable: true,
+                hide: true,
+                flex: 2
+            },
+            {
+                headerName: 'Cost ($)',
+                field: 'material_cost',
+                editable: true,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter,
+                minWidth: 80
+            },
+            {
+                headerName: 'Retail Price ($)',
+                field: 'retail_price',
+                editable: true,
+                valueParser: numberParser,
+                minWidth: 80
+            },
+            trashCanColumn
+        ],
+        rowData: [
+            { 'description': 'Single materials entry', 'material_cost': 0, 'retail_price': 0 },
+        ],
+        context: { gridType: 'SimpleMaterialsTable' }
+    };
+
+    const simpleAdjustmentsGridOptions = {
+        ...commonGridOptions,
+        columnDefs: [
+            {
+                headerName: 'Adjustment Description',
+                field: 'description',
+                editable: true,
+                hide: true,
+                flex: 2
+            },
+            {
+                headerName: 'Cost ($)',
+                field: 'cost_adjustment',
+                editable: true,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter,
+                minWidth: 80
+            },
+            {
+                headerName: 'Retail ($)',
+                field: 'price_adjustment',
+                editable: true,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter,
+                minWidth: 80
+            },
+            trashCanColumn
+        ],
+        rowData: [
+            { 'description': 'Single adjustment entry', 'cost_adjustment': 0, 'price_adjustment': 0 },
+        ],
+        context: { gridType: 'SimpleAdjustmentsTable' }
+    };
+
+    const simpleTotalGridOptions = {
+        ...commonGridOptions,
+        columnDefs: [
+            {
+                headerName: 'Total Cost ($)',
+                field: 'cost',
+                editable: false,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter,
+                minWidth: 80
+            },
+            {
+                headerName: 'Total Retail ($)',
+                field: 'retail',
+                editable: false,
+                valueParser: numberParser,
+                valueFormatter: currencyFormatter,
+                minWidth: 80
+            },
+            trashCanColumn
+        ],
+        rowData: [
+            { 'cost': 0, 'retail': 0 },
+        ],
+        context: { gridType: 'SimpleTotalTable' }
+    };
 }

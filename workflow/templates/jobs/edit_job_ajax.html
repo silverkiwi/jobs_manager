@@ -15,11 +15,31 @@
 <hr />
 
 <div class="job-pricing-sections">
-    <div class="job-grid-section">
+    <div class="form-check form-switch d-flex align-items-center">
+        <input class="form-check-input form-check-input-lg" type="checkbox" role="switch" id="toggleGridButton" checked>
+        <label class="form-check-label mx-2 fw-bold form-check-label-lg" for="toggleGridButton">Toggle to simple
+            table</label>
+    </div>
+
+    <div class="job-grid-section mt-1">
         <h2>Estimate</h2>
-        <div id="estimateTimeTable" class="ag-theme-alpine price-entry-table"></div>
-        <div id="estimateMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
-        <div id="estimateAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+
+        <!-- Advanced Tables -->
+        <div id="advanced-estimate-grid d-none">
+            <div id="estimateTimeTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="estimateMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="estimateAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+        </div>
+
+        <!-- Simple Tables -->
+        <div id="simple-estimate-grid">
+            <div id="simpleEstimateTimeTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="simpleEstimateMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="simpleEstimateAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="simpleEstimateTotalTable" class="ag-theme-alpine price-entry-table"></div>
+        </div>
+
+
         <button id="copyEstimateToQuote" class="btn btn-primary mt-3">Copy Estimate to Quote</button>
     </div>
 
@@ -27,9 +47,23 @@
 
     <div class="job-grid-section" id="quoteGrid">
         <h2>Quote</h2>
-        <div id="quoteTimeTable" class="ag-theme-alpine price-entry-table"></div>
-        <div id="quoteMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
-        <div id="quoteAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+
+        <!-- Advanced Tables -->
+        <div id="advanced-quote-grid d-none">
+            <div id="quoteTimeTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="quoteMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="quoteAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+        </div>
+
+        <!-- Simple Tables -->
+
+        <div id="simple-quote-grid">
+            <div id="simpleQuoteTimeTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="simpleQuoteMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="simpleQuoteAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="simpleQuoteTotalTable" class="ag-theme-alpine prince-entry-table"></div>
+        </div>
+
         <button id="quoteJobButton" class="btn btn-primary mt-3" {% if quoted %} disabled {% endif %}>
             Quote Job
         </button>
@@ -46,9 +80,21 @@
 
     <div class="job-grid-section">
         <h2>Reality</h2>
-        <div id="realityTimeTable" class="ag-theme-alpine price-entry-table"></div>
-        <div id="realityMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
-        <div id="realityAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+
+        <!-- Advanced Tables -->
+        <div id="advanced-reality-grid d-none">
+            <div id="realityTimeTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="realityMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="realityAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+        </div>
+
+        <!-- Simple Tables -->
+        <div id="simple-reality-grid">
+            <div id="simpleRealityTimeTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="simpleRealityMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="simpleRealityAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
+            <div id="simpleRealityTotalTable" class="ag-theme-alpine price-entry-table"></div>
+        </div>
     </div>
 
     <div class="table-container">
@@ -66,6 +112,7 @@
 <hr>
 
 <!-- Attached Files Section -->
+<!-- Attached Files Section -->
 <div class="job-files-section">
     <h2>Attached Files</h2>
     <div id="file-list">
@@ -81,7 +128,9 @@
                 </div>
                 {% else %}
                 <div class="thumbnail-container no-thumb">
-                    <span class="file-extension">{% if file.size == 0 %}Very small{% else %}{{ file.size|filesizeformat }}{% endif %}</span>                
+                    <span class="file-extension">
+                        {% if file.size == 0 %}Very small{% else %}{{ file.size|filesizeformat }}{% endif %}
+                    </span>
                 </div>
                 {% endif %}
                 <div class="file-info">
@@ -92,8 +141,8 @@
                 </div>
                 <div class="file-controls">
                     <label class="print-checkbox">
-                        <input type="checkbox" name="jobfile_{{ file.id }}_print_on_jobsheet" data-file-id="{{ file.id }}"
-                            class="print-on-jobsheet" {% if file.print_on_jobsheet %}checked{% endif %}>
+                        <input type="checkbox" name="jobfile_{{ file.id }}_print_on_jobsheet"
+                            data-file-id="{{ file.id }}" class="print-on-jobsheet" {% if file.print_on_jobsheet %}checked{% endif %}>
                         Print on Job Sheet
                     </label>
                     <button class="btn btn-sm btn-danger delete-file" data-file-id="{{ file.id }}">
