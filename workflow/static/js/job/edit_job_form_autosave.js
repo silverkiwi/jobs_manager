@@ -1,5 +1,5 @@
-import { createNewRow } from '/static/js/deseralise_job_pricing.js';
-import { uploadJobFile, checkExistingJobFile } from '/static/js/job_file_handling.js';
+import { createNewRow } from './deseralise_job_pricing.js';
+import { uploadJobFile, checkExistingJobFile } from './job_file_handling.js';
 
 let dropboxToken = null;
 
@@ -600,40 +600,6 @@ export async function handlePrintWorkshop() {
     } catch (error) {
         console.error("Error during Print Workshop process:", error);
         alert(`Error printing: ${error.message}`);
-    }
-}
-
-let isGeneratingPDF = false;
-
-export function handlePrintJob() {
-    try {
-        if (isGeneratingPDF) {
-            console.warn('PDF generation is already in progress.');
-            return;
-        }
-
-        isGeneratingPDF = true;
-
-        const collectedData = collectAllData();
-
-        if (!collectedData.job_is_valid) {
-            console.error('Job is not valid. Please complete all required fields before printing.');
-            isGeneratingPDF = false;
-            return;
-        }
-
-        exportJobToPDF(collectedData)
-            .then((pdfBlob) => {
-                handlePDF(pdfBlob, 'upload', collectedData);
-                isGeneratingPDF = false;
-            })
-            .catch((error) => {
-                console.error('Error generating Job PDF:', error);
-                isGeneratingPDF = false;
-            });
-    } catch (error) {
-        console.error('Error during Print Job process:', error);
-        isGeneratingPDF = false;
     }
 }
 

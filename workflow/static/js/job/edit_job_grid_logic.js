@@ -1,0 +1,99 @@
+/*
+ * File Overview:
+ * ----------------
+ * This file manages the creation and interaction of grids using AG Grid. It includes
+ * functionality for dynamically initializing multiple grids (time, materials, adjustments)
+ * across various sections (e.g., estimate, quote, reality), and includes a special revenue grid.
+ * Later we might add cost with the revenue grid.
+ *
+ * Key Interactions:
+ * - Autosave Integration:
+ *   The autosave functionality depends on grid changes triggering an event that captures
+ *   the data across all relevant grids. It is crucial that the APIs for each grid are correctly
+ *   initialized and stored in `window.grids` to ensure autosave has access to the necessary data.
+ *
+ * - AG Grid API Storage:
+ *   Each grid API is stored in `window.grids` once the grid is initialized. This is critical
+ *   for autosave, `calculateTotalRevenue()`, and other inter-grid operations. The revenue grid is
+ *   also included here, as it is required for proper calculation and data refresh.
+ *
+ * - AG Grid Version Compatibility:
+ *   Ensure that changes align with AG Grid version 32.2.1. Be aware of deprecated properties
+ *   and avoid using older APIs that may not be compatible with this version.
+ *
+ * Important Notes:
+ * - The `onGridReady` function, inherited from `commonGridOptions`, is responsible for storing
+ *   each grid's API in `window.grids`. Do not modify the initialization logic to exclude this step.
+ * - Each grid API is crucial for the autosave mechanism. Breaking or missing the correct API
+ *   initialization may lead to unexpected errors or the autosave failing silently.
+ * - Maintain a consistent approach to API storage and avoid changes that bypass or duplicate
+ *   API handling in `onGridReady`.
+ */
+
+import { debouncedAutosave, copyEstimateToQuote, handlePrintWorkshop } from './edit_job_form_autosave.js';
+
+// Grid column definitions
+import { createTrashCanColumn } from './grid/columns.js';
+
+// Grid options creators
+import {
+    createCommonGridOptions,
+    createAdvancedTimeGridOptions,
+    createAdvancedMaterialsGridOptions, 
+    createAdvancedAdjustmentsGridOptions,
+    createSimpleTimeGridOptions,
+    createSimpleMaterialsGridOptions,
+    createSimpleAdjustmentsGridOptions,
+    createSimpleTotalsGridOptions
+} from './grid/grid_options.js';
+
+// Revenue and cost grid options
+import {
+    createRevenueGridOptions,
+    createCostGridOptions
+} from './grid/revenue_cost_options.js';
+
+// Grid initialization and management
+import {
+    initializeGrids,
+    createTotalTables,
+    checkGridInitialization
+} from './grid/grid_initialization.js';
+
+// Grid calculations
+import {
+    calculateTotalRevenue,
+} from './grid/grid_utils.js';
+
+// Button Handler
+import { handleButtonClick } from './job_buttons/button_handlers.js';
+
+import { loadJobDetails } from './job_details_loader.js';
+
+const gridMode = 'simple';
+
+// Main DOM for grids
+document.addEventListener('DOMContentLoaded', function () {
+    loadJobDetails();
+
+    const trashCanColumn = createTrashCanColumn();
+
+    // Grid creation
+    const commonGridOptions = createCommonGridOptions();
+    const timeGridOptions = createAdvancedTimeGridOptions(commonGridOptions, trashCanColumn);
+    const materialsGridOptions = createAdvancedMaterialsGridOptions(commonGridOptions, trashCanColumn);
+    const adjustmentsGridOptions = createAdvancedAdjustmentsGridOptions(commonGridOptions, trashCanColumn);
+
+    initializeGrids(commonGridOptions, timeGridOptions, materialsGridOptions, adjustmentsGridOptions);
+
+    // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
+    const revenueGridOptions = createRevenueGridOptions();
+    const costGridOptions = createCostGridOptions();
+
+    createTotalTables(revenueGridOptions, costGridOptions);
+
+    setTimeout(checkGridInitialization, 3000);
+    setTimeout(calculateTotalRevenue, 1000);
+
+    document.body.addEventListener('click', handleButtonClick);
+});
