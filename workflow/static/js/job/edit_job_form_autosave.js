@@ -208,6 +208,7 @@ function collectSimpleGridData(section) {
     let totalValue = 0;
     let wageRate = 0;
     let chargeOutRate = 0;
+    
     timeGrid.api.forEachNode(node => {
       rowCount++;
       const { hours, description, cost_of_time, value_of_time, charge_out_rate } = node.data;

@@ -117,8 +117,10 @@ document.addEventListener("DOMContentLoaded", function () {
     advancedAdjustmentsGridOptions,
   );
 
+  // I wasn't passing commonGridOptions so the grids weren't being created properly
   initializeSimpleGrids(
-    simpleTimeGridOptions,
+    commonGridOptions,
+    simpleTimeGridOptions, // Now simpleTimeGrid is created successfully ^^
     simpleMaterialsGridOptions,
     simpleAdjustmentsGridOptions,
   );

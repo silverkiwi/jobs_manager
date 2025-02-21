@@ -28,10 +28,14 @@ export function initializeSimpleGrids(
 ) {
   sections.forEach(section => {
     workType.forEach(work => {
+      console.log(`Creating simple grid for section: ${section}, work type: ${work}`);
+
       const gridType = `Simple${work}Table`;
       const gridKey = `simple${capitalize(section)}${work}Table`;
 
       const gridElement = document.querySelector(`#${gridKey}`);
+      console.log(`Grid element found for key: ${gridKey}`, gridElement);
+
       if (!gridKey) {
         console.error(`Grid element not found for key: ${gridKey}`);
         return;
@@ -49,8 +53,11 @@ export function initializeSimpleGrids(
           specificGridOptions = adjustmentsGridOptions;
           break;
       }
+      console.log(`Specific grid options retrieved for ${gridType}:`, specificGridOptions);
 
       const rowData = getInitialRowData(section, gridType);
+      console.log(`Initial row data loaded for ${gridKey}:`, rowData);
+
       const gridOptions = {
         ...specificGridOptions,
         context: {
@@ -60,11 +67,14 @@ export function initializeSimpleGrids(
         },
         rowData: rowData,
       };
+      console.log(`Combined grid options created for ${gridKey}:`, gridOptions);
 
       console.log(`Creating simple grid for: ${gridKey}`);
       const gridInstance = agGrid.createGrid(gridElement, gridOptions);
+      console.log(`Grid instance created for ${gridKey}:`, gridInstance);
 
       gridInstance.setGridOption('rowData', rowData);
+      console.log(`Row data set for ${gridKey}`);
     });
   });
 
@@ -136,9 +146,13 @@ function createGrid(
   materialsGridOptions,
   adjustmentsGridOptions,
 ) {
+  console.log(`Creating grid for section: ${section}, work type: ${work}`);
+  
   const gridType = `${work}Table`;
   const gridKey = `${section}${gridType}`;
   const gridElement = document.querySelector(`#${gridKey}`);
+
+  console.log(`Grid element found for key: ${gridKey}`, gridElement);
 
   const specificGridOptions = getSpecificGridOptions(
     section,
@@ -148,7 +162,10 @@ function createGrid(
     materialsGridOptions,
     adjustmentsGridOptions,
   );
+  console.log(`Specific grid options retrieved for ${gridType}:`, specificGridOptions);
+
   const rowData = getInitialRowData(section, gridType);
+  console.log(`Initial row data loaded for ${gridKey}:`, rowData);
 
   const gridOptions = createGridOptions(
     section,
@@ -158,9 +175,13 @@ function createGrid(
     specificGridOptions,
     rowData,
   );
+  console.log(`Combined grid options created for ${gridKey}:`, gridOptions);
+
   const gridInstance = agGrid.createGrid(gridElement, gridOptions);
+  console.log(`Grid instance created for ${gridKey}:`, gridInstance);
 
   gridInstance.setGridOption("rowData", rowData);
+  console.log(`Row data set for ${gridKey}`);
 }
 
 /**
