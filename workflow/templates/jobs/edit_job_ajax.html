@@ -17,15 +17,16 @@
 <div class="job-pricing-sections">
     <div class="form-check form-switch d-flex align-items-center">
         <input class="form-check-input form-check-input-lg" type="checkbox" role="switch" id="toggleGridButton" checked>
-        <label class="form-check-label mx-2 fw-bold form-check-label-lg" for="toggleGridButton">Toggle to simple
-            table</label>
+        <label class="form-check-label mx-2 fw-bold form-check-label-lg" for="toggleGridButton">
+            Toggle to simple table
+        </label>
     </div>
 
     <div class="job-grid-section mt-1">
         <h2>Estimate</h2>
 
         <!-- Advanced Tables -->
-        <div id="advanced-estimate-grid d-none">
+        <div id="advanced-estimate-grid" class="d-none">
             <div id="estimateTimeTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="estimateMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="estimateAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
@@ -49,7 +50,7 @@
         <h2>Quote</h2>
 
         <!-- Advanced Tables -->
-        <div id="advanced-quote-grid d-none">
+        <div id="advanced-quote-grid" class="d-none">
             <div id="quoteTimeTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="quoteMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="quoteAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
@@ -82,7 +83,7 @@
         <h2>Reality</h2>
 
         <!-- Advanced Tables -->
-        <div id="advanced-reality-grid d-none">
+        <div id="advanced-reality-grid" class="d-none">
             <div id="realityTimeTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="realityMaterialsTable" class="ag-theme-alpine price-entry-table"></div>
             <div id="realityAdjustmentsTable" class="ag-theme-alpine price-entry-table"></div>
@@ -211,7 +212,7 @@
     style="display:none;">{{ latest_job_pricings_json|safe }}</script>
 <script type="application/json" id="historicalJobPricingsData"
     style="display:none;">{{ historical_job_pricings_json|safe }}</script>
-<script type="module" src="{% static 'js/job/deseralise_job_pricing.js' %}"></script>
+<script type="module" src="{% static 'js/job/deserialize_job_pricing.js' %}"></script>
 <script type="module" src="{% static 'js/job/edit_job_form_autosave.js' %}"></script>
 <script type="module" src="{% static 'js/job/job_file_handling.js' %}"></script>
 <script type="module" src="{% static 'js/job/client_lookup.js' %}"></script>

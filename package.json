@@ -4,7 +4,13 @@
   "description": "Jobs/quotes/work management",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prettier-format": "prettier --write \"./workflow/static/js/**/*.js\""    
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run prettier-format"
+    }
   },
   "keywords": [],
   "author": "",
@@ -15,12 +21,14 @@
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "highcharts": "^12.0.2",
+    "husky": "^9.1.7",
     "jquery": "^3.7.1",
     "jsoneditor": "^10.1.1",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "moment": "^2.30.1",
     "pdfmake": "^0.2.18",
+    "prettier": "^3.5.1",
     "sortablejs": "^1.15.6"
   }
 }

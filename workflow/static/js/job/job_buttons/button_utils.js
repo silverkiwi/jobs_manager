@@ -1,10 +1,12 @@
+import { sections } from "../grid/grid_initialization.js";
+
 /**
  * @description Functions to extract and manipulate URL data,
  * primarily the Job ID which is used in almost all job-related actions
  * @returns {string} The job ID extracted from the URL path
  */
 export function getJobIdFromUrl() {
-    return window.location.pathname.split('/')[2];
+  return window.location.pathname.split("/")[2];
 }
 
 /**
@@ -21,11 +23,11 @@ export function getJobIdFromUrl() {
  * formatEventType('job_started') // returns 'Job Started'
  */
 export function formatEventType(eventType) {
-    return eventType
-        .replaceAll('_', ' ')
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+  return eventType
+    .replaceAll("_", " ")
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 /**
@@ -37,15 +39,15 @@ export function formatEventType(eventType) {
  * formatTimestamp(1703516400000) // returns 'Dec 25, 2023, 03:00 PM'
  */
 export function formatTimestamp(timestamp) {
-    const date = new Date(timestamp);
-    return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-    }).format(date);
+  const date = new Date(timestamp);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
 }
 
 /**
@@ -59,9 +61,9 @@ export function formatTimestamp(timestamp) {
  * @returns {void}
  */
 export function addEventToTimeline(event, jobEventsList) {
-    const eventType = formatEventType(event.event_type);
+  const eventType = formatEventType(event.event_type);
 
-    const newEventHtml = `
+  const newEventHtml = `
         <div class='timeline-item list-group-item'>
             <div class='d-flex w-100 justify-content-between'>
                 <div class='timeline-date text-muted small'>${formatTimestamp(event.timestamp)}</div>
@@ -73,5 +75,23 @@ export function addEventToTimeline(event, jobEventsList) {
             </div>
         </div>
     `;
-    jobEventsList.insertAdjacentHTML('afterbegin', newEventHtml);
+  jobEventsList.insertAdjacentHTML("afterbegin", newEventHtml);
+}
+
+export function toggleGrid() {
+  const isSimple = document.getElementById('toggleGridButton')?.checked ?? false;
+  switch(isSimple) {
+      case true:
+          sections.forEach(section => {
+            document.getElementById(`advanced-${section}-grid`).classList = 'd-none';
+            document.getElementById(`simple-${section}-grid`).classList = 'd-block';
+          });
+          break;
+      case false:
+        sections.forEach(section => {
+          document.getElementById(`simple-${section}-grid`).classList = 'd-none';
+          document.getElementById(`advanced-${section}-grid`).classList = 'd-block';
+        });
+        break;
+  }
 }

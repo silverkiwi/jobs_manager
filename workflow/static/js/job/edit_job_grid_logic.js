@@ -30,70 +30,107 @@
  *   API handling in `onGridReady`.
  */
 
-import { debouncedAutosave, copyEstimateToQuote, handlePrintWorkshop } from './edit_job_form_autosave.js';
+import {
+  debouncedAutosave,
+  copyEstimateToQuote,
+  handlePrintWorkshop,
+} from "./edit_job_form_autosave.js";
 
 // Grid column definitions
-import { createTrashCanColumn } from './grid/columns.js';
+import { createTrashCanColumn } from "./grid/columns.js";
 
 // Grid options creators
 import {
-    createCommonGridOptions,
-    createAdvancedTimeGridOptions,
-    createAdvancedMaterialsGridOptions, 
-    createAdvancedAdjustmentsGridOptions,
-    createSimpleTimeGridOptions,
-    createSimpleMaterialsGridOptions,
-    createSimpleAdjustmentsGridOptions,
-    createSimpleTotalsGridOptions
-} from './grid/grid_options.js';
+  createCommonGridOptions,
+  createAdvancedTimeGridOptions,
+  createAdvancedMaterialsGridOptions,
+  createAdvancedAdjustmentsGridOptions,
+  createSimpleTimeGridOptions,
+  createSimpleMaterialsGridOptions,
+  createSimpleAdjustmentsGridOptions,
+  createSimpleTotalsGridOptions,
+} from "./grid/grid_options.js";
 
 // Revenue and cost grid options
 import {
-    createRevenueGridOptions,
-    createCostGridOptions
-} from './grid/revenue_cost_options.js';
+  createRevenueGridOptions,
+  createCostGridOptions,
+} from "./grid/revenue_cost_options.js";
 
 // Grid initialization and management
 import {
-    initializeGrids,
-    createTotalTables,
-    checkGridInitialization
-} from './grid/grid_initialization.js';
+  initializeAdvancedGrids,
+  initializeSimpleGrids,
+  createTotalTables,
+  checkGridInitialization,
+} from "./grid/grid_initialization.js";
 
 // Grid calculations
-import {
-    calculateTotalRevenue,
-} from './grid/grid_utils.js';
+import { calculateTotalRevenue } from "./grid/grid_utils.js";
 
 // Button Handler
-import { handleButtonClick } from './job_buttons/button_handlers.js';
+import { handleButtonClick } from "./job_buttons/button_handlers.js";
 
-import { loadJobDetails } from './job_details_loader.js';
+import { loadJobDetails } from "./job_details_loader.js";
 
-const gridMode = 'simple';
+const gridMode = "simple";
 
 // Main DOM for grids
-document.addEventListener('DOMContentLoaded', function () {
-    loadJobDetails();
+document.addEventListener("DOMContentLoaded", function () {
+  loadJobDetails();
 
-    const trashCanColumn = createTrashCanColumn();
+  const trashCanColumn = createTrashCanColumn();
 
-    // Grid creation
-    const commonGridOptions = createCommonGridOptions();
-    const timeGridOptions = createAdvancedTimeGridOptions(commonGridOptions, trashCanColumn);
-    const materialsGridOptions = createAdvancedMaterialsGridOptions(commonGridOptions, trashCanColumn);
-    const adjustmentsGridOptions = createAdvancedAdjustmentsGridOptions(commonGridOptions, trashCanColumn);
+  // Advanced grid creation
+  const commonGridOptions = createCommonGridOptions();
+  const advancedTimeGridOptions = createAdvancedTimeGridOptions(
+    commonGridOptions,
+    trashCanColumn,
+  );
+  const advancedMaterialsGridOptions = createAdvancedMaterialsGridOptions(
+    commonGridOptions,
+    trashCanColumn,
+  );
+  const advancedAdjustmentsGridOptions = createAdvancedAdjustmentsGridOptions(
+    commonGridOptions,
+    trashCanColumn,
+  );
 
-    initializeGrids(commonGridOptions, timeGridOptions, materialsGridOptions, adjustmentsGridOptions);
+  // Simple grid creation
+  const simpleTimeGridOptions = createSimpleTimeGridOptions(
+    commonGridOptions,
+    trashCanColumn,
+  );
+  const simpleMaterialsGridOptions = createSimpleMaterialsGridOptions(
+    commonGridOptions,
+    trashCanColumn,
+  );
+  const simpleAdjustmentsGridOptions = createSimpleAdjustmentsGridOptions(
+    commonGridOptions,
+    trashCanColumn,
+  );
 
-    // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
-    const revenueGridOptions = createRevenueGridOptions();
-    const costGridOptions = createCostGridOptions();
+  initializeAdvancedGrids(
+    commonGridOptions,
+    advancedTimeGridOptions,
+    advancedMaterialsGridOptions,
+    advancedAdjustmentsGridOptions,
+  );
 
-    createTotalTables(revenueGridOptions, costGridOptions);
+  initializeSimpleGrids(
+    simpleTimeGridOptions,
+    simpleMaterialsGridOptions,
+    simpleAdjustmentsGridOptions,
+  );
 
-    setTimeout(checkGridInitialization, 3000);
-    setTimeout(calculateTotalRevenue, 1000);
+  // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
+  const revenueGridOptions = createRevenueGridOptions();
+  const costGridOptions = createCostGridOptions();
 
-    document.body.addEventListener('click', handleButtonClick);
+  createTotalTables(revenueGridOptions, costGridOptions);
+
+  setTimeout(checkGridInitialization, 3000);
+  setTimeout(calculateTotalRevenue, 1000);
+
+  document.body.addEventListener("click", handleButtonClick);
 });

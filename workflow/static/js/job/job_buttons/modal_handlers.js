@@ -1,5 +1,5 @@
-import { sendQuoteEmail } from './email_handlers.js';
-import { renderMessages } from '../../timesheet/timesheet_entry/messages.js';
+import { sendQuoteEmail } from "./email_handlers.js";
+import { renderMessages } from "../../timesheet/timesheet_entry/messages.js";
 
 /**
  * Manages modals that display instructions to users, such as the quote sending modal.
@@ -19,17 +19,18 @@ import { renderMessages } from '../../timesheet/timesheet_entry/messages.js';
  * @param {boolean} [contactOnly=false] - If true, skips the modal and sends email directly
  * @returns {void}
  */
-export function showQuoteModal(jobId, provider = 'gmail', contactOnly = false) {
-    if (contactOnly) {
-        sendQuoteEmail(jobId, provider, true)
-            .catch(error => {
-                console.error('Error sending quote email:', error);
-                renderMessages([{ level: 'error', message: 'Failed to send quote email.' }]);
-            });
-        return;
-    }
+export function showQuoteModal(jobId, provider = "gmail", contactOnly = false) {
+  if (contactOnly) {
+    sendQuoteEmail(jobId, provider, true).catch((error) => {
+      console.error("Error sending quote email:", error);
+      renderMessages([
+        { level: "error", message: "Failed to send quote email." },
+      ]);
+    });
+    return;
+  }
 
-    const modalHtml = `
+  const modalHtml = `
         <div class='modal fade' id='quoteModal' tabindex='-1' role='dialog' aria-labelledby='quoteModalLabel' aria-hidden='true'>
             <div class='modal-dialog' role='document'>
                 <div class='modal-content'>
@@ -58,24 +59,40 @@ export function showQuoteModal(jobId, provider = 'gmail', contactOnly = false) {
             </div>
         </div>
     `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const quoteModal = new bootstrap.Modal(document.getElementById('quoteModal'));
-    quoteModal.show();
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+  const quoteModal = new bootstrap.Modal(document.getElementById("quoteModal"));
+  quoteModal.show();
 
-    const sendQuoteButton = document.getElementById('sendQuoteEmailButton');
-    // Remove duplicate event listeners if necessary:
-    sendQuoteButton.replaceWith(sendQuoteButton.cloneNode(true));
+  const sendQuoteButton = document.getElementById("sendQuoteEmailButton");
+  // Remove duplicate event listeners if necessary:
+  sendQuoteButton.replaceWith(sendQuoteButton.cloneNode(true));
 
-    document.getElementById('sendQuoteEmailButton').addEventListener('click', async () => {
-        try {
-            const data = await sendQuoteEmail(jobId, provider);
-            if (data.success) {
-                renderMessages([{ level: 'success', message: 'Email client opened successfully.' }], 'email-alert-container');
-            } else {
-                renderMessages([{ level: 'error', message: 'Failed to open email client.' }], 'email-alert-container');
-            }
-        } catch (error) {
-            renderMessages([{ level: 'error', message: `Error: ${error.message}` }], 'email-alert-container');
+  document
+    .getElementById("sendQuoteEmailButton")
+    .addEventListener("click", async () => {
+      try {
+        const data = await sendQuoteEmail(jobId, provider);
+        if (data.success) {
+          renderMessages(
+            [
+              {
+                level: "success",
+                message: "Email client opened successfully.",
+              },
+            ],
+            "email-alert-container",
+          );
+        } else {
+          renderMessages(
+            [{ level: "error", message: "Failed to open email client." }],
+            "email-alert-container",
+          );
         }
+      } catch (error) {
+        renderMessages(
+          [{ level: "error", message: `Error: ${error.message}` }],
+          "email-alert-container",
+        );
+      }
     });
 }
