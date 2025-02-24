@@ -87,12 +87,6 @@
     <div class="container mt-4 mb-4">
         {% block content %}{% endblock %}
     </div>
-    <script src="{% static 'js/time_conversion.js' %}"></script>
-    <script type="module" src="{% static 'js/timesheet/timesheet_entry/messages.js' %}"></script>
-
-
-    <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-    {% block extra_js %}{% endblock %}
 
     <div class="modal fade" id="alert-container" tabindex="-1" aria-labelledby="alert-modal-label" aria-hidden="true">
         <div class="modal-dialog">
@@ -111,6 +105,14 @@
         </div>
     </div>
 
+    <script>
+        window.DEBUG_MODE = {{ DEBUG_MODE|lower }};
+    </script>
+    <script src="{% static 'js/env.js' %}"></script>
+    <script src="{% static 'js/time_conversion.js' %}"></script>
+    <script type="module" src="{% static 'js/timesheet/timesheet_entry/messages.js' %}"></script>
+    <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 
 </html>

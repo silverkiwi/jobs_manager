@@ -146,9 +146,10 @@ function isNonDefaultRow(data, gridName) {
 }
 
 function collectGridData(section) {
-  const isSimple = document.getElementById('toggleGridButton')?.checked ?? false;
+  const isSimple =
+    document.getElementById("toggleGridButton")?.checked ?? false;
 
-  switch(isSimple) {
+  switch (isSimple) {
     case true:
       return collectSimpleGridData(section);
     case false:
@@ -156,7 +157,6 @@ function collectGridData(section) {
     default:
       console.error(`Unknown grid state: "${isSimple}"`);
       return {};
-  
   }
 }
 
@@ -195,89 +195,104 @@ function collectAdvancedGridData(section) {
   return sectionData;
 }
 
-function collectSimpleGridData(section) {
+export function collectSimpleGridData(section) {
   const sectionData = {};
 
-  // 1) Time
-  const simpleTimeKey = `simple${capitalize(section)}TimeTable`;
-  const timeGrid = window.grids[simpleTimeKey];
-  if (timeGrid && timeGrid.api) {
-    let totalHours = 0;
-    let rowCount = 0;
-    let totalCost = 0;
-    let totalValue = 0;
-    let wageRate = 0;
-    let chargeOutRate = 0;
-    
-    timeGrid.api.forEachNode(node => {
-      rowCount++;
-      const { hours, description, cost_of_time, value_of_time, charge_out_rate } = node.data;
-      wageRate = cost_of_time;
-      chargeOutRate = charge_out_rate;
-      if (hours && hours > 0) {
-        totalHours += parseFloat(hours);
-        totalCost += cost_of_time;
-        totalValue += value_of_time;
-      }
-    });
+  // ===================== 1) TIME  =====================
+  {
+    const timeKey = `simple${capitalize(section)}TimeTable`;
+    const timeGrid = window.grids[timeKey];
+    let timeEntries = [];
 
-    sectionData.time_entries = [];
-    if (totalHours > 0) {
-      const totalMinutes = totalHours * 60;
-      sectionData.time_entries.push({
-        description: 'Collapsed from Simple Editor',
-        items: 1,
-        minutes_per_item: totalMinutes,
-        total_minutes: totalMinutes,
-        wage_rate: wageRate,
-        revenue: totalValue,
-        cost: totalCost,
+    if (timeGrid && timeGrid.api) {
+      timeGrid.api.forEachNode((node) => {
+        const row = node.data || {};
+        const description = row.description?.trim() || "";
+        const hours = parseFloat(row.hours) || 0;
+        const wage = parseFloat(row.wage_rate) || 0;
+        const charge = parseFloat(row.charge_out_rate) || 0;
+        const costTime = parseFloat(row.cost_of_time) || 0;
+        const valueTime = parseFloat(row.value_of_time) || 0;
+
+        const isEmptyRow = hours === 0;
+
+        if (!isEmptyRow) {
+          const totalMinutes = hours * 60;
+          timeEntries.push({
+            description: description,
+            items: 1,
+            minutes_per_item: totalMinutes,
+            total_minutes: totalMinutes,
+            wage_rate: wage,
+            charge_out_rate: charge,
+            cost: costTime,
+            revenue: valueTime,
+          });
+        }
       });
     }
+    sectionData.time_entries = timeEntries;
   }
 
-  // 2) Materials
-  const simpleMaterialsKey = `simple${capitalize(section)}MaterialsTable`;
-  const materialsGrid = window.grids[simpleMaterialsKey];
-  if (materialsGrid && materialsGrid.api) {
-    let materialCost = 0;
-    let retailPrice = 0;
-    materialsGrid.api.forEachNode(node => {
-      materialCost += parseFloat(node.data.material_cost) || 0;
-      retailPrice += parseFloat(node.data.retail_price) || 0;
-    });
+  // ===================== 2) MATERIALS =====================
+  {
+    const matKey = `simple${capitalize(section)}MaterialsTable`;
+    const matGrid = window.grids[matKey];
+    let materialEntries = [];
 
-    sectionData.material_entries = [];
-    if (materialCost !== 0 || retailPrice !== 0) {
-      sectionData.material_entries.push({
-        description: 'Collapsed from Simple Editor',
-        quantity: 1,
-        unit_cost: materialCost,
-        unit_revenue: retailPrice,
-        revenue: retailPrice,
+    if (matGrid && matGrid.api) {
+      matGrid.api.forEachNode((node) => {
+        const row = node.data || {};
+        const description = row.description?.trim() || "";
+        const materialCost = parseFloat(row.material_cost) || 0;
+        const retailPrice = parseFloat(row.retail_price) || 0;
+
+        // Definir se é “vazia”
+        const isEmptyRow =
+          materialCost === 0 && retailPrice === 0 && description === "";
+
+        if (!isEmptyRow) {
+          materialEntries.push({
+            description: description,
+            quantity: 1,
+            unit_cost: materialCost,
+            unit_revenue: retailPrice,
+            revenue: retailPrice,
+          });
+        }
       });
     }
+    sectionData.material_entries = materialEntries;
   }
 
-  // 3) Adjustments
-  const simpleAdjustmentsKey = `simple${capitalize(section)}AdjustmentsTable`;
-  const adjustmentsGrid = window.grids[simpleAdjustmentsKey];
-  if (adjustmentsGrid && adjustmentsGrid.api) {
-    let costAdjust = 0;
-    let priceAdjust = 0;
-    adjustmentsGrid.api.forEachNode(node => {
-      costAdjust += parseFloat(node.data.cost_adjustment) || 0;
-      priceAdjust += parseFloat(node.data.price_adjustment) || 0;
-    });
+  // ===================== 3) ADJUSTMENTS =====================
+  {
+    const adjKey = `simple${capitalize(section)}AdjustmentsTable`;
+    const adjGrid = window.grids[adjKey];
+    let adjustmentEntries = [];
 
-    sectionData.adjustment_entries = [];
-    if (costAdjust !== 0 || priceAdjust !== 0) {
-      sectionData.adjustment_entries.push({
-        comments: 'Collapsed from Simple Editor',
-        cost_adjustment: costAdjust,
-        price_adjustment: priceAdjust,
+    if (adjGrid && adjGrid.api) {
+      adjGrid.api.forEachNode((node) => {
+        const row = node.data || {};
+        const description = row.description?.trim() || "";
+        const comments = row.comments?.trim() || "";
+        const costAdj = parseFloat(row.cost_adjustment) || 0;
+        const priceAdj = parseFloat(row.price_adjustment) || 0;
+
+        const isEmptyRow =
+          costAdj === 0 && priceAdj === 0 && description === "";
+
+        if (!isEmptyRow) {
+          adjustmentEntries.push({
+            description: description,
+            cost_adjustment: costAdj,
+            price_adjustment: priceAdj,
+            comments: comments,
+          });
+        }
       });
     }
+    sectionData.adjustment_entries = adjustmentEntries;
   }
 
   return sectionData;

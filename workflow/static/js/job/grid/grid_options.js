@@ -7,15 +7,19 @@ import {
   setRetailRate,
   calculateTotalCost,
   calculateTotalRevenue,
+  adjustGridHeight,
 } from "./grid_utils.js";
 
 import { debouncedAutosave } from "../edit_job_form_autosave.js";
+import {
+  calculateSimpleTotals,
+  recalcSimpleTimeRow,
+} from "./revenue_cost_options.js";
 
 export function createCommonGridOptions() {
   return {
     rowHeight: 28,
     headerHeight: 32,
-    domLayout: "autoHeight",
     suppressPaginationPanel: true,
     suppressHorizontalScroll: true,
     defaultColDef: {
@@ -32,13 +36,20 @@ export function createCommonGridOptions() {
 
       window.grids[gridKey] = { api: params.api };
 
-      params.api.sizeColumnsToFit();
+      // This avoids warning in case the grid is hidden (d-none)
+      if (gridElement && gridElement.offsetWidth > 0) {
+        params.api.sizeColumnsToFit();
+      }
+      adjustGridHeight(params.api, `${gridKey}`);
+      calculateSimpleTotals();
     },
     onGridSizeChanged: (params) => {
-      params.api.sizeColumnsToFit();
-    },
-    autoSizeStrategy: {
-      type: "fitCellContents",
+      const gridKey = params.context.gridKey;
+      const gridElement = document.querySelector(`#${gridKey}`);
+      if (gridElement && gridElement.offsetWidth > 0) {
+        params.api.sizeColumnsToFit();
+      }
+      adjustGridHeight(params.api, `${gridKey}`);
     },
     enterNavigatesVertically: true,
     enterNavigatesVerticallyAfterEdit: true,
@@ -129,41 +140,59 @@ export function createCommonGridOptions() {
       const newHeight = calculateGridHeight(params.api, rowCount);
       // console.log(`Grid Key: ${gridKey}, Updated Grid Height: ${newHeight}`);
       gridElement.style.height = `${newHeight}px`;
+      adjustGridHeight(params.api, `${gridKey}`);
     },
-
     onCellValueChanged: function (event) {
+      const gridKey = event.context.gridKey;
       const gridType = event.context.gridType;
       const data = event.data;
 
-      if (gridType === "TimeTable") {
-        if (["mins_per_item", "items"].includes(event.column.colId)) {
-          const totalMinutes = event.data.items * event.data.mins_per_item;
-          const hours = (totalMinutes / 60).toFixed(1);
-          event.data.total_minutes = `${totalMinutes} (${hours} hours)`;
-          event.api.refreshCells({
-            rowNodes: [event.node],
-            columns: ["total_minutes"],
-            force: true,
-          });
-        }
-      } else if (gridType === "MaterialsTable") {
-        if (event.column.colId === "unit_cost") {
-          fetchMaterialsMarkup(data).then((markupRate) => {
-            data.unit_revenue = calculateRetailRate(data.unit_cost, markupRate);
+      switch (gridType) {
+        case "TimeTable":
+          if (["mins_per_item", "items"].includes(event.column.colId)) {
+            const totalMinutes = event.data.items * event.data.mins_per_item;
+            const hours = (totalMinutes / 60).toFixed(1);
+            event.data.total_minutes = `${totalMinutes} (${hours} hours)`;
             event.api.refreshCells({
               rowNodes: [event.node],
-              columns: ["unit_revenue"],
+              columns: ["total_minutes"],
               force: true,
             });
-          });
-        }
+          }
+          break;
 
-        data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
-        event.api.refreshCells({
-          rowNodes: [event.node],
-          columns: ["revenue"],
-          force: true,
-        });
+        case "MaterialsTable":
+          if (event.column.colId === "unit_cost") {
+            fetchMaterialsMarkup(data).then((markupRate) => {
+              data.unit_revenue = calculateRetailRate(
+                data.unit_cost,
+                markupRate,
+              );
+              event.api.refreshCells({
+                rowNodes: [event.node],
+                columns: ["unit_revenue"],
+                force: true,
+              });
+            });
+          }
+
+          data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
+          event.api.refreshCells({
+            rowNodes: [event.node],
+            columns: ["revenue"],
+            force: true,
+          });
+          break;
+
+        case "SimpleTimeTable":
+          recalcSimpleTimeRow(event.data);
+          event.api.refreshCells({
+            rowNodes: [event.node],
+            columns: ["cost_of_time", "value_of_time"],
+            force: true,
+          });
+          calculateSimpleTotals();
+          break;
       }
 
       event.api.refreshCells({
@@ -172,9 +201,33 @@ export function createCommonGridOptions() {
         force: true,
       });
 
+      adjustGridHeight(event.api, `${gridKey}`);
       debouncedAutosave(event);
       calculateTotalRevenue();
       calculateTotalCost();
+      calculateSimpleTotals();
+    },
+  };
+}
+
+/**
+ * @description Creates a base commonGridOptions object for a "Simple Totals" table.
+ * @param {string} gridKey - The unique key to store the grid API in window.grids
+ * @returns {Object} The common grid options
+ */
+export function createSimpleTotalsCommonGridOptions(gridKey) {
+  return {
+    rowHeight: 28,
+    headerHeight: 32,
+    onGridReady: (params) => {
+      window.grids[gridKey] = { api: params.api };
+
+      params.api.sizeColumnsToFit();
+      calculateSimpleTotals();
+    },
+
+    onGridSizeChanged: (params) => {
+      params.api.sizeColumnsToFit();
     },
   };
 }
@@ -376,10 +429,9 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Description",
+        headerName: "Time Description",
         field: "description",
         editable: true,
-        hide: true,
         flex: 2,
       },
       {
@@ -420,7 +472,6 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
       },
       trashCanColumn,
     ],
-    rowData: [{ description: "Single time entry", hours: 0 }],
     context: { gridType: "SimpleTimeTable" },
   };
 }
@@ -436,7 +487,6 @@ export function createSimpleMaterialsGridOptions(
         headerName: "Material Description",
         field: "description",
         editable: true,
-        hide: true,
         flex: 2,
       },
       {
@@ -452,16 +502,10 @@ export function createSimpleMaterialsGridOptions(
         field: "retail_price",
         editable: true,
         valueParser: numberParser,
+        valueFormatter: currencyFormatter,
         minWidth: 80,
       },
       trashCanColumn,
-    ],
-    rowData: [
-      {
-        description: "Single materials entry",
-        material_cost: 0,
-        retail_price: 0,
-      },
     ],
     context: { gridType: "SimpleMaterialsTable" },
   };
@@ -478,7 +522,6 @@ export function createSimpleAdjustmentsGridOptions(
         headerName: "Adjustment Description",
         field: "description",
         editable: true,
-        hide: true,
         flex: 2,
       },
       {
@@ -499,21 +542,13 @@ export function createSimpleAdjustmentsGridOptions(
       },
       trashCanColumn,
     ],
-    rowData: [
-      {
-        description: "Single adjustment entry",
-        cost_adjustment: 0,
-        price_adjustment: 0,
-      },
-    ],
     context: { gridType: "SimpleAdjustmentsTable" },
   };
 }
 
-export function createSimpleTotalsGridOptions(
-  commonGridOptions,
-  trashCanColumn,
-) {
+export function createSimpleTotalsGridOptions(gridKey) {
+  const commonGridOptions = createSimpleTotalsCommonGridOptions(gridKey);
+
   return {
     ...commonGridOptions,
     columnDefs: [
@@ -533,7 +568,6 @@ export function createSimpleTotalsGridOptions(
         valueFormatter: currencyFormatter,
         minWidth: 80,
       },
-      trashCanColumn,
     ],
     rowData: [{ cost: 0, retail: 0 }],
     context: { gridType: "SimpleTotalTable" },

@@ -9,8 +9,8 @@ class MaterialEntrySerializer(serializers.ModelSerializer):
     unit_revenue = serializers.DecimalField(max_digits=10, decimal_places=2)
     revenue = serializers.SerializerMethodField()
     description = serializers.CharField(allow_blank=True)
-    item_code = serializers.CharField(allow_blank=True)
-    comments = serializers.CharField(allow_blank=True)
+    item_code = serializers.CharField(allow_blank=True, required=False)
+    comments = serializers.CharField(allow_blank=True, required=False)
     quantity = serializers.DecimalField(max_digits=10, decimal_places=2)
     revenue = serializers.SerializerMethodField(read_only=True)
     cost = serializers.SerializerMethodField(read_only=True)
@@ -20,7 +20,7 @@ class MaterialEntrySerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "item_code",
-            "description",
+            "description", 
             "quantity",
             "unit_cost",
             "unit_revenue",

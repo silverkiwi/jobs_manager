@@ -109,6 +109,7 @@ document.addEventListener("DOMContentLoaded", function () {
     commonGridOptions,
     trashCanColumn,
   );
+  const totalsGridOptions = createSimpleTotalsGridOptions();
 
   initializeAdvancedGrids(
     commonGridOptions,
@@ -117,10 +118,9 @@ document.addEventListener("DOMContentLoaded", function () {
     advancedAdjustmentsGridOptions,
   );
 
-  // I wasn't passing commonGridOptions so the grids weren't being created properly
   initializeSimpleGrids(
     commonGridOptions,
-    simpleTimeGridOptions, // Now simpleTimeGrid is created successfully ^^
+    simpleTimeGridOptions,
     simpleMaterialsGridOptions,
     simpleAdjustmentsGridOptions,
   );

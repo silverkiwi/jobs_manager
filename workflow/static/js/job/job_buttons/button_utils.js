@@ -1,4 +1,5 @@
-import { sections } from "../grid/grid_initialization.js";
+import { sections, workType } from "../grid/grid_initialization.js";
+import { capitalize } from "../grid/grid_utils.js";
 
 /**
  * @description Functions to extract and manipulate URL data,
@@ -79,19 +80,37 @@ export function addEventToTimeline(event, jobEventsList) {
 }
 
 export function toggleGrid() {
-  const isSimple = document.getElementById('toggleGridButton')?.checked ?? false;
-  switch(isSimple) {
-      case true:
-          sections.forEach(section => {
-            document.getElementById(`advanced-${section}-grid`).classList = 'd-none';
-            document.getElementById(`simple-${section}-grid`).classList = 'd-block';
+  const isSimple =
+    document.getElementById("toggleGridButton")?.checked ?? false;
+  switch (isSimple) {
+    case true:
+      sections.forEach((section) => {
+        document.getElementById(`advanced-${section}-grid`).classList =
+          "d-none";
+        document.getElementById(`simple-${section}-grid`).classList = "d-block";
+
+        setTimeout(() => {
+          workType.forEach((work) => {
+            const simpleApi =
+              window.grids[`simple${capitalize(section)}${work}Table`]?.api;
+            simpleApi?.sizeColumnsToFit();
           });
-          break;
-      case false:
-        sections.forEach(section => {
-          document.getElementById(`simple-${section}-grid`).classList = 'd-none';
-          document.getElementById(`advanced-${section}-grid`).classList = 'd-block';
-        });
-        break;
+        }, 50);
+      });
+      break;
+    case false:
+      sections.forEach((section) => {
+        document.getElementById(`simple-${section}-grid`).classList = "d-none";
+        document.getElementById(`advanced-${section}-grid`).classList =
+          "d-block";
+
+        setTimeout(() => {
+          workType.forEach((work) => {
+            const advApi = window.grids[`${section}${work}Table`]?.api;
+            advApi?.sizeColumnsToFit();
+          });
+        }, 50);
+      });
+      break;
   }
 }

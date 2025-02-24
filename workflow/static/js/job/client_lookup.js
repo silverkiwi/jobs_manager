@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   clientInput.addEventListener("input", function () {
     const query = clientInput.value.trim();
-    console.log("Client query event triggered: ", query);
 
     if (query.length > 2) {
       fetch(`/api/client-search/?q=${encodeURIComponent(query)}`, {
@@ -55,23 +54,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Global click event to close the dropdown
   document.addEventListener("click", function (event) {
-    console.log("Global click detected:", event.target);
-
     const isClickInsideInput = clientInput.contains(event.target);
     const isClickInsideContainer = suggestionsContainer.contains(event.target);
 
-    console.log("Is click inside input?", isClickInsideInput);
-    console.log("Is click inside container?", isClickInsideContainer);
-
     if (!isClickInsideInput && !isClickInsideContainer) {
-      console.log("Click outside detected. Hiding suggestions.");
       suggestionsContainer.innerHTML = ""; // Clear suggestions
     }
   });
 
   // Prevent click inside the suggestions container from propagating
   suggestionsContainer.addEventListener("click", function (event) {
-    console.log("Click inside suggestions container.");
     event.stopPropagation(); // Prevents global listener from triggering
   });
 
@@ -112,15 +104,7 @@ document.addEventListener("DOMContentLoaded", function () {
               ],
               "job-details",
             );
-          } else {
-            console.log(
-              "Client updated successfully:",
-              clientIdField.value,
-              clientNameField.value,
-            );
           }
-
-          console.log("Client selected:", client.id, client.name);
 
           debouncedAutosave();
           hideDropdown();

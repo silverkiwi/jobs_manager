@@ -168,6 +168,7 @@ export function onCellKeyDown(params) {
             colKey: params.column.colId,
           });
         }, 0);
+        adjustGridHeight(params.api, `${gridKey}`);
       }
     }
   }
@@ -249,6 +250,32 @@ export function setRetailRate(params) {
 }
 
 export function capitalize(str) {
-  if (!str) return '';
+  if (!str) return "";
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export function adjustGridHeight(gridApi, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.warn(`Grid container #${containerId} not found.`);
+    return;
+  }
+
+  let rowCount = 0;
+  gridApi.forEachNode(() => rowCount++);
+
+  const rowHeight = gridApi.getSizesForCurrentTheme().rowHeight || 28;
+
+  const header = container.querySelector(".ag-header");
+  const headerHeight = header ? header.offsetHeight : 32;
+
+  const maxHeight = 360;
+
+  let desiredHeight = rowCount * rowHeight + headerHeight;
+
+  if (desiredHeight > maxHeight) {
+    desiredHeight = maxHeight;
+  }
+
+  container.style.height = `${desiredHeight}px`;
 }
