@@ -161,20 +161,20 @@ function loadAdvJobAdjustment(entries) {
 
 // Simple loaders
 function loadSimpleJobTime(entries) {
-  let totalMinutes = 0;
-  entries.forEach((e) => {
-    totalMinutes += e.total_minutes || 0;
+  return entries.map((entry) => {
+    const hours = parseFloat(entry.total_minutes / 60) || 0;
+    const wage = parseFloat(entry.wage_rate) || 32;
+    const charge = parseFloat(entry.charge_out_rate) || 105;
+    
+    return {
+      description: entry.description,
+      hours: hours,
+      cost_of_time: hours * wage,
+      value_of_time: hours * charge,
+      wage_rate: wage,
+      charge_out_rate: charge,
+    };
   });
-  const hours = +(totalMinutes / 60).toFixed(1);
-
-  return entries.map((entry) => ({
-    description: entry.description,
-    hours: hours,
-    cost_of_time: entry.wage_rate,
-    value_of_time: entry.wage_rate * hours,
-    charge_out_rate: entry.charge_out_rate,
-    wage_rate: entry.wage_rate !== "0.00" ? entry.wage_rate : 32,
-  }));
 }
 
 function loadSimpleJobMaterial(entries) {
