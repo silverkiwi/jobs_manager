@@ -203,6 +203,7 @@ export function collectSimpleGridData(section) {
     const timeKey = `simple${capitalize(section)}TimeTable`;
     const timeGrid = window.grids[timeKey];
     let timeEntries = [];
+    const seenTimeEntries = new Set();
 
     if (timeGrid && timeGrid.api) {
       timeGrid.api.forEachNode((node) => {
@@ -214,9 +215,12 @@ export function collectSimpleGridData(section) {
         const costTime = parseFloat(row.cost_of_time) || 0;
         const valueTime = parseFloat(row.value_of_time) || 0;
 
-        const isEmptyRow = hours === 0;
+        const isEmptyRow = hours === 0 || !description;
+        
+        // Create unique key for time entry
+        const entryKey = `${description}-${hours}-${wage}-${charge}`;
 
-        if (!isEmptyRow) {
+        if (!isEmptyRow && !seenTimeEntries.has(entryKey)) {
           const totalMinutes = hours * 60;
           timeEntries.push({
             description: description,
@@ -228,6 +232,7 @@ export function collectSimpleGridData(section) {
             cost: costTime,
             revenue: valueTime,
           });
+          seenTimeEntries.add(entryKey);
         }
       });
     }
@@ -239,6 +244,7 @@ export function collectSimpleGridData(section) {
     const matKey = `simple${capitalize(section)}MaterialsTable`;
     const matGrid = window.grids[matKey];
     let materialEntries = [];
+    const seenMaterialEntries = new Set();
 
     if (matGrid && matGrid.api) {
       matGrid.api.forEachNode((node) => {
@@ -247,11 +253,12 @@ export function collectSimpleGridData(section) {
         const materialCost = parseFloat(row.material_cost) || 0;
         const retailPrice = parseFloat(row.retail_price) || 0;
 
-        // Definir se é “vazia”
-        const isEmptyRow =
-          materialCost === 0 && retailPrice === 0 && description === "";
+        const isEmptyRow = !description || (materialCost === 0 && retailPrice === 0);
+        
+        // Create unique key for material entry
+        const entryKey = `${description}-${materialCost}-${retailPrice}`;
 
-        if (!isEmptyRow) {
+        if (!isEmptyRow && !seenMaterialEntries.has(entryKey)) {
           materialEntries.push({
             description: description,
             quantity: 1,
@@ -259,6 +266,7 @@ export function collectSimpleGridData(section) {
             unit_revenue: retailPrice,
             revenue: retailPrice,
           });
+          seenMaterialEntries.add(entryKey);
         }
       });
     }
@@ -270,6 +278,7 @@ export function collectSimpleGridData(section) {
     const adjKey = `simple${capitalize(section)}AdjustmentsTable`;
     const adjGrid = window.grids[adjKey];
     let adjustmentEntries = [];
+    const seenAdjustmentEntries = new Set();
 
     if (adjGrid && adjGrid.api) {
       adjGrid.api.forEachNode((node) => {
@@ -279,16 +288,19 @@ export function collectSimpleGridData(section) {
         const costAdj = parseFloat(row.cost_adjustment) || 0;
         const priceAdj = parseFloat(row.price_adjustment) || 0;
 
-        const isEmptyRow =
-          costAdj === 0 && priceAdj === 0 && description === "";
+        const isEmptyRow = !description || (costAdj === 0 && priceAdj === 0);
+        
+        // Create unique key for adjustment entry
+        const entryKey = `${description}-${costAdj}-${priceAdj}-${comments}`;
 
-        if (!isEmptyRow) {
+        if (!isEmptyRow && !seenAdjustmentEntries.has(entryKey)) {
           adjustmentEntries.push({
             description: description,
             cost_adjustment: costAdj,
             price_adjustment: priceAdj,
             comments: comments,
           });
+          seenAdjustmentEntries.add(entryKey);
         }
       });
     }

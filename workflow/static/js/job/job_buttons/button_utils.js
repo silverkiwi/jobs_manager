@@ -1,5 +1,5 @@
-import { sections, workType } from "../grid/grid_initialization.js";
-import { capitalize } from "../grid/grid_utils.js";
+import { sections, workType } from '../grid/grid_initialization.js';
+import { capitalize } from '../grid/grid_utils.js';
 
 /**
  * @description Functions to extract and manipulate URL data,
@@ -7,7 +7,7 @@ import { capitalize } from "../grid/grid_utils.js";
  * @returns {string} The job ID extracted from the URL path
  */
 export function getJobIdFromUrl() {
-  return window.location.pathname.split("/")[2];
+  return window.location.pathname.split('/')[2];
 }
 
 /**
@@ -25,28 +25,28 @@ export function getJobIdFromUrl() {
  */
 export function formatEventType(eventType) {
   return eventType
-    .replaceAll("_", " ")
-    .split(" ")
+    .replaceAll('_', ' ')
+    .split(' ')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+    .join(' ');
 }
 
 /**
  * Formats a timestamp into a localized date and time string.
  * @param {string|number} timestamp - The timestamp to format (can be ISO string or Unix timestamp)
- * @returns {string} Formatted date string in the format "MMM D, YYYY, HH:MM AM/PM"
+ * @returns {string} Formatted date string in the format 'MMM D, YYYY, HH:MM AM/PM'
  * @example
  * formatTimestamp('2023-12-25T15:00:00Z') // returns 'Dec 25, 2023, 03:00 PM'
  * formatTimestamp(1703516400000) // returns 'Dec 25, 2023, 03:00 PM'
  */
 export function formatTimestamp(timestamp) {
   const date = new Date(timestamp);
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
     hour12: true,
   }).format(date);
 }
@@ -76,18 +76,21 @@ export function addEventToTimeline(event, jobEventsList) {
             </div>
         </div>
     `;
-  jobEventsList.insertAdjacentHTML("afterbegin", newEventHtml);
+  jobEventsList.insertAdjacentHTML('afterbegin', newEventHtml);
 }
 
 export function toggleGrid() {
   const isSimple =
-    document.getElementById("toggleGridButton")?.checked ?? false;
+    document.getElementById('toggleGridButton')?.checked ?? false;
+  const quoteGrid = document.getElementById('quoteGrid');
+  const quoteCheckbox = document.getElementById('quoteCheckbox');
+  const copyEstimate = document.getElementById('copyEstimateToQuote');
   switch (isSimple) {
     case true:
       sections.forEach((section) => {
         document.getElementById(`advanced-${section}-grid`).classList =
-          "d-none";
-        document.getElementById(`simple-${section}-grid`).classList = "d-block";
+          'd-none';
+        document.getElementById(`simple-${section}-grid`).classList = 'd-block';
 
         setTimeout(() => {
           workType.forEach((work) => {
@@ -97,12 +100,16 @@ export function toggleGrid() {
           });
         }, 50);
       });
+
+      quoteGrid.classList.add('d-none');
+      quoteCheckbox.classList.add('d-none');
+      copyEstimate.classList.add('d-none');
       break;
     case false:
       sections.forEach((section) => {
-        document.getElementById(`simple-${section}-grid`).classList = "d-none";
+        document.getElementById(`simple-${section}-grid`).classList = 'd-none';
         document.getElementById(`advanced-${section}-grid`).classList =
-          "d-block";
+          'd-block';
 
         setTimeout(() => {
           workType.forEach((work) => {
@@ -111,6 +118,9 @@ export function toggleGrid() {
           });
         }, 50);
       });
+      quoteGrid.classList.remove('d-none');
+      quoteCheckbox.classList.remove('d-none');
+      copyEstimate.classList.remove('d-none');
       break;
   }
 }

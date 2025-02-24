@@ -63,10 +63,7 @@ export function initializeSimpleGrids(
         rowData,
       };
 
-      // Create and inject the grid
-      const gridInstance = agGrid.createGrid(gridElement, gridOptions);
-
-      gridInstance.applyTransaction({ add: [rowData] });
+      agGrid.createGrid(gridElement, gridOptions);
     });
 
     // Now, we create the simple totals grids
@@ -159,11 +156,10 @@ function createGrid(
     gridKey,
     commonGridOptions,
     specificGridOptions,
-    rowData,
+    rowData
   );
 
-  const gridInstance = agGrid.createGrid(gridElement, gridOptions);
-  gridInstance.applyTransaction({ add: [rowData] });
+  agGrid.createGrid(gridElement, gridOptions);
 }
 
 /**
@@ -274,7 +270,7 @@ function createGridOptions(
   gridKey,
   commonGridOptions,
   specificGridOptions,
-  rowData,
+  rowData=[],
 ) {
   return {
     ...commonGridOptions,
