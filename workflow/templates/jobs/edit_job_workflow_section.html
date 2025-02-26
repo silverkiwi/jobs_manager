@@ -58,20 +58,22 @@
     <div class="form-group mt-4">
         <h4>Job Status Tracking</h4>
         <div class="d-flex flex-column gap-3">
-            <div class="form-check form-check-lg">
+            <div class="form-check form-check-lg" id="quoteCheckbox">
                 <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
                     id="quoted_checkbox" name="quoted" {% if quoted %} checked {% else %} disabled {% endif %}>
                 <label class="form-check-label ms-2 fs-5" for="quoted_checkbox">
-                    Quoted Job
+                    Already Quoted?
                 </label>
+                <small class="text-muted d-block mt-1">Note: This is just an indicator of whether the job was already quoted in Xero</small>
             </div>
 
             <div class="form-check form-check-lg">
                 <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
                     id="invoiced_checkbox" name="invoiced" {% if invoiced %} checked {% else %} disabled {% endif %}>
                 <label class="form-check-label ms-2 fs-5" for="invoiced_checkbox">
-                    Invoiced Job
+                    Already Invoiced?
                 </label>
+                <small class="text-muted d-block mt-1">Note: This is just an indicator of whether the job was already invoiced in Xero</small>
             </div>
 
             <div class="form-check form-check-lg">

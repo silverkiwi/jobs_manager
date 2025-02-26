@@ -6,8 +6,8 @@ from workflow.models import AdjustmentEntry
 class AdjustmentEntrySerializer(serializers.ModelSerializer):
     revenue = serializers.SerializerMethodField(read_only=True)
     cost = serializers.SerializerMethodField(read_only=True)
-    description = serializers.CharField(allow_blank=True)
-    comments = serializers.CharField(allow_blank=True)
+    description = serializers.CharField(allow_blank=True, required=False)
+    comments = serializers.CharField(allow_blank=True, required=False)
 
     class Meta:
         model = AdjustmentEntry

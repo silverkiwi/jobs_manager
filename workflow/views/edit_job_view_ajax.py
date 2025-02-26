@@ -200,7 +200,6 @@ def edit_job_view_ajax(request, job_id=None):
     return render(request, "jobs/edit_job_ajax.html", context)
 
 
-# Note, recommended to remove the exemption in the future
 @require_http_methods(["POST"])
 def autosave_job_view(request):
     try:

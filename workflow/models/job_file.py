@@ -42,3 +42,12 @@ class JobFile(models.Model):
             get_thumbnail_folder(self.job.job_number), f"{self.filename}.thumb.jpg"
         )
         return thumb_path if os.path.exists(thumb_path) else None
+    
+    @property
+    def size(self):
+        """Return size of file in bytes."""
+        if self.status == "deleted":
+            return None
+
+        file_path = os.path.join(self.full_path, self.filename)
+        return os.path.getsize(file_path) if os.path.exists(file_path) else None

@@ -1,98 +1,166 @@
 import logging
+import mimetypes
 import os
 from io import BytesIO
+import time
 
 from django.conf import settings
-from PIL import Image
+from PIL import Image, ImageFile
 from PyPDF2 import PdfWriter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from reportlab.platypus import Paragraph, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.utils import ImageReader
 
 logger = logging.getLogger(__name__)
 
-# A4 dimensions (210 x 297 mm)
-PAGE_WIDTH, PAGE_HEIGHT = A4  # 595 x 842 points
-MARGIN = 50  # points
-CONTENT_WIDTH = PAGE_WIDTH - (2 * MARGIN)  # 495 points
+# A4 page dimensions (210 x 297 mm)
+PAGE_WIDTH, PAGE_HEIGHT = A4
+MARGIN = 50
+CONTENT_WIDTH = PAGE_WIDTH - (2 * MARGIN)
+
+styles = getSampleStyleSheet()
+description_style = styles["Normal"]
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+
+def wait_until_file_ready(file_path, max_wait=10):
+    """Tenta abrir o arquivo e fecha imediatamente. Se falhar, aguarda um pouco."""
+    wait_time = 0
+    while wait_time < max_wait:
+        try:
+            with open(file_path, "rb") as f:
+                f.read(10)
+            return
+        except OSError:
+            time.sleep(1)
+            wait_time += 1
 
 
 def get_image_dimensions(image_path):
-    """Get image dimensions and scale if wider than content width."""
+    """Gets the image dimensions and scales it if larger than content width."""
+    wait_until_file_ready(image_path)
     with Image.open(image_path) as img:
         img_width, img_height = img.size
-        # Convert pixels to points (72 points per inch, assuming 72 DPI images)
-        img_width_pt = img_width
-        img_height_pt = img_height
+        # Considering 1 pixel = 1 point
+        img_width_pt, img_height_pt = img_width, img_height
 
-        # Only scale down if image is wider than content area
         if img_width_pt > CONTENT_WIDTH:
             scale = CONTENT_WIDTH / img_width_pt
             img_width_pt = CONTENT_WIDTH
-            img_height_pt = img_height_pt * scale
+            img_height_pt *= scale
 
         return img_width_pt, img_height_pt
 
 
 def create_workshop_pdf(job):
     """
-    Generate a workshop PDF for the given job, including job details and marked files.
-
-    Args:
-        job: The Job instance for which the PDF will be generated.
-
-    Returns:
-        BytesIO: A buffer containing the generated PDF.
+    Generates a PDF for the given job, including details and marked files.
     """
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
 
     try:
-        # Add logo if available
+        # Define initial position
+        y_position = PAGE_HEIGHT - MARGIN
+
+        # Add logo (with transparency if applicable)
         logo_path = os.path.join(settings.BASE_DIR, "workflow/static/logo_msm.png")
         if os.path.exists(logo_path):
-            pdf.drawImage(
-                logo_path,
-                MARGIN,
-                PAGE_HEIGHT - 100,
-                width=100,
-                height=50,
-                preserveAspectRatio=True,
-            )
+            logo = ImageReader(logo_path)
+            # Calculate x position to center the image
+            x = MARGIN + (CONTENT_WIDTH - 150) / 2  # 150 is the image width
+            pdf.drawImage(logo, x, y_position - 150, width=150, height=150, mask="auto")
+            y_position -= 200  # Space to avoid overlap
 
-        # Job Details
+        # Add main title
+        pdf.setFillColor(colors.HexColor("#004aad"))
         pdf.setFont("Helvetica-Bold", 16)
-        pdf.drawString(MARGIN, PAGE_HEIGHT - 150, f"Workshop Sheet - {job.name}")
+        pdf.drawString(MARGIN, y_position, f"Workshop Sheet - {job.name}")
+        pdf.setFillColor(colors.black)
+        y_position -= 30
 
-        pdf.setFont("Helvetica", 12)
-        details = [
-            ("Job Number:", job.job_number),
-            ("Client:", job.client.name if job.client else "N/A"),
-            ("Contact:", job.contact_person or "N/A"),
-            ("Description:", job.description or "N/A"),
+        # Build a table with Job details, including description with wrap
+        job_details = [
+            ["Job Number", job.job_number or "N/A"],
+            ["Client", job.client.name if job.client else "N/A"],
+            ["Contact", job.contact_person or "N/A"],
+            # Using Paragraph for description ensures text will wrap automatically
+            ["Description", Paragraph(job.description or "N/A", description_style)],
         ]
 
-        y = PAGE_HEIGHT - 200
-        for label, value in details:
-            pdf.setFont("Helvetica-Bold", 12)
-            pdf.drawString(MARGIN, y, label)
-            pdf.setFont("Helvetica", 12)
-            pdf.drawString(MARGIN + 100, y, str(value))
-            y -= 20
+        details_table = Table(job_details, colWidths=[150, CONTENT_WIDTH - 150])
+        details_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#004aad")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.gray),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
 
-        # Add marked files
+        table_width, table_height = details_table.wrap(CONTENT_WIDTH, PAGE_HEIGHT)
+        details_table.drawOn(pdf, MARGIN, y_position - table_height)
+        y_position -= table_height + 40
+
+        # Add Materials Notes title
+        pdf.setFont("Helvetica-Bold", 14)
+        pdf.drawString(MARGIN, y_position, "Materials Notes")
+        y_position -= 25
+
+        # Add materials table
+        materials_data = [["Description", "Quantity", "Comments"]]
+        materials_data.extend([["", "", ""] for _ in range(5)])  # Add 5 empty rows
+
+        materials_table = Table(
+            materials_data,
+            colWidths=[CONTENT_WIDTH * 0.4, CONTENT_WIDTH * 0.2, CONTENT_WIDTH * 0.4],
+        )
+        materials_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#004aad")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.gray),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+                ]
+            )
+        )
+
+        materials_width, materials_height = materials_table.wrap(
+            CONTENT_WIDTH, PAGE_HEIGHT
+        )
+        materials_table.drawOn(pdf, MARGIN, y_position - materials_height)
+        y_position -= materials_height + 20
+
+        # Attach Files Marked for Printing
         files_to_print = job.files.filter(print_on_jobsheet=True)
         if files_to_print.exists():
-            pdf.showPage()  # Start a new page for files
+            pdf.showPage()
             pdf.setFont("Helvetica-Bold", 14)
             pdf.drawString(MARGIN, PAGE_HEIGHT - MARGIN, "Attached Files")
+            y_position = PAGE_HEIGHT - 100
 
-            y = PAGE_HEIGHT - 100
             for job_file in files_to_print:
-                # Add file name
                 pdf.setFont("Helvetica", 12)
-                pdf.drawString(MARGIN, y, job_file.filename)
-                y -= 20
+                pdf.drawString(MARGIN, y_position, job_file.filename)
+                y_position -= 20
 
                 # Get full path to file
                 file_path = os.path.join(
@@ -104,52 +172,41 @@ def create_workshop_pdf(job):
                 # Handle different file types
                 if job_file.mime_type.startswith("image/"):
                     try:
-                        # Get natural dimensions, scaling down if too wide
                         width, height = get_image_dimensions(file_path)
 
                         # Center the image
                         x = MARGIN + (CONTENT_WIDTH - width) / 2
 
-                        # Check if we need a new page
-                        if y - height < MARGIN:
+                        # If image won't fit on page, create a new page
+                        if y_position - height < MARGIN:
                             pdf.showPage()
-                            y = PAGE_HEIGHT - MARGIN
+                            y_position = PAGE_HEIGHT - MARGIN
 
-                        # Draw at natural size (or scaled if was too wide)
+                        # Add image with mask='auto' parameter to handle transparency
                         pdf.drawImage(
-                            file_path, x, y - height, width=width, height=height
+                            file_path,
+                            x,
+                            y_position - height,
+                            width=width,
+                            height=height,
                         )
-                        y -= height + 20  # 20pt padding after image
+                        y_position -= height + 20
                     except Exception as e:
                         logger.error(f"Failed to add image {job_file.filename}: {e}")
-                        pdf.setFont("Helvetica", 10)
-                        pdf.drawString(MARGIN + 20, y, f"Error adding image: {str(e)}")
-                        y -= 20
+                        error_text = Paragraph(
+                            f"Error adding image: {str(e)}", description_style
+                        )
+                        error_text.wrapOn(pdf, CONTENT_WIDTH - 40, PAGE_HEIGHT)
+                        error_text.drawOn(pdf, MARGIN + 20, y_position - 20)
+                        y_position -= 40
 
                 elif job_file.mime_type == "application/pdf":
-                    try:
-                        # Note that we'll merge PDFs after generating the main document
-                        pdf.setFont("Helvetica", 10)
-                        pdf.drawString(MARGIN + 20, y, "PDF will be appended")
-                        y -= 20
-                    except Exception as e:
-                        logger.error(f"Failed to note PDF {job_file.filename}: {e}")
-                        pdf.setFont("Helvetica", 10)
-                        pdf.drawString(MARGIN + 20, y, f"Error with PDF: {str(e)}")
-                        y -= 20
-                else:
-                    # For unsupported files, just note their presence
-                    pdf.setFont("Helvetica", 10)
-                    pdf.drawString(
-                        MARGIN + 20,
-                        y,
-                        f"File type not supported for preview: {job_file.mime_type}",
-                    )
-                    y -= 20
+                    pdf.drawString(MARGIN + 20, y_position, "PDF will be appended")
+                    y_position -= 20
 
-                if y < 50:  # Start a new page if needed
+                if y_position < 50:
                     pdf.showPage()
-                    y = 750
+                    y_position = PAGE_HEIGHT - 100
 
         # Save the main document
         pdf.save()

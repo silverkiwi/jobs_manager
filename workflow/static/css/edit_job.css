@@ -206,3 +206,25 @@
     border-radius: 0.2rem;
     white-space: nowrap;
 }
+
+.form-check-input-lg {
+    width: 3.5rem !important;
+    height: 1.5rem !important;
+}
+
+.form-check-label-lg {
+    height: 1.5rem !important;
+    font-size: large !important;
+}
+
+.price-entry-table {
+    height: 60px;
+    max-height: 360px;
+    width: 100%;
+    overflow-y: auto;
+}
+
+.totals-table {
+    height: 60px;
+    max-height: 120px;
+}
