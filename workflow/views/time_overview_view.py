@@ -83,13 +83,14 @@ class TimesheetOverviewView(TemplateView):
         action = request.headers.get("action")
         if not action:
             action = request.GET.get("export_to_ims")
-        logger.info(action)
+        logger.info(f"Logging action {action}")
+        start_date = self._get_start_date(start_date)
         match(action):
             case "export_to_ims" | 1:
-                return self.export_to_ims(request, start_date)
+                header_date = request.headers.get("X-Date")
+                return self.export_to_ims(request, self._get_start_date(header_date))
             case _:
                 try:
-                    start_date = self._get_start_date(start_date)
                     week_days = self._get_week_days(start_date)
                     prev_week_url, next_week_url = self._get_navigation_urls(start_date)
                     staff_data, totals = self._get_staff_data(week_days)
@@ -165,25 +166,26 @@ class TimesheetOverviewView(TemplateView):
         except Exception as e:
             logger.error(f"Error generating week days: {str(e)}")
             return []
-    def _get_ims_week(self, current_date):
+    def _get_ims_week(self, start_date):
         """Returns a list of IMS week days (Tuesday, Wednesday, Thursday, Friday and next Monday),
         adjusting the date to Tuesday and skipping weekends.
 
         Args:
-            current_date: datetime.date – reference date
+            start_date: datetime.date – reference date
 
         Returns:
             List of datetime.date with IMS week days.
         """
+        logger.info(f"[_get_ims_week] Start date received: {start_date}")
         try:
             # Determine the corresponding Tuesday:
             # If it's Monday (weekday == 0), Tuesday was 6 days ago;
             # Otherwise, subtract (weekday - 1) days.
             # E.g.: it's thursday (3). We get 3 - 1 = 2, and then subtract 2 days from thursday, which led us to Tuesday
-            if current_date.weekday() == 0:
-                tuesday = current_date - timezone.timedelta(days=6)
+            if start_date.weekday() == 0:
+                tuesday = start_date - timezone.timedelta(days=6)
             else:
-                tuesday = current_date - timezone.timedelta(days=(current_date.weekday() - 1))
+                tuesday = start_date - timezone.timedelta(days=(start_date.weekday() - 1))
             
             # Build the IMS week:
             # Tuesday, Wednesday, Thursday, Friday and next Monday (6 days after Tuesday)
@@ -624,7 +626,6 @@ class TimesheetOverviewView(TemplateView):
     
     def export_to_ims(self, request, start_date):
         try:
-            start_date = self._get_start_date(start_date)
             week_days = self._get_ims_week(start_date)
             prev_week_url, next_week_url = self._get_navigation_urls(start_date)
             staff_data, totals = self._get_staff_data(week_days, export_to_ims=True)

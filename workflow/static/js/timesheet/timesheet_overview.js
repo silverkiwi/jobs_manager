@@ -7,16 +7,83 @@ document.addEventListener("DOMContentLoaded", () => {
   initializePaidAbsenceModal("paidAbsenceModal", window.location.href);
 
   const exportToIMSButton = document.getElementById("exportToIMS");
+
+  const params = new URLSearchParams(window.location.search);
+  const exportToIMSQuery = params.get('export_to_ims') === '1';
+
+  if (exportToIMSQuery) {
+    exportToIMSButton.click();
+    checkIMSButton(exportToIMSButton);
+    toggleTableToIMS();
+    if (window.DEBUG_MODE) {
+      console.log("Export to IMS query parameter detected, toggling table to IMS view");
+    }
+  }
+
   exportToIMSButton.addEventListener("click", toggleTableToIMS);
 });
 
+function checkIMSButton(IMSButton) {
+  if (IMSButton && 'checked' in IMSButton) {
+    IMSButton.checked = true;
+    if (window.DEBUG_MODE) {
+      console.log("IMS button checked successfully");
+    }
+  } else {
+    console.warn('Invalid element!');
+    if (window.DEBUG_MODE) {
+      console.log("Failed to check IMS button: invalid element");
+    }
+    return false;
+  }
+}
+
+function formatDate(dateStr) {
+  try {
+      // Remove ordinal suffixes and clean up the string
+      dateStr = dateStr
+          .replace(/(st|nd|rd|th)/, '')
+          .trim();
+      
+      const date = new Date(dateStr);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+          throw new Error('Invalid date');
+      }
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+  } catch (error) {
+      console.error('Error formatting date:', error);
+      return null;
+  }
+}
+
 async function toggleTableToIMS() {
+  const IMSButton = document.getElementById("exportToIMS");
+  const dateSpan = document.getElementById("current-week-display");
+  const dateText = dateSpan.textContent.trim();
+
+  const firstDate = dateText.split("-")[0].trim();
+
+  if (IMSButton && !IMSButton.checked) {
+    window.location.pathname = "/timesheets/overview/";
+    window.location.reload();
+    return;
+  }
+
+  console.log("First date before format: ", firstDate, "| After:", formatDate(firstDate));
+
   await fetch("/timesheets/export_to_ims/", {
     method: "GET",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json", 
       "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
-      "action": "export_to_ims"
+      "action": "export_to_ims",
+      "X-Date": formatDate(firstDate),
     },
   })
     .then((response) => {
@@ -30,8 +97,9 @@ async function toggleTableToIMS() {
         updateOverviewTable(data);
         updateNavigationUrls(data);
         updateTableHeaderIMS(data.week_days);
+        updateBillableHeader();
       }
-      if (Environment.isDebugMode()) {
+      if (window.DEBUG_MODE) {
         console.log("Export to IMS successful:", data);
       }
     })
@@ -78,10 +146,6 @@ function updateOverviewTable(data) {
     tdTotal.textContent = staff.total_hours;
     tr.appendChild(tdTotal);
 
-    const tdOvertime = document.createElement("td");
-    tdOvertime.textContent = staff.total_overtime;
-    tr.appendChild(tdOvertime);
-
     const tdBillable = document.createElement("td");
     tdBillable.textContent = staff.total_billable_hours;
     tr.appendChild(tdBillable);
@@ -127,4 +191,18 @@ function updateTableHeaderIMS(weekDays) {
 function parseDateWithoutTimezone(dateStr) {
   const parts = dateStr.split("-");
   return new Date(parts[0], parts[1] - 1, parts[2], 12);
+}
+
+function updateBillableHeader() {
+  const headerRow = document.querySelector("#overviewTable thead tr");
+  if (!headerRow) {
+    console.error("Table header not found.");
+    return;
+  }
+  const headerCells = headerRow.querySelectorAll("th");
+  if (headerCells.length < 2) {
+    console.error("Not enough header cells.");
+    return;
+  }
+  headerCells[headerCells.length - 1].textContent = "Total Billable";
 }
