@@ -179,6 +179,11 @@ urlpatterns = [
         time_overview_view.TimesheetOverviewView.as_view(),
         name="timesheet_overview_with_date",
     ),
+    path(
+        "timesheets/export_to_ims/",
+        time_overview_view.TimesheetOverviewView.as_view(),
+        name="timesheet_export_to_ims",
+    ),
     # Edit timesheet entries for a specific day
     path(
         "timesheets/day/<str:date>/",

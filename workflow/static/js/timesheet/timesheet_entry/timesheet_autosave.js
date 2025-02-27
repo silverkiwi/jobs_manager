@@ -295,7 +295,7 @@ function saveDataToServer(collectedData) {
 }
 
 // Get CSRF token for Django
-function getCsrfToken() {
+export function getCsrfToken() {
   return document.querySelector("[name=csrfmiddlewaretoken]").value;
 }
 
