@@ -378,6 +378,7 @@ export function createAdvancedMaterialsGridOptions(
         headerName: "Revenue",
         field: "revenue",
         editable: false,
+        hide: true,
         valueFormatter: currencyFormatter,
       },
       { headerName: "Comments", field: "comments", editable: true, flex: 2 },
