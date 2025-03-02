@@ -9,6 +9,7 @@ from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import models, transaction
 from django.utils import timezone
 from xero_python.accounting import AccountingApi
+from xero_python.exceptions.http_status_exceptions import RateLimitException
 
 from workflow.models import CompanyDefaults
 from workflow.api.xero.reprocess_xero import (
@@ -95,33 +96,40 @@ def sync_xero_data(
         elif pagination_mode == "page":
             params["page"] = page
 
-        # Fetch the entities from the API based on the prepared parameters.
-        entities = xero_api_function(**params)
-        items = getattr(entities, xero_entity_type, [])  # Extract the relevant data.
+        try:
+            # Fetch the entities from the API based on the prepared parameters.
+            entities = xero_api_function(**params)
+            items = getattr(entities, xero_entity_type, [])  # Extract the relevant data.
 
-        if not items:
-            logger.info("No items to sync.")
-            return
+            if not items:
+                logger.info("No items to sync.")
+                return
 
-        # Process the current batch of items
-        sync_function(items)
+            # Process the current batch of items
+            sync_function(items)
 
-        # Update parameters to ensure progress in pagination.
-        if pagination_mode == "page":
-            # Increment page for page mode.
-            page += 1
-        elif pagination_mode == "offset":
-            # Use JournalNumber for offset progression for journals.
-            max_journal_number = max(item.journal_number for item in items)
-            offset = max_journal_number + 1
+            # Update parameters to ensure progress in pagination.
+            if pagination_mode == "page":
+                # Increment page for page mode.
+                page += 1
+            elif pagination_mode == "offset":
+                # Use JournalNumber for offset progression for journals.
+                max_journal_number = max(item.journal_number for item in items)
+                offset = max_journal_number + 1
 
-        # Terminate if last batch was smaller than page size.
-        if len(items) < page_size or pagination_mode == "single":
-            logger.info("Finished processing all items.")
-            break
-        else:
-            # Avoid hitting API rate limits
-            time.sleep(5)
+            # Terminate if last batch was smaller than page size.
+            if len(items) < page_size or pagination_mode == "single":
+                logger.info("Finished processing all items.")
+                break
+            else:
+                # Avoid hitting API rate limits
+                time.sleep(5)
+        except RateLimitException as e:
+            # Use the apply_rate_limit_delay function to handle rate limiting
+            logger.warning(f"Rate limit hit when syncing {xero_entity_type}. Applying dynamic delay.")
+            apply_rate_limit_delay(e.response_headers)
+            # Continue the loop to retry after the delay
+            continue
 
 
 def get_last_modified_time(model):
@@ -545,6 +553,9 @@ def sync_client_to_xero(client):
 
     # Step 4: Create or update the client in Xero
     try:
+        # Add a small delay before making the API call to avoid rate limits
+        time.sleep(1)
+        
         if client.xero_contact_id:
             # Update existing contact
             contact_data["ContactID"] = client.xero_contact_id
@@ -568,6 +579,12 @@ def sync_client_to_xero(client):
             )
 
         return response.contacts if response.contacts else []
+    except RateLimitException as e:
+        # Use the apply_rate_limit_delay function to handle rate limiting
+        logger.warning(f"Rate limit hit when syncing client {client.name}. Applying dynamic delay.")
+        apply_rate_limit_delay(e.response_headers)
+        # Re-raise the exception to be handled by the outer function
+        raise
     except Exception as e:
         logger.error(f"Failed to sync client {client.name} to Xero: {str(e)}")
         raise
