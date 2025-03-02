@@ -89,9 +89,6 @@ export function toggleGrid(mode = "manual") {
   // Only proceed with grid toggle if we're in auto mode or validJob was true
   if (mode === "automatic" || (mode === "manual" && validJob)) {
     const isSimple = document.getElementById('toggleGridButton')?.checked ?? false;
-    const quoteGrid = document.getElementById('quoteGrid');
-    const quoteCheckbox = document.getElementById('quoteCheckbox');
-    const copyEstimate = document.getElementById('copyEstimateToQuote');
     switch (isSimple) {
       case true:
         sections.forEach((section) => {
@@ -107,10 +104,6 @@ export function toggleGrid(mode = "manual") {
             });
           }, 50);
         });
-
-        quoteGrid.classList.add('d-none');
-        quoteCheckbox.classList.add('d-none');
-        copyEstimate.classList.add('d-none');
         break;
       case false:
         sections.forEach((section) => {
@@ -125,9 +118,6 @@ export function toggleGrid(mode = "manual") {
             });
           }, 50);
         });
-        quoteGrid.classList.remove('d-none');
-        quoteCheckbox.classList.remove('d-none');
-        copyEstimate.classList.remove('d-none');
         break;
     }
   }
@@ -172,7 +162,7 @@ function toggleComplexJob() {
   }
 
   if (Environment.isDebugMode()) console.log('Sending API request to update complex job status');
-  fetch('/api/toggle-complex-job/', {
+  fetch('/api/job/toggle-complex-job/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -204,4 +194,56 @@ function toggleComplexJob() {
 
   if (Environment.isDebugMode()) console.log('Completed checkComplexJob function');
   return true;
+}
+
+/**
+ * Toggles the pricing type UI elements and updates the pricing type on the server
+ * @param {Event|Object} event - DOM event object or object with value property
+ */
+export function togglePricingType(event) {
+  // Extract value from either event.target.value (DOM event) or event.value (direct object)
+  const newType = event.target?.value || event.value;
+
+  const quoteGrid = document.getElementById('quoteGrid');
+  const quoteCheckbox = document.getElementById('quoteCheckbox');
+  const copyEstimate = document.getElementById('copyEstimateToQuote');
+
+  const jobId = getJobIdFromUrl();
+
+  fetch('/api/job/toggle-pricing-type/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector("[name=csrfmiddlewaretoken]").value,
+    },
+    body: JSON.stringify({
+      job_id: jobId,
+      pricing_type: newType,
+    }),
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+      switch (newType) {
+        case "time_materials":
+          quoteGrid.classList.add('d-none');
+          quoteCheckbox.classList.add('d-none');
+          copyEstimate.classList.add('d-none');
+          break;
+        case "fixed_price":
+          quoteGrid.classList.remove('d-none');
+          quoteCheckbox.classList.remove('d-none');
+          copyEstimate.classList.remove('d-none');
+          break;
+        default:
+          break;
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Error updating pricing type.");
+    });
 }

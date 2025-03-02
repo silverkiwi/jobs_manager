@@ -16,11 +16,21 @@
 <hr />
 
 <div class="job-pricing-sections">
-    <div class="form-check form-switch d-flex align-items-center">
-        <input class="form-check-input form-check-input-lg" type="checkbox" role="switch" id="toggleGridButton" {% if not complex_job %}checked{% endif %}>
-        <label class="form-check-label mx-2 fw-bold form-check-label-lg" for="toggleGridButton">
-            Toggle to simple table
-        </label>
+    <div class="d-flex align-items-center justify-content-between">
+        <div class="form-check form-switch d-flex align-items-center">
+            <input class="form-check-input form-check-input-lg" type="checkbox" role="switch" id="toggleGridButton" 
+            {% if not complex_job %}checked{% endif %}>
+            <label class="form-check-label mx-2 fw-bold form-check-label-lg" for="toggleGridButton">
+                Toggle to simple table
+            </label>
+        </div>
+        <div>
+            <label for="pricingTypeDropdown" class="form-label fw-bold">Pricing type:</label>
+            <select id="pricingTypeDropdown" class="form-select">
+              <option value="time_materials" {% if pricing_type == 'time_materials' %}selected{% endif %}>Time and Materials</option>
+              <option value="fixed_price" {% if pricing_type == 'fixed_price' %}selected{% endif %}>Fixed Price</option>
+            </select>
+        </div>
     </div>
 
     <div class="job-grid-section mt-1">
@@ -37,16 +47,17 @@
         <div id="simple-estimate-grid">
             <div id="simpleEstimateTimeTable" class="ag-theme-alpine price-entry-table simple-pricing-table"></div>
             <div id="simpleEstimateMaterialsTable" class="ag-theme-alpine price-entry-table simple-pricing-table"></div>
-            <div id="simpleEstimateAdjustmentsTable" class="ag-theme-alpine price-entry-table simple-pricing-table"></div>
+            <div id="simpleEstimateAdjustmentsTable" class="ag-theme-alpine price-entry-table simple-pricing-table">
+            </div>
             <div id="simpleEstimateTotalsTable" class="ag-theme-alpine price-entry-table totals-table"></div>
         </div>
 
-        <button id="copyEstimateToQuote" class="btn btn-primary mt-3">Copy Estimate to Quote</button>
+        <button id="copyEstimateToQuote" class="btn btn-primary mt-3 {% if pricing_type == 'time_materials' %}d-none{% endif %}">Copy Estimate to Quote</button>
     </div>
 
     <div id="estimate" class="alert-container"></div>
 
-    <div class="job-grid-section" id="quoteGrid">
+    <div class="job-grid-section {% if pricing_type == 'time_materials' %}d-none{% endif %}" id="quoteGrid">
         <h2>Quote</h2>
 
         <!-- Advanced Tables -->
@@ -62,7 +73,8 @@
             <div id="simpleQuoteTimeTable" class="ag-theme-alpine price-entry-table simple-pricing-table"></div>
             <div id="simpleQuoteMaterialsTable" class="ag-theme-alpine price-entry-table simple-pricing-table"></div>
             <div id="simpleQuoteAdjustmentsTable" class="ag-theme-alpine price-entry-table simple-pricing-table"></div>
-            <div id="simpleQuoteTotalsTable" class="ag-theme-alpine prince-entry-table totals-table simple-pricing-table"></div>
+            <div id="simpleQuoteTotalsTable"
+                class="ag-theme-alpine prince-entry-table totals-table simple-pricing-table"></div>
         </div>
 
         <button id="quoteJobButton" class="btn btn-primary mt-3" {% if quoted %} disabled {% endif %}>
@@ -143,7 +155,8 @@
                 <div class="file-controls">
                     <label class="print-checkbox">
                         <input type="checkbox" name="jobfile_{{ file.id }}_print_on_jobsheet"
-                            data-file-id="{{ file.id }}" class="print-on-jobsheet" {% if file.print_on_jobsheet %}checked{% endif %}>
+                            data-file-id="{{ file.id }}" class="print-on-jobsheet"
+                            {% if file.print_on_jobsheet %}checked{% endif %}>
                         Print on Job Sheet
                     </label>
                     <button class="btn btn-sm btn-danger delete-file" data-file-id="{{ file.id }}">

@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
+from workflow.enums import JobPricingType
 from workflow.helpers import DecimalEncoder, get_company_defaults
 from workflow.models import Job, JobEvent
 from workflow.serializers import JobPricingSerializer, JobSerializer
@@ -405,18 +406,21 @@ def toggle_complex_job(request):
         job = get_object_or_404(Job.objects.select_for_update(), id=job_id)
 
         if not new_value:
-            total_rows = 0
+            valid_job: bool = False
             for pricing in job.pricings.all():
-                total_rows += (
-                    pricing.time_entries.count()
-                    + pricing.material_entries.count()
-                    + pricing.adjustment_entries.count()
-                )
-            if total_rows > 1:
+                if pricing and (
+                    pricing.time_entries.count() > 1 
+                    or pricing.material_entries.count() > 1 
+                    or pricing.adjustment_entries.count() > 1
+                ):
+                    valid_job = False
+                else:
+                    valid_job = True
+            if not valid_job:
                 return JsonResponse(
                     {
                         "error": "Cannot disable complex mode with more than one pricing row",
-                        "total_rows": total_rows,
+                        "valid_job": valid_job,
                     },
                     status=400,
                 )
@@ -442,3 +446,62 @@ def toggle_complex_job(request):
         return JsonResponse(
             {"error": f"An unexpected error occurred: {str(e)}"}, status=500
         )
+
+
+@require_http_methods(["POST"])
+@transaction.atomic
+def toggle_pricing_type(request):
+    try:
+        data = json.loads(request.body)
+        if not isinstance(data, dict):
+            return JsonResponse({"error": "Invalid request format"}, status=400)
+
+        job_id = data.get("job_id")
+        new_type = data.get("pricing_type")
+
+        logger.info(f"[toggle_pricing_type]: data: {data}")
+
+        if job_id is None or new_type is None:
+            return JsonResponse(
+                {"error": "Missing required fields: job_id and pricing_type"}, status=400
+            )
+
+        if new_type not in [choice[0] for choice in JobPricingType.choices]:
+            return JsonResponse(
+                {"error": "Invalid pricing type value"}, status=400
+            )
+
+        job = get_object_or_404(Job.objects.select_for_update(), id=job_id)
+
+        match (new_type):
+            case JobPricingType.TIME_AND_MATERIALS:
+                new_type = JobPricingType.TIME_AND_MATERIALS
+            case JobPricingType.FIXED_PRICE:
+                new_type = JobPricingType.FIXED_PRICE
+            case _:
+                return JsonResponse(
+                    {"error": "Invalid pricing type value"}, status=400
+                )
+
+        # Update job
+        job.pricing_type = new_type
+        job.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "job_id": job_id,
+                "pricing_type": new_type,
+                "message": "Pricing type updated successfully",
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON in request body"}, status=400)
+    except ValidationError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"An unexpected error occurred: {str(e)}"}, status=500
+        )
+

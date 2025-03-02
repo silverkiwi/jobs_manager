@@ -65,9 +65,14 @@ urlpatterns = [
         name="fetch_status_values",
     ),
     path(
-        "api/toggle-complex-job/",
+        "api/job/toggle-complex-job/",
         edit_job_view_ajax.toggle_complex_job,
         name="toggle_complex_job"
+    ),
+    path(
+        "api/job/toggle-pricing-type/",
+        edit_job_view_ajax.toggle_pricing_type,
+        name="toggle_pricing_type"
     ),
     path(
         "api/job-event/<uuid:job_id>/add-event/",

@@ -72,7 +72,7 @@ import { calculateTotalRevenue } from "./grid/grid_utils.js";
 import { handleButtonClick } from "./job_buttons/button_handlers.js";
 
 import { loadJobDetails } from "./job_details_loader.js";
-import { toggleGrid } from "./job_buttons/button_utils.js";
+import { toggleGrid, togglePricingType } from "./job_buttons/button_utils.js";
 
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -108,7 +108,6 @@ document.addEventListener("DOMContentLoaded", function () {
     commonGridOptions,
     trashCanColumn,
   );
-  const totalsGridOptions = createSimpleTotalsGridOptions();
 
   initializeAdvancedGrids(
     commonGridOptions,
@@ -135,4 +134,5 @@ document.addEventListener("DOMContentLoaded", function () {
 
   toggleGrid("automatic"); // To hide quote section by default
   document.body.addEventListener("click", handleButtonClick);
+  document.getElementById('pricingTypeDropdown').addEventListener('change', (event) => togglePricingType(event));
 });

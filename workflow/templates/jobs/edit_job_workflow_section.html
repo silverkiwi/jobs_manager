@@ -35,7 +35,7 @@
                 value="{{ job.quote_acceptance_date|default:''|date:'c' }}">
 
             <!-- Accept Quote Button -->
-            <button type="button" id="acceptQuoteButton" class="btn btn-primary">Accept Quote</button>
+            <button type="button" id="acceptQuoteButton" class="btn btn-primary {% if pricing_type == 'time_materials' %}d-none{% endif %}">Accept Quote</button>
         </div>
     </div>
 
@@ -58,8 +58,10 @@
     <div class="form-group mt-4">
         <h4>Job Status Tracking</h4>
         <div class="d-flex flex-column gap-3">
-            <div class="form-check form-check-lg" id="quoteCheckbox">
-                <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
+            <div class="form-check form-check-lg  {% if pricing_type == 'time_materials' %}d-none{% endif %}" id="quoteCheckbox">
+                <input type="checkbox" 
+                    class="form-check-input" 
+                    style="width: 1.5em; height: 1.5em;"
                     id="quoted_checkbox" name="quoted" {% if quoted %} checked {% else %} disabled {% endif %}>
                 <label class="form-check-label ms-2 fs-5" for="quoted_checkbox">
                     Already Quoted?
