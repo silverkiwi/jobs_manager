@@ -12,7 +12,7 @@ export function createTrashCanColumn() {
   return {
     headerName: "",
     field: "",
-    width: 40,
+    maxWidth: 30,
     cellRenderer: deleteIconCellRenderer,
     onCellClicked: (params) => {
       if (params.api.getDisplayedRowCount() > 1) {
