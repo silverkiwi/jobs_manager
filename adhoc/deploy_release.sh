@@ -28,4 +28,10 @@ su - django_user -c "/usr/local/bin/deploy_app.sh"
 echo "=== Restarting Gunicorn..."
 systemctl restart gunicorn
 
+echo "=== Setting up Xero sync service..."
+cp "$PROJECT_DIR/adhoc/xero-sync.service" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable xero-sync
+systemctl restart xero-sync
+
 echo "=== Deployment complete. Verify the site is running correctly!"
