@@ -44,7 +44,8 @@
                 <div class="btn-group" role="group" aria-label="Week navigation" style="width: 450px;">
                     <a href="{{ prev_week_url }}"
                         class="btn btn-outline-primary rounded-start-2 d-flex align-items-center justify-content-center"
-                        style="width: 150px; height: 42px;">
+                        style="width: 150px; height: 42px;"
+                        id="prevWeekLink">
                         <i class="bi bi-chevron-left"></i> Previous Week
                     </a>
                     <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#weekPickerModal"
@@ -53,7 +54,8 @@
                     </button>
                     <a href="{{ next_week_url }}"
                         class="btn btn-outline-primary rounded-end-2 d-flex align-items-center justify-content-center"
-                        style="width: 150px; height: 42px;">
+                        style="width: 150px; height: 42px;"
+                        id="nextWeekLink">
                         Next Week <i class="bi bi-chevron-right"></i>
                     </a>
                 </div>
@@ -88,6 +90,12 @@
         <div class="card">
             <div class="card-header">
                 <h5>Weekly Staff Summary</h5>
+                <div class="form-check form-switch d-flex align-items-center">
+                    <input class="form-check-input form-check-input-lg" type="checkbox" role="switch" id="exportToIMS" unchecked>
+                    <label class="form-check-label mx-2 fw-bold form-check-label-lg" for="exportToIMS">
+                        Toggle weekly overview to IMS export
+                    </label>
+                </div>
             </div>
             <div class="card-body">
                 <div class="d-flex align-items-center gap-2">
@@ -98,7 +106,7 @@
                     <!-- Messages will be loaded here -->
                     <div class="alert-container mt-2 flex-shrink-0" style="width: fit-content;"></div>
                 </div>
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered table-striped" id="overviewTable">
                     <thead>
                         <tr>
                             <th>Staff</th>

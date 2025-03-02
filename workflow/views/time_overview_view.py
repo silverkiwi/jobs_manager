@@ -80,30 +80,39 @@ class TimesheetOverviewView(TemplateView):
         Returns:
             Rendered template with timesheet data context
         """
-        try:
-            start_date = self._get_start_date(start_date)
-            week_days = self._get_week_days(start_date)
-            prev_week_url, next_week_url = self._get_navigation_urls(start_date)
-            staff_data, totals = self._get_staff_data(week_days)
-            graphic_html = self._generate_graphic()
+        action = request.headers.get("action")
+        if not action:
+            action = request.GET.get("export_to_ims")
+        logger.info(f"Logging action {action}")
+        start_date = self._get_start_date(start_date)
+        match(action):
+            case "export_to_ims" | 1:
+                header_date = request.headers.get("X-Date")
+                return self.export_to_ims(request, self._get_start_date(header_date))
+            case _:
+                try:
+                    week_days = self._get_week_days(start_date)
+                    prev_week_url, next_week_url = self._get_navigation_urls(start_date)
+                    staff_data, totals = self._get_staff_data(week_days)
+                    graphic_html = self._generate_graphic()
 
-            context = {
-                "week_days": week_days,
-                "staff_data": staff_data,
-                "weekly_summary": self._format_weekly_summary(totals),
-                "job_count": self._get_open_jobs().count(),
-                "graphic": graphic_html,
-                "prev_week_url": prev_week_url,
-                "next_week_url": next_week_url,
-            }
+                    context = {
+                        "week_days": week_days,
+                        "staff_data": staff_data,
+                        "weekly_summary": self._format_weekly_summary(totals),
+                        "job_count": self._get_open_jobs().count(),
+                        "graphic": graphic_html,
+                        "prev_week_url": prev_week_url,
+                        "next_week_url": next_week_url,
+                    }
 
-            return render(request, self.template_name, context)
-        except Exception as e:
-            logger.error(f"Error in TimesheetOverviewView.get: {str(e)}")
-            messages.error(
-                request, "An error occurred while loading the timesheet overview."
-            )
-            return render(request, self.template_name, {"error": True})
+                    return render(request, self.template_name, context)
+                except Exception as e:
+                    logger.error(f"Error in TimesheetOverviewView.get: {str(e)}")
+                    messages.error(
+                        request, "An error occurred while loading the timesheet overview."
+                    )
+                    return render(request, self.template_name, {"error": True})
 
     def _get_open_jobs(self):
         """Get all open jobs with relevant statuses.
@@ -157,6 +166,40 @@ class TimesheetOverviewView(TemplateView):
         except Exception as e:
             logger.error(f"Error generating week days: {str(e)}")
             return []
+    def _get_ims_week(self, start_date):
+        """Returns a list of IMS week days (Tuesday, Wednesday, Thursday, Friday and next Monday),
+        adjusting the date to Tuesday and skipping weekends.
+
+        Args:
+            start_date: datetime.date – reference date
+
+        Returns:
+            List of datetime.date with IMS week days.
+        """
+        logger.info(f"[_get_ims_week] Start date received: {start_date}")
+        try:
+            # Determine the corresponding Tuesday:
+            # If it's Monday (weekday == 0), Tuesday was 6 days ago;
+            # Otherwise, subtract (weekday - 1) days.
+            # E.g.: it's thursday (3). We get 3 - 1 = 2, and then subtract 2 days from thursday, which led us to Tuesday
+            if start_date.weekday() == 0:
+                tuesday = start_date - timezone.timedelta(days=6)
+            else:
+                tuesday = start_date - timezone.timedelta(days=(start_date.weekday() - 1))
+            
+            # Build the IMS week:
+            # Tuesday, Wednesday, Thursday, Friday and next Monday (6 days after Tuesday)
+            ims_week = [
+                tuesday,                                   # Tuesday
+                tuesday + timezone.timedelta(days=1),      # Wednesday
+                tuesday + timezone.timedelta(days=2),      # Thursday
+                tuesday + timezone.timedelta(days=3),      # Friday
+                tuesday + timezone.timedelta(days=6)       # Next Monday
+            ]
+            return ims_week
+        except Exception as e:
+            logger.error(f"Error getting IMS week: {str(e)}")
+            return None
 
     def _get_navigation_urls(self, start_date):
         """Get URLs for previous and next week navigation.
@@ -170,7 +213,6 @@ class TimesheetOverviewView(TemplateView):
         prev_week_date = start_date - timezone.timedelta(days=7)
         next_week_date = start_date + timezone.timedelta(days=7)
 
-        # Use Django's reverse() to build URLs using the named URL patterns.
         prev_week_url = reverse(
             "timesheet_overview_with_date",
             kwargs={"start_date": prev_week_date.strftime("%Y-%m-%d")},
@@ -182,61 +224,46 @@ class TimesheetOverviewView(TemplateView):
 
         return prev_week_url, next_week_url
 
-    def _get_staff_data(self, week_days):
-        """Get timesheet data for all staff members.
-
-        Args:
-            week_days: List of datetime.date objects for the week
-
-        Returns:
-            Tuple of (staff_data list, totals dict)
-        """
+    def _get_staff_data(self, week_days, export_to_ims=False):
         staff_data = []
         total_hours = 0
         total_billable_hours = 0
 
-        try:
-            for staff_member in filtered_staff:
-                weekly_hours = []
-                total_staff_hours = 0
-                billable_hours = 0
+        for staff_member in filtered_staff:
+            weekly_hours = []
+            total_staff_std_hours = 0
+            total_staff_ovt_hours = 0
+            billable_hours = 0
 
-                for day in week_days:
-                    try:
-                        daily_data = self._get_daily_data(staff_member, day)
-                        weekly_hours.append(daily_data["daily_summary"])
-                        total_staff_hours += daily_data["hours"]
-                        billable_hours += daily_data["billable_hours"]
-                    except Exception as e:
-                        logger.error(
-                            f"Error processing daily data for {staff_member} on {day}: {str(e)}"
-                        )
-                        weekly_hours.append({"day": day, "hours": 0, "status": "⚠"})
+            for day in week_days:
+                if export_to_ims:
+                    daily_data = self._get_ims_data(staff_member, day)
+                else:
+                    daily_data = self._get_daily_data(staff_member, day)
+                weekly_hours.append(daily_data["daily_summary"])
+                total_staff_std_hours += daily_data["hours"]
+                if export_to_ims:
+                    total_staff_ovt_hours += daily_data["overtime"]
+                billable_hours += daily_data.get("billable_hours", 0)
 
-                staff_data.append(
-                    {
-                        "staff_id": staff_member.id,
-                        "name": staff_member.get_display_full_name(),
-                        "weekly_hours": weekly_hours,
-                        "total_hours": total_staff_hours,
-                        "billable_percentage": self._calculate_percentage(
-                            billable_hours, total_staff_hours
-                        ),
-                    }
-                )
+            staff_data.append({
+                "staff_id": staff_member.id,
+                "name": staff_member.get_display_full_name(),
+                "weekly_hours": weekly_hours,
+                "total_hours": total_staff_std_hours,
+                "total_overtime": total_staff_ovt_hours,
+                "billable_percentage": self._calculate_percentage(billable_hours, total_staff_std_hours),
+                "total_billable_hours": billable_hours,
+            })
 
-                total_hours += total_staff_hours
-                total_billable_hours += billable_hours
+            total_hours += (total_staff_std_hours + total_staff_ovt_hours)
+            total_billable_hours += billable_hours
 
-            return staff_data, {
-                "total_hours": total_hours,
-                "billable_percentage": self._calculate_percentage(
-                    total_billable_hours, total_hours
-                ),
-            }
-        except Exception as e:
-            logger.error(f"Error processing staff data: {str(e)}")
-            return [], {"total_hours": 0, "billable_percentage": 0}
+        totals = {
+            "total_hours": total_hours,
+            "billable_percentage": self._calculate_percentage(total_billable_hours, total_hours)
+        }
+        return staff_data, totals
 
     def _get_daily_data(self, staff_member, day):
         """Get timesheet data for a staff member on a specific day.
@@ -281,6 +308,75 @@ class TimesheetOverviewView(TemplateView):
                 "hours": 0,
                 "billable_hours": 0,
                 "daily_summary": {"day": day, "hours": 0, "status": "⚠"},
+            }
+    
+    def _get_ims_data(self, staff_member, day):
+        try: 
+            scheduled_hours = staff_member.get_scheduled_hours(day)
+            time_entries = TimeEntry.objects.filter(
+                staff=staff_member, date=day
+            ).select_related("job_pricing")
+
+            daily_hours = sum(entry.hours for entry in time_entries)
+            daily_billable_hours = sum(
+                entry.hours for entry in time_entries if entry.is_billable
+            )
+            has_paid_leave = time_entries.filter(
+                job_pricing__job__name__icontains="Leave"
+            ).exists()
+
+            # Convert scheduled_hours to Decimal before calculation
+            overtime = Decimal(daily_hours) - Decimal(scheduled_hours) if daily_hours > scheduled_hours else 0
+            
+            # Accumulate hours by rate type
+            standard_hours = Decimal(0)
+            time_and_half_hours = Decimal(0)
+            double_time_hours = Decimal(0)
+            unpaid_hours = Decimal(0)
+            for entry in time_entries:
+                multiplier = Decimal(entry.wage_rate_multiplier)
+                match multiplier:
+                    case 1.0:
+                        standard_hours += entry.hours
+                    case 1.5:
+                        time_and_half_hours += entry.hours
+                    case 2.0:
+                        double_time_hours += entry.hours
+                    case 0.0:
+                        unpaid_hours += entry.hours
+
+            return {
+                "hours": daily_hours,
+                "billable_hours": daily_billable_hours,
+                "overtime": overtime,
+                "daily_summary": {
+                    "day": day,
+                    "hours": daily_hours,
+                    "status": self._get_status(daily_hours, scheduled_hours, has_paid_leave),
+                    "standard_hours": standard_hours,
+                    "time_and_half_hours": time_and_half_hours,
+                    "double_time_hours": double_time_hours,
+                    "unpaid_hours": unpaid_hours,
+                    "overtime": overtime,
+                },
+            }
+        except Exception as e:
+            logger.error(
+                f"Error getting IMS data for {staff_member} on {day}: {str(e)}"
+            )
+            return {
+                "hours": 0,
+                "billable_hours": 0,
+                "overtime": 0,
+                "daily_summary": {
+                    "day": day,
+                    "hours": 0,
+                    "status": "⚠",
+                    "standard_hours": 0,
+                    "time_and_half_hours": 0,
+                    "double_time_hours": 0,
+                    "unpaid_hours": 0,
+                },
             }
 
     def _get_status(self, daily_hours, scheduled_hours, has_paid_leave):
@@ -419,15 +515,17 @@ class TimesheetOverviewView(TemplateView):
             JsonResponse with result or error
         """
         action = request.POST.get("action")
-        if action == "load_paid_absence_form":
-            return self.load_paid_absence_form(request)
-        if action == "submit_paid_absence":
-            return self.submit_paid_absence(request)
-        messages.error(request, "Invalid action.")
-        return JsonResponse(
-            {"error": "Invalid action.", "messages": extract_messages(request)},
-            status=400,
-        )
+        match(action):
+            case "load_paid_absence_form":
+                return self.load_paid_absence_form(request)
+            case "submit_paid_absence":
+                return self.submit_paid_absence(request)
+            case _:
+                messages.error(request, "Invalid action.")
+                return JsonResponse(
+                    {"error": "Invalid action.", "messages": extract_messages(request)},
+                    status=400,
+                )
 
     def load_paid_absence_form(self, request):
         """Load and return the paid absence form.
@@ -525,7 +623,28 @@ class TimesheetOverviewView(TemplateView):
 
         messages.success(request, "Paid absence entries created successfully.")
         return JsonResponse({"success": True, "messages": extract_messages(request)})
+    
+    def export_to_ims(self, request, start_date):
+        try:
+            week_days = self._get_ims_week(start_date)
+            prev_week_url, next_week_url = self._get_navigation_urls(start_date)
+            staff_data, totals = self._get_staff_data(week_days, export_to_ims=True)
 
+            return JsonResponse({
+                "success": True,
+                "staff_data": staff_data,
+                "totals": totals,
+                "prev_week_url": prev_week_url,
+                "next_week_url": next_week_url,
+                "week_days": week_days
+            }, status=200)
+        except Exception as e:
+            logger.error(f"Error exporting to IMS: {str(e)}")
+            messages.error(request, "Error exporting to IMS")
+            return JsonResponse(
+                {"error": "Error exporting to IMS", "messages": extract_messages(request)},
+                status=500,
+            )
 
 class TimesheetDailyView(TemplateView):
     template_name = "time_entries/timesheet_daily_view.html"
