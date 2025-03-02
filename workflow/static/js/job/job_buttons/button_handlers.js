@@ -71,7 +71,7 @@ export function handleButtonClick(event) {
       break;
 
     case "toggleGridButton":
-      toggleGrid();
+      toggleGrid("manual");
 
     default:
       break;

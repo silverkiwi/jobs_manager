@@ -12,11 +12,12 @@
 {% include "jobs/edit_job_detail_section.html" %}
 <p class="d-none" id="job-client-name">{{ client_name }}</p>
 <p class="d-none" id="job-created-at">{{ created_at }}</p>
+<p class="d-none" id="complex-job">{{ complex_job }}</p>
 <hr />
 
 <div class="job-pricing-sections">
     <div class="form-check form-switch d-flex align-items-center">
-        <input class="form-check-input form-check-input-lg" type="checkbox" role="switch" id="toggleGridButton" checked>
+        <input class="form-check-input form-check-input-lg" type="checkbox" role="switch" id="toggleGridButton" {% if not complex_job %}checked{% endif %}>
         <label class="form-check-label mx-2 fw-bold form-check-label-lg" for="toggleGridButton">
             Toggle to simple table
         </label>

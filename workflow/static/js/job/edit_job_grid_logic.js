@@ -133,6 +133,6 @@ document.addEventListener("DOMContentLoaded", function () {
   setTimeout(checkGridInitialization, 3000);
   setTimeout(calculateTotalRevenue, 1000);
 
-  toggleGrid(); // To hide quote section by default
+  toggleGrid("automatic"); // To hide quote section by default
   document.body.addEventListener("click", handleButtonClick);
 });
