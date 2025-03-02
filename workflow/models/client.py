@@ -41,17 +41,27 @@ class Client(models.Model):
     def validate_for_xero(self):
         """
         Validate if the client data is sufficient to sync to Xero.
+        Only name is required by Xero.
         """
         if not self.name:
             logger.error(f"Client {self.id} does not have a valid name.")
             return False
-        if not self.email and not self.phone:
-            logger.error(
-                f"Client {self.id} needs either a valid email or phone number."
-            )
-            return False
-        # Add more checks as necessary for other fields
         return True
+
+    def get_last_invoice_date(self):
+        """
+        Get the date of the client's most recent invoice.
+        """
+        last_invoice = self.invoice_set.order_by('-date').first()
+        return last_invoice.date if last_invoice else None
+
+    def get_total_spend(self):
+        """
+        Calculate the total amount spent by the client (sum of all invoice totals).
+        """
+        return self.invoice_set.aggregate(
+            total=models.Sum('total_excl_tax')
+        )['total'] or 0
 
     def get_client_for_xero(self):
         """

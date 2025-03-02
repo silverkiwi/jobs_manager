@@ -1,11 +1,9 @@
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 
 
 class CompanyDefaults(models.Model):
-    company_name = models.CharField(
-        max_length=255, primary_key=True
-    )  # Unique company name
+    company_name = models.CharField(max_length=255, primary_key=True)
     time_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.3)
     materials_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.2)
     charge_out_rate = models.DecimalField(
@@ -28,15 +26,23 @@ class CompanyDefaults(models.Model):
     fri_end = models.TimeField(default="15:00")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    last_xero_sync = models.DateTimeField(null=True, blank=True, help_text="The last time Xero data was synchronized")
+    last_xero_deep_sync = models.DateTimeField(null=True, blank=True, help_text="The last time a deep Xero sync was performed (looking back 90 days)")
 
     class Meta:
         verbose_name = "Company Defaults"
         verbose_name_plural = "Company Defaults"
 
-    def save(self, *args, **kwargs):
-        if not self.pk and CompanyDefaults.objects.exists():
-            raise ValidationError("There can only be one CompanyDefaults instance.")
-        return super(CompanyDefaults, self).save(*args, **kwargs)
+    @classmethod
+    def get_instance(cls):
+        """
+        Get or create the singleton instance.
+        This is the preferred way to get the CompanyDefaults instance.
+        """
+        with transaction.atomic():
+            # Get the first record or create one if none exists
+            instance, _ = cls.objects.get_or_create()
+            return instance
 
     def __str__(self):
-        return f"Charge-out Rate: {self.charge_out_rate}/hr"
+        return self.company_name

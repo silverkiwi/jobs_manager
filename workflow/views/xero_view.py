@@ -145,7 +145,7 @@ def convert_to_pascal_case(obj):
 
 class XeroDocumentCreator(ABC):
     """
-    Base class for creating Xero Documents (Invoices, Quotes).
+    Base class for creating Xero Documents (Invoices, Quotes, Contacts).
     Implements common logic and provides abstract methods for customization.
     """
 
@@ -248,7 +248,7 @@ class XeroDocumentCreator(ABC):
 
             logger.debug(f"Response Content: {response}")
             logger.debug(f"HTTP Status: {http_status}")
-            logger.debug(f"HTTP Headers: {http_headers}")
+            # logger.debug(f"HTTP Headers: {http_headers}")
         except Exception as e:
             logger.error(f"Error sending document to Xero: {str(e)}")
             if hasattr(e, "body"):
@@ -606,6 +606,21 @@ def delete_xero_invoice(request, job_id):
         return JsonResponse(
             {"success": False, "messages": extract_messages(request)}, status=500
         )
+
+
+def xero_disconnect(request):
+    """
+    Disconnects from Xero by clearing the token from cache.
+    """
+    try:
+        cache.delete('xero_token')
+        cache.delete('xero_tenant_id')
+        messages.success(request, "Successfully disconnected from Xero")
+    except Exception as e:
+        logger.error(f"Error disconnecting from Xero: {str(e)}")
+        messages.error(request, "Failed to disconnect from Xero")
+    
+    return redirect("/")
 
 
 def delete_xero_quote(request, job_id):

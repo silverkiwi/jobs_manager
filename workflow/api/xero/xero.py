@@ -11,23 +11,13 @@ from xero_python.api_client import ApiClient, Configuration
 from xero_python.api_client.oauth2 import OAuth2Token, TokenApi
 from xero_python.identity import IdentityApi
 
-logger = logging.getLogger("xero")
+from workflow.models.xero_token import XeroToken
 
-XERO_SCOPES = [
-    "offline_access",
-    "openid",
-    "profile",
-    "email",
-    "accounting.contacts",
-    "accounting.transactions",
-    "accounting.reports.read",
-    "accounting.settings",
-    "accounting.journals.read",
-]
+logger = logging.getLogger("xero")
 
 api_client = ApiClient(
     Configuration(
-        debug=True,
+        debug=False,
         oauth2_token=OAuth2Token(
             client_id=settings.XERO_CLIENT_ID,
             client_secret=settings.XERO_CLIENT_SECRET,
@@ -43,19 +33,46 @@ def pretty_print(obj):
 
 @api_client.oauth2_token_getter
 def get_token() -> Optional[Dict[str, Any]]:
-    """Get token from cache."""
+    """Get token from cache or database."""
     logger.debug("Getting token from cache")
     token = cache.get("xero_token")
-    if not token:
-        logger.debug("Token not found in cache")
-    else:
-        logger.debug("Retrieved token from cache!")
-    return token
+    if token:
+        logger.debug("Retrieved token from cache")
+        return token
+
+    logger.debug("Token not found in cache, checking database")
+    db_token = XeroToken.objects.first()
+    if not db_token or not db_token.access_token:
+        logger.debug("No valid token found in database")
+        return None
+
+    if not db_token.expires_at:
+        logger.debug("Token in database has no expiry time")
+        return None
+
+    # Convert database token to OAuth2Token format
+    token = {
+        "access_token": db_token.access_token,
+        "refresh_token": db_token.refresh_token,
+        "token_type": db_token.token_type,
+        "expires_at": db_token.expires_at.timestamp(),
+        "scope": db_token.scope,
+        "expires_in": int((db_token.expires_at - datetime.now(timezone.utc)).total_seconds())
+    }
+
+    # Only cache if not expired
+    if token["expires_in"] > 0:
+        cache.set("xero_token", token, timeout=token["expires_in"])
+        logger.debug("Retrieved valid token from database and cached it")
+        return token
+    
+    logger.debug("Token in database is expired")
+    return None
 
 
 @api_client.oauth2_token_saver
 def store_token(token: Dict[str, Any]) -> None:
-    """Store token in cache with 29 minute timeout."""
+    """Store token in both cache and database."""
     logger.info("Storing token!")
 
     # For better logs if needed
@@ -65,17 +82,45 @@ def store_token(token: Dict[str, Any]) -> None:
         "refresh_token": token.get("refresh_token"),
         "expires_in": token.get("expires_in"),
         "token_type": token.get("token_type"),
-        "scope": token.get("scope"),
+        "scope": token.get("scope")  # Use scope from token response
     }
 
-    # Absolute expiration date for better accuracy
-    if token_data["expires_in"]:
-        token_data["expires_at"] = (
-            datetime.now(timezone.utc) + timedelta(seconds=token_data["expires_in"])
-        ).timestamp()
+    # Get expiry time from Xero's response
+    expires_at = None
+    if token.get("expires_in"):
+        expires_at = datetime.now(timezone.utc) + timedelta(seconds=token["expires_in"])
+        token_data["expires_at"] = expires_at.timestamp()
 
-    cache.set("xero_token", token_data, timeout=1740)  # 29 minutes
-    logger.debug("Token stored successfully.")
+    # Store in cache - use Xero's expires_in for the cache timeout
+    cache_timeout = token.get("expires_in", 1740)  # fallback to 29 minutes if not provided
+    cache.set("xero_token", token_data, timeout=cache_timeout)
+
+    # Get tenant ID if available
+    try:
+        tenant_id = get_tenant_id_from_connections()
+    except Exception:
+        tenant_id = None
+        logger.warning("Could not fetch tenant ID when storing token")
+
+    # Store in database
+    try:
+        xero_token = XeroToken.objects.first()
+        if not xero_token:
+            xero_token = XeroToken()
+        
+        xero_token.access_token = token_data["access_token"]
+        xero_token.refresh_token = token_data["refresh_token"]
+        xero_token.token_type = token_data["token_type"]
+        xero_token.expires_at = expires_at
+        xero_token.scope = token_data["scope"]  # Use scope from token response
+        if tenant_id:
+            xero_token.tenant_id = tenant_id
+        xero_token.save()
+    except Exception as e:
+        logger.error(f"Failed to store token in database: {e}")
+        # Don't raise - we still have the token in cache
+
+    logger.debug("Token stored successfully in both cache and database.")
 
 
 def refresh_token() -> Optional[Dict[str, Any]]:
@@ -119,7 +164,7 @@ def get_authentication_url(state: str) -> str:
         "response_type": "code",
         "client_id": settings.XERO_CLIENT_ID,
         "redirect_uri": settings.XERO_REDIRECT_URI,
-        "scope": " ".join(XERO_SCOPES),
+        "scope": " ".join(settings.XERO_SCOPES),
         "state": state,
     }
     logger.debug(f"Generating authentication URL with params: \n{pretty_print(params)}")

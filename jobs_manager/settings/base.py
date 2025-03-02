@@ -64,6 +64,11 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
+        "xero_console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
         "sql_file": {
             "level": "DEBUG",
             "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
@@ -88,7 +93,7 @@ LOGGING = {
             "propagate": False,
         },
         "xero": {
-            "handlers": ["xero_file"],
+            "handlers": ["xero_file", "xero_console"],
             "level": "DEBUG",
             "propagate": False,
         },
@@ -220,6 +225,19 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID", "")
 XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET", "")
 XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI", "")
+# Default scopes if not specified in .env
+DEFAULT_XERO_SCOPES = " ".join([
+    "offline_access",
+    "openid",
+    "profile",
+    "email",
+    "accounting.contacts",
+    "accounting.transactions",
+    "accounting.reports.read",
+    "accounting.settings",
+    "accounting.journals.read",
+])
+XERO_SCOPES = os.getenv("XERO_SCOPES", DEFAULT_XERO_SCOPES).split()
 
 DROPBOX_WORKFLOW_FOLDER = os.getenv('DROPBOX_WORKFLOW_FOLDER', os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow"))
 

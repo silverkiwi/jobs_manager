@@ -1,0 +1,16 @@
+[Unit]
+Description=Xero Sync Service
+After=network.target
+
+[Service]
+Type=simple
+User=django_user
+Group=django_user
+WorkingDirectory=/home/django_user/jobs_manager
+Environment=DJANGO_SETTINGS_MODULE=jobs_manager.settings.production_like
+ExecStart=/home/django_user/jobs_manager/.venv/bin/python manage.py start_xero_sync
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target 

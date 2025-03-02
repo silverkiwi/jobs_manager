@@ -9,6 +9,7 @@ class XeroToken(models.Model):
     access_token = models.TextField()
     refresh_token = models.TextField()
     expires_at = models.DateTimeField()
+    scope = models.TextField(default="offline_access openid profile email accounting.contacts accounting.transactions accounting.reports.read accounting.settings accounting.journals.read")
 
     def __str__(self):
         return f"Xero Token for Tenant: {self.tenant_id}"
