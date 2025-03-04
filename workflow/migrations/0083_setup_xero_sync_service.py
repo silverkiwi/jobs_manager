@@ -111,7 +111,7 @@ def remove_systemd_service(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('workflow', '0081_add_last_xero_deep_sync'),
+        ("workflow", "0082_add_last_xero_deep_sync"),
     ]
 
     operations = [

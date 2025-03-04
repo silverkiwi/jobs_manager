@@ -56,7 +56,9 @@ class Job(models.Model):
     order_number: str | None = models.CharField(
         max_length=100, null=True, blank=True
     )
-    contact_person: str = models.CharField(max_length=100)
+    contact_person: str | None = models.CharField(
+        max_length=100, null=True, blank=True
+    )
     contact_phone: str | None = models.CharField(
         max_length=15,
         null=True,
