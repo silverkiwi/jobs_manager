@@ -149,6 +149,8 @@ class Job(models.Model):
 
     history: HistoricalRecords = HistoricalRecords()
 
+    complex_job = models.BooleanField(default=False)  # type: ignore
+
     class Meta:
         ordering = ["job_number"]
 

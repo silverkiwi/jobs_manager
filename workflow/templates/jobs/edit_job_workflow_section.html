@@ -4,7 +4,7 @@
     <!-- Job Status Selection -->
     <div class="form-group">
         <label for="job_status">Job Status:</label>
-        <select id="job_status" name="job_status" class="form-control autosave-input">
+        <select id="job_status" name="job_status" class="form-select autosave-input">
             <option value="quoting" {% if job.status == 'quoting' %}selected{% endif %}>Quoting</option>
             <option value="approved" {% if job.status == 'approved' %}selected{% endif %}>Approved</option>
             <option value="in_progress" {% if job.status == 'in_progress' %}selected{% endif %}>In Progress</option>
@@ -35,7 +35,12 @@
                 value="{{ job.quote_acceptance_date|default:''|date:'c' }}">
 
             <!-- Accept Quote Button -->
-            <button type="button" id="acceptQuoteButton" class="btn btn-primary">Accept Quote</button>
+            {% if pricing_type == "fixed_price" %}
+            <button id="acceptQuoteButton" class="btn btn-success mt-3" 
+            {% if job.latest_quote_pricing.total_cost|floatformat:"2" == "0.00" %}disabled{% endif %}>
+                Accept Quote
+            </button>
+            {% endif %}
         </div>
     </div>
 
@@ -45,26 +50,30 @@
             Invoice Job
         </button>
         <a {% if not invoiced %} style="display: none" {% endif %}
-            href="{% if invoice_url %}{{ invoice_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info" id="invoiceUrl">
+            href="{% if invoice_url %}{{ invoice_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info"
+            id="invoiceUrl">
             Go to Invoice on Xero
         </a>
-        <button {% if not invoiced %} style="display: none" {% endif %} type="button" class="btn btn-danger" id="deleteInvoiceButton">
+        <button {% if not invoiced %} style="display: none" {% endif %} type="button" class="btn btn-danger"
+            id="deleteInvoiceButton">
             Delete Xero Invoice
         </button>
-        <button type="button" class="btn btn-info" id="contactClientButton">Contact Client about Job</button>
+        <button type="button" class="btn btn-info ms-3" id="contactClientButton">Contact Client about Job</button>
     </div>
 
     <!-- Job Status Checkboxes -->
     <div class="form-group mt-4">
         <h4>Job Status Tracking</h4>
         <div class="d-flex flex-column gap-3">
-            <div class="form-check form-check-lg" id="quoteCheckbox">
+            <div class="form-check form-check-lg  {% if pricing_type == 'time_materials' %}d-none{% endif %}"
+                id="quoteCheckbox">
                 <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
                     id="quoted_checkbox" name="quoted" {% if quoted %} checked {% else %} disabled {% endif %}>
                 <label class="form-check-label ms-2 fs-5" for="quoted_checkbox">
                     Already Quoted?
                 </label>
-                <small class="text-muted d-block mt-1">Note: This is just an indicator of whether the job was already quoted in Xero</small>
+                <small class="text-muted d-block mt-1">Note: This is just an indicator of whether the job was already
+                    quoted in Xero</small>
             </div>
 
             <div class="form-check form-check-lg">
@@ -73,7 +82,8 @@
                 <label class="form-check-label ms-2 fs-5" for="invoiced_checkbox">
                     Already Invoiced?
                 </label>
-                <small class="text-muted d-block mt-1">Note: This is just an indicator of whether the job was already invoiced in Xero</small>
+                <small class="text-muted d-block mt-1">Note: This is just an indicator of whether the job was already
+                    invoiced in Xero</small>
             </div>
 
             <div class="form-check form-check-lg">

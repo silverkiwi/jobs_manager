@@ -79,48 +79,171 @@ export function addEventToTimeline(event, jobEventsList) {
   jobEventsList.insertAdjacentHTML('afterbegin', newEventHtml);
 }
 
-export function toggleGrid() {
-  const isSimple =
-    document.getElementById('toggleGridButton')?.checked ?? false;
+export function toggleGrid(mode = "manual") {
+  let validJob;
+
+  if (mode === "manual") {
+    validJob = toggleComplexJob();
+  }
+
+  // Only proceed with grid toggle if we're in auto mode or validJob was true
+  if (mode === "automatic" || (mode === "manual" && validJob)) {
+    const isSimple = document.getElementById('toggleGridButton')?.checked ?? false;
+    switch (isSimple) {
+      case true:
+        sections.forEach((section) => {
+          document.getElementById(`advanced-${section}-grid`).classList =
+            'd-none';
+          document.getElementById(`simple-${section}-grid`).classList = 'd-block';
+
+          setTimeout(() => {
+            workType.forEach((work) => {
+              const simpleApi =
+                window.grids[`simple${capitalize(section)}${work}Table`]?.api;
+              simpleApi?.sizeColumnsToFit();
+            });
+          }, 50);
+        });
+        break;
+      case false:
+        sections.forEach((section) => {
+          document.getElementById(`simple-${section}-grid`).classList = 'd-none';
+          document.getElementById(`advanced-${section}-grid`).classList =
+            'd-block';
+
+          setTimeout(() => {
+            workType.forEach((work) => {
+              const advApi = window.grids[`${section}${work}Table`]?.api;
+              advApi?.sizeColumnsToFit();
+            });
+          }, 50);
+        });
+        break;
+    }
+  }
+}
+
+function toggleComplexJob() {
+  if (Environment.isDebugMode()) console.log('Starting checkComplexJob function');
+  const toggleButton = document.getElementById("toggleGridButton");
+  const isComplexElement = document.getElementById("complex-job");
+  const isComplex = isComplexElement.textContent.toLowerCase() === 'true';
+  if (Environment.isDebugMode()) console.log(`Current state: isComplex = ${isComplex}`);
+
+  if (isComplex) {
+    if (Environment.isDebugMode()) console.log('Checking if we can disable complex mode');
+    const latestJobPricingsElement = JSON.parse(document.getElementById("latestJobPricingsData").textContent);
+    if (Environment.isDebugMode()) console.log('Parsed job pricing data:', latestJobPricingsElement);
+    const estimatePricing = latestJobPricingsElement.estimate_pricing;
+    const quotePricing = latestJobPricingsElement.quote_pricing;
+    const realityPricing = latestJobPricingsElement.reality_pricing;
+    if (Environment.isDebugMode()) console.log('Extracted pricing data:', { estimatePricing, quotePricing, realityPricing });
+    const pricings = [estimatePricing, quotePricing, realityPricing];
+
+    // Check if any pricing has entries
+    let hasEntries = false;
+    pricings.forEach((pricing, index) => {
+      if (Environment.isDebugMode()) console.log(`Checking pricing type ${index === 0 ? 'estimate' : index === 1 ? 'quote' : 'reality'}`);
+      workType.forEach((work) => {
+        const workLower = work.toLowerCase();
+        const entriesKey = `${workLower}_entries`;
+        // Check if the entries key exists before accessing length property
+        if (pricing[entriesKey] && pricing[entriesKey].length > 1) {
+          if (Environment.isDebugMode()) console.log(`Found ${workLower} entries, cannot disable complex mode`);
+          alert("Cannot disable complex mode while job has pricing.");
+          toggleButton.checked = true;
+          hasEntries = true;
+          return false;
+        }
+      });
+      if (hasEntries) return false;
+    });
+    if (Environment.isDebugMode()) console.log('Complex mode check completed');
+  }
+
+  if (Environment.isDebugMode()) console.log('Sending API request to update complex job status');
+  fetch('/api/job/toggle-complex-job/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector("[name=csrfmiddlewaretoken]").value,
+    },
+    body: JSON.stringify({
+      job_id: getJobIdFromUrl(),
+      complex_job: !isComplex,
+    }),
+  })
+    .then(response => {
+      if (Environment.isDebugMode()) console.log('Received API response', response);
+      return response.json();
+    })
+    .then(data => {
+      if (Environment.isDebugMode()) console.log('Processed API response data', data);
+      if (data.error) {
+        console.error('API returned error:', data.error);
+        alert(data.error);
+        toggleButton.checked = !toggleButton.checked;
+      }
+      isComplexElement.textContent = capitalize(String(!isComplex));
+    })
+    .catch(err => {
+      console.error('API request failed:', err);
+      alert("Error updating complex mode.");
+      toggleButton.checked = !toggleButton.checked;
+    });
+
+  if (Environment.isDebugMode()) console.log('Completed checkComplexJob function');
+  return true;
+}
+
+/**
+ * Toggles the pricing type UI elements and updates the pricing type on the server
+ * @param {Event|Object} event - DOM event object or object with value property
+ */
+export function togglePricingType(event) {
+  // Extract value from either event.target.value (DOM event) or event.value (direct object)
+  const newType = event.target?.value || event.value;
+
   const quoteGrid = document.getElementById('quoteGrid');
   const quoteCheckbox = document.getElementById('quoteCheckbox');
   const copyEstimate = document.getElementById('copyEstimateToQuote');
-  switch (isSimple) {
-    case true:
-      sections.forEach((section) => {
-        document.getElementById(`advanced-${section}-grid`).classList =
-          'd-none';
-        document.getElementById(`simple-${section}-grid`).classList = 'd-block';
 
-        setTimeout(() => {
-          workType.forEach((work) => {
-            const simpleApi =
-              window.grids[`simple${capitalize(section)}${work}Table`]?.api;
-            simpleApi?.sizeColumnsToFit();
-          });
-        }, 50);
-      });
+  const jobId = getJobIdFromUrl();
 
-      quoteGrid.classList.add('d-none');
-      quoteCheckbox.classList.add('d-none');
-      copyEstimate.classList.add('d-none');
-      break;
-    case false:
-      sections.forEach((section) => {
-        document.getElementById(`simple-${section}-grid`).classList = 'd-none';
-        document.getElementById(`advanced-${section}-grid`).classList =
-          'd-block';
-
-        setTimeout(() => {
-          workType.forEach((work) => {
-            const advApi = window.grids[`${section}${work}Table`]?.api;
-            advApi?.sizeColumnsToFit();
-          });
-        }, 50);
-      });
-      quoteGrid.classList.remove('d-none');
-      quoteCheckbox.classList.remove('d-none');
-      copyEstimate.classList.remove('d-none');
-      break;
-  }
+  fetch('/api/job/toggle-pricing-type/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector("[name=csrfmiddlewaretoken]").value,
+    },
+    body: JSON.stringify({
+      job_id: jobId,
+      pricing_type: newType,
+    }),
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+      switch (newType) {
+        case "time_materials":
+          quoteGrid.classList.add('d-none');
+          quoteCheckbox.classList.add('d-none');
+          copyEstimate.classList.add('d-none');
+          break;
+        case "fixed_price":
+          quoteGrid.classList.remove('d-none');
+          quoteCheckbox.classList.remove('d-none');
+          copyEstimate.classList.remove('d-none');
+          break;
+        default:
+          break;
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Error updating pricing type.");
+    });
 }

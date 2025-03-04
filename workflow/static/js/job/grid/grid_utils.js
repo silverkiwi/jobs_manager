@@ -155,7 +155,9 @@ export function calculateTotalCost() {
 }
 
 export function onCellKeyDown(params) {
-  if (params.event.key === "Enter") {
+  const isComplex = document.getElementById("complex-job").textContent.toLowerCase() === 'true';
+
+  if (params.event.key === "Enter" && isComplex) {
     const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
     if (isLastRow) {
       const newRow = createNewRow(params.context.gridType);

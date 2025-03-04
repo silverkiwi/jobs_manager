@@ -352,11 +352,13 @@ export function createAdvancedMaterialsGridOptions(
         field: "description",
         editable: true,
         flex: 2,
+        maxWidth: 335
       },
       {
-        headerName: "Quantity",
+        headerName: "Qtd.",
         field: "quantity",
         editable: true,
+        maxWidth: 90,
         valueParser: numberParser,
       },
       {
@@ -365,6 +367,9 @@ export function createAdvancedMaterialsGridOptions(
         editable: true,
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
+        minWidth: 80,
+        width: 300,
+        flex: 1
       },
       {
         headerName: "Retail Rate",
@@ -373,14 +378,24 @@ export function createAdvancedMaterialsGridOptions(
         valueGetter: getRetailRate,
         valueSetter: setRetailRate,
         valueFormatter: currencyFormatter,
+        minWidth: 80,
+        width: 190,
+        flex: 1
       },
       {
         headerName: "Revenue",
         field: "revenue",
         editable: false,
+        hide: true,
         valueFormatter: currencyFormatter,
       },
-      { headerName: "Comments", field: "comments", editable: true, flex: 2 },
+      { 
+        headerName: "Comments", 
+        field: "comments", 
+        editable: true, 
+        flex: 2,
+        width: 150
+      },
       trashCanColumn,
     ],
     rowData: [],
@@ -400,6 +415,7 @@ export function createAdvancedAdjustmentsGridOptions(
         field: "description",
         editable: true,
         flex: 2,
+        minWidth: 355
       },
       {
         headerName: "Cost Adjustment",
@@ -407,6 +423,9 @@ export function createAdvancedAdjustmentsGridOptions(
         editable: true,
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
+        minWidth: 80,
+        width: 350,
+        flex: 1,
       },
       {
         headerName: "Price Adjustment",
@@ -414,8 +433,17 @@ export function createAdvancedAdjustmentsGridOptions(
         editable: true,
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
+        minWidth: 80,
+        width: 230,
+        flex: 1
       },
-      { headerName: "Comments", field: "comments", editable: true, flex: 2 },
+      { 
+        headerName: "Comments", 
+        field: "comments", 
+        editable: true, 
+        flex: 2,
+        width: 175
+      },
       trashCanColumn,
     ],
     rowData: [],
@@ -433,13 +461,14 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
         field: "description",
         editable: true,
         flex: 2,
+        maxWidth: 310
       },
       {
         headerName: "Hours",
         field: "hours",
         editable: true,
         valueParser: numberParser,
-        minWidth: 80,
+        maxWidth: 80,
       },
       {
         headerName: "Cost of Time ($)",
@@ -456,6 +485,7 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
+        width: 230
       },
       // This is needed to send data in a proper way to be saved in back-end
       {
@@ -488,6 +518,7 @@ export function createSimpleMaterialsGridOptions(
         field: "description",
         editable: true,
         flex: 2,
+        maxWidth: 390
       },
       {
         headerName: "Cost ($)",
@@ -498,12 +529,13 @@ export function createSimpleMaterialsGridOptions(
         minWidth: 80,
       },
       {
-        headerName: "Retail Price ($)",
+        headerName: "Retail ($)",
         field: "retail_price",
         editable: true,
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
+        width: 230
       },
       trashCanColumn,
     ],
@@ -523,6 +555,7 @@ export function createSimpleAdjustmentsGridOptions(
         field: "description",
         editable: true,
         flex: 2,
+        maxWidth: 390
       },
       {
         headerName: "Cost ($)",
@@ -539,6 +572,7 @@ export function createSimpleAdjustmentsGridOptions(
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
+        width: 230
       },
       trashCanColumn,
     ],
@@ -553,12 +587,18 @@ export function createSimpleTotalsGridOptions(gridKey) {
     ...commonGridOptions,
     columnDefs: [
       {
+        headerName: "",
+        field: "section",
+        editable: false,
+        maxWidth: 395,
+      },
+      {
         headerName: "Total Cost ($)",
         field: "cost",
         editable: false,
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
-        minWidth: 80,
+        maxWidth: 400,
       },
       {
         headerName: "Total Retail ($)",

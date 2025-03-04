@@ -55,12 +55,53 @@ export function handleButtonClick(event) {
       break;
 
     case "acceptQuoteButton":
-      const currentDateTimeISO = new Date().toISOString();
-      document.getElementById("quote_acceptance_date_iso").value =
-        currentDateTimeISO;
-      console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
-      debouncedAutosave();
-      break;
+          const currentDateTimeISO = new Date().toISOString();
+          document.getElementById("quote_acceptance_date_iso").value = currentDateTimeISO;
+          console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
+    
+          // Define tables to lock
+          const tablesToLock = [
+            // Complex quote tables
+            'quoteTimeTable',
+            'quoteMaterialsTable',
+            'quoteAdjustmentsTable',
+            
+            // Simple quote tables
+            'simpleQuoteTimeTable',
+            'simpleQuoteMaterialsTable',
+            'simpleQuoteAdjustmentsTable',
+            'simpleQuoteTotalsTable'
+          ];
+    
+          // Lock each table
+          tablesToLock.forEach(tableName => {
+            if (window[tableName] && window[tableName].api) {
+              const gridApi = window[tableName].api;
+              
+              // Set grid to read-only
+              gridApi.setGridOption('editType', 'none');
+              gridApi.setGridOption('editable', false);
+              
+              // Disable row dragging and selection
+              gridApi.setGridOption('rowDragManaged', false);
+              gridApi.setGridOption('suppressRowDrag', true);
+              gridApi.setGridOption('suppressRowClickSelection', true);
+              
+              // Update all columns to be non-editable
+              const columnDefs = gridApi.getColumnDefs();
+              columnDefs.forEach(col => {
+                col.editable = false;
+              });
+              gridApi.setColumnDefs(columnDefs);
+              
+              // Refresh the grid
+              gridApi.refreshCells({ force: true });
+            }
+          });
+    
+          debouncedAutosave();
+          break;
+    
 
     case "contactClientButton":
       showQuoteModal(jobId, "gmail", true);
@@ -71,7 +112,7 @@ export function handleButtonClick(event) {
       break;
 
     case "toggleGridButton":
-      toggleGrid();
+      toggleGrid("manual");
 
     default:
       break;
