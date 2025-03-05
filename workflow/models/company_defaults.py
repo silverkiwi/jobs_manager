@@ -4,6 +4,7 @@ from django.db import models, transaction
 
 class CompanyDefaults(models.Model):
     company_name = models.CharField(max_length=255, primary_key=True)
+    is_primary = models.BooleanField(default=True, unique=True)
     time_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.3)
     materials_markup = models.DecimalField(max_digits=5, decimal_places=2, default=0.2)
     charge_out_rate = models.DecimalField(
@@ -33,16 +34,20 @@ class CompanyDefaults(models.Model):
         verbose_name = "Company Defaults"
         verbose_name_plural = "Company Defaults"
 
+    def save(self, *args, **kwargs):
+        if not self.pk and CompanyDefaults.objects.exists():
+            raise ValidationError("There can be only one CompanyDefaults instance")
+        self.is_primary = True
+        super().save(*args, **kwargs)
+
     @classmethod
     def get_instance(cls):
         """
-        Get or create the singleton instance.
+        Get the singleton instance.
         This is the preferred way to get the CompanyDefaults instance.
         """
         with transaction.atomic():
-            # Get the first record or create one if none exists
-            instance, _ = cls.objects.get_or_create()
-            return instance
+            return cls.objects.get()
 
     def __str__(self):
         return self.company_name
