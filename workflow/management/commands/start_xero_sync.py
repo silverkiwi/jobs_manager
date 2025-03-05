@@ -4,6 +4,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from django.utils import timezone
 from django.core.cache import cache
 import logging
+import os
 
 from workflow.models.xero_token import XeroToken
 from workflow.api.xero.sync import synchronise_xero_data
@@ -25,13 +26,17 @@ class Command(BaseCommand):
             synchronise_xero_data()
             logger.info(f"Completed scheduled Xero sync at {timezone.now()}")
 
+        # Get sync interval from environment variable (default to 1 hour)
+        sync_interval_hours = int(os.getenv('XERO_SYNC_INTERVAL_HOURS', '1'))
+        logger.info(f"Configuring Xero sync to run every {sync_interval_hours} hour(s)")
+
         # Initialize the scheduler
         scheduler = BackgroundScheduler()
 
         # Add the job to the scheduler
         scheduler.add_job(
             xero_sync_job,
-            trigger=IntervalTrigger(hours=1),
+            trigger=IntervalTrigger(hours=sync_interval_hours),
             id='xero_sync_job',
             name='Xero Sync Job',
             replace_existing=True,
