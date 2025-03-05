@@ -6,11 +6,11 @@ After=network.target
 Type=simple
 User=django_user
 Group=django_user
+Environment=XERO_SYNC_INTERVAL_HOURS=1
 WorkingDirectory=/home/django_user/jobs_manager
-Environment=DJANGO_SETTINGS_MODULE=jobs_manager.settings.production_like
 ExecStart=/home/django_user/jobs_manager/.venv/bin/python manage.py start_xero_sync
 Restart=always
-RestartSec=30
+RestartSec=10
 
 [Install]
-WantedBy=multi-user.target 
+WantedBy=multi-user.target
