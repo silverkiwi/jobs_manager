@@ -11,6 +11,16 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
+  // Clear Xero contact ID when client name is manually edited
+  clientInput.addEventListener("input", function() {
+    const clientXeroIdField = document.getElementById("client_xero_id");
+    const clientIdField = document.getElementById("client_id");
+    if (clientXeroIdField) {
+      clientXeroIdField.value = "";
+      clientIdField.value = "";
+    }
+  });
+
   function hideDropdown() {
     suggestionsContainer.innerHTML = "";
     suggestionsContainer.classList.add("d-none");
@@ -86,20 +96,22 @@ document.addEventListener("DOMContentLoaded", function () {
           clientInput.value = client.name;
           const clientIdField = document.getElementById("client_id");
           const clientNameField = document.getElementById("client_name");
+          const clientXeroIdField = document.getElementById("client_xero_id");
 
           clientIdField.value = client.id;
           clientNameField.value = client.name;
+          clientXeroIdField.value = client.xero_contact_id;
 
-          if (!clientIdField.value || !clientNameField.value) {
+          if (!clientIdField.value || !clientNameField.value || !clientXeroIdField.value) {
             console.error(
-              "Failed to update client_id or client_name in the form.",
+              "Failed to update client fields in the form.",
             );
             renderMessages(
               [
                 {
                   level: "error",
                   message:
-                    "Failed to update client_id or client_name in the form.",
+                    "Failed to update client fields in the form.",
                 },
               ],
               "job-details",

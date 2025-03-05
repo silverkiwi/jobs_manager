@@ -228,3 +228,29 @@
     height: 60px;
     max-height: 120px;
 }
+
+.form-check-input:checked ~ .form-check-label .toggle-state-on {
+    display: inline;
+    font-weight: bold;
+    color: #fff;
+    background-color: #0d6efd;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.form-check-input:checked ~ .form-check-label .toggle-state-off {
+    display: none;
+}
+
+.form-check-input:not(:checked) ~ .form-check-label .toggle-state-off {
+    display: inline;
+    font-weight: bold;
+    color: #fff;
+    background-color: #6c757d;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.form-check-input:not(:checked) ~ .form-check-label .toggle-state-on {
+    display: none;
+}

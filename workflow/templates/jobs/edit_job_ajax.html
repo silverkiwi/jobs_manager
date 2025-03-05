@@ -19,9 +19,9 @@
     <div class="d-flex align-items-center justify-content-between">
         <div class="form-check form-switch d-flex align-items-center">
             <input class="form-check-input form-check-input-lg" type="checkbox" role="switch" id="toggleGridButton" 
-            {% if not complex_job %}checked{% endif %}>
+            {% if complex_job %}checked{% endif %}>
             <label class="form-check-label mx-2 fw-bold form-check-label-lg" for="toggleGridButton">
-                Toggle to simple table
+                Itemised pricing: <span class="toggle-state-off">OFF</span><span class="toggle-state-on">ON</span>
             </label>
         </div>
         <div>

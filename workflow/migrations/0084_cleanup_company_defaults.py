@@ -22,7 +22,7 @@ def cleanup_company_defaults(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('workflow', '0082_setup_xero_sync_service'),
+        ('workflow', '0083_setup_xero_sync_service'),
     ]
 
     operations = [

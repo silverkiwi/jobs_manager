@@ -78,8 +78,7 @@ function checkJobValidity(data) {
 
   const requiredFields = [
     "name",
-    "client_name",
-    "contact_person",
+    "client_xero_id",
     "job_number",
   ];
   const invalidFields = requiredFields.filter(
