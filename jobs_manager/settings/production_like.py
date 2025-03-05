@@ -21,6 +21,9 @@ MIDDLEWARE = [
 STATIC_URL = "/static/"
 STATIC_ROOT = os.getenv("STATIC_ROOT", LOCAL_STATIC_ROOT)
 
+# Use ManifestStaticFilesStorage to add hashes to static files
+STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+
 # Security configs
 SESSION_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
