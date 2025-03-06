@@ -104,17 +104,6 @@ function checkJobValidity(data) {
       }
     });
 
-    // Scroll to the first invalid field
-    if (firstInvalidElement) {
-      setTimeout(() => {
-        firstInvalidElement.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-        firstInvalidElement.focus();
-      }, 100); // Delay prevents multiple focus calls();
-    }
-
     renderMessages(
       [
         {
