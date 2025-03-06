@@ -411,7 +411,10 @@ def sync_journals(journals):
 def sync_clients(xero_contacts):
     """
     Sync clients fetched from Xero API.
+    Returns a list of Client instances that were created or updated.
     """
+    client_instances = []
+    
     for contact_data in xero_contacts:
         xero_contact_id = getattr(contact_data, "contact_id", None)
 
@@ -442,11 +445,14 @@ def sync_clients(xero_contacts):
                 )
 
             sync_client_to_xero(client)
+            client_instances.append(client)
 
         except Exception as e:
             logger.error(f"Error processing client: {str(e)}")
             logger.error(f"Client data: {raw_json}")
             raise
+    
+    return client_instances
 
 
 def sync_accounts(xero_accounts):

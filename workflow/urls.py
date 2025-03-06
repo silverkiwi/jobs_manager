@@ -35,6 +35,7 @@ urlpatterns = [
     ),
     path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
+    path("api/client-detail/", client_view.client_detail, name="client_detail"),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
         submit_quote_view.generate_quote_pdf,

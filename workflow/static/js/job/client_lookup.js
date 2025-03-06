@@ -21,6 +21,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // Add message event listener to handle client selection from child window
+  window.addEventListener("message", function(event) {
+    console.log("Received message:", event.data);
+    
+    // Handle messages from client selection window
+    if (event.data && event.data.type === 'CLIENT_SELECTED') {
+      console.log("Client selected, updating form fields:", event.data);
+      
+      // Get form fields
+      const clientIdField = document.getElementById("client_id");
+      const clientNameField = document.getElementById("client_name");
+      const clientXeroIdField = document.getElementById("client_xero_id");
+      
+      // Update form fields with received data
+      if (clientIdField) clientIdField.value = event.data.clientId;
+      if (clientNameField) clientNameField.value = event.data.clientName;
+      if (clientXeroIdField) clientXeroIdField.value = event.data.xeroContactId;
+      
+      console.log("Updated form fields:");
+      console.log("- clientId:", clientIdField ? clientIdField.value : "field not found");
+      console.log("- clientName:", clientNameField ? clientNameField.value : "field not found");
+      console.log("- clientXeroId:", clientXeroIdField ? clientXeroIdField.value : "field not found");
+      
+      // Trigger autosave
+      debouncedAutosave();
+    }
+  });
+
   function hideDropdown() {
     suggestionsContainer.innerHTML = "";
     suggestionsContainer.classList.add("d-none");
