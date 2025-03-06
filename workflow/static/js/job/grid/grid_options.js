@@ -241,7 +241,7 @@ export function createAdvancedTimeGridOptions(
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Description",
+        headerName: "Time Description",
         field: "description",
         editable: true,
         flex: 2,
@@ -348,7 +348,7 @@ export function createAdvancedMaterialsGridOptions(
         hide: true,
       },
       {
-        headerName: "Description",
+        headerName: "Material Description",
         field: "description",
         editable: true,
         flex: 2,
@@ -411,7 +411,7 @@ export function createAdvancedAdjustmentsGridOptions(
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Description",
+        headerName: "Adjustment Description",
         field: "description",
         editable: true,
         flex: 2,
@@ -457,21 +457,23 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "",
+        headerName: "Time Table",
         field: "description",
         editable: false,
         flex: 2,
-        maxWidth: 310
+        maxWidth: 155,
+        width: 155
       },
       {
         headerName: "Hours",
         field: "hours",
         editable: true,
         valueParser: numberParser,
-        maxWidth: 80,
+        maxWidth: 235,
+        width: 235,
       },
       {
-        headerName: "Cost of Time ($)",
+        headerName: "Cost ($)",
         field: "cost_of_time",
         editable: false,
         valueParser: numberParser,
@@ -479,7 +481,7 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
         minWidth: 80,
       },
       {
-        headerName: "Value of Time ($)",
+        headerName: "Retail ($)",
         field: "value_of_time",
         editable: false,
         valueParser: numberParser,
@@ -514,7 +516,7 @@ export function createSimpleMaterialsGridOptions(
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "",
+        headerName: "Materials Table",
         field: "description",
         editable: false,
         flex: 2,
@@ -551,7 +553,7 @@ export function createSimpleAdjustmentsGridOptions(
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "",
+        headerName: "Adjustments Table",
         field: "description",
         editable: false,
         flex: 2,
@@ -587,7 +589,7 @@ export function createSimpleTotalsGridOptions(gridKey) {
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "",
+        headerName: "Totals Table",
         field: "section",
         editable: false,
         maxWidth: 395,
