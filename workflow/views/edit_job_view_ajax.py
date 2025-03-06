@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
-from workflow.enums import JobPricingType
+from workflow.enums import JobPricingType, JobPricingStage
 from workflow.helpers import DecimalEncoder, get_company_defaults
 from workflow.models import Job, JobEvent
 from workflow.serializers import JobPricingSerializer, JobSerializer
@@ -504,4 +504,41 @@ def toggle_pricing_type(request):
         return JsonResponse(
             {"error": f"An unexpected error occurred: {str(e)}"}, status=500
         )
+
+
+@require_http_methods(["POST"])
+@login_required
+def delete_job(request, job_id):
+    """
+    Deletes a job if it doesn't have any reality job pricing with actual data.
+    """
+    job = get_object_or_404(Job, id=job_id)
+    
+    # Get the latest reality pricing record
+    reality_pricing = job.pricings.filter(pricing_stage=JobPricingStage.REALITY, is_historical=False).first()
+    
+    # If there's a reality pricing with a total above zero, it has real costs or revenue
+    if reality_pricing and (reality_pricing.total_revenue > 0 or reality_pricing.total_cost > 0):
+        return JsonResponse({
+            "success": False,
+            "message": "You can't delete this job because it has real costs or revenue."
+        }, status=400)
+    
+    try:
+        with transaction.atomic():
+            # Job pricings and job files will be deleted automatically due to CASCADE
+            job_number = job.job_number
+            job_name = job.name
+            job.delete()
+            
+            return JsonResponse({
+                "success": True,
+                "message": f"Job #{job_number} '{job_name}' has been permanently deleted."
+            })
+    except Exception as e:
+        logger.error(f"Error deleting job {job_id}: {str(e)}")
+        return JsonResponse({
+            "success": False,
+            "message": f"An error occurred while deleting the job: {str(e)}"
+        }, status=500)
 
