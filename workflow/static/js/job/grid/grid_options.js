@@ -457,9 +457,9 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Time Description",
+        headerName: "",
         field: "description",
-        editable: true,
+        editable: false,
         flex: 2,
         maxWidth: 310
       },
@@ -514,9 +514,9 @@ export function createSimpleMaterialsGridOptions(
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Material Description",
+        headerName: "",
         field: "description",
-        editable: true,
+        editable: false,
         flex: 2,
         maxWidth: 390
       },
@@ -551,9 +551,9 @@ export function createSimpleAdjustmentsGridOptions(
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Adjustment Description",
+        headerName: "",
         field: "description",
-        editable: true,
+        editable: false,
         flex: 2,
         maxWidth: 390
       },
