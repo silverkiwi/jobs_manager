@@ -911,7 +911,7 @@ def synchronise_xero_data(delay_between_requests=1):
         # Queue client synchronization
 #        enqueue_client_sync_tasks()
 
-        company_defaults, _ = CompanyDefaults.objects.get_or_create(company_name="default")
+        company_defaults = CompanyDefaults.objects.get()
         now = timezone.now()
 
         # Check if deep sync is needed (not run in last 30 days)
