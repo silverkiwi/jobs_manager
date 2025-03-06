@@ -64,6 +64,11 @@ urlpatterns = [
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
     ),
+        path(
+        "api/job/<uuid:job_id>/delete/",
+        edit_job_view_ajax.delete_job,
+        name="delete_job",
+    ),
     path(
         "api/job/toggle-complex-job/",
         edit_job_view_ajax.toggle_complex_job,
