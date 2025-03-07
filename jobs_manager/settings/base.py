@@ -49,6 +49,7 @@ LOGIN_EXEMPT_URLS = [
     "logout",
     "password_reset",
     "password_reset_done",
+    "reset",
     "password_reset_confirm",
     "password_reset_complete"
 ]
