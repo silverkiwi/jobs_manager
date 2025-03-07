@@ -1,11 +1,12 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Jobs Manager{% endblock %}</title>
+    <title>{% block title %}Authentication{% endblock %}</title>
     <link href="{% static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
     <link rel="shortcut icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
     {% load crispy_forms_tags %}
     {% block extra_css %}{% endblock %}
@@ -15,6 +16,7 @@
         {% block content %}{% endblock %}
     </div>
 
+    <script src="{% static 'jquery/jquery.min.js' %}"></script>
     <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>

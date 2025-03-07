@@ -40,6 +40,7 @@ EXCLUDED_STAFF_IDS = [
     "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
     "d335acd4-800e-517a-8ff4-ba7aada58d14",
     "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
+    "843589ac-6d64-4056-91af-aefb25fbe8ea"
 ]
 
 # Jobs that won't make part of the graphic

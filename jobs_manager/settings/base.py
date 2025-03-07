@@ -45,7 +45,13 @@ MIDDLEWARE = [
 
 LOGIN_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
-LOGIN_EXEMPT_URLS = ["logout"]
+LOGIN_EXEMPT_URLS = [
+    "logout",
+    "password_reset",
+    "password_reset_done",
+    "password_reset_confirm",
+    "password_reset_complete"
+]
 
 LOGGING = {
     "version": 1,
