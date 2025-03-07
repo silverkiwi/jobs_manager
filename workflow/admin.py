@@ -51,6 +51,7 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
     add_form = StaffCreationForm
     form = StaffChangeForm
     model = Staff
+    readonly_fields = ("id",)
     
     list_display = (
         "email", 
@@ -66,10 +67,12 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         (
-            "Identifier",
+            "Identification",
             {
-                "fields": ("id",)
-            },
+                "fields": (
+                    "id"
+                )
+            }
         ),
         (
             "Personal Info",
