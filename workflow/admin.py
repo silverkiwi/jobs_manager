@@ -46,12 +46,12 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
     )
 
 
-# Remove the duplicate StaffAdmin class and ensure only one exists
 @admin.register(Staff)
 class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
     add_form = StaffCreationForm
     form = StaffChangeForm
     model = Staff
+    
     list_display = (
         "email", 
         "first_name",
@@ -64,7 +64,13 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
         "is_active",
     )
     fieldsets = (
-        (None, {"fields": ("email", "password", "id")}),
+        (None, {"fields": ("email", "password")}),
+        (
+            "Identifier",
+            {
+                "fields": ("id",)
+            },
+        ),
         (
             "Personal Info",
             {
