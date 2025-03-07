@@ -53,7 +53,8 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
     form = StaffChangeForm
     model = Staff
     list_display = (
-        "email",
+        "id",
+        "email", 
         "first_name",
         "last_name",
         "is_staff",
