@@ -1,5 +1,5 @@
 import { sections, workType } from '../grid/grid_initialization.js';
-import { capitalize } from '../grid/grid_utils.js';
+import { capitalize, calculateTotalRevenue, calculateTotalCost, checkRealityValues } from '../grid/grid_utils.js';
 
 /**
  * @description Functions to extract and manipulate URL data,
@@ -79,142 +79,105 @@ export function addEventToTimeline(event, jobEventsList) {
   jobEventsList.insertAdjacentHTML('afterbegin', newEventHtml);
 }
 
-export function toggleGrid(mode = "manual") {
-  let validJob;
-
-  if (mode === "manual") {
-    validJob = toggleComplexJob();
+/**
+ * Toggle between simple and complex grid views
+ * @param {string} mode - 'simple', 'complex', 'manual', or 'automatic' (reads from checkbox)
+ */
+export function toggleGrid(mode) {
+  const toggleButton = document.getElementById('toggleGridButton');
+  let isComplex;
+  
+  // Determine complex mode based on input mode
+  switch (mode) {
+    case 'automatic':
+      isComplex = toggleButton ? toggleButton.checked : false;
+      break;
+    case 'manual':
+      if (!toggleButton) return;
+      isComplex = toggleButton.checked;
+      toggleComplexJob();
+      return; // toggleComplexJob will update the UI
+    case 'complex':
+      isComplex = true;
+      if (toggleButton) toggleButton.checked = true;
+      break;
+    case 'simple':
+      isComplex = false;
+      if (toggleButton) toggleButton.checked = false;
+      break;
+    default:
+      return; // Invalid mode, exit early
+  }
+  
+  // Store the complex mode in the hidden field
+  const complexJobElement = document.getElementById('complex-job');
+  if (complexJobElement) {
+    complexJobElement.textContent = isComplex.toString();
   }
 
-  // Only proceed with grid toggle if we're in auto mode or validJob was true
-  if (mode === "automatic" || (mode === "manual" && validJob)) {
-    const isSimple = document.getElementById('toggleGridButton')?.checked ?? false;
-    switch (isSimple) {
-      case true:
-        sections.forEach((section) => {
-          document.getElementById(`advanced-${section}-grid`).classList =
-            'd-none';
-          document.getElementById(`simple-${section}-grid`).classList = 'd-block';
+  // Toggle visibility for estimate and quote sections
+  ['estimate', 'quote'].forEach(section => {
+    const advancedGrid = document.getElementById(`advanced-${section}-grid`);
+    const simpleGrid = document.getElementById(`simple-${section}-grid`);
+    
+    if (!advancedGrid || !simpleGrid) return;
+    
+    advancedGrid.classList.toggle('d-none', !isComplex);
+    simpleGrid.classList.toggle('d-none', isComplex);
+  });
 
-          setTimeout(() => {
-            workType.forEach((work) => {
-              const simpleApi =
-                window.grids[`simple${capitalize(section)}${work}Table`]?.api;
-              simpleApi?.sizeColumnsToFit();
-            });
-          }, 50);
-        });
-        break;
-      case false:
-        sections.forEach((section) => {
-          document.getElementById(`simple-${section}-grid`).classList = 'd-none';
-          document.getElementById(`advanced-${section}-grid`).classList =
-            'd-block';
-
-          setTimeout(() => {
-            workType.forEach((work) => {
-              const advApi = window.grids[`${section}${work}Table`]?.api;
-              advApi?.sizeColumnsToFit();
-            });
-          }, 50);
-        });
-        break;
-    }
+  // Reality section always uses advanced grid
+  const realityAdvancedGrid = document.getElementById('advanced-reality-grid');
+  const realitySimpleGrid = document.getElementById('simple-reality-grid');
+  
+  if (realityAdvancedGrid && realitySimpleGrid) {
+    realityAdvancedGrid.classList.remove('d-none');
+    realitySimpleGrid.classList.add('d-none');
   }
-}
+  
+  // Make all simple totals tables visible
+  ['simpleEstimateTotalsTable', 'simpleQuoteTotalsTable', 'simpleRealityTotalsTable'].forEach(tableId => {
+    const table = document.getElementById(tableId);
+    if (table) table.classList.remove('d-none');
+  });
 
-function toggleComplexJob() {
-  if (Environment.isDebugMode()) console.log('Starting checkComplexJob function');
-  const toggleButton = document.getElementById("toggleGridButton");
-  const isComplexElement = document.getElementById("complex-job");
-  const isComplex = isComplexElement.textContent.toLowerCase() === 'true';
-  if (Environment.isDebugMode()) console.log(`Current state: isComplex = ${isComplex}`);
-
-  if (isComplex) {
-    if (Environment.isDebugMode()) console.log('Checking if we can disable complex mode');
-    const latestJobPricingsElement = JSON.parse(document.getElementById("latestJobPricingsData").textContent);
-    if (Environment.isDebugMode()) console.log('Parsed job pricing data:', latestJobPricingsElement);
-    const estimatePricing = latestJobPricingsElement.estimate_pricing;
-    const quotePricing = latestJobPricingsElement.quote_pricing;
-    const realityPricing = latestJobPricingsElement.reality_pricing;
-    if (Environment.isDebugMode()) console.log('Extracted pricing data:', { estimatePricing, quotePricing, realityPricing });
-    const pricings = [estimatePricing, quotePricing, realityPricing];
-
-    // Check if any pricing has entries
-    let hasEntries = false;
-    pricings.forEach((pricing, index) => {
-      if (Environment.isDebugMode()) console.log(`Checking pricing type ${index === 0 ? 'estimate' : index === 1 ? 'quote' : 'reality'}`);
-      workType.forEach((work) => {
-        const workLower = work.toLowerCase();
-        const entriesKey = `${workLower}_entries`;
-        // Check if the entries key exists before accessing length property
-        if (pricing[entriesKey] && pricing[entriesKey].length > 1) {
-          if (Environment.isDebugMode()) console.log(`Found ${workLower} entries, cannot disable complex mode`);
-          alert("Cannot disable complex mode while job has pricing.");
-          toggleButton.checked = true;
-          hasEntries = true;
-          return false;
-        }
-      });
-      if (hasEntries) return false;
+  // Refresh all grid sizes
+  setTimeout(() => {
+    Object.keys(window.grids).forEach(key => {
+      const grid = window.grids[key];
+      if (grid?.api) grid.api.sizeColumnsToFit();
     });
-    if (Environment.isDebugMode()) console.log('Complex mode check completed');
-  }
-
-  if (Environment.isDebugMode()) console.log('Sending API request to update complex job status');
-  fetch('/api/job/toggle-complex-job/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': document.querySelector("[name=csrfmiddlewaretoken]").value,
-    },
-    body: JSON.stringify({
-      job_id: getJobIdFromUrl(),
-      complex_job: !isComplex,
-    }),
-  })
-    .then(response => {
-      if (Environment.isDebugMode()) console.log('Received API response', response);
-      return response.json();
-    })
-    .then(data => {
-      if (Environment.isDebugMode()) console.log('Processed API response data', data);
-      if (data.error) {
-        console.error('API returned error:', data.error);
-        alert(data.error);
-        toggleButton.checked = !toggleButton.checked;
-      }
-      isComplexElement.textContent = capitalize(String(!isComplex));
-    })
-    .catch(err => {
-      console.error('API request failed:', err);
-      alert("Error updating complex mode.");
-      toggleButton.checked = !toggleButton.checked;
-    });
-
-  if (Environment.isDebugMode()) console.log('Completed checkComplexJob function');
-  return true;
+    
+    calculateTotalRevenue();
+    calculateTotalCost();
+    checkRealityValues();
+  }, 100);
 }
 
 /**
  * Toggles the pricing type UI elements and updates the pricing type on the server
- * @param {Event|Object} event - DOM event object or object with value property
+ * @param {Event} event - DOM event object or object with value property
  */
 export function togglePricingType(event) {
-  // Extract value from either event.target.value (DOM event) or event.value (direct object)
+  if (!event) return;
+  
+  // Extract value from either event.target.value (DOM event) or event.value
   const newType = event.target?.value || event.value;
-
-  const quoteGrid = document.getElementById('quoteGrid');
-  const quoteCheckbox = document.getElementById('quoteCheckbox');
-  const copyEstimate = document.getElementById('copyEstimateToQuote');
-
+  if (!newType) return;
+  
   const jobId = getJobIdFromUrl();
+  const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value;
+  if (!csrfToken) {
+    console.error("CSRF token not found");
+    return;
+  }
 
+  // Make API call to update pricing type on the server
   fetch('/api/job/toggle-pricing-type/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-CSRFToken': document.querySelector("[name=csrfmiddlewaretoken]").value,
+      'X-CSRFToken': csrfToken,
     },
     body: JSON.stringify({
       job_id: jobId,
@@ -227,23 +190,106 @@ export function togglePricingType(event) {
         alert(data.error);
         return;
       }
-      switch (newType) {
-        case "time_materials":
-          quoteGrid.classList.add('d-none');
-          quoteCheckbox.classList.add('d-none');
-          copyEstimate.classList.add('d-none');
-          break;
-        case "fixed_price":
-          quoteGrid.classList.remove('d-none');
-          quoteCheckbox.classList.remove('d-none');
-          copyEstimate.classList.remove('d-none');
-          break;
-        default:
-          break;
-      }
+
+      const isTimeMaterials = newType === 'time_materials';
+      
+      // Update UI elements based on pricing type
+      const elements = {
+        quoteGrid: document.getElementById('quoteGrid'),
+        quoteCheckbox: document.getElementById('quoteCheckbox'),
+        copyEstimateButton: document.getElementById('copyEstimateToQuote')
+      };
+      
+      // Toggle visibility for each element
+      Object.values(elements).forEach(element => {
+        if (element) element.classList.toggle('d-none', isTimeMaterials);
+      });
     })
     .catch(err => {
       console.error(err);
       alert("Error updating pricing type.");
     });
+}
+
+/**
+ * Handles toggle of complex job setting
+ * Called when the toggle button is clicked
+ * @returns {boolean} Whether the toggle was successful
+ */
+export function toggleComplexJob() {
+  const toggleButton = document.getElementById("toggleGridButton");
+  if (!toggleButton) return false;
+  
+  const isComplexElement = document.getElementById("complex-job");
+  if (!isComplexElement) return false;
+  
+  const isComplex = isComplexElement.textContent.toLowerCase() === 'true';
+  const newValue = toggleButton.checked;
+  
+  // No change needed if state hasn't changed
+  if ((isComplex && newValue) || (!isComplex && !newValue)) {
+    return true;
+  }
+
+  // Check if we can disable complex mode
+  if (isComplex && !newValue) {
+    const latestJobPricingsElement = document.getElementById("latestJobPricingsData");
+    if (latestJobPricingsElement) {
+      const pricingsData = JSON.parse(latestJobPricingsElement.textContent);
+      
+      // Check if any section has multiple pricing entries
+      const hasMultipleEntries = sections.some(section => {
+        if (!pricingsData[section]) return false;
+        return workType.some(type => 
+          pricingsData[section][type] && pricingsData[section][type].length > 1
+        );
+      });
+      
+      if (hasMultipleEntries) {
+        alert("Cannot disable complex mode while multiple pricing entries exist.");
+        toggleButton.checked = true;
+        return false;
+      }
+    }
+  }
+
+  const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value;
+  if (!csrfToken) {
+    console.error("CSRF token not found");
+    return false;
+  }
+
+  // Update complex job status on the server
+  fetch('/api/job/toggle-complex-job/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken,
+    },
+    body: JSON.stringify({
+      job_id: getJobIdFromUrl(),
+      complex_job: newValue,
+    }),
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.error) {
+      console.error('API returned error:', data.error);
+      alert(data.error);
+      toggleButton.checked = !toggleButton.checked;
+      return;
+    }
+    
+    isComplexElement.textContent = newValue.toString();
+    
+    // Update interface based on new complex job status
+    toggleGrid(newValue ? 'complex' : 'simple');
+  })
+  .catch(err => {
+    console.error('API request failed:', err);
+    alert("Error updating complex mode.");
+    toggleButton.checked = !toggleButton.checked;
+  });
+
+  return true;
 }

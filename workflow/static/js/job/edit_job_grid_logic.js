@@ -66,7 +66,7 @@ import {
 } from "./grid/grid_initialization.js";
 
 // Grid calculations
-import { calculateTotalRevenue } from "./grid/grid_utils.js";
+import { calculateTotalRevenue, calculateTotalCost, checkRealityValues } from "./grid/grid_utils.js";
 
 // Button Handler
 import { handleButtonClick } from "./job_buttons/button_handlers.js";
@@ -131,8 +131,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   setTimeout(checkGridInitialization, 3000);
   setTimeout(calculateTotalRevenue, 1000);
+  setTimeout(calculateTotalCost, 1000);
+  setTimeout(checkRealityValues, 1500);
 
-  toggleGrid("automatic"); // To hide quote section by default
+  const isComplexJob = document.getElementById("complex-job").textContent.toLowerCase() === 'true';
+  toggleGrid(isComplexJob ? "complex" : "simple");
+  
   document.body.addEventListener("click", handleButtonClick);
   document.getElementById('pricingTypeDropdown').addEventListener('change', (event) => togglePricingType(event));
 });
