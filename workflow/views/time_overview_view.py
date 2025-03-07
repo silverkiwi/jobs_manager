@@ -751,18 +751,22 @@ class TimesheetDailyView(TemplateView):
         shop_percentage = (total_shop_hours / total_hours) * 100
 
         context = {
-            "date": target_date.strftime("%Y-%m-%d"),
+            "date": target_date.strftime("%Y-%m-%d"),  # Keep original format for HTML date input
+            "date_nz": target_date.strftime("%d/%m/%Y"),  # Add NZ formatted date
             "staff_data": staff_data,
             "daily_summary": {
-                "total_expected_hours": total_expected_hours,
-                "total_actual_hours": total_actual_hours,
-                "total_missing_hours": total_missing_hours,
-                "billable_percentage": round(billable_percentage, 1),
-                "shop_percentage": round(shop_percentage, 1),
+            "total_expected_hours": total_expected_hours,
+            "total_actual_hours": total_actual_hours,
+            "total_missing_hours": total_missing_hours,
+            "billable_percentage": round(billable_percentage, 1),
+            "shop_percentage": round(shop_percentage, 1),
             },
             "context_json": json.dumps(
-                {"date": target_date.strftime("%Y-%m-%d"), "staff_data": staff_data},
-                cls=DjangoJSONEncoder,
+            {
+                "date": target_date.strftime("%Y-%m-%d"),
+                "staff_data": staff_data
+            },
+            cls=DjangoJSONEncoder,
             ),
         }
 
