@@ -53,7 +53,6 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
     form = StaffChangeForm
     model = Staff
     list_display = (
-        "id",
         "email", 
         "first_name",
         "last_name",
@@ -65,7 +64,7 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
         "is_active",
     )
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
+        (None, {"fields": ("email", "password", "id")}),
         (
             "Personal Info",
             {
