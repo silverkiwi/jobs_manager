@@ -47,10 +47,8 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     wage_rate: float = models.DecimalField(
         max_digits=10, decimal_places=2, default=0
     )  # type: ignore
-    # charge_out_rate: float = models.DecimalField(
-    #     max_digits=10, decimal_places=2
-    # )  # type: ignore
-    # Add to existing Staff model:
+    password_needs_reset = models.BooleanField(default=False)
+
     hours_mon = models.DecimalField(
         max_digits=4,
         decimal_places=2,
