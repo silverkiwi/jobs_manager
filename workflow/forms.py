@@ -4,6 +4,7 @@ import logging
 from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.db.models import Q
+from django.utils.translation import gettext_lazy as _
 
 from workflow.models import (
     AdjustmentEntry,
@@ -165,6 +166,23 @@ class StaffCreationForm(UserCreationForm):
             "is_staff",
             "is_active",
         )
+    
+    # Override to provide more helpful error messages
+    error_messages = {
+        'password_mismatch': _("The two password fields didn't match."),
+        'password_too_short': _("Password must be at least 10 characters."),
+        'password_too_common': _("Password can't be a commonly used password."),
+        'password_entirely_numeric': _("Password can't be entirely numeric."),
+    }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['password1'].help_text = _(
+            "Your password must be at least 10 characters long, "
+            "can't be too similar to your personal information, "
+            "can't be a commonly used password, and "
+            "can't be entirely numeric."
+        )
 
 
 class StaffChangeForm(UserChangeForm):
@@ -268,6 +286,9 @@ class PaidAbsenceForm(forms.Form):
         "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
         "d335acd4-800e-517a-8ff4-ba7aada58d14",
         "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
+        # ID's for the same account on different environments
+        "843589ac-6d64-4056-91af-aefb25fbe8ea",
+        "7b467c53-78c5-4020-95f0-138f1f1bafc8"
     ]
 
     leave_type = forms.ChoiceField(

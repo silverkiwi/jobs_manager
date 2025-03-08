@@ -46,18 +46,19 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
     )
 
 
-# Remove the duplicate StaffAdmin class and ensure only one exists
 @admin.register(Staff)
 class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
     add_form = StaffCreationForm
     form = StaffChangeForm
     model = Staff
+    
     list_display = (
-        "email",
+        "email", 
         "first_name",
         "last_name",
         "is_staff",
         "is_active",
+        "id"
     )
     list_filter = (
         "is_staff",

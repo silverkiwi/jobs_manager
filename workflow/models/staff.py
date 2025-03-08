@@ -38,6 +38,7 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )  # type: ignore
+    password_needs_reset: bool = models.BooleanField(default=False)  # type: ignore
     email: str = models.EmailField(unique=True)  # type: ignore
     first_name: str = models.CharField(max_length=30)  # type: ignore
     last_name: str = models.CharField(max_length=30)  # type: ignore
@@ -47,10 +48,7 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     wage_rate: float = models.DecimalField(
         max_digits=10, decimal_places=2, default=0
     )  # type: ignore
-    # charge_out_rate: float = models.DecimalField(
-    #     max_digits=10, decimal_places=2
-    # )  # type: ignore
-    # Add to existing Staff model:
+
     hours_mon = models.DecimalField(
         max_digits=4,
         decimal_places=2,

@@ -101,6 +101,7 @@ class Job(models.Model):
     # Shop job has no client (client_id is None)
 
     job_is_valid = models.BooleanField(default=False)  # type: ignore
+    # Checking if this is the root of the problem with makemigrations not working
     collected: bool = models.BooleanField(default=False)  # type: ignore
     paid: bool = models.BooleanField(default=False)  # type: ignore
     charge_out_rate = (

@@ -40,6 +40,9 @@ EXCLUDED_STAFF_IDS = [
     "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
     "d335acd4-800e-517a-8ff4-ba7aada58d14",
     "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
+    # ID's for the same account on different environments
+    "843589ac-6d64-4056-91af-aefb25fbe8ea",
+    "7b467c53-78c5-4020-95f0-138f1f1bafc8"
 ]
 
 # Jobs that won't make part of the graphic
@@ -751,18 +754,22 @@ class TimesheetDailyView(TemplateView):
         shop_percentage = (total_shop_hours / total_hours) * 100
 
         context = {
-            "date": target_date.strftime("%Y-%m-%d"),
+            "date": target_date.strftime("%Y-%m-%d"),  # Keep original format for HTML date input
+            "date_nz": target_date.strftime("%d/%m/%Y"),  # Add NZ formatted date
             "staff_data": staff_data,
             "daily_summary": {
-                "total_expected_hours": total_expected_hours,
-                "total_actual_hours": total_actual_hours,
-                "total_missing_hours": total_missing_hours,
-                "billable_percentage": round(billable_percentage, 1),
-                "shop_percentage": round(shop_percentage, 1),
+            "total_expected_hours": total_expected_hours,
+            "total_actual_hours": total_actual_hours,
+            "total_missing_hours": total_missing_hours,
+            "billable_percentage": round(billable_percentage, 1),
+            "shop_percentage": round(shop_percentage, 1),
             },
             "context_json": json.dumps(
-                {"date": target_date.strftime("%Y-%m-%d"), "staff_data": staff_data},
-                cls=DjangoJSONEncoder,
+            {
+                "date": target_date.strftime("%Y-%m-%d"),
+                "staff_data": staff_data
+            },
+            cls=DjangoJSONEncoder,
             ),
         }
 

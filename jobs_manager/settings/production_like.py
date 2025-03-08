@@ -4,8 +4,7 @@ from .base import *  # noqa: F403
 from .local import STATIC_ROOT as LOCAL_STATIC_ROOT
 
 # Production like is for things like ngnix, Redis, celery, etc.
-# NOTE: With Redis and Celery removed, I believe that local and production are now the same
-# I've kept this because it was working previously but I odn't think it matters going forward
+# Let's keep it because it'll be needed to reset user passwords
 load_dotenv(BASE_DIR / ".env")
 
 DEBUG = False
@@ -23,6 +22,28 @@ STATIC_ROOT = os.getenv("STATIC_ROOT", LOCAL_STATIC_ROOT)
 
 # Use ManifestStaticFilesStorage to add hashes to static files
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'OPTIONS': {
+            'user_attributes': ('email', 'first_name', 'last_name', 'preferred_name'),
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 10,
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
 
 # Security configs
 SESSION_COOKIE_SECURE = True
@@ -50,3 +71,46 @@ CACHES = {
         "LOCATION": "unique-snowflake",
     }
 }
+
+# Password change email
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+
+from django.apps import apps
+from django.db import ProgrammingError
+
+def configure_site_for_environment():
+    try:
+        if apps.is_installed('django.contrib.sites'):
+            Site = apps.get_model('sites', 'Site')
+            current_domain = os.getenv("DJANGO_SITE_DOMAIN")
+            current_name = "Jobs Manager"
+            
+            try:
+                site = Site.objects.get(pk=SITE_ID)
+                if site.domain != current_domain or site.name != current_name:
+                    site.domain = current_domain
+                    site.name = current_name
+                    site.save()
+            except Site.DoesNotExist:
+                Site.objects.create(
+                    pk=SITE_ID,
+                    domain=current_domain,
+                    name=current_name
+                )
+    except ProgrammingError:
+        pass
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error configuring the site: {e}")
+
+from django.core.signals import request_started
+request_started.connect(lambda **kwargs: configure_site_for_environment(), weak=False, dispatch_uid="configure_site")
+
+PASSWORD_RESET_TIMEOUT = 86400  # 24 hours in seconds
