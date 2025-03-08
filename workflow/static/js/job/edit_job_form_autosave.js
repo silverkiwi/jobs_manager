@@ -1,8 +1,9 @@
 import { createNewRow } from "./deserialize_job_pricing.js";
-import { capitalize } from "./grid/grid_utils.js";
+import { capitalize, calculateTotalRevenue, calculateTotalCost, checkRealityValues } from "./grid/grid_utils.js";
 import { uploadJobFile, checkExistingJobFile } from "./job_file_handling.js";
-
-let dropboxToken = null;
+import { calculateSimpleTotals } from "./grid/revenue_cost_options.js";
+import { renderMessages } from "../timesheet/timesheet_entry/messages.js";
+import { debugLog } from "../env.js";
 
 // Debounce function to avoid frequent autosave calls
 function debounce(func, wait) {
@@ -104,17 +105,6 @@ function checkJobValidity(data) {
       }
     });
 
-    // Scroll to the first invalid field
-    if (firstInvalidElement) {
-      setTimeout(() => {
-        firstInvalidElement.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-        firstInvalidElement.focus();
-      }, 100); // Delay prevents multiple focus calls();
-    }
-
     renderMessages(
       [
         {
@@ -145,16 +135,23 @@ function isNonDefaultRow(data, gridName) {
 }
 
 function collectGridData(section) {
-  const isSimple =
-    document.getElementById("toggleGridButton")?.checked ?? false;
+  console.log(`collectGridData called for section: ${section}`);
+  const isComplex = document.getElementById("complex-job").textContent.toLowerCase() === "true";
+  console.log(`Job complexity status: isComplex=${isComplex}`);
 
-  switch (isSimple) {
+  switch (isComplex) {
     case true:
-      return collectSimpleGridData(section);
+      console.log(`Using advanced grid collection for ${section}`);
+      const advancedData = collectAdvancedGridData(section);
+      console.log(`Advanced grid data collected for ${section}:`, advancedData);
+      return advancedData;
     case false:
-      return collectAdvancedGridData(section);
+      console.log(`Using simple grid collection for ${section}`);
+      const simpleData = collectSimpleGridData(section);
+      console.log(`Simple grid data collected for ${section}:`, simpleData);
+      return simpleData;
     default:
-      console.error(`Unknown grid state: "${isSimple}"`);
+      console.error(`Unknown grid state: "${isComplex}" for section ${section}`);
       return {};
   }
 }
@@ -162,19 +159,31 @@ function collectGridData(section) {
 function collectAdvancedGridData(section) {
   const grids = ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
   const sectionData = {};
+  
+  debugLog(`collectAdvancedGridData starting for section: ${section}`);
 
   grids.forEach((gridName) => {
     const gridKey = `${section}${gridName}`;
     const gridData = window.grids[gridKey];
+    debugLog(`Processing grid ${gridKey}, exists: ${!!gridData}, has API: ${!!(gridData && gridData.api)}`);
 
     if (gridData && gridData.api) {
       const rowData = [];
+      let rowCount = 0;
+      
       gridData.api.forEachNode((node) => {
-        if (isNonDefaultRow(node.data, gridName)) {
+        rowCount++;
+        const isValid = isNonDefaultRow(node.data, gridName);
+        debugLog(`Grid ${gridKey}: Row ${rowCount} validation: ${isValid}`, node.data);
+        
+        if (isValid) {
           const data = { ...node.data };
           data.minutes_per_item = data.mins_per_item;
           delete data.mins_per_item;
           rowData.push(data);
+          debugLog(`Added row to ${gridKey} data:`, data);
+        } else {
+          debugLog(`Skipping default row in ${gridKey}:`, node.data);
         }
       });
 
@@ -186,26 +195,33 @@ function collectAdvancedGridData(section) {
       entryKey += "_entries";
 
       sectionData[entryKey] = rowData;
+      debugLog(`Added ${rowData.length} rows to ${section}.${entryKey} out of ${rowCount} total rows`);
     } else {
       console.error(`Grid or API not found for ${gridKey}`);
     }
   });
 
+  debugLog(`collectAdvancedGridData completed for ${section}:`, sectionData);
   return sectionData;
 }
 
 export function collectSimpleGridData(section) {
+  debugLog(`collectSimpleGridData starting for section: ${section}`);
   const sectionData = {};
 
   // ===================== 1) TIME  =====================
   {
     const timeKey = `simple${capitalize(section)}TimeTable`;
     const timeGrid = window.grids[timeKey];
+    debugLog(`Processing simple time grid ${timeKey}, exists: ${!!timeGrid}, has API: ${!!(timeGrid && timeGrid.api)}`);
+    
     let timeEntries = [];
     const seenTimeEntries = new Set();
 
     if (timeGrid && timeGrid.api) {
+      let rowCount = 0;
       timeGrid.api.forEachNode((node) => {
+        rowCount++;
         const row = node.data || {};
         const description = row.description?.trim() || "";
         const hours = parseFloat(row.hours) || 0;
@@ -214,14 +230,15 @@ export function collectSimpleGridData(section) {
         const costTime = parseFloat(row.cost_of_time) || 0;
         const valueTime = parseFloat(row.value_of_time) || 0;
 
-        const isEmptyRow = hours === 0 || !description;
+        const isEmptyRow = hours === 0;
         
         // Create unique key for time entry
         const entryKey = `${description}-${hours}-${wage}-${charge}`;
+        debugLog(`Time row ${rowCount}: "${description}", hours=${hours}, empty=${isEmptyRow}, duplicate=${seenTimeEntries.has(entryKey)}`);
 
         if (!isEmptyRow && !seenTimeEntries.has(entryKey)) {
           const totalMinutes = hours * 60;
-          timeEntries.push({
+          const entry = {
             description: description,
             items: 1,
             minutes_per_item: totalMinutes,
@@ -230,10 +247,19 @@ export function collectSimpleGridData(section) {
             charge_out_rate: charge,
             cost: costTime,
             revenue: valueTime,
-          });
+          };
+          timeEntries.push(entry);
           seenTimeEntries.add(entryKey);
+          debugLog(`Added time entry:`, entry);
+        } else if (isEmptyRow) {
+          debugLog(`Skipping empty time row: ${description}, hours=${hours}`);
+        } else {
+          debugLog(`Skipping duplicate time entry: ${entryKey}`);
         }
       });
+      debugLog(`Processed ${rowCount} rows in time grid, added ${timeEntries.length} entries`);
+    } else {
+      debugLog(`Time grid ${timeKey} not found or missing API`);
     }
     sectionData.time_entries = timeEntries;
   }
@@ -242,32 +268,46 @@ export function collectSimpleGridData(section) {
   {
     const matKey = `simple${capitalize(section)}MaterialsTable`;
     const matGrid = window.grids[matKey];
+    debugLog(`Processing simple materials grid ${matKey}, exists: ${!!matGrid}, has API: ${!!(matGrid && matGrid.api)}`);
+    
     let materialEntries = [];
     const seenMaterialEntries = new Set();
 
     if (matGrid && matGrid.api) {
+      let rowCount = 0;
       matGrid.api.forEachNode((node) => {
+        rowCount++;
         const row = node.data || {};
         const description = row.description?.trim() || "";
         const materialCost = parseFloat(row.material_cost) || 0;
         const retailPrice = parseFloat(row.retail_price) || 0;
 
-        const isEmptyRow = !description || (materialCost === 0 && retailPrice === 0);
+        const isEmptyRow = materialCost === 0 && retailPrice === 0;
         
         // Create unique key for material entry
         const entryKey = `${description}-${materialCost}-${retailPrice}`;
+        debugLog(`Material row ${rowCount}: "${description}", cost=${materialCost}, retail=${retailPrice}, empty=${isEmptyRow}, duplicate=${seenMaterialEntries.has(entryKey)}`);
 
         if (!isEmptyRow && !seenMaterialEntries.has(entryKey)) {
-          materialEntries.push({
+          const entry = {
             description: description,
             quantity: 1,
             unit_cost: materialCost,
             unit_revenue: retailPrice,
             revenue: retailPrice,
-          });
+          };
+          materialEntries.push(entry);
           seenMaterialEntries.add(entryKey);
+          debugLog(`Added material entry:`, entry);
+        } else if (isEmptyRow) {
+          debugLog(`Skipping empty material row: ${description}`);
+        } else {
+          debugLog(`Skipping duplicate material entry: ${entryKey}`);
         }
       });
+      debugLog(`Processed ${rowCount} rows in materials grid, added ${materialEntries.length} entries`);
+    } else {
+      debugLog(`Materials grid ${matKey} not found or missing API`);
     }
     sectionData.material_entries = materialEntries;
   }
@@ -276,32 +316,39 @@ export function collectSimpleGridData(section) {
   {
     const adjKey = `simple${capitalize(section)}AdjustmentsTable`;
     const adjGrid = window.grids[adjKey];
+    debugLog(`Processing simple adjustments grid ${adjKey}, exists: ${!!adjGrid}, has API: ${!!(adjGrid && adjGrid.api)}`);
+    
     let adjustmentEntries = [];
     const seenAdjustmentEntries = new Set();
 
     if (adjGrid && adjGrid.api) {
+      let rowCount = 0;
       adjGrid.api.forEachNode((node) => {
+        rowCount++;
         const row = node.data || {};
         const description = row.description?.trim() || "";
         const comments = row.comments?.trim() || "";
         const costAdj = parseFloat(row.cost_adjustment) || 0;
         const priceAdj = parseFloat(row.price_adjustment) || 0;
 
-        const isEmptyRow = !description || (costAdj === 0 && priceAdj === 0);
+        const isEmptyRow = costAdj === 0 && priceAdj === 0;
         
         // Create unique key for adjustment entry
         const entryKey = `${description}-${costAdj}-${priceAdj}-${comments}`;
+        debugLog(`Adjustment row ${rowCount}: "${description}", cost adj=${costAdj}, price adj=${priceAdj}, empty=${isEmptyRow}, duplicate=${seenAdjustmentEntries.has(entryKey)}`);
 
         if (!isEmptyRow && !seenAdjustmentEntries.has(entryKey)) {
-          adjustmentEntries.push({
+          const entry = {
             description: description,
             cost_adjustment: costAdj,
             price_adjustment: priceAdj,
             comments: comments,
-          });
+          };
+          adjustmentEntries.push(entry);
           seenAdjustmentEntries.add(entryKey);
         }
       });
+      debugLog(`Processed ${rowCount} rows in adjustments grid, added ${adjustmentEntries.length} entries`);
     }
     sectionData.adjustment_entries = adjustmentEntries;
   }
@@ -926,7 +973,15 @@ function saveDataToServer(collectedData) {
       exportJobToPDF(collectedData).then((pdfBlob) => {
         handlePDF(pdfBlob, "upload", collectedData);
         console.log("Autosave successful:", data);
-        // renderMessages([{ level: 'success', message: 'Job updated successfully.' }], 'job-details');
+
+        calculateTotalRevenue();
+        calculateTotalCost();
+        calculateSimpleTotals();
+
+        renderMessages(
+          [{ level: 'success', message: 'Job updated successfully.' }],
+          'job-details'
+        );
       });
     })
     .catch((error) => {
@@ -1106,34 +1161,45 @@ function copyGridData(sourceGridApi, targetGridApi) {
 }
 
 export function copyEstimateToQuote() {
-  const grids = ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
+  try {
+    const grids = ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
 
-  grids.forEach((gridName) => {
-    const estimateGridKey = `estimate${gridName}`;
-    const quoteGridKey = `quote${gridName}`;
-    const estimateGridApi = window.grids[estimateGridKey]?.api;
-    const quoteGridApi = window.grids[quoteGridKey]?.api;
+    grids.forEach((gridName) => {
+      const estimateGridKey = `estimate${gridName}`;
+      const quoteGridKey = `quote${gridName}`;
+      const estimateGridApi = window.grids[estimateGridKey]?.api;
+      const quoteGridApi = window.grids[quoteGridKey]?.api;
 
-    if (estimateGridApi && quoteGridApi) {
-      copyGridData(estimateGridApi, quoteGridApi); // Uses the generic method
-    } else {
-      console.error(
-        `Grid API not found or not initialized for keys: ${estimateGridKey}, ${quoteGridKey}`,
-      );
-    }
-  });
+      if (estimateGridApi && quoteGridApi) {
+        copyGridData(estimateGridApi, quoteGridApi);
+      } else {
+        throw new Error(
+          `Grid API not found for keys: ${estimateGridKey}, ${quoteGridKey}`
+        );
+      }
+    });
 
-  // Trigger autosave to sync changes
-  debouncedAutosave();
+    // Update calculations and trigger autosave
+    calculateTotalRevenue();
+    calculateTotalCost();
+    calculateSimpleTotals();
+    debouncedAutosave();
 
-  // Display success message
-  renderMessages(
-    [
-      {
+    renderMessages(
+      [{
         level: "success",
-        message: "Estimates successfully copied to Quotes.",
-      },
-    ],
-    "estimate",
-  );
+        message: "Estimates successfully copied to quotes."
+      }],
+      "estimate"
+    );
+  } catch (error) {
+    console.error("Error copying from estimates to quotes:", error);
+    renderMessages(
+      [{
+        level: "error",
+        message: `Failed copying from estimates to quotes: ${error.message}`
+      }],
+      "estimate"
+    );
+  }
 }

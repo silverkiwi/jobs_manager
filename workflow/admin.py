@@ -10,7 +10,14 @@ from workflow.models import CompanyDefaults, Staff
 
 @admin.register(CompanyDefaults)
 class CompanyDefaultsAdmin(admin.ModelAdmin):
-    list_display = ["charge_out_rate", "wage_rate", "time_markup", "materials_markup"]
+    def edit_link(self, obj):
+        from django.utils.html import format_html
+        return format_html('<a href="{}/change/">Edit defaults</a>', obj.pk)
+    
+    edit_link.short_description = 'Actions'
+    edit_link.allow_tags = True
+
+    list_display = ["edit_link", "charge_out_rate", "wage_rate", "time_markup", "materials_markup", "starting_job_number"]
     fieldsets = (
         (
             None,
@@ -20,6 +27,7 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
                     "materials_markup",
                     "charge_out_rate",
                     "wage_rate",
+                    "starting_job_number"
                 )
             },
         ),

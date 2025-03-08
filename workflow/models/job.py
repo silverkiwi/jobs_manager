@@ -4,9 +4,11 @@ from datetime import datetime
 from typing import Dict, List
 
 from django.db import models, transaction
+from django.db.models import Max
 from simple_history.models import HistoricalRecords  # type: ignore
 
 from workflow.enums import JobPricingType
+from workflow.helpers import get_company_defaults
 from workflow.models import CompanyDefaults
 
 # We say . rather than workflow.models to avoid going through init,
@@ -99,7 +101,7 @@ class Job(models.Model):
     # Shop job has no client (client_id is None)
 
     job_is_valid = models.BooleanField(default=False)  # type: ignore
-    coolected: bool = models.BooleanField(default=False)  # type: ignore
+    collected: bool = models.BooleanField(default=False)  # type: ignore
     paid: bool = models.BooleanField(default=False)  # type: ignore
     charge_out_rate = (
         models.DecimalField(  # TODO: This needs to be added to the edit job form
@@ -191,6 +193,14 @@ class Job(models.Model):
 
     def get_display_name(self) -> str:
         return f"Job: {self.job_number}"  # type: ignore
+    
+    def generate_job_number(self) -> int:
+        company_defaults: CompanyDefaults = get_company_defaults()
+        starting_number: int = company_defaults.starting_job_number
+
+        highest_job: int = Job.objects.all().aggregate(Max('job_number'))['job_number__max'] or 0
+        
+        return max(starting_number, highest_job + 1)
 
     def save(self, *args, **kwargs):
         staff = kwargs.pop("staff", None)
@@ -200,7 +210,7 @@ class Job(models.Model):
 
         # Step 1: Check if this is a new instance (based on `self._state.adding`)
         if not self.job_number:
-            self.job_number = self.generate_unique_job_number()
+            self.job_number = self.generate_job_number()
             logger.debug(f"Saving job with job number: {self.job_number}")
         if self.charge_out_rate is None:
             company_defaults = CompanyDefaults.objects.first()
@@ -261,11 +271,3 @@ class Job(models.Model):
 
             # Step 5: Save the Job to persist everything, including relationships
             super(Job, self).save(*args, **kwargs)
-
-    @staticmethod
-    def generate_unique_job_number():
-        with transaction.atomic():
-            last_job = Job.objects.select_for_update().order_by("-job_number").first()
-            if last_job and last_job.job_number:
-                return last_job.job_number + 1
-            return 1  # Start numbering from 1 if there are no existing records

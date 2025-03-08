@@ -208,11 +208,11 @@ def edit_job_view_ajax(request, job_id=None):
 @require_http_methods(["POST"])
 def autosave_job_view(request):
     try:
-        logger.debug("Autosave request received")
+        logger.info("Autosave request received")
 
         # Step 1: Parse the incoming JSON data
         data = json.loads(request.body)
-        logger.debug(f"Parsed data: {data}")
+        logger.info(f"Parsed data: {data}")
 
         # Step 2: Retrieve the job by ID
         job_id = data.get("job_id")
@@ -222,7 +222,7 @@ def autosave_job_view(request):
 
         # Fetch the existing job along with all pricings
         job = get_job_with_pricings(job_id)
-        logger.debug(f"Job found: {job}")
+        logger.info(f"Job found: {job}")
 
         # Step 3: Pass the job and incoming data to a dedicated serializer
         # Add context with request
@@ -231,7 +231,7 @@ def autosave_job_view(request):
         )
 
         if DEBUG_JSON:
-            logger.debug(f"Initial serializer data: {serializer.initial_data}")
+            logger.info(f"Initial serializer data: {serializer.initial_data}")
 
         if serializer.is_valid():
             if DEBUG_JSON:
@@ -242,7 +242,7 @@ def autosave_job_view(request):
             # Logging client name for better traceability
             client_name = job.client.name if job.client else "No Client"
 
-            logger.debug(
+            logger.info(
                 "Job %(id)s successfully autosaved. "
                 "Current Client: %(client)s, "
                 "contact_person: %(contact)s",
@@ -252,7 +252,7 @@ def autosave_job_view(request):
                     "contact": job.contact_person,
                 },
             )
-            logger.debug(
+            logger.info(
                 "job_name=%(name)s, order_number=%(order)s, contact_phone=%(phone)s",
                 {
                     "name": job.name,

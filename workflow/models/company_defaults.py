@@ -14,6 +14,8 @@ class CompanyDefaults(models.Model):
         max_digits=6, decimal_places=2, default=32.00
     )  # rate per hour
 
+    starting_job_number = models.IntegerField(default=1, help_text="Helper field to set the starting job number based on the latest paper job")
+
     # Default working hours (Mon-Fri, 7am - 3pm)
     mon_start = models.TimeField(default="07:00")
     mon_end = models.TimeField(default="15:00")

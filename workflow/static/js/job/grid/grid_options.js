@@ -8,6 +8,7 @@ import {
   calculateTotalCost,
   calculateTotalRevenue,
   adjustGridHeight,
+  fetchMaterialsMarkup
 } from "./grid_utils.js";
 
 import { debouncedAutosave } from "../edit_job_form_autosave.js";
@@ -138,7 +139,6 @@ export function createCommonGridOptions() {
       const gridElement = document.querySelector(`#${gridKey}`);
       const rowCount = params.api.getDisplayedRowCount();
       const newHeight = calculateGridHeight(params.api, rowCount);
-      // console.log(`Grid Key: ${gridKey}, Updated Grid Height: ${newHeight}`);
       gridElement.style.height = `${newHeight}px`;
       adjustGridHeight(params.api, `${gridKey}`);
     },
@@ -389,10 +389,10 @@ export function createAdvancedMaterialsGridOptions(
         hide: true,
         valueFormatter: currencyFormatter,
       },
-      { 
-        headerName: "Comments", 
-        field: "comments", 
-        editable: true, 
+      {
+        headerName: "Comments",
+        field: "comments",
+        editable: true,
         flex: 2,
         width: 150
       },
@@ -437,10 +437,10 @@ export function createAdvancedAdjustmentsGridOptions(
         width: 230,
         flex: 1
       },
-      { 
-        headerName: "Comments", 
-        field: "comments", 
-        editable: true, 
+      {
+        headerName: "Comments",
+        field: "comments",
+        editable: true,
         flex: 2,
         width: 175
       },
