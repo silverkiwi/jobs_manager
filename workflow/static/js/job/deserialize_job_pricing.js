@@ -167,7 +167,7 @@ function loadSimpleJobTime(entries) {
     const charge = parseFloat(entry.charge_out_rate) || 105;
     
     return {
-      description: entry.description,
+      description: '',
       hours: hours,
       cost_of_time: hours * wage,
       value_of_time: hours * charge,
@@ -179,7 +179,7 @@ function loadSimpleJobTime(entries) {
 
 function loadSimpleJobMaterial(entries) {
   return entries.map((entry) => ({
-    description: entry.description,
+    description: '',
     material_cost: entry.unit_cost * entry.quantity,
     retail_price: entry.unit_revenue * entry.quantity,
   }));
@@ -187,7 +187,7 @@ function loadSimpleJobMaterial(entries) {
 
 function loadSimpleJobAdjustment(entries) {
   return entries.map((entry) => ({
-    description: entry.description,
+    description: '',
     cost_adjustment: entry.cost_adjustment,
     price_adjustment: entry.price_adjustment,
   }));
