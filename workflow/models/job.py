@@ -102,7 +102,7 @@ class Job(models.Model):
 
     job_is_valid = models.BooleanField(default=False)  # type: ignore
     # Checking if this is the root of the problem with makemigrations not working
-    coolected: bool = models.BooleanField(default=False)  # type: ignore
+    collected: bool = models.BooleanField(default=False)  # type: ignore
     paid: bool = models.BooleanField(default=False)  # type: ignore
     charge_out_rate = (
         models.DecimalField(  # TODO: This needs to be added to the edit job form
