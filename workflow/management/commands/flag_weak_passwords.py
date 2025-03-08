@@ -13,6 +13,6 @@ class Command(BaseCommand):
             user.password_needs_reset = True
             user.save()
             count += 1
-            self.stdout.write(f"Usuário {user.email} marcado para redefinição de senha")
+            self.stdout.write(f"User {user.email} marked for password reset")
         
-        self.stdout.write(self.style.SUCCESS(f"{count} usuários marcados para redefinir suas senhas"))
+        self.stdout.write(self.style.SUCCESS(f"{count} users marked to reset their passwords"))
