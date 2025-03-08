@@ -37,7 +37,7 @@ class PasswordStrengthMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.user.is_authenticated and getattr(request.user, 'password_needs_reset', False):
+        if request.user.is_authenticated and request.user.password_needs_reset:
             exempt_urls = [
                 reverse('password_change'),
                 reverse('password_change_done'),
