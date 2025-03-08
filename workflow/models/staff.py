@@ -38,6 +38,7 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )  # type: ignore
+    password_needs_reset: bool = models.BooleanField(default=False)  # type: ignore
     email: str = models.EmailField(unique=True)  # type: ignore
     first_name: str = models.CharField(max_length=30)  # type: ignore
     last_name: str = models.CharField(max_length=30)  # type: ignore
@@ -98,8 +99,6 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     raw_ims_data = models.JSONField(null=True, blank=True, default=dict)  # type: ignore
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
-
-    password_needs_reset = models.BooleanField(default=False)
 
     history: HistoricalRecords = HistoricalRecords()  # type: ignore
 
