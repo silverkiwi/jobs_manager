@@ -99,6 +99,8 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
 
+    password_needs_reset = models.BooleanField(default=False)
+
     history: HistoricalRecords = HistoricalRecords()  # type: ignore
 
     objects = StaffManager()  # Use the custom manager
