@@ -2,6 +2,8 @@
 {% load static %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/enhanced-forms.css' %}">
+<link rel="stylesheet" href="{% static 'css/enhanced-grid.css' %}">
 <link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
 <link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
 <link rel="stylesheet" href="{% static 'quill/quill.snow.css' %}">
@@ -54,7 +56,9 @@
         </div>
         <div id="simpleEstimateTotalsTable" class="ag-theme-alpine price-entry-table totals-table"></div>
 
-        <button id="copyEstimateToQuote" class="btn btn-primary mt-3 {% if pricing_type == 'time_materials' %}d-none{% endif %}">Copy Estimate to Quote</button>
+        <button id="copyEstimateToQuote" class="btn btn-primary mt-3 {% if pricing_type == 'time_materials' %}d-none{% endif %}">
+            <i class="bi bi-copy me-2"></i>Copy Estimate to Quote
+        </button>
     </div>
 
     <div id="estimate" class="alert-container"></div>
@@ -70,7 +74,6 @@
         </div>
 
         <!-- Simple Tables -->
-
         <div id="simple-quote-grid">
             <div id="simpleQuoteTimeTable" class="ag-theme-alpine price-entry-table simple-pricing-table"></div>
             <div id="simpleQuoteMaterialsTable" class="ag-theme-alpine price-entry-table simple-pricing-table"></div>
@@ -78,18 +81,20 @@
         </div>
         <div id="simpleQuoteTotalsTable" class="ag-theme-alpine prince-entry-table totals-table simple-pricing-table"></div>
 
-        <button id="quoteJobButton" class="btn btn-primary mt-3" {% if quoted %} disabled {% endif %}>
-            Quote Job
-        </button>
-        <a {% if not quoted %} style="display: none" {% endif %}
-            href="{% if quote_url %}{{ quote_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info mt-3"
-            id="quoteUrl">
-            Go to Quote on Xero
-        </a>
-        <button {% if not quoted %} style="display: none" {% endif %} type="button" class="btn btn-danger mt-3"
-            id="deleteQuoteButton">
-            Delete Xero Quote
-        </button>
+        <div class="d-flex gap-2 mt-3">
+            <button id="quoteJobButton" class="btn btn-primary" {% if quoted %} disabled {% endif %}>
+                <i class="bi bi-file-text me-2"></i>Quote Job
+            </button>
+            <a {% if not quoted %} style="display: none" {% endif %}
+                href="{% if quote_url %}{{ quote_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info"
+                id="quoteUrl">
+                <i class="bi bi-box-arrow-up-right me-2"></i>Go to Quote on Xero
+            </a>
+            <button {% if not quoted %} style="display: none" {% endif %} type="button" class="btn btn-danger"
+                id="deleteQuoteButton">
+                <i class="bi bi-trash me-2"></i>Delete Xero Quote
+            </button>
+        </div>
     </div>
 
     <div class="job-grid-section">
@@ -126,15 +131,14 @@
 <hr>
 
 <!-- Attached Files Section -->
-<!-- Attached Files Section -->
-<div class="job-files-section">
-    <h2>Attached Files</h2>
+<div class="job-files-section grid-section">
+    <h2 class="page-title">Attached Files</h2>
     <div id="file-list">
         {% if job_files %}
         <div class="job-files-grid">
             {% for file in job_files %}
             {% if file.filename != 'JobSummary.pdf' %}
-            <div class="file-card">
+            <div class="file-card card-enhanced">
                 {% if file.thumbnail_path %}
                 <div class="thumbnail-container">
                     <img src="{% url 'serve-job-file' file.thumbnail_path %}" alt="{{ file.filename }}"
@@ -148,7 +152,7 @@
                 </div>
                 {% endif %}
                 <div class="file-info">
-                    <a href="{% url 'serve-job-file' file.file_path %}" target="_blank">
+                    <a href="{% url 'serve-job-file' file.file_path %}" target="_blank" class="animated-link">
                         {{ file.filename }}
                     </a>
                     <span class="timestamp">({{ file.uploaded_at|date:"Y-m-d H:i" }})</span>
@@ -161,7 +165,7 @@
                         Print on Job Sheet
                     </label>
                     <button class="btn btn-sm btn-danger delete-file" data-file-id="{{ file.id }}">
-                        Delete
+                        <i class="bi bi-trash me-1"></i>Delete
                     </button>
                 </div>
             </div>
@@ -169,13 +173,16 @@
             {% endfor %}
         </div>
         {% else %}
-        <p>No files attached to this job.</p>
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>No files attached to this job.
+        </div>
         {% endif %}
     </div>
 
     <div class="file-upload-area">
         <label for="file-input" class="file-drop-zone">
             <div class="drop-zone-text">
+                <i class="bi bi-cloud-upload mb-2" style="font-size: 2rem;"></i>
                 Drop files here or click to select files
             </div>
             <input type="file" id="file-input" multiple class="file-input">
@@ -206,10 +213,16 @@
 <hr />
 
 <!-- Save/Cancel Buttons -->
-<div class="action-buttons">
-    <button type="button" class="btn btn-secondary" id="printWorkshopButton">Print Job Sheet</button>
-    <button type="button" class="btn btn-danger" id="delete-job-btn">Delete Job</button>
-    <button class="btn btn-primary" id="closeButton">Close</button>
+<div class="action-buttons form-actions">
+    <button type="button" class="btn btn-secondary" id="printWorkshopButton">
+        <i class="bi bi-printer me-2"></i>Print Job Sheet
+    </button>
+    <button type="button" class="btn btn-danger" id="delete-job-btn">
+        <i class="bi bi-trash me-2"></i>Delete Job
+    </button>
+    <button class="btn btn-primary" id="closeButton">
+        <i class="bi bi-check-circle me-2"></i>Close
+    </button>
 </div>
 
 <!-- Delete Job Confirmation Modal -->
@@ -221,11 +234,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="delete-job-modal-body">
-                Are you sure you want to permanently delete this job? This action cannot be undone.
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Are you sure you want to permanently delete this job? This action cannot be undone.
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirm-delete-job">Delete</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-job">
+                    <i class="bi bi-trash me-2"></i>Delete
+                </button>
             </div>
         </div>
     </div>

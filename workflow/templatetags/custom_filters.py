@@ -60,3 +60,12 @@ def replace(value: str, arg: str) -> str:
         return value.replace(search, replace)
     except ValueError:
         return value
+
+
+@register.filter
+def multiply(value, arg):
+    """Multiplies the value by the argument"""
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return ''

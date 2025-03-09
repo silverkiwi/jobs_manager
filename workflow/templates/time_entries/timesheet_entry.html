@@ -4,54 +4,69 @@
 {% block extra_css %}
 <!-- AG Grid Styles -->
 <link rel="stylesheet" href="{% static 'ag-grid-styles/ag-theme-alpine.css' %}">
-
-<!-- Bootstrap Icons and custom CSS classes -->
-<link rel="stylesheet" href="{% static 'css/timesheet-entry.css' %}">
+<link rel="stylesheet" href="{% static 'css/enhanced-grid.css' %}">
+<link rel="stylesheet" href="{% static 'css/timesheet-enhanced.css' %}">
 {% endblock %}
 
 {% block content %}
 
 <div class="container">
-    <h2>Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ timesheet_date }}</h2>
+    <div class="timesheet-daily-header">
+        <h2 class="timesheet-daily-date">Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ timesheet_date }}</h2>
+        
+        <div class="timesheet-daily-controls">
+            <a href="{% url 'timesheet_entry' date=timesheet_date staff_id=prev_staff.id %}" class="btn btn-primary">
+                <i class="bi bi-arrow-left me-1"></i>{{ prev_staff.name }}
+            </a>
+            <a href="{% url 'timesheet_daily_view' date=timesheet_date %}"
+                class="btn btn-secondary align-self-center">
+                <i class="bi bi-list me-1"></i>Daily Overview
+            </a>
+            <a href="{% url 'timesheet_entry' date=timesheet_date staff_id=next_staff.id %}"
+                class="btn btn-primary">
+                {{ next_staff.name }} <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
 
-    <div class="card mb-3">
+    <div class="card keyboard-shortcuts-card mb-3">
         <div class="card-header" data-bs-toggle="collapse" data-bs-target="#keyboardShortcuts"
-            aria-expanded="false" aria-controls="keyboardShortcuts" style="cursor: pointer;">
+            aria-expanded="false" aria-controls="keyboardShortcuts">
             <div class="d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-keyboard"></i> Keyboard Shortcuts & <i class="bi bi-lightbulb"></i> Tips</span>
+                <span><i class="bi bi-keyboard me-2"></i>Keyboard Shortcuts & <i class="bi bi-lightbulb me-2"></i>Tips</span>
                 <i class="bi bi-chevron-down"></i>
             </div>
         </div>
         <div id="keyboardShortcuts" class="collapse">
-            <div class="card-body bg-body-secondary">
+            <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6 col-lg-3">
                         <div class="d-flex align-items-center">
-                            <span class="badge bg-light text-dark me-2">Shift + Enter</span>
+                            <span class="keyboard-shortcut-badge me-2">Shift + Enter</span>
                             <small>Edit/Confirm cell changes</small>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-3">
                         <div class="d-flex align-items-center">
-                            <span class="badge bg-light text-dark me-2">Enter</span>
+                            <span class="keyboard-shortcut-badge me-2">Enter</span>
                             <small>Add new row below</small>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-3">
                         <div class="d-flex align-items-center">
-                            <span class="badge bg-light text-dark me-2">Esc</span>
+                            <span class="keyboard-shortcut-badge me-2">Esc</span>
                             <small>Cancel editing</small>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-3">
                         <div class="d-flex align-items-center">
-                            <span class="badge bg-light text-dark me-2">Tab</span>
+                            <span class="keyboard-shortcut-badge me-2">Tab</span>
                             <small>Move to next cell</small>
                         </div>
                     </div>
                     <div class="col-12">
                         <small class="text-muted">
-                            <i class="bi bi-info-circle"></i> Use arrow keys to navigate between cells and within the
+                            <i class="bi bi-info-circle me-1"></i>Use arrow keys to navigate between cells and within the
                             jobs dropdown list
                         </small>
                     </div>
@@ -61,24 +76,11 @@
     </div>
     
     <!-- AG Grid will be initialized here -->
-    <div id="timesheet-grid" class="ag-theme-alpine">
-    </div>
-
-    <div class="header-actions d-flex justify-content-between mt-3 mb-2">
-        <a href="{% url 'timesheet_entry' date=timesheet_date staff_id=prev_staff.id %}" class="btn btn-primary">
-            {{ prev_staff.name }} <- Previous staff </a>
-                <a href="{% url 'timesheet_daily_view' date=timesheet_date %}"
-                    class="btn btn-secondary align-self-center">
-                    Back to Daily Overview
-                </a>
-                <a href="{% url 'timesheet_entry' date=timesheet_date staff_id=next_staff.id %}"
-                    class="btn btn-primary">
-                    Next staff -> {{ next_staff.name }}
-                </a>
+    <div id="timesheet-grid" class="ag-theme-alpine timesheet-grid">
     </div>
 
     <!-- Messages will be loaded here -->
-    <div id="time-entry" class="alert-container"></div>
+    <div id="time-entry" class="alert-container mt-3"></div>
 
     <hr>
 
@@ -86,9 +88,7 @@
         <!-- Current Jobs Section -->
         <div class="flex-grow-1" style="flex-basis: 65%">
             <h4 class="text-center mb-3">Current Jobs</h4>
-            <div id="current-jobs"
-                class="border border-dark rounded p-3 overflow-auto d-flex justify-content-center align-items-center flex-column">
-                <h4 class="text-center mb-3 d-none">Current Jobs</h4>
+            <div id="current-jobs" class="current-jobs-container">
                 <div class="row row-cols-1 g-3 w-100" id="jobs-list">
                     <!-- Dynamic job cards will be added here -->
                 </div>
@@ -98,8 +98,8 @@
         <!-- Summary Section -->
         <div class="flex-grow-1" style="flex-basis: 35%">
             <h4 class="text-center mb-3">Summary</h4>
-            <div id="summary-section" class="border border-dark rounded p-3 d-flex flex-column">
-                <table class="table table-sm table-striped table-bordered">
+            <div id="summary-section" class="summary-section">
+                <table class="summary-table">
                     <tr>
                         <th class="text-center">Category</th>
                         <th class="text-center">Details</th>

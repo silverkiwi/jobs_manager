@@ -4,7 +4,7 @@
     Form template for managing entries of paid absences with a modal.
     Loaded dynamically by AJAX in TimesheetEntryView.  
 -->
-<form id="paid-absence-form" method="post">
+<form id="paid-absence-form" method="post" class="animated-form">
     {% csrf_token %}
     <input type="hidden" name="action" value="add_paid_absence">
     
@@ -15,4 +15,13 @@
     {% endif %}
 
     {{ form|crispy }}
+    
+    <div class="form-actions">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i>Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle me-1"></i>Submit
+        </button>
+    </div>
 </form>

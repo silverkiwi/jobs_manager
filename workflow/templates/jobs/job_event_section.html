@@ -1,45 +1,36 @@
 {% load custom_filters %}
 {% load tz %}
 
-<div class="accordion" id="jobEventsAccordion">
-  <div class="accordion-item">
-    <h2 class="accordion-header">
-      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#jobEventsCollapse" aria-expanded="false" aria-controls="jobEventsCollapse">
-        Job Events
-      </button>
-    </h2>
-    <div id="jobEventsCollapse" class="accordion-collapse collapse" data-bs-parent="#jobEventsAccordion">
-      <div class="accordion-body">
-        <button id="addJobEvent" class="btn btn-outline-primary mb-3" data-bs-toggle="modal" data-bs-target="#addJobEventModal">
-          Add Job Event
+<div class="job-events grid-section">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="page-title m-0">Job History</h3>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addJobEventModal">
+            <i class="bi bi-plus-circle me-2"></i>Add Event
         </button>
-        <div class="timeline list-group">
-          {% if events %}
+    </div>
+    
+    <div class="events-container mb-3">
+        {% if events %}
             {% for event in events %}
-            <div class="timeline-item list-group-item">
-              <div class="d-flex w-100 justify-content-between">
-                <div class="timeline-date text-muted small">{% timezone "Pacific/Auckland" %} {{ event.timestamp|date:"M. d, Y g:i A" }} {% endtimezone %}</div>
-              </div>
-              <div class="timeline-content">
-                <h6 class="mb-1">{{ event.event_type|replace:"_| "|title}}</h6>
-                <p class="mb-1">{{ event.description }}</p>
-                <small class="text-muted">By
-                  {% if event.staff %}
-                    {{ event.staff.get_display_name }}
-                  {% else %}
-                    System
-                  {% endif %}
-                </small>
-              </div>
+            <div class="activity-item fadeInUp" style="animation-delay: {{ forloop.counter0|multiply:0.1 }}s">
+                <div class="activity-icon">
+                    <i class="bi bi-calendar-event"></i>
+                </div>
+                <div class="activity-content">
+                    <div>{{ event.description|linebreaksbr }}</div>
+                    <div class="activity-time">
+                        <span class="text-muted">{{ event.created_at|date:"j M Y, H:i" }}</span>
+                        {% if event.created_by %}
+                        <span class="text-muted">by {{ event.created_by }}</span>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
             {% endfor %}
-          {% else %}
-            <div class="list-group-item text-center text-muted">
-              No events found for this job
+        {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>No events have been added to this job yet.
             </div>
-          {% endif %}
-        </div>
-      </div>
+        {% endif %}
     </div>
-  </div>
 </div>

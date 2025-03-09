@@ -1,9 +1,9 @@
-<div class="workflow-section" id="workflow-section">
-    <h3>Workflow Settings</h3>
+<div class="workflow-section grid-section" id="workflow-section">
+    <h3 class="page-title">Workflow Settings</h3>
 
     <!-- Job Status Selection -->
-    <div class="form-group">
-        <label for="job_status">Job Status:</label>
+    <div class="form-group mb-4">
+        <label for="job_status" class="form-label">Job Status:</label>
         <select id="job_status" name="job_status" class="form-select autosave-input">
             <option value="quoting" {% if job.status == 'quoting' %}selected{% endif %}>Quoting</option>
             <option value="approved" {% if job.status == 'approved' %}selected{% endif %}>Approved</option>
@@ -18,7 +18,7 @@
 
 
     <!-- Delivery Date -->
-    <div class="row mb-3">
+    <div class="row mb-4">
         <div class="col-md-6">
             <!-- User-Friendly Date Input -->
             <label for="delivery_date" class="form-label">Delivery Date</label>
@@ -28,7 +28,7 @@
     </div>
 
     <!-- Quote Acceptance Date -->
-    <div class="row mb-3">
+    <div class="row mb-4">
         <div class="col-md-6">
             <!-- Hidden ISO Date Field (Autosaved when quote is accepted) -->
             <input type="hidden" id="quote_acceptance_date_iso" name="quote_acceptance_date_iso" class="autosave-input"
@@ -36,36 +36,40 @@
 
             <!-- Accept Quote Button -->
             {% if pricing_type == "fixed_price" %}
-            <button id="acceptQuoteButton" class="btn btn-success mt-3" 
+            <button id="acceptQuoteButton" class="btn btn-success" 
             {% if job.latest_quote_pricing.total_cost|floatformat:"2" == "0.00" %}disabled{% endif %}>
-                Accept Quote
+                <i class="bi bi-check-circle me-2"></i>Accept Quote
             </button>
             {% endif %}
         </div>
     </div>
 
     <!-- Action Buttons -->
-    <div class="workflow-actions mt-3" id="workflowActions">
-        <button type="button" class="btn btn-warning" id="invoiceJobButton" {% if invoiced %} disabled {% endif %}>
-            Invoice Job
-        </button>
-        <a {% if not invoiced %} style="display: none" {% endif %}
-            href="{% if invoice_url %}{{ invoice_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info"
-            id="invoiceUrl">
-            Go to Invoice on Xero
-        </a>
-        <button {% if not invoiced %} style="display: none" {% endif %} type="button" class="btn btn-danger"
-            id="deleteInvoiceButton">
-            Delete Xero Invoice
-        </button>
-        <button type="button" class="btn btn-info ms-3" id="contactClientButton">Contact Client about Job</button>
+    <div class="workflow-actions mt-4 mb-4 p-3 border-top border-bottom border-light">
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-warning" id="invoiceJobButton" {% if invoiced %} disabled {% endif %}>
+                <i class="bi bi-receipt me-2"></i>Invoice Job
+            </button>
+            <a {% if not invoiced %} style="display: none" {% endif %}
+                href="{% if invoice_url %}{{ invoice_url }}{% else %}#{% endif %}" target="_blank" class="btn btn-info"
+                id="invoiceUrl">
+                <i class="bi bi-box-arrow-up-right me-2"></i>Go to Invoice on Xero
+            </a>
+            <button {% if not invoiced %} style="display: none" {% endif %} type="button" class="btn btn-danger"
+                id="deleteInvoiceButton">
+                <i class="bi bi-trash me-2"></i>Delete Xero Invoice
+            </button>
+            <button type="button" class="btn btn-info ms-auto" id="contactClientButton">
+                <i class="bi bi-envelope me-2"></i>Contact Client about Job
+            </button>
+        </div>
     </div>
 
     <!-- Job Status Checkboxes -->
     <div class="form-group mt-4">
         <h4>Job Status Tracking</h4>
         <div class="d-flex flex-column gap-3">
-            <div class="form-check form-check-lg  {% if pricing_type == 'time_materials' %}d-none{% endif %}"
+            <div class="form-check form-check-lg {% if pricing_type == 'time_materials' %}d-none{% endif %}"
                 id="quoteCheckbox">
                 <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
                     id="quoted_checkbox" name="quoted" {% if quoted %} checked {% else %} disabled {% endif %}>

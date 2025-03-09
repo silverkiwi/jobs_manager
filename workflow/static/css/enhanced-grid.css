@@ -1,0 +1,228 @@
+/* Enhanced AG Grid Styling */
+.ag-theme-alpine {
+  --ag-foreground-color: var(--dark-text);
+  --ag-background-color: rgba(255, 255, 255, 0.7);
+  --ag-header-background-color: rgba(67, 97, 238, 0.1);
+  --ag-odd-row-background-color: rgba(0, 0, 0, 0.02);
+  --ag-header-foreground-color: var(--primary-color);
+  --ag-border-color: rgba(0, 0, 0, 0.1);
+  --ag-secondary-border-color: rgba(0, 0, 0, 0.05);
+  --ag-row-border-color: rgba(0, 0, 0, 0.05);
+  --ag-row-hover-color: rgba(67, 97, 238, 0.05);
+  --ag-selected-row-background-color: rgba(67, 97, 238, 0.1);
+  --ag-font-size: 14px;
+  --ag-font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.ag-header {
+  border-bottom: 1px solid var(--ag-border-color);
+  font-weight: 600;
+}
+
+.ag-header-cell {
+  padding: 0.75rem 0.5rem;
+}
+
+.ag-row {
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ag-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  z-index: 2;
+}
+
+.ag-row-odd {
+  background-color: var(--ag-odd-row-background-color);
+}
+
+.ag-row-selected {
+  background-color: var(--ag-selected-row-background-color) !important;
+}
+
+.ag-cell {
+  padding: 0.5rem;
+  border-right: 1px solid var(--ag-secondary-border-color);
+}
+
+.ag-cell:last-child {
+  border-right: none;
+}
+
+/* Custom cell renderers */
+.ag-cell-action {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ag-cell-action button {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.ag-cell-action button:hover {
+  opacity: 1;
+}
+
+.ag-cell-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 50rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Special styles for price entry tables */
+.price-entry-table.ag-theme-alpine {
+  box-shadow: 0 2px 10px rgba(67, 97, 238, 0.1);
+  margin-bottom: 1rem;
+}
+
+.price-entry-table.ag-theme-alpine .ag-header {
+  background-color: rgba(67, 97, 238, 0.15);
+}
+
+.price-entry-table.simple-pricing-table {
+  transition: all var(--transition-speed) ease;
+}
+
+.price-entry-table.simple-pricing-table:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(67, 97, 238, 0.2);
+}
+
+/* Totals table styling */
+.totals-table.ag-theme-alpine {
+  border-top: 2px solid rgba(67, 97, 238, 0.3);
+  margin-top: 0.5rem;
+}
+
+/* Enhanced delete icon */
+.delete-icon {
+  font-size: 1.125rem;
+  color: var(--danger-color);
+  cursor: pointer;
+  padding: 0.3125rem;
+  transition: all 0.3s ease;
+  display: inline-block;
+  vertical-align: middle;
+  opacity: 0.7;
+  border-radius: 50%;
+}
+
+.delete-icon:hover {
+  color: var(--danger-color);
+  opacity: 1;
+  background-color: rgba(247, 37, 133, 0.1);
+  transform: scale(1.2);
+}
+
+.delete-icon.disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Cell editor styling */
+.ag-cell-inline-editing {
+  padding: 0 !important;
+  background: white;
+  box-shadow: 0 0 0 1px var(--primary-color), 0 0 0 5px rgba(67, 97, 238, 0.2) !important;
+  border-radius: 4px !important;
+  border: none !important;
+}
+
+/* Pagination styling */
+.ag-paging-panel {
+  background-color: rgba(255, 255, 255, 0.7);
+  border-top: 1px solid var(--ag-border-color);
+  padding: 0.75rem;
+}
+
+.ag-paging-button {
+  background-color: transparent;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  transition: all var(--transition-speed) ease;
+}
+
+.ag-paging-button:hover:not(.ag-disabled) {
+  background-color: rgba(67, 97, 238, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Animations for row changes */
+.ag-row-animation {
+  transition: background-color 0.5s ease;
+}
+
+.ag-row-updated {
+  animation: pulse 1.5s ease;
+}
+
+@keyframes pulse {
+  0% { background-color: rgba(76, 201, 240, 0.3); }
+  100% { background-color: transparent; }
+}
+
+/* Job grid section styling */
+.job-grid-section {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(5px);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--card-shadow);
+  transition: all var(--transition-speed) ease;
+}
+
+.job-grid-section:hover {
+  box-shadow: 0 8px 25px rgba(67, 97, 238, 0.15);
+}
+
+.job-grid-section h2 {
+  color: var(--primary-color);
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  display: inline-block;
+  position: relative;
+}
+
+.job-grid-section h2:after {
+  content: '';
+  display: block;
+  width: 50%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-color) 0%, transparent 100%);
+  margin-top: 0.2rem;
+}
+
+/* Summary tables enhanced styling */
+.summary-table-section {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(5px);
+  border-radius: var(--border-radius);
+  padding: 1.25rem;
+  box-shadow: var(--card-shadow);
+  transition: all var(--transition-speed) ease;
+}
+
+.summary-table-section:hover {
+  box-shadow: 0 8px 25px rgba(67, 97, 238, 0.15);
+}
+
+.summary-grid.ag-theme-alpine {
+  box-shadow: none;
+}
+
+/* Transition for grid switching */
+.job-grid-section > div {
+  transition: all 0.5s ease;
+}
