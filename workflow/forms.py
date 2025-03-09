@@ -213,10 +213,12 @@ class ClientForm(forms.ModelForm):
             "phone",
             "address",
             "is_account_customer",
+            "xero_contact_id",
             "raw_json",
         ]
         widgets = {
             "raw_json": forms.HiddenInput(),
+            "xero_contact_id": forms.TextInput(attrs={"readonly": "readonly"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -224,6 +226,8 @@ class ClientForm(forms.ModelForm):
         self.fields["raw_json"].widget.attrs["readonly"] = True
         self.fields["name"].required = True
         self.fields["name"].widget.attrs["required"] = "required"
+        self.fields["xero_contact_id"].required = False
+        self.fields["xero_contact_id"].widget.attrs["readonly"] = True
 
         if DEBUG_FORM:
             logger.debug(
