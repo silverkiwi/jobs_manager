@@ -63,14 +63,8 @@
         </div>
     </div>
 
-    <div class="d-none">
-        <div class="col-md-12">
-            <label for="materialGaugeQuantity">Material / Gauge / Quantity</label>
-            <textarea id="material_gauge_quantity" name="material_gauge_quantity"
-                class="form-control autoresizeTextarea autosave-input"
-                rows="1">{{ job.material_gauge_quantity|default_if_none:'' }}</textarea>
-        </div>
-    </div>
+    <input type="hidden" id="material_gauge_quantity" name="material_gauge_quantity" 
+    class="autosave-input" value="{{ job.material_gauge_quantity|default_if_none:'' }}">
 
     <div class="row mb-3">
         <div class="col-md-12">
