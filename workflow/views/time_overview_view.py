@@ -4,6 +4,7 @@ import json
 import logging
 from datetime import datetime
 from decimal import Decimal
+from typing import List
 
 # matplotlib.use('Agg') must be called before importing matplotlib.pyplot
 # This configures matplotlib to work without a GUI backend
@@ -20,6 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.views.generic import TemplateView
+from django.db import models
 
 from workflow.forms import PaidAbsenceForm
 from workflow.models import Job, JobPricing, Staff, TimeEntry
@@ -64,19 +66,17 @@ class TimesheetOverviewView(TemplateView):
     template_name = "time_entries/timesheet_overview.html"
 
     @classmethod
-    def get_filtered_staff(cls):
+    def get_filtered_staff(cls) -> List[Staff]:
         """Get filtered staff list excluding certain staff members.
         
         Returns:
-            List of Staff objects sorted by display name, excluding staff users and specific IDs.
+            List[Staff]: Staff objects using model's default ordering (by last_name, first_name),
+            excluding staff users and specific IDs.
         """
-        return [
-            staff_member
-            for staff_member in sorted(
-                Staff.objects.all(), key=lambda x: x.get_display_full_name()
-            )
-            if not (staff_member.is_staff is True or str(staff_member.id) in EXCLUDED_STAFF_IDS)
-        ]
+        return list(Staff.objects.exclude(
+            models.Q(is_staff=True) | 
+            models.Q(id__in=EXCLUDED_STAFF_IDS)
+        ))
 
     def get(self, request, start_date=None, *args, **kwargs):
         """Handle GET request to display timesheet overview.
@@ -656,6 +656,19 @@ class TimesheetOverviewView(TemplateView):
 
 class TimesheetDailyView(TemplateView):
     template_name = "time_entries/timesheet_daily_view.html"
+
+    @classmethod
+    def get_filtered_staff(cls) -> List[Staff]:
+        """Get filtered staff list excluding certain staff members.
+        
+        Returns:
+            List[Staff]: Staff objects using model's default ordering (by last_name, first_name),
+            excluding staff users and specific IDs.
+        """
+        return list(Staff.objects.exclude(
+            models.Q(is_staff=True) | 
+            models.Q(id__in=EXCLUDED_STAFF_IDS)
+        ))
 
     def get(self, request, date=None, *args, **kwargs):
         if date:

@@ -80,6 +80,8 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 mypy_path = "./"
 exclude = "migrations|__pycache__|.tox|venv"
+plugins = ["mypy_django_plugin.main"]
+strict = true
 
 # pylint configuration
 [tool.pylint]
@@ -93,7 +95,7 @@ django-settings-module = "jobs_manager.settings"
 load-plugins = "pylint_django"
 django-settings-module = "jobs_manager.settings"
 
-[tool.pylint.MESSAGES CONTROL]
+[tool.pylint.messages-control]
 disable = [
     "missing-docstring",
     "invalid-name",
@@ -109,6 +111,9 @@ enable = [
     "django-model-unicode-on-python3",
 ]
 
-[tool.pylint.DJANGO]
+[tool.pylint.django]
 django-url-pattern-names = true  # Enable URL pattern name checking
 django-settings-module = "jobs_manager.settings"
+
+[tool.django-stubs]
+django_settings_module = "jobs_manager.settings"
