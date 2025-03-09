@@ -3,7 +3,7 @@ import logging
 from django.contrib import messages
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import UpdateView
 from django_tables2 import SingleTableView
@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 class ClientListView(SingleTableView):
     model = Client
     template_name = "clients/list_clients.html"
+    # table_class = ClientTable
+    # context_object_name = "clients"
 
 
 class ClientUpdateView(UpdateView):
@@ -44,7 +46,7 @@ class ClientUpdateView(UpdateView):
         token = get_valid_token()
         if not token:
             messages.warning(self.request, "Xero authentication required.")
-            return redirect("authenticate_xero")
+            return redirect("api_xero_authenticate")
 
         try:
             sync_client_to_xero(self.object)
@@ -73,12 +75,41 @@ def ClientSearch(request):
             "is_account_customer": client.is_account_customer,
             "xero_contact_id": client.xero_contact_id or "",
             "last_invoice_date": client.get_last_invoice_date().strftime('%d/%m/%Y') if client.get_last_invoice_date() else "",
-            "total_spend": f"${client.get_total_spend():,.2f}"
+            "total_spend": f"${client.get_total_spend():,.2f}",
+            "raw_json": client.raw_json
         } for client in clients]
     else:
         results = []
 
     return JsonResponse({"results": results})
+
+
+def client_detail(request):
+    """
+    API endpoint to return detailed client information including raw_json.
+    """
+    client_id = request.GET.get("id", "")
+    if not client_id:
+        return JsonResponse({"error": "Client ID is required"}, status=400)
+    
+    try:
+        client = Client.objects.get(id=client_id)
+        client_data = {
+            "id": client.id,
+            "name": client.name,
+            "email": client.email or "",
+            "phone": client.phone or "",
+            "address": client.address or "",
+            "is_account_customer": client.is_account_customer,
+            "xero_contact_id": client.xero_contact_id or "",
+            "raw_json": client.raw_json
+        }
+        return JsonResponse({"client": client_data})
+    except Client.DoesNotExist:
+        return JsonResponse({"error": "Client not found"}, status=404)
+    except Exception as e:
+        logger.error(f"Error fetching client details: {str(e)}", exc_info=True)
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 def all_clients(request):
@@ -103,7 +134,7 @@ def AddClient(request):
         )
         # Store the current URL with query parameters to return to after auth
         return_url = f"{request.path}?{request.GET.urlencode()}" if request.GET else request.path
-        return redirect(f"{reverse_lazy('authenticate_xero')}?next={return_url}")
+        return redirect(f"{reverse_lazy('api_xero_authenticate')}?next={return_url}")
     if request.method == "GET":
         # Sync clients from Xero before displaying the form
         # Otherwise we try and create clients only to discover they already exist too much
@@ -131,10 +162,29 @@ def AddClient(request):
                 )
                 
                 if existing_contacts and existing_contacts.contacts:
-                    # Use existing contact
+                    # Return error response for duplicate client
                     logger.info("Found existing contact with name: %s", form.cleaned_data["name"])
-                    response = existing_contacts
-                    messages.info(request, "Client already exists in Xero - using existing record")
+                    
+                    error_details = {
+                        "error_type": "DuplicateClientError",
+                        "name": form.cleaned_data["name"],
+                        "email": form.cleaned_data.get("email", "")
+                    }
+                    
+                    # Get client info from existing contact
+                    xero_client = existing_contacts.contacts[0]
+                    xero_contact_id = getattr(xero_client, "contact_id", "")
+                    
+                    # Return error with the existing client info
+                    return JsonResponse({
+                        "success": False,
+                        "error": f"Client '{form.cleaned_data['name']}' already exists in Xero",
+                        "error_details": error_details,
+                        "existing_client": {
+                            "name": form.cleaned_data["name"],
+                            "xero_contact_id": xero_contact_id
+                        }
+                    }, status=409)  # 409 Conflict status code
                 else:
                     # Create new contact in Xero
                     contact_data = {
@@ -166,23 +216,53 @@ def AddClient(request):
                     raise ValueError(f"Expected 1 contact in response, got {len(response.contacts)}")
                 
                 # Use sync_clients to create local client from Xero data
-                sync_clients(response.contacts)
-                messages.success(request, "Client created successfully")
-                return redirect("list_clients")
+                client_instances = sync_clients(response.contacts)
+                if not client_instances:
+                    raise ValueError("Failed to sync client from Xero")
+                
+                # Get the created client
+                created_client = client_instances[0]
+                
+                # Return JSON response with the created client data and success flag
+                return JsonResponse({
+                    "success": True,
+                    "client": {
+                        "id": str(created_client.id),
+                        "name": created_client.name,
+                        "xero_contact_id": created_client.xero_contact_id or ""
+                    }
+                })
                 
             except Exception as e:
                 error_msg = f"Failed to create client in Xero: {str(e)}"
                 logger.error(error_msg, exc_info=True)
-                messages.add_message(
-                    request,
-                    messages.ERROR,
-                    error_msg,
-                    extra_tags='danger'  # Bootstrap uses 'danger' for red alerts
-                )
-                return render(
-                    request,
-                    "clients/add_client.html",
-                    {"form": form}
-                )
+                
+                # Create error details object
+                error_details = {
+                    "error_type": type(e).__name__,
+                    "name": form.cleaned_data.get("name", ""),
+                    "email": form.cleaned_data.get("email", "")
+                }
+                
+                return JsonResponse({
+                    "success": False,
+                    "error": error_msg,
+                    "error_details": error_details
+                }, status=400)
         else:
-            return render(request, "clients/add_client.html", {"form": form})
+            # Form is invalid
+            errors = form.errors.as_json()
+            
+            # Create error details for form validation errors
+            error_details = {
+                "error_type": "FormValidationError",
+                "name": form.cleaned_data.get("name", "") if hasattr(form, "cleaned_data") else "",
+                "email": form.cleaned_data.get("email", "") if hasattr(form, "cleaned_data") else ""
+            }
+            
+            return JsonResponse({
+                "success": False,
+                "error": "Form validation failed",
+                "form_errors": errors,
+                "error_details": error_details
+            }, status=400)
