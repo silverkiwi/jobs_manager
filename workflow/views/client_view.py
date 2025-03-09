@@ -46,7 +46,7 @@ class ClientUpdateView(UpdateView):
         token = get_valid_token()
         if not token:
             messages.warning(self.request, "Xero authentication required.")
-            return redirect("authenticate_xero")
+            return redirect("api_xero_authenticate")
 
         try:
             sync_client_to_xero(self.object)
@@ -134,7 +134,7 @@ def AddClient(request):
         )
         # Store the current URL with query parameters to return to after auth
         return_url = f"{request.path}?{request.GET.urlencode()}" if request.GET else request.path
-        return redirect(f"{reverse_lazy('authenticate_xero')}?next={return_url}")
+        return redirect(f"{reverse_lazy('api_xero_authenticate')}?next={return_url}")
     if request.method == "GET":
         # Sync clients from Xero before displaying the form
         # Otherwise we try and create clients only to discover they already exist too much

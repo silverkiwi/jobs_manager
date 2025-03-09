@@ -52,6 +52,7 @@ vulture = "^2.12"
 deptry = "^0.20.0"
 pandas = "^2.2.3"
 django-debug-toolbar = "^4.4.6"
+pylint-django = "^2.6.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -84,3 +85,30 @@ exclude = "migrations|__pycache__|.tox|venv"
 [tool.pylint]
 max-line-length = 88
 ignore = ["migrations", "__pycache__", "site-packages", ".tox"]
+load-plugins = "pylint_django"
+django-settings-module = "jobs_manager.settings"
+
+# Django-specific settings
+[tool.pylint.MASTER]
+load-plugins = "pylint_django"
+django-settings-module = "jobs_manager.settings"
+
+[tool.pylint.MESSAGES CONTROL]
+disable = [
+    "missing-docstring",
+    "invalid-name",
+]
+
+# Enable Django-specific checkers
+enable = [
+    "django-not-configured",
+    "django-not-available",
+    "django-model-missing-unicode",
+    "django-model-has-unicode",
+    "django-model-no-explicit-unicode",
+    "django-model-unicode-on-python3",
+]
+
+[tool.pylint.DJANGO]
+django-url-pattern-names = true  # Enable URL pattern name checking
+django-settings-module = "jobs_manager.settings"
