@@ -83,24 +83,8 @@
     <div class="row mb-3">
         <div class="col-md-12">
             <label for="job_notes">
-                <i class="bi bi-journal-text"></i> Job Notes
-                <small class="text-muted">(Internal use only)</small>
+                Job Notes
             </label>
-            <div id="job_notes_toolbar">
-                <span class="ql-formats">
-                    <button class="ql-bold"></button>
-                    <button class="ql-italic"></button>
-                    <button class="ql-underline"></button>
-                    <button class="ql-strike"></button>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-list" value="ordered"></button>
-                    <button class="ql-list" value="bullet"></button>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-link"></button>
-                </span>
-            </div>
             <div id="job_notes_editor" style="height: 200px; margin-bottom: 15px; border: 1px solid #ced4da; border-radius: 0.25rem"></div>
             <input type="hidden" id="job_notes" name="notes" class="autosave-input" value="{{ job.notes|default_if_none:'' }}">
         </div>

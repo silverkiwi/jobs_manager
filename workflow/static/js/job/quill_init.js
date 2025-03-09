@@ -3,7 +3,25 @@ document.addEventListener("DOMContentLoaded", function () {
     const quill = new Quill(element, {
         theme: "snow",
         modules: {
-            toolbar: "#job_notes_toolbar"
+            toolbar: {
+                container: [
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+
+                    ['bold', 'italic', 'underline', 'strike'],
+
+                    [{ 'color': [] }, { 'background': [] }],
+
+                    [{ 'align': [] }],
+
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+
+                    [{ 'indent': '-1' }, { 'indent': '+1' }],
+
+                    ['blockquote', 'code-block'],
+
+                    ['link', 'clean']
+                ]
+            },
         },
         placeholder: "Add notes about the job here..."
     });
