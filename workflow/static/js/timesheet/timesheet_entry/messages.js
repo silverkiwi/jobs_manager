@@ -1,4 +1,50 @@
-import { sentMessages } from "./state.js";
+import { Environment } from "../../env.js";
+
+const sentMessages = new Set();
+
+const MESSAGE_TIMEOUT = 15000;
+const messageTimestamps = new Map();
+
+function canShowMessage(messageKey) {
+  if (Environment.isDebugMode()) {
+    console.log('Checking message:', messageKey);
+    console.log('Message already sent:', sentMessages.has(messageKey));
+  }
+
+  if (!sentMessages.has(messageKey)) {
+    if (Environment.isDebugMode()) {
+      console.log('Message not sent before, allowing');
+    }
+    messageTimestamps.set(messageKey, Date.now());
+    sentMessages.add(messageKey);
+    return true;
+  }
+
+  const lastShown = messageTimestamps.get(messageKey);
+  const now = Date.now();
+  const timeDiff = now - lastShown;
+
+  if (Environment.isDebugMode()) {
+    console.log('Last shown:', lastShown);
+    console.log('Current time:', now);
+    console.log('Time difference:', timeDiff);
+    console.log('Message timeout:', MESSAGE_TIMEOUT);
+  }
+
+  if (timeDiff >= MESSAGE_TIMEOUT) {
+    if (Environment.isDebugMode()) {
+      console.log('Timeout exceeded, clearing message and allowing');
+    }
+    messageTimestamps.set(messageKey, Date.now());
+    return true;
+  }
+
+  if (Environment.isDebugMode()) {
+    console.log('Message blocked - too soon to show again');
+  }
+
+  return false;
+}
 
 function createToastContainer() {
   const container = document.createElement('div');
@@ -37,10 +83,9 @@ export function renderMessages(messages, containerId) {
 
   messages.forEach((msg) => {
     const messageKey = `${msg.level}:${msg.message}`;
-    if (sentMessages.has(messageKey) && msg.level !== "success" && !alertContainerModal) {
-      return;
-    }
-    sentMessages.add(messageKey);
+
+    if (!canShowMessage(messageKey)) return;
+
 
     msg.level = msg.level === "error" ? "danger" : msg.level;
 

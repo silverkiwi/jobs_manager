@@ -157,6 +157,12 @@ class Job(models.Model):
 
     complex_job = models.BooleanField(default=False)  # type: ignore
 
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Internal notes about the job. Not shown on the invoice.",
+    )
+
     class Meta:
         ordering = ["job_number"]
 
