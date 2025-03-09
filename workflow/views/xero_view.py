@@ -5,7 +5,7 @@ import traceback
 import threading
 import uuid
 from abc import ABC, abstractmethod
-from datetime import timedelta, timezone
+from datetime import timedelta, timezone, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -39,7 +39,7 @@ from workflow.api.xero.xero import (
     refresh_token,
 )
 from workflow.enums import InvoiceStatus, QuoteStatus
-from workflow.models import Invoice, Job, XeroToken
+from workflow.models import Invoice, Job, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults
 from workflow.models.quote import Quote
 from workflow.utils import extract_messages
 
@@ -741,3 +741,49 @@ def xero_sync_progress_page(request):
         if "token" in str(e).lower():
             return redirect("api_xero_authenticate")
         return render(request, "general/generic_error.html", {"error_message": str(e)})
+
+
+def get_xero_sync_info(request):
+    """Get initial sync information including last sync times and sync range."""
+    try:
+        company_defaults = CompanyDefaults.objects.get()
+        
+        # Get last sync times for each entity
+        last_syncs = {
+            'accounts': get_last_modified_time(XeroAccount),
+            'contacts': get_last_modified_time(Client),
+            'invoices': get_last_modified_time(Invoice),
+            'bills': get_last_modified_time(Bill),
+            'journals': get_last_modified_time(XeroJournal),
+            'credit-notes': get_last_modified_time(CreditNote),
+            'quotes': get_last_modified_time(Quote),
+        }
+
+        # Convert ISO strings to datetime objects for comparison
+        sync_times = []
+        for time_str in last_syncs.values():
+            try:
+                if time_str and time_str != "2000-01-01T00:00:00Z":
+                    sync_times.append(datetime.fromisoformat(time_str.replace('Z', '+00:00')))
+            except (ValueError, AttributeError):
+                continue
+
+        # Determine sync range message
+        if (not company_defaults.last_xero_deep_sync or 
+            (timezone.now() - company_defaults.last_xero_deep_sync).days >= 30):
+            sync_range = "Starting deep sync - looking back 90 days"
+        else:
+            if sync_times:
+                earliest_sync = min(sync_times)
+                formatted_time = earliest_sync.strftime("%d/%m/%Y, %H:%M:%S")
+                sync_range = f"Syncing Xero since {formatted_time}"
+            else:
+                sync_range = "Starting initial sync"
+
+        return JsonResponse({
+            'last_syncs': last_syncs,
+            'sync_range': sync_range,
+        })
+    except Exception as e:
+        logger.error(f"Error getting sync info: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)

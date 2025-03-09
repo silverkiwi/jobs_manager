@@ -37,26 +37,14 @@ def apply_rate_limit_delay(response_headers):
 
 
 def sync_xero_data(
-    xero_entity_type,
+    xero_entity_type,  # The entity type as known in Xero's API
+    our_entity_type,   # The entity type as known in our system
     xero_api_fetch_function,
     sync_function,
     last_modified_time,
     additional_params=None,
     pagination_mode="single",  # "single", "page", or "offset"
 ):
-    # Note, the logic here is gnarly.  Be careful
-    # There are six scenarios to handle - single/page/offset and partial/final
-    # So for example single is guaranteed to always be final - to select all records
-    # which means len(items) might be bigger than page_size
-    # For page we need to do one page at a time.  Which means we can't fiddle
-    # with the filter or the sort - otherwise the contents of each page might change
-    # For offset we do an offset by Journal Number. If we added another offset
-    # We'd need to pass a variable of what to offset by.
-    # This is theoretically a bug since we're ordering by journal number and so
-    # we might not get all changes.  But it's never going to happen because we get
-    # 100 records.  It would require having more than 100 journals change at once
-    # AND for the updates to be to the newer journals first
-    # Anyway point is, be careful
     if pagination_mode not in ("single", "page", "offset"):
         raise ValueError("pagination_mode must be 'single', 'page', or 'offset'")
 
@@ -65,16 +53,16 @@ def sync_xero_data(
 
     logger.info(
         "Starting sync for %s, mode=%s, since=%s",
-        xero_entity_type,
+        our_entity_type,
         pagination_mode,
         last_modified_time,
     )
 
     yield {
         "datetime": timezone.now().isoformat(),
-        "entity": xero_entity_type,
+        "entity": our_entity_type,
         "severity": "info",
-        "message": f"Starting sync for {xero_entity_type} since {last_modified_time}",
+        "message": f"Starting sync for {our_entity_type} since {last_modified_time}",
         "progress": 0.0,
         "lastSync": last_modified_time
     }
@@ -119,7 +107,7 @@ def sync_xero_data(
                 logger.info("No items to sync.")
                 yield {
                     "datetime": timezone.now().isoformat(),
-                    "entity": xero_entity_type,
+                    "entity": our_entity_type,
                     "severity": "info",
                     "message": "No items to sync",
                     "progress": 1.0,
@@ -134,7 +122,7 @@ def sync_xero_data(
                 total_items = entities.pagination.item_count
                 yield {
                     "datetime": timezone.now().isoformat(),
-                    "entity": xero_entity_type,
+                    "entity": our_entity_type,
                     "severity": "info",
                     "message": f"Found {total_items} items to sync",
                     "progress": None,
@@ -146,7 +134,7 @@ def sync_xero_data(
                 total_items = len(quotes_list)
                 yield {
                     "datetime": timezone.now().isoformat(),
-                    "entity": xero_entity_type,
+                    "entity": our_entity_type,
                     "severity": "info",
                     "message": f"Found {total_items} items to sync",
                     "progress": None,
@@ -165,20 +153,20 @@ def sync_xero_data(
                 
                 yield {
                     "datetime": timezone.now().isoformat(),
-                    "entity": xero_entity_type,
+                    "entity": our_entity_type,
                     "severity": "info",
-                    "message": f"Processed {len(items)} {xero_entity_type}",
+                    "message": f"Processed {len(items)} {our_entity_type}",
                     "progress": progress,
                     "lastSync": timezone.now().isoformat()
                 }
 
             except Exception as e:
-                logger.error(f"Error in sync function for {xero_entity_type}: {str(e)}")
+                logger.error(f"Error in sync function for {our_entity_type}: {str(e)}")
                 yield {
                     "datetime": timezone.now().isoformat(),
-                    "entity": xero_entity_type,
+                    "entity": our_entity_type,
                     "severity": "error",
-                    "message": f"Error processing {xero_entity_type}: {str(e)}",
+                    "message": f"Error processing {our_entity_type}: {str(e)}",
                     "progress": None,
                     "lastSync": last_modified_time
                 }
@@ -198,9 +186,9 @@ def sync_xero_data(
                 logger.info("Finished processing all items.")
                 yield {
                     "datetime": timezone.now().isoformat(),
-                    "entity": xero_entity_type,
+                    "entity": our_entity_type,
                     "severity": "info",
-                    "message": f"Completed sync of {total_processed} {xero_entity_type}",
+                    "message": f"Completed sync of {total_processed} {our_entity_type}",
                     "progress": 1.0,
                     "lastSync": timezone.now().isoformat()
                 }
@@ -211,11 +199,11 @@ def sync_xero_data(
 
         except RateLimitException as e:
             # Use the apply_rate_limit_delay function to handle rate limiting
-            logger.warning(f"Rate limit hit when syncing {xero_entity_type}. Applying dynamic delay.")
+            logger.warning(f"Rate limit hit when syncing {our_entity_type}. Applying dynamic delay.")
             retry_after = int(e.response_headers.get("Retry-After", 0))
             yield {
                 "datetime": timezone.now().isoformat(),
-                "entity": xero_entity_type,
+                "entity": our_entity_type,
                 "severity": "warning",
                 "message": f"Rate limit hit, waiting {retry_after} seconds",
                 "progress": None,
@@ -909,6 +897,7 @@ def sync_xero_clients_only():
     
     yield from sync_xero_data(
         xero_entity_type="contacts",
+        our_entity_type="contacts",
         xero_api_fetch_function=accounting_api.get_contacts,
         sync_function=sync_clients,
         last_modified_time=our_latest_contact,
@@ -958,6 +947,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
 
     yield from sync_xero_data(
         xero_entity_type="accounts",
+        our_entity_type="accounts",
         xero_api_fetch_function=accounting_api.get_accounts,
         sync_function=sync_accounts,
         last_modified_time=timestamps['account'],
@@ -966,6 +956,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
 
     yield from sync_xero_data(
         xero_entity_type="contacts",
+        our_entity_type="contacts",
         xero_api_fetch_function=accounting_api.get_contacts,
         sync_function=sync_clients,
         last_modified_time=timestamps['contact'],
@@ -974,6 +965,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
 
     yield from sync_xero_data(
         xero_entity_type="invoices",
+        our_entity_type="invoices",
         xero_api_fetch_function=accounting_api.get_invoices,
         sync_function=sync_invoices,
         last_modified_time=timestamps['invoice'],
@@ -982,7 +974,8 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
     )
 
     yield from sync_xero_data(
-        xero_entity_type="invoices",
+        xero_entity_type="invoices",  # Note: Still "invoices" in Xero
+        our_entity_type="bills",      # But "bills" in our system
         xero_api_fetch_function=accounting_api.get_invoices,
         sync_function=sync_bills,
         last_modified_time=timestamps['bill'],
@@ -992,6 +985,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
 
     yield from sync_xero_data(
         xero_entity_type="quotes",
+        our_entity_type="quotes",
         xero_api_fetch_function=accounting_api.get_quotes,
         sync_function=sync_quotes,
         last_modified_time=timestamps['quote'],
@@ -1000,6 +994,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
 
     yield from sync_xero_data(
         xero_entity_type="credit_notes",
+        our_entity_type="credit-notes",
         xero_api_fetch_function=accounting_api.get_credit_notes,
         sync_function=sync_credit_notes,
         last_modified_time=timestamps['credit_note'],
@@ -1008,6 +1003,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
 
     yield from sync_xero_data(
         xero_entity_type="journals",
+        our_entity_type="journals",
         xero_api_fetch_function=accounting_api.get_journals,
         sync_function=sync_journals,
         last_modified_time=timestamps['journal'],

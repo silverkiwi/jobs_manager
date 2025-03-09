@@ -11,6 +11,13 @@ const entityProgress = document.getElementById('entity-progress');
 const entityPercent = document.getElementById('entity-percent');
 const syncLog = document.getElementById('sync-log');
 
+function formatLastSync(lastSync) {
+    if (!lastSync || lastSync === '2000-01-01T00:00:00Z') {
+        return '-';
+    }
+    return new Date(lastSync).toLocaleString();
+}
+
 class XeroSyncProgress {
     constructor() {
         this.eventSource = new EventSource('/api/xero/sync-stream/');
@@ -26,9 +33,10 @@ class XeroSyncProgress {
                 // Update last sync times
                 if (data.last_syncs) {
                     Object.entries(data.last_syncs).forEach(([entity, lastSync]) => {
-                        if (lastSync) {
-                            updateEntityRow(entity, { lastSync });
-                        }
+                        updateEntityRow(entity, { 
+                            lastSync,
+                            status: 'Pending'  // Ensure status stays as Pending
+                        });
                     });
                 }
                 
@@ -176,7 +184,7 @@ function updateEntityRow(entity, updates = {}) {
     // Update the row cells
     if (updates.lastSync) {
         const lastSyncDate = new Date(updates.lastSync);
-        row.querySelector('.last-sync').textContent = lastSyncDate.toLocaleString();
+        row.querySelector('.last-sync').textContent = formatLastSync(updates.lastSync);
     }
     if (updates.status) {
         const statusCell = row.querySelector('.status');
@@ -262,7 +270,8 @@ function syncComplete(success = true) {
     closeButton.classList.remove('opacity-50', 'cursor-not-allowed');
     
     if (success) {
-        closeButton.classList.add('success');
+        closeButton.classList.remove('btn-secondary');
+        closeButton.classList.add('btn-success');
     }
 }
 

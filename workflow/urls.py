@@ -185,6 +185,11 @@ urlpatterns = [
         xero_view.xero_sync_progress_page,
         name="xero_sync_progress",
     ),
+    path(
+        "api/xero/sync-info/",
+        xero_view.get_xero_sync_info,
+        name="xero_sync_info",
+    ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
     path(
