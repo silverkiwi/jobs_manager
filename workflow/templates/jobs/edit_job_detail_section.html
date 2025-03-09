@@ -63,7 +63,7 @@
         </div>
     </div>
 
-    <div class="row mb-3">
+    <div class="d-none">
         <div class="col-md-12">
             <label for="materialGaugeQuantity">Material / Gauge / Quantity</label>
             <textarea id="material_gauge_quantity" name="material_gauge_quantity"
@@ -74,7 +74,7 @@
 
     <div class="row mb-3">
         <div class="col-md-12">
-            <label for="description">Job Description</label>
+            <label for="description">Job Description (for invoice)</label>
             <textarea id="job_description" name="description" class="form-control autoresizeTextarea autosave-input"
                 rows="1">{{ job.description|default_if_none:'' }}</textarea>
         </div>
@@ -84,6 +84,7 @@
         <div class="col-md-12">
             <label for="job_notes">
                 Job Notes
+                <small class="text-muted">(Internal use only)</small>
             </label>
             <div id="job_notes_editor" style="height: 200px; margin-bottom: 15px; border: 1px solid #ced4da; border-radius: 0.25rem"></div>
             <input type="hidden" id="job_notes" name="notes" class="autosave-input" value="{{ job.notes|default_if_none:'' }}">

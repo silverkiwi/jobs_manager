@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 ]
             },
         },
-        placeholder: "Add notes about the job here..."
+        placeholder: "Add notes about the job here... (e.g Materials, Gauge, Quantity, etc.)",
     });
 
     const notesInput = document.getElementById("job_notes");
