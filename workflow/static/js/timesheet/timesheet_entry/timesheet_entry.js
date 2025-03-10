@@ -6,7 +6,7 @@ import {
 } from "./grid_manager.js";
 import { gridOptions } from "./grid.js";
 import { getCookie } from "./utils.js";
-import { timesheet_data, rowStateTracker, sentMessages } from "./state.js";
+import { timesheet_data, rowStateTracker } from "./state.js";
 import { fetchJobs } from "./job_section.js";
 import { updateSummarySection } from "./summary.js";
 
@@ -17,8 +17,6 @@ const gridDiv = document.querySelector("#timesheet-grid");
 initializeGrid(gridDiv, gridOptions);
 
 document.addEventListener("DOMContentLoaded", function () {
-  sentMessages.clear();
-
   fetchJobs();
 
   // Initialize rowStateTracker from localStorage or create a new one
