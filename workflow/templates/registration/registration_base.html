@@ -22,7 +22,6 @@
     <script src="{% static 'jquery/jquery.min.js' %}"></script>
     <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
     <script>
-        // Adiciona classe de animação aos elementos na carga da página
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.auth-card').forEach(function(card, index) {
                 setTimeout(function() {
@@ -30,7 +29,6 @@
                 }, 100 * index);
             });
             
-            // Adiciona efeito de loading nos botões durante submissão
             document.querySelectorAll('form').forEach(function(form) {
                 form.addEventListener('submit', function() {
                     const btn = this.querySelector('[type="submit"]');

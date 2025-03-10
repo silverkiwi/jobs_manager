@@ -2,25 +2,37 @@ import json
 import logging
 import re
 import traceback
+import threading
 import uuid
 from abc import ABC, abstractmethod
-from datetime import timedelta
+from datetime import timedelta, timezone, datetime
 from decimal import Decimal
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from django.core.cache import cache
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView
 from django.contrib import messages
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.views.decorators.http import require_POST
+from django.utils.decorators import method_decorator
+from django.db import transaction
 
 from xero_python.accounting import AccountingApi
 from xero_python.accounting.models import Contact
 from xero_python.accounting.models import Invoice as XeroInvoice
 from xero_python.accounting.models import LineItem
 from xero_python.accounting.models import Quote as XeroQuote
+from xero_python.api_client import ApiClient
+from xero_python.api_client.configuration import Configuration
+from xero_python.api_client.oauth2 import OAuth2Token
+from xero_python.exceptions import AccountingBadRequestException
+from xero_python.identity import IdentityApi
 
-from workflow.api.xero.sync import synchronise_xero_data
+from workflow.api.xero.sync import synchronise_xero_data, delete_clients_from_xero
 from workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
@@ -32,7 +44,7 @@ from workflow.api.xero.xero import (
     refresh_token,
 )
 from workflow.enums import InvoiceStatus, QuoteStatus
-from workflow.models import Invoice, Job
+from workflow.models import Invoice, Job, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults
 from workflow.models.quote import Quote
 from workflow.utils import extract_messages
 
@@ -73,7 +85,7 @@ def refresh_xero_token(request: HttpRequest) -> HttpResponse:
     refreshed_token = refresh_token()
 
     if not refreshed_token:
-        return redirect("xero_authenticate")
+        return redirect("api_xero_authenticate")
 
     return redirect("xero_get_contacts")
 
@@ -84,34 +96,95 @@ def success_xero_connection(request: HttpRequest) -> HttpResponse:
 
 
 def refresh_xero_data(request):
+    """Refresh Xero data, handling authentication properly."""
     try:
-        token = get_token()
-
+        token = get_valid_token()
         if not token:
-            logger.info(
-                "User is not authenticated with Xero, redirecting to authentication"
-            )
-            return redirect(
-                "authenticate_xero"
-            )  # Redirect to the Xero authentication path
+            logger.info("No valid token found, redirecting to Xero authentication")
+            return redirect("api_xero_authenticate")
 
-        # If authenticated, proceed with syncing data
-        synchronise_xero_data()
-        logger.info("Xero data successfully refreshed")
+        # If we have a valid token, proceed with syncing data
+        return redirect("xero_sync_progress")
 
     except Exception as e:
-        if "token" in str(e).lower():  # Or check for the specific error code
-            logger.error(f"Error while refreshing Xero data: {str(e)}")
-            return redirect("authenticate_xero")
-        else:
-            logger.error(f"Error while refreshing Xero data: {str(e)}")
-            traceback.print_exc()
-            return render(
-                request, "general/generic_error.html", {"error_message": str(e)}
-            )
+        logger.error(f"Error while refreshing Xero data: {str(e)}")
+        if "token" in str(e).lower():
+            return redirect("api_xero_authenticate")
+        return render(
+            request, "general/generic_error.html", {"error_message": str(e)}
+        )
 
-    # After successful sync, redirect to the home page or wherever appropriate
-    return redirect("/")
+
+def generate_xero_sync_events():
+    """Generate SSE events for Xero sync progress."""
+    try:
+        # Verify we have a valid token before starting sync
+        token = get_valid_token()
+        if not token:
+            yield f"data: {json.dumps({
+                'datetime': timezone.now().isoformat(),
+                'entity': 'sync',
+                'severity': 'error',
+                'message': 'No valid Xero token. Please authenticate.',
+                'progress': None
+            })}\n\n"
+            return
+
+        # Proceed with sync if we have a valid token
+        messages = synchronise_xero_data()
+        for message in messages:
+            data = json.dumps(message)
+            yield f"data: {data}\n\n"
+    except Exception as e:
+        error_message = {
+            "datetime": timezone.now().isoformat(),
+            "entity": "sync",
+            "severity": "error",
+            "message": str(e),
+            "progress": None
+        }
+        yield f"data: {json.dumps(error_message)}\n\n"
+    finally:
+        final_message = {
+            "datetime": timezone.now().isoformat(),
+            "entity": "sync",
+            "severity": "info",
+            "message": "Sync stream ended",
+            "progress": 1.0
+        }
+        yield f"data: {json.dumps(final_message)}\n\n"
+
+
+def stream_xero_sync(request):
+    """Stream the Xero sync progress using Server-Sent Events."""
+    try:
+        # First try to get a valid token
+        token = get_valid_token()
+        if not token:
+            return JsonResponse({
+                "datetime": timezone.now().isoformat(),
+                "entity": "sync",
+                "severity": "error",
+                "message": "Your Xero session has expired. Please refresh the page to re-authenticate.",
+                "progress": None
+            }, status=401)
+
+        response = StreamingHttpResponse(
+            streaming_content=generate_xero_sync_events(),
+            content_type='text/event-stream'
+        )
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
+    except Exception as e:
+        logger.error(f"Error starting Xero sync: {str(e)}")
+        return JsonResponse({
+            "datetime": timezone.now().isoformat(),
+            "entity": "sync",
+            "severity": "error",
+            "message": f"Failed to start sync: {str(e)}",
+            "progress": None
+        }, status=500)
 
 
 def clean_payload(payload):
@@ -655,3 +728,67 @@ class XeroIndexView(TemplateView):
     Kept as of 2025-01-07 in case we change our mind"""
 
     template_name = "xero_index.html"
+
+
+def xero_sync_progress_page(request):
+    """Render the Xero sync progress page."""
+    try:
+        # First try to get a valid token
+        token = get_valid_token()
+        if not token:
+            logger.info("No valid token found, redirecting to Xero authentication")
+            return redirect("api_xero_authenticate")
+            
+        # Render the progress page - the JavaScript will connect to the stream endpoint
+        return render(request, "xero/xero_sync_progress.html")
+    except Exception as e:
+        logger.error(f"Error accessing sync progress page: {str(e)}")
+        if "token" in str(e).lower():
+            return redirect("api_xero_authenticate")
+        return render(request, "general/generic_error.html", {"error_message": str(e)})
+
+
+def get_xero_sync_info(request):
+    """Get initial sync information including last sync times and sync range."""
+    try:
+        company_defaults = CompanyDefaults.objects.get()
+        
+        # Get last sync times for each entity
+        last_syncs = {
+            'accounts': get_last_modified_time(XeroAccount),
+            'contacts': get_last_modified_time(Client),
+            'invoices': get_last_modified_time(Invoice),
+            'bills': get_last_modified_time(Bill),
+            'journals': get_last_modified_time(XeroJournal),
+            'credit-notes': get_last_modified_time(CreditNote),
+            'quotes': get_last_modified_time(Quote),
+        }
+
+        # Convert ISO strings to datetime objects for comparison
+        sync_times = []
+        for time_str in last_syncs.values():
+            try:
+                if time_str and time_str != "2000-01-01T00:00:00Z":
+                    sync_times.append(datetime.fromisoformat(time_str.replace('Z', '+00:00')))
+            except (ValueError, AttributeError):
+                continue
+
+        # Determine sync range message
+        if (not company_defaults.last_xero_deep_sync or 
+            (timezone.now() - company_defaults.last_xero_deep_sync).days >= 30):
+            sync_range = "Starting deep sync - looking back 90 days"
+        else:
+            if sync_times:
+                earliest_sync = min(sync_times)
+                formatted_time = earliest_sync.strftime("%d/%m/%Y, %H:%M:%S")
+                sync_range = f"Syncing Xero since {formatted_time}"
+            else:
+                sync_range = "Starting initial sync"
+
+        return JsonResponse({
+            'last_syncs': last_syncs,
+            'sync_range': sync_range,
+        })
+    except Exception as e:
+        logger.error(f"Error getting sync info: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)

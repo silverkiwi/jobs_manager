@@ -139,12 +139,6 @@ body {
     max-width: 300px;
 }
 
-#monthEndButton {
-    padding: 8px 12px;
-    font-size: 14px;
-    float: right; /* Ensure the button stays on the right */
-}
-
 .job-card-dragging {
     opacity: 0.9;
     transform: rotate(2deg);

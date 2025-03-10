@@ -113,7 +113,7 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     ]
 
     class Meta:
-        ordering = ["first_name", "last_name"]
+        ordering = ["last_name", "first_name"]
 
     def save(self, *args, **kwargs):
         # We have to do this because fixtures don't have updated_at,

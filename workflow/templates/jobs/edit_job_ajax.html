@@ -4,6 +4,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
 <link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
+<link rel="stylesheet" href="{% static 'quill/quill.snow.css' %}">
 <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
 {% endblock %}
 
@@ -240,6 +241,8 @@
 <!-- PDFMake -->
 <script src="{% static 'pdfmake/pdfmake.js' %}"></script>
 <script src="{% static 'pdfmake/vfs_fonts.js' %}"></script>
+<!-- Quill -->
+<script src="{% static 'quill/quill.js' %}"></script>
 <!-- Custom JS -->
 <script type="application/json" id="latestJobPricingsData"
     style="display:none;">{{ latest_job_pricings_json|safe }}</script>
@@ -252,4 +255,5 @@
 <script type="module" src="{% static 'js/job/edit_job_grid_logic.js' %}"></script>
 <script type="module" src="{% static 'js/time_conversion.js' %}"></script>
 <script type="module" src="{% static 'js/job/delete_job.js' %}"></script>
+<script type="module" src="{% static 'js/job/quill_init.js' %}"></script>
 {% endblock %}

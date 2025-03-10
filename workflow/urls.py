@@ -1,3 +1,41 @@
+"""
+URL Configuration for Workflow App
+
+URL Structure Patterns:
+----------------------
+
+1. Resource-based URL paths:
+   - Primary resources have their own root path: /{resource}/
+   - Examples: /xero/, /clients/, /invoices/, /job/, /kanban/
+
+2. API Endpoints:
+   - All API endpoints are prefixed with /api/
+   - Follow pattern: /api/{resource}/{action}/
+   - Examples: /api/xero/authenticate/, /api/clients/all/
+
+3. Resource Actions:
+   - List view: /{resource}/
+   - Detail view: /{resource}/{id}/
+   - Create: /{resource}/add/ or /api/{resource}/create/
+   - Update: /{resource}/{id}/update/
+   - Delete: /api/{resource}/{id}/delete/
+
+4. Nested Resources:
+   - Follow pattern: /{parent-resource}/{id}/{child-resource}/
+   - Example: /job/{id}/workshop-pdf/
+
+5. URL Names:
+   - Use resource_action format
+   - Examples: client_detail, job_create, invoice_update
+
+6. Ordering:
+   - URLs MUST be kept in strict alphabetical order by path
+   - Group URLs logically (api/, resource roots) but maintain alphabetical order within each group
+   - Comments may be used to denote logical groupings but do not break alphabetical ordering
+
+Follow these patterns when adding new URLs to maintain consistency.
+"""
+
 import debug_toolbar
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
@@ -16,6 +54,7 @@ from workflow.views import (
     time_overview_view,
     workshop_view,
     xero_view,
+    job_management_view,
 )
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
@@ -24,6 +63,8 @@ from workflow.views import password_views
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
+    
+    # API endpoints
     path(
         "api/autosave-job/",
         edit_job_view_ajax.autosave_job_view,
@@ -36,6 +77,7 @@ urlpatterns = [
     ),
     path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
+    path("api/client-detail/", client_view.client_detail, name="client_detail"),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
         submit_quote_view.generate_quote_pdf,
@@ -95,22 +137,27 @@ urlpatterns = [
     path(
         "api/xero/authenticate/",
         xero_view.xero_authenticate,
-        name="authenticate_xero",
+        name="api_xero_authenticate",
     ),
     path(
         "api/xero/oauth/callback/",
         xero_view.xero_oauth_callback,
-        name="oauth_callback_xero",
+        name="xero_oauth_callback",
     ),
     path(
         "api/xero/success/",
         xero_view.success_xero_connection,
-        name="success_xero_connection",
+        name="xero_success",
     ),
     path(
         "api/xero/refresh/",
         xero_view.refresh_xero_data,
         name="refresh_xero_data",
+    ),
+    path(
+        "api/xero/sync-stream/",
+        xero_view.stream_xero_sync,
+        name="stream_xero_sync",
     ),
     path(
         "api/xero/disconnect/",
@@ -137,6 +184,16 @@ urlpatterns = [
         xero_view.delete_xero_quote,
         name="delete_quote",
     ),
+    path(
+        "xero/sync-progress/",
+        xero_view.xero_sync_progress_page,
+        name="xero_sync_progress",
+    ),
+    path(
+        "api/xero/sync-info/",
+        xero_view.get_xero_sync_info,
+        name="xero_sync_info",
+    ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
     path(
@@ -145,6 +202,7 @@ urlpatterns = [
         name="update_client",
     ),
     path("client/add/", client_view.AddClient, name="add_client"),
+    path("clients/unused/", client_view.UnusedClientsView.as_view(), name="unused_clients"),
     path("invoices/", invoice_view.InvoiceListView.as_view(), name="list_invoices"),
     path(
         "invoices/<uuid:pk>",
@@ -161,7 +219,7 @@ urlpatterns = [
         workshop_view.WorkshopPDFView.as_view(),
         name="workshop-pdf",
     ),
-    path("month-end/", edit_job_view_ajax.process_month_end, name="month_end"),
+    path("month-end/", job_management_view.month_end_view, name="month_end"),
     path(
         "jobs/<uuid:job_id>/update_status/",
         kanban_view.update_job_status,
@@ -212,6 +270,13 @@ urlpatterns = [
         name="timesheet_daily_view",
     ),
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
+    path(
+        "xero/sync-progress/",
+        xero_view.xero_sync_progress_page,
+        name="xero_sync_progress",
+    ),
+    path("xero/unused-clients/", client_view.UnusedClientsView.as_view(), name="xero_unused_clients"),
+
     # Login/Logout views
     path("login/", auth_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
@@ -266,5 +331,5 @@ urlpatterns = [
         staff_view.get_staff_rates,
         name="get_staff_rates",
     ),
-    path("__debug__/", include(debug_toolbar.urls)),  # Add this line
+    path("__debug__/", include(debug_toolbar.urls)),
 ]
