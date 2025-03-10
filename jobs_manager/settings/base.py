@@ -218,6 +218,8 @@ STATICFILES_DIRS = [
     ("moment", "node_modules/moment"),
     # SortableJS (JS)
     ("sortablejs", "node_modules/sortablejs"),
+    # Quill (CSS/JS)
+    ("quill", "node_modules/quill/dist"),
 ]
 
 # Default primary key field type

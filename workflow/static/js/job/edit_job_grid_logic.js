@@ -30,12 +30,6 @@
  *   API handling in `onGridReady`.
  */
 
-import {
-  debouncedAutosave,
-  copyEstimateToQuote,
-  handlePrintWorkshop,
-} from "./edit_job_form_autosave.js";
-
 // Grid column definitions
 import { createTrashCanColumn } from "./grid/columns.js";
 

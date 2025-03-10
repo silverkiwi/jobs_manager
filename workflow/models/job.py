@@ -67,12 +67,10 @@ class Job(models.Model):
         blank=True,
     )
     job_number: int = models.IntegerField(unique=True)  # Job 1234
-    material_gauge_quantity: str = models.TextField(  # type: ignore
+    material_gauge_quantity: str = models.TextField(
         blank=True,
         null=True,
-        help_text=(
-            "Internal notes such as the material to use. " "Not shown on the invoice"
-        ),
+        help_text="DEPRECATED - Use notes field instead. Content will be automatically migrated.",
     )
     description: str = models.TextField(
         blank=True,
@@ -156,6 +154,12 @@ class Job(models.Model):
     history: HistoricalRecords = HistoricalRecords()
 
     complex_job = models.BooleanField(default=False)  # type: ignore
+
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Internal notes about the job. Not shown on the invoice.",
+    )
 
     class Meta:
         ordering = ["job_number"]
