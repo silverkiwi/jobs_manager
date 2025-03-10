@@ -41,16 +41,15 @@
   <input type="text" id="search" class="form-control" placeholder="🔍 Search jobs...">
 
   <div class="left-container">
-    <button id="monthEndButton" class="btn btn-primary" style="display:none;">
+    <button id="monthEndButton" class="btn btn-primary btn-sm" style="display:none;">
       <i class="bi bi-calendar-month me-1"></i>Month End
     </button>
     <div class="job-controls">
-      <label for="jobPageSize" class="form-label">Jobs per page:</label>
-      <select id="jobPageSize" class="form-select">
+      <label for="jobPageSize" class="form-label small mb-0">Per page:</label>
+      <select id="jobPageSize" class="form-select form-select-sm" style="width: 60px">
         <option value="10">10</option>
         <option value="20">20</option>
         <option value="50">50</option>
-        <option value="100">100</option>
       </select>
     </div>
   </div>
@@ -58,21 +57,63 @@
 
 <div class="kanban-board">
   {% for status_key, status_label in status_choices %}
+  {% if status_key != "archived" %}
   <div id="{{ status_key }}" class="kanban-column">
-      <div class="column-header">{{ status_label }} (<span id="{{ status_key }}-count">0</span> of <span id="{{ status_key }}-total">0</span>)</div>
+      <div class="column-header">{{ status_label }} (<span id="{{ status_key }}-count">0</span>/<span id="{{ status_key }}-total">0</span>)</div>
       <div class="job-list"></div>
       
       <div id="{{ status_key }}-load-more-container" class="load-more-container mb-2" style="display: none;">
-          <button id="{{ status_key }}-load-more" class="load-more btn btn-secondary" data-status="{{ status_key }}">
-              <i class="bi bi-arrow-down me-1"></i>Load More
+          <button id="{{ status_key }}-load-more" class="load-more btn btn-secondary btn-sm" data-status="{{ status_key }}">
+              <i class="bi bi-arrow-down me-1"></i>More
           </button>
       </div>
   </div>
+  {% endif %}
   {% endfor %}  
+</div>
+
+<div class="archive-section">
+  <div class="archive-header">
+    <h3 class="archive-title">
+      <i class="bi bi-archive"></i> Archived Jobs 
+      (<span id="archived-count">0</span>/<span id="archived-total">0</span>)
+    </h3>
+    <button class="archive-toggle" id="toggleArchive">
+      <i class="bi bi-chevron-down"></i>
+    </button>
+  </div>
+  
+  <div id="archiveContainer" class="archive-grid" style="display: none;">
+    <div id="archived" class="kanban-column">
+      <div class="job-list"></div>
+      <div id="archived-load-more-container" class="load-more-container mb-2" style="display: none;">
+        <button id="archived-load-more" class="load-more btn btn-secondary btn-sm" data-status="archived">
+          <i class="bi bi-arrow-down me-1"></i>More
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'sortablejs/Sortable.min.js' %}"></script>
 <script src="{% static 'js/kanban.js' %}"></script>
+<script>
+  // Toggle archive section visibility
+  document.getElementById('toggleArchive').addEventListener('click', function() {
+    const archiveContainer = document.getElementById('archiveContainer');
+    const toggleIcon = this.querySelector('i');
+    
+    if (archiveContainer.style.display === 'none') {
+      archiveContainer.style.display = 'grid';
+      toggleIcon.classList.remove('bi-chevron-down');
+      toggleIcon.classList.add('bi-chevron-up');
+    } else {
+      archiveContainer.style.display = 'none';
+      toggleIcon.classList.remove('bi-chevron-up');
+      toggleIcon.classList.add('bi-chevron-down');
+    }
+  });
+</script>
 {% endblock %}

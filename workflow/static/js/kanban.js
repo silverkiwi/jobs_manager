@@ -86,38 +86,20 @@ function createJobCard(job) {
   card.setAttribute("data-client-name", job.client ? job.client.name : "");
   card.setAttribute("data-job-description", job.description || "");
   card.setAttribute("data-job-number", job.job_number);
+  
+  // Simplificado e mais compacto
   card.innerHTML = `
-        <h3><a href="/job/${job.id}/">Job ${job.job_number}: ${job.name}</a></h3>
-        
-    `;
-
-  // Tooltip container (Hidden initially)
-  let tooltip = document.createElement("div");
-  tooltip.className = "job-tooltip";
-  tooltip.textContent = job.description;
-  tooltip.style.display = "none";
-
-  // Append tooltip to document body (so it floats near cursor)
-  document.body.appendChild(tooltip);
-
-  // Show tooltip on hover
-  card.addEventListener("mouseenter", (event) => {
-    if (job.description) {
-      tooltip.style.display = "block";
-      tooltip.style.left = `${event.pageX + 10}px`;
-      tooltip.style.top = `${event.pageY + 10}px`;
-    }
-  });
-
-  // Move tooltip with cursor
-  card.addEventListener("mousemove", (event) => {
-    tooltip.style.left = `${event.pageX + 10}px`;
-    tooltip.style.top = `${event.pageY + 10}px`;
-  });
-
-  // Hide tooltip on mouse leave
-  card.addEventListener("mouseleave", () => {
-    tooltip.style.display = "none";
+    <div class="job-card-header">
+      <div class="job-card-title">${job.job_number}: ${job.name}</div>
+    </div>
+    <div class="job-card-body">
+      <small>${job.client ? job.client.name : ""}</small>
+    </div>
+  `;
+  
+  // Adiciona o event listener para abrir o detalhe do job
+  card.addEventListener("click", () => {
+    window.location.href = `/job/${job.id}/`;
   });
 
   return card;
@@ -125,33 +107,28 @@ function createJobCard(job) {
 
 // Initialize SortableJS to allow moving jobs between columns
 function initializeDragAndDrop() {
-  document.querySelectorAll(".job-list").forEach((container) => {
-    new Sortable(container, {
-      group: "shared",
-      animation: 150,
-      ghostClass: "job-card-ghost",
-      chosenClass: "job-card-chosen",
-      dragClass: "job-card-drag",
-      onEnd: function (evt) {
-        const itemEl = evt.item;
-        const oldStatus = evt.from.closest(".kanban-column").id;
-        const newStatus = evt.to.closest(".kanban-column").id;
-        const jobId = itemEl.getAttribute("data-id");
-
-        if (!oldStatus || !newStatus || oldStatus === newStatus) {
-          return;
-        }
-
-        console.log(`Job ${jobId} moved from ${oldStatus} to ${newStatus}`);
-
-        updateJobStatus(jobId, newStatus);
-
-        // Update affected column counters
-        updateColumnHeader(oldStatus);
-        updateColumnHeader(newStatus);
-      },
-    });
-  });
+  document.querySelectorAll('.kanban-column .job-list').forEach(jobList => {
+    if (jobList.closest('#archived')) {
+        // Para a coluna de arquivados, não permitimos arrastar DE lá 
+        // (mas permitimos que jobs sejam movidos PARA lá)
+        new Sortable(jobList, {
+            group: { 
+                name: 'jobs',
+                pull: false, // Não permite arrastar de arquivados
+                put: true    // Permite soltar em arquivados
+            },
+            animation: 150,
+            // ... resto das opções existentes
+        });
+    } else {
+        // Para outras colunas, inicialização normal
+        new Sortable(jobList, {
+            group: 'jobs',
+            animation: 150,
+            // ... resto das opções existentes
+        });
+    }
+});
 }
 
 function updateJobStatus(jobId, newStatus) {
