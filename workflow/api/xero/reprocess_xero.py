@@ -171,6 +171,9 @@ def set_client_fields(client, new_from_xero=False):
         payment_terms is not None and payment_terms.get("sales") is not None
     )
 
+    # Set contact status from Xero
+    client.contact_status = raw_data.get("_contact_status")
+
     updated_date_utc = raw_data.get("_updated_date_utc")
     if updated_date_utc:
         client.xero_last_modified = updated_date_utc
@@ -312,7 +315,7 @@ def reprocess_clients():
 def reprocess_journals():
     """
     Iterate over all XeroJournal records and re-run the set_journal_fields().
-    Useful if we’ve tweaked mapping logic and want to re-derive fields from stored raw_json.
+    Useful if we've tweaked mapping logic and want to re-derive fields from stored raw_json.
     """
     from workflow.models.xero_journal import XeroJournal
 

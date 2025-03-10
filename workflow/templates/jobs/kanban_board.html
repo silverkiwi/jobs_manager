@@ -7,36 +7,10 @@
 
 {% block content %}
 
-<div id="monthEndModal" class="modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Select Jobs for Month-End Processing</h5>
-
-      </div>
-      <div class="modal-body">
-        <form id="monthEndForm">
-          <label for="jobSelector">Jobs</label>
-          <select id="jobSelector" class="form-control" multiple>
-            {% for job in jobs %}
-            <option value="{{ job.id }}">{{ job.name }}</option>
-            {% endfor %}
-          </select>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button type="button" id="confirmMonthEnd" class="btn btn-primary">Process</button>
-      </div>
-    </div>
-  </div>
-</div> 
-
 <div class="search-container">
   <input type="text" id="search" class="form-control" placeholder="🔍 Search jobs...">
 
   <div class="left-container">
-    <button id="monthEndButton" class="btn btn-primary" style="display:none;">Month End</button>
     <div class="job-controls">
       <label for="jobPageSize" class="form-label">Jobs per page:</label>
       <select id="jobPageSize" class="form-select">
