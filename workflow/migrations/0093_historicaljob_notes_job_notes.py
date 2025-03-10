@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("workflow", "0090_rename_coolected_historicaljob_collected_and_more"),
+        ("workflow", "0091_rename_coolected_historicaljob_collected_and_more"),
     ]
 
     operations = [
