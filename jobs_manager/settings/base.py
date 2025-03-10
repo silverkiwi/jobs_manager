@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     'django.contrib.sites',
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
     "django_tables2",
     "workflow",
     "simple_history",

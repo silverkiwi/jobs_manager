@@ -41,7 +41,7 @@
 #### Xero Integration
 | URL Pattern | View | Name | Description |
 |-------------|------|------|-------------|
-| `/api/xero/authenticate/` | `xero_view.xero_authenticate` | `authenticate_xero` | Initiates Xero authentication |
+| `/api/xero/authenticate/` | `xero_view.xero_authenticate` | `api_xero_authenticate` | Initiates Xero authentication |
 | `/api/xero/oauth/callback/` | `xero_view.xero_oauth_callback` | `oauth_callback_xero` | Handles Xero OAuth callback |
 | `/api/xero/success/` | `xero_view.success_xero_connection` | `success_xero_connection` | Handles successful Xero connection |
 | `/api/xero/refresh/` | `xero_view.refresh_xero_data` | `refresh_xero_data` | Refreshes Xero data |
