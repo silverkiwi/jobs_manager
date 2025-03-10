@@ -33,11 +33,18 @@ export const gridOptions = {
       },
     },
     {
-      field: "description",
-      headerName: "Description",
+      field: "client",
+      headerName: "Client",
+      flex: 1.5,
+      minWidth: 120,
+      editable: false,
+    },
+    {
+      field: "job_name",
+      headerName: "Job Name",
       flex: 2,
-      minWidth: 150,
-      editable: true,
+      minWidth: 120,
+      editable: false,
     },
     {
       field: "hours",
@@ -69,8 +76,8 @@ export const gridOptions = {
       cellRenderer: "agCheckboxCellRenderer",
     },
     {
-      field: "notes",
-      headerName: "Notes",
+      field: "description",
+      headerName: "Description",
       flex: 2,
       minWidth: 150,
       editable: true,
@@ -78,8 +85,8 @@ export const gridOptions = {
     {
       field: "rate_type",
       headerName: "Rate",
-      width: 70, // Set a specific width to make it smaller
-      maxWidth: 70, // REALLY TRY AND MAKE IT SMALLER
+      flex: 1,
+      minWidth: 70,
       editable: true,
       cellEditor: "agSelectCellEditor",
       cellEditorParams: {
@@ -87,52 +94,31 @@ export const gridOptions = {
       },
     },
     {
-      field: "job_name",
-      headerName: "Job Name",
-      width: 100,
-      editable: false,
-    },
-    {
-      field: "client",
-      headerName: "Client",
-      width: 100,
-      editable: false,
-    },
-    {
       field: "wage_amount",
-      headerName: "Wage $",
-      width: 70,
-      valueFormatter: currencyFormatter,
+      headerName: "Wage",
+      flex: 1,
+      minWidth: 80,
       editable: false,
+      valueFormatter: currencyFormatter,
     },
     {
       field: "bill_amount",
-      headerName: "Bill $",
-      width: 70,
+      headerName: "Bill",
+      flex: 1,
+      minWidth: 80,
+      editable: false,
       valueFormatter: currencyFormatter,
-      editable: false,
     },
     {
-      field: "job_data",
-      headerName: "Job Data",
-      width: 0,
-      hide: true, // Invisible column to make processing easier
+      field: "notes",
       editable: false,
+      hide: true,
     },
     {
-      field: "staff_id",
-      hide: true, // Invisible column
-      editable: false,
-    },
-    {
-      field: "timesheet_date",
-      hide: true, // Invisible column
-      editable: false,
-    },
-    {
-      field: "deleteIcon",
+      field: "delete",
       headerName: "",
       width: 50,
+      editable: false,
       cellRenderer: deleteIconCellRenderer,
       onCellClicked:
         /**
@@ -213,6 +199,23 @@ export const gridOptions = {
           adjustGridHeight();
           updateSummarySection();
         },
+    },
+    {
+      field: "job_data",
+      headerName: "Job Data",
+      width: 0,
+      hide: true, // Invisible column to make processing easier
+      editable: false,
+    },
+    {
+      field: "staff_id",
+      hide: true, // Invisible column
+      editable: false,
+    },
+    {
+      field: "timesheet_date",
+      hide: true, // Invisible column
+      editable: false,
     },
   ],
   defaultColDef: {

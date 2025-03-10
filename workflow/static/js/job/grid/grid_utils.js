@@ -160,6 +160,7 @@ export function onCellKeyDown(params) {
   if (params.event.key === "Enter" && isComplex) {
     const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
     if (isLastRow) {
+      const gridKey = params.context.gridKey;
       const newRow = createNewRow(params.context.gridType);
       if (newRow) {
         params.api.applyTransaction({ add: [newRow] });
@@ -170,7 +171,7 @@ export function onCellKeyDown(params) {
             colKey: params.column.colId,
           });
         }, 0);
-        adjustGridHeight(params.api, `${gridKey}`);
+        adjustGridHeight(params.api, gridKey);
       }
     }
   }
@@ -180,7 +181,7 @@ export function calculateRetailRate(costRate, markupRate) {
   return costRate + costRate * markupRate;
 }
 
-function fetchMaterialsMarkup(rowData) {
+export function fetchMaterialsMarkup(rowData) {
   if (rowData.materialsMarkup !== undefined) {
     return Promise.resolve(rowData.materialsMarkup);
   }
@@ -280,4 +281,45 @@ export function adjustGridHeight(gridApi, containerId) {
   }
 
   container.style.height = `${desiredHeight}px`;
+}
+
+/**
+ * Checks if there are any real values in the reality section and disables delete buttons if necessary
+ */
+export function checkRealityValues() {
+  const realityGrids = ['realityTimeTable', 'realityMaterialsTable', 'realityAdjustmentsTable'];
+  let hasRealValues = false;
+
+  realityGrids.forEach(gridKey => {
+    const gridData = window.grids[gridKey];
+    if (gridData && gridData.api) {
+      gridData.api.forEachNode(node => {
+        // Check for revenue or cost values > 0
+        const revenue = parseFloat(node.data.revenue || 0);
+        const cost = parseFloat(node.data.cost || 0);
+        
+        // For materials, also check quantity and unit_cost/unit_revenue
+        const quantity = parseFloat(node.data.quantity || 0);
+        const unitCost = parseFloat(node.data.unit_cost || 0);
+        const unitRevenue = parseFloat(node.data.unit_revenue || 0);
+        
+        // For time entries, check minutes
+        const minutes = parseFloat(node.data.total_minutes || 0);
+        
+        if (revenue > 0 || cost > 0 || 
+            (quantity > 0 && (unitCost > 0 || unitRevenue > 0)) ||
+            minutes > 0) {
+          hasRealValues = true;
+        }
+      });
+    }
+  });
+
+  // Disable delete buttons in reality section if there are real values
+  if (hasRealValues) {
+    const deleteButton = document.getElementById('delete-job-btn');
+    if (deleteButton) {
+      deleteButton.disabled = true;
+    }
+  }
 }

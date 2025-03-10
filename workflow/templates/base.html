@@ -39,7 +39,7 @@
                             <ul class="dropdown-menu" aria-labelledby="xeroMenu">
                                 {% load xero_tags %}
                                 {% get_xero_action as xero_action %}
-                                <li><a class="dropdown-item" href="{% url 'refresh_xero_data' %}">Refresh Xero Data</a></li>
+                                <li><a class="dropdown-item" href="{% url 'xero_sync_progress' %}">Refresh Xero Data</a></li>
                                 <li><a class="dropdown-item" href="{% url xero_action.url_name %}">{{ xero_action.action_text }}</a></li>
                             </ul>
                         </li>
@@ -93,7 +93,7 @@
         {% if xero_sync.needed %}
         <div class="alert alert-warning alert-dismissible fade show" role="alert">
             {{ xero_sync.message }}
-            <a href="{% url 'refresh_xero_data' %}" class="alert-link">Click here to sync now</a>
+            <a href="{% url 'xero_sync_progress' %}" class="alert-link">Click here to sync now</a>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         {% endif %}
@@ -130,10 +130,12 @@
         </div>
     </div>
 
-    <script>
-        window.DEBUG_MODE = {{ DEBUG_MODE|lower }};
+    <script type="text/javascript">
+        // Set debug mode from Django context
+        // @ts-ignore
+        window.DEBUG_MODE = Boolean({{ DEBUG_MODE|lower }});
     </script>
-    <script src="{% static 'js/env.js' %}"></script>
+    <script type="module" src="{% static 'js/env.js' %}"></script>
     <script src="{% static 'js/time_conversion.js' %}"></script>
     <script type="module" src="{% static 'js/timesheet/timesheet_entry/messages.js' %}"></script>
     <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>

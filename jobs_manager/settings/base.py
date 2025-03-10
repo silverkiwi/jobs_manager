@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    'django.contrib.sites',
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "django_tables2",
@@ -40,11 +41,19 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
     "workflow.middleware.LoginRequiredMiddleware",
+    "workflow.middleware.PasswordStrengthMiddleware",
 ]
 
 LOGIN_REDIRECT_URL = "/"
 LOGIN_URL = "/login/"
-LOGIN_EXEMPT_URLS = ["logout"]
+LOGIN_EXEMPT_URLS = [
+    "logout",
+    "password_reset",
+    "password_reset_done",
+    "reset",
+    "password_reset_confirm",
+    "password_reset_complete"
+]
 
 LOGGING = {
     "version": 1,
@@ -156,13 +165,14 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": (
-            "django.contrib.auth.password_validation."
-            "UserAttributeSimilarityValidator"
-        ),
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "OPTIONS": {
+            "user_attributes": ["email", "first_name", "last_name", "preferred_name"],
+        }
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": { "min_length": 10 }
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -171,7 +181,6 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
@@ -210,6 +219,8 @@ STATICFILES_DIRS = [
     ("moment", "node_modules/moment"),
     # SortableJS (JS)
     ("sortablejs", "node_modules/sortablejs"),
+    # Quill (CSS/JS)
+    ("quill", "node_modules/quill/dist"),
 ]
 
 # Default primary key field type
@@ -241,6 +252,8 @@ DEFAULT_XERO_SCOPES = " ".join([
 XERO_SCOPES = os.getenv("XERO_SCOPES", DEFAULT_XERO_SCOPES).split()
 
 DROPBOX_WORKFLOW_FOLDER = os.getenv('DROPBOX_WORKFLOW_FOLDER', os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow"))
+
+SITE_ID = 1
 
 def validate_required_settings():
     """Validate that all required settings are properly configured."""

@@ -20,5 +20,3 @@ export const timesheet_data = (() => {
     return null;
   }
 })();
-
-export const sentMessages = new Set();

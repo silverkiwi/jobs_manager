@@ -1,3 +1,41 @@
+"""
+URL Configuration for Workflow App
+
+URL Structure Patterns:
+----------------------
+
+1. Resource-based URL paths:
+   - Primary resources have their own root path: /{resource}/
+   - Examples: /xero/, /clients/, /invoices/, /job/, /kanban/
+
+2. API Endpoints:
+   - All API endpoints are prefixed with /api/
+   - Follow pattern: /api/{resource}/{action}/
+   - Examples: /api/xero/authenticate/, /api/clients/all/
+
+3. Resource Actions:
+   - List view: /{resource}/
+   - Detail view: /{resource}/{id}/
+   - Create: /{resource}/add/ or /api/{resource}/create/
+   - Update: /{resource}/{id}/update/
+   - Delete: /api/{resource}/{id}/delete/
+
+4. Nested Resources:
+   - Follow pattern: /{parent-resource}/{id}/{child-resource}/
+   - Example: /job/{id}/workshop-pdf/
+
+5. URL Names:
+   - Use resource_action format
+   - Examples: client_detail, job_create, invoice_update
+
+6. Ordering:
+   - URLs MUST be kept in strict alphabetical order by path
+   - Group URLs logically (api/, resource roots) but maintain alphabetical order within each group
+   - Comments may be used to denote logical groupings but do not break alphabetical ordering
+
+Follow these patterns when adding new URLs to maintain consistency.
+"""
+
 import debug_toolbar
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
@@ -20,6 +58,7 @@ from workflow.views import (
 )
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
+from workflow.views import password_views
 
 urlpatterns = [
     # Redirect to Kanban board
@@ -36,6 +75,7 @@ urlpatterns = [
     ),
     path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
+    path("api/client-detail/", client_view.client_detail, name="client_detail"),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
         submit_quote_view.generate_quote_pdf,
@@ -65,7 +105,7 @@ urlpatterns = [
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
     ),
-        path(
+    path(
         "api/job/<uuid:job_id>/delete/",
         edit_job_view_ajax.delete_job,
         name="delete_job",
@@ -73,12 +113,12 @@ urlpatterns = [
     path(
         "api/job/toggle-complex-job/",
         edit_job_view_ajax.toggle_complex_job,
-        name="toggle_complex_job"
+        name="toggle_complex_job",
     ),
     path(
         "api/job/toggle-pricing-type/",
         edit_job_view_ajax.toggle_pricing_type,
-        name="toggle_pricing_type"
+        name="toggle_pricing_type",
     ),
     path(
         "api/job-event/<uuid:job_id>/add-event/",
@@ -95,22 +135,27 @@ urlpatterns = [
     path(
         "api/xero/authenticate/",
         xero_view.xero_authenticate,
-        name="authenticate_xero",
+        name="api_xero_authenticate",
     ),
     path(
         "api/xero/oauth/callback/",
         xero_view.xero_oauth_callback,
-        name="oauth_callback_xero",
+        name="xero_oauth_callback",
     ),
     path(
         "api/xero/success/",
         xero_view.success_xero_connection,
-        name="success_xero_connection",
+        name="xero_success",
     ),
     path(
         "api/xero/refresh/",
         xero_view.refresh_xero_data,
         name="refresh_xero_data",
+    ),
+    path(
+        "api/xero/sync-stream/",
+        xero_view.stream_xero_sync,
+        name="stream_xero_sync",
     ),
     path(
         "api/xero/disconnect/",
@@ -136,6 +181,16 @@ urlpatterns = [
         "api/xero/delete_quote/<uuid:job_id>",
         xero_view.delete_xero_quote,
         name="delete_quote",
+    ),
+    path(
+        "xero/sync-progress/",
+        xero_view.xero_sync_progress_page,
+        name="xero_sync_progress",
+    ),
+    path(
+        "api/xero/sync-info/",
+        xero_view.get_xero_sync_info,
+        name="xero_sync_info",
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
@@ -215,6 +270,50 @@ urlpatterns = [
     # Login/Logout views
     path("login/", auth_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    # Password reset views
+    path(
+        "password_reset/",
+        auth_views.PasswordResetView.as_view(
+            template_name="registration/password_reset_form.html",
+            email_template_name="registration/password_reset_email.html",
+            subject_template_name="registration/password_reset_subject.txt",
+        ),
+        name="password_reset",
+    ),
+    path(
+        "password_reset/done/",
+        auth_views.PasswordResetDoneView.as_view(
+            template_name="registration/password_reset_done.html"
+        ),
+        name="password_reset_done",
+    ),
+    path(
+        "reset/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name="registration/password_reset_confirm.html"
+        ),
+        name="password_reset_confirm",
+    ),
+    path(
+        "reset/done/",
+        auth_views.PasswordResetCompleteView.as_view(
+            template_name="registration/password_reset_complete.html"
+        ),
+        name="password_reset_complete",
+    ),
+    # Password change views
+    path(
+        "password_change/",
+        password_views.SecurityPasswordChangeView.as_view(),
+        name="password_change",
+    ),
+    path(
+        "password_change/done/",
+        auth_views.PasswordChangeDoneView.as_view(
+            template_name="registration/password_change_done.html"
+        ),
+        name="password_change_done",
+    ),
     # This URL doesn't match our naming pattern - need to fix.
     # Probably should be in api/internal?
     path(

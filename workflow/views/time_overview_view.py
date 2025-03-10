@@ -4,6 +4,7 @@ import json
 import logging
 from datetime import datetime
 from decimal import Decimal
+from typing import List
 
 # matplotlib.use('Agg') must be called before importing matplotlib.pyplot
 # This configures matplotlib to work without a GUI backend
@@ -20,6 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.views.generic import TemplateView
+from django.db import models
 
 from workflow.forms import PaidAbsenceForm
 from workflow.models import Job, JobPricing, Staff, TimeEntry
@@ -40,6 +42,9 @@ EXCLUDED_STAFF_IDS = [
     "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
     "d335acd4-800e-517a-8ff4-ba7aada58d14",
     "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
+    # ID's for the same account on different environments
+    "843589ac-6d64-4056-91af-aefb25fbe8ea",
+    "7b467c53-78c5-4020-95f0-138f1f1bafc8"
 ]
 
 # Jobs that won't make part of the graphic
@@ -55,20 +60,23 @@ EXCLUDED_JOBS = [
     "Training",
 ]
 
-# This way we make only one query to the database for both views, which saves resources and improves the performance
-filtered_staff = [
-    staff_member
-    for staff_member in sorted(
-        Staff.objects.all(), key=lambda x: x.get_display_full_name()
-    )
-    if not (staff_member.is_staff is True or str(staff_member.id) in EXCLUDED_STAFF_IDS)
-]
-
-
 class TimesheetOverviewView(TemplateView):
     """View for displaying timesheet overview including staff hours, job statistics and graphics."""
 
     template_name = "time_entries/timesheet_overview.html"
+
+    @classmethod
+    def get_filtered_staff(cls) -> List[Staff]:
+        """Get filtered staff list excluding certain staff members.
+        
+        Returns:
+            List[Staff]: Staff objects using model's default ordering (by last_name, first_name),
+            excluding staff users and specific IDs.
+        """
+        return list(Staff.objects.exclude(
+            models.Q(is_staff=True) | 
+            models.Q(id__in=EXCLUDED_STAFF_IDS)
+        ))
 
     def get(self, request, start_date=None, *args, **kwargs):
         """Handle GET request to display timesheet overview.
@@ -229,7 +237,7 @@ class TimesheetOverviewView(TemplateView):
         total_hours = 0
         total_billable_hours = 0
 
-        for staff_member in filtered_staff:
+        for staff_member in self.get_filtered_staff():
             weekly_hours = []
             total_staff_std_hours = 0
             total_staff_ovt_hours = 0
@@ -539,7 +547,7 @@ class TimesheetOverviewView(TemplateView):
         form = PaidAbsenceForm()
         form_html = render_to_string(
             "time_entries/paid_absence_form.html",
-            {"form": form, "staff_members": filtered_staff},
+            {"form": form, "staff_members": self.get_filtered_staff()},
             request=request,
         )
         return JsonResponse(
@@ -649,6 +657,19 @@ class TimesheetOverviewView(TemplateView):
 class TimesheetDailyView(TemplateView):
     template_name = "time_entries/timesheet_daily_view.html"
 
+    @classmethod
+    def get_filtered_staff(cls) -> List[Staff]:
+        """Get filtered staff list excluding certain staff members.
+        
+        Returns:
+            List[Staff]: Staff objects using model's default ordering (by last_name, first_name),
+            excluding staff users and specific IDs.
+        """
+        return list(Staff.objects.exclude(
+            models.Q(is_staff=True) | 
+            models.Q(id__in=EXCLUDED_STAFF_IDS)
+        ))
+
     def get(self, request, date=None, *args, **kwargs):
         if date:
             try:
@@ -671,7 +692,7 @@ class TimesheetDailyView(TemplateView):
         total_shop_hours = 0
         total_missing_hours = 0
 
-        for staff_member in filtered_staff:
+        for staff_member in self.get_filtered_staff():
             scheduled_hours = staff_member.get_scheduled_hours(target_date)
             decimal_scheduled_hours = Decimal(scheduled_hours)
 
@@ -751,18 +772,22 @@ class TimesheetDailyView(TemplateView):
         shop_percentage = (total_shop_hours / total_hours) * 100
 
         context = {
-            "date": target_date.strftime("%Y-%m-%d"),
+            "date": target_date.strftime("%Y-%m-%d"),  # Keep original format for HTML date input
+            "date_nz": target_date.strftime("%d/%m/%Y"),  # Add NZ formatted date
             "staff_data": staff_data,
             "daily_summary": {
-                "total_expected_hours": total_expected_hours,
-                "total_actual_hours": total_actual_hours,
-                "total_missing_hours": total_missing_hours,
-                "billable_percentage": round(billable_percentage, 1),
-                "shop_percentage": round(shop_percentage, 1),
+            "total_expected_hours": total_expected_hours,
+            "total_actual_hours": total_actual_hours,
+            "total_missing_hours": total_missing_hours,
+            "billable_percentage": round(billable_percentage, 1),
+            "shop_percentage": round(shop_percentage, 1),
             },
             "context_json": json.dumps(
-                {"date": target_date.strftime("%Y-%m-%d"), "staff_data": staff_data},
-                cls=DjangoJSONEncoder,
+            {
+                "date": target_date.strftime("%Y-%m-%d"),
+                "staff_data": staff_data
+            },
+            cls=DjangoJSONEncoder,
             ),
         }
 

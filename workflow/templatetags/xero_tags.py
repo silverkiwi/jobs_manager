@@ -3,6 +3,7 @@ from django.core.cache import cache
 from datetime import datetime, timedelta, timezone
 
 from workflow.models import CompanyDefaults
+from workflow.api.xero.xero import get_token
 
 register = template.Library()
 
@@ -13,19 +14,19 @@ def get_xero_action():
     Returns:
         dict: Contains 'action_text' (str) and 'url_name' (str)
     """
-    token = cache.get('xero_token')
+    token = get_token()  # Use the API's get_token function instead of direct cache access
     
     if not token or not token.get('access_token'):
         return {
             'action_text': 'Connect to Xero',
-            'url_name': 'authenticate_xero'
+            'url_name': 'api_xero_authenticate'
         }
     
     expires_at = token.get('expires_at')
     if expires_at and datetime.fromtimestamp(expires_at, tz=timezone.utc) < datetime.now(timezone.utc):
         return {
             'action_text': 'Reconnect to Xero',
-            'url_name': 'authenticate_xero'
+            'url_name': 'api_xero_authenticate'
         }
     
     return {
