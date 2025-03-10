@@ -62,6 +62,8 @@ from workflow.views import password_views
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
+    
+    # API endpoints
     path(
         "api/autosave-job/",
         edit_job_view_ajax.autosave_job_view,
@@ -199,6 +201,7 @@ urlpatterns = [
         name="update_client",
     ),
     path("client/add/", client_view.AddClient, name="add_client"),
+    path("clients/unused/", client_view.UnusedClientsView.as_view(), name="unused_clients"),
     path("invoices/", invoice_view.InvoiceListView.as_view(), name="list_invoices"),
     path(
         "invoices/<uuid:pk>",
@@ -266,6 +269,13 @@ urlpatterns = [
         name="timesheet_daily_view",
     ),
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
+    path(
+        "xero/sync-progress/",
+        xero_view.xero_sync_progress_page,
+        name="xero_sync_progress",
+    ),
+    path("xero/unused-clients/", client_view.UnusedClientsView.as_view(), name="xero_unused_clients"),
+
     # Login/Logout views
     path("login/", auth_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
@@ -320,5 +330,5 @@ urlpatterns = [
         staff_view.get_staff_rates,
         name="get_staff_rates",
     ),
-    path("__debug__/", include(debug_toolbar.urls)),  # Add this line
+    path("__debug__/", include(debug_toolbar.urls)),
 ]
