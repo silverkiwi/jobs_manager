@@ -99,7 +99,7 @@ class Job(models.Model):
     # Shop job has no client (client_id is None)
 
     job_is_valid = models.BooleanField(default=False)  # type: ignore
-    coolected: bool = models.BooleanField(default=False)  # type: ignore
+    collected: bool = models.BooleanField(default=False)  # type: ignore
     paid: bool = models.BooleanField(default=False)  # type: ignore
     charge_out_rate = (
         models.DecimalField(  # TODO: This needs to be added to the edit job form

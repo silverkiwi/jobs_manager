@@ -17,28 +17,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.getElementById("search").addEventListener("input", filterJobs);
 
-  // Month End Modal
-  const monthEndButton = document.getElementById("monthEndButton");
-  const monthEndModal = document.getElementById("monthEndModal");
-
-  monthEndButton.addEventListener("click", function () {
-    if (monthEndModal) {
-      monthEndModal.style.display = "block";
-    } else {
-      console.error("Month End Modal not found!");
-    }
-  });
-
-  document
-    .querySelectorAll(".modal .close, .modal .btn-secondary")
-    .forEach((button) => {
-      button.addEventListener("click", function () {
-        if (monthEndModal) {
-          monthEndModal.style.display = "none";
-        }
-      });
-    });
-
   // Add event for "Load More" buttons
   document.querySelectorAll(".load-more").forEach((button) => {
     button.addEventListener("click", function () {
@@ -258,29 +236,3 @@ function getCookie(name) {
   }
   return cookieValue;
 }
-
-document
-  .getElementById("confirmMonthEnd")
-  .addEventListener("click", function () {
-    const selectedJobs = Array.from(
-      document.getElementById("jobSelector").selectedOptions,
-    ).map((option) => option.value);
-
-    fetch("/month-end/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCookie("csrftoken"),
-      },
-      body: JSON.stringify({ jobs: selectedJobs }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          alert("Month-end process completed successfully!");
-          location.reload();
-        } else {
-          alert("Error during the month-end process: " + data.error);
-        }
-      });
-  });
