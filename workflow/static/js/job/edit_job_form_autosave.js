@@ -159,7 +159,7 @@ function collectGridData(section) {
 function collectAdvancedGridData(section) {
   const grids = ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
   const sectionData = {};
-  
+
   debugLog(`collectAdvancedGridData starting for section: ${section}`);
 
   grids.forEach((gridName) => {
@@ -170,12 +170,12 @@ function collectAdvancedGridData(section) {
     if (gridData && gridData.api) {
       const rowData = [];
       let rowCount = 0;
-      
+
       gridData.api.forEachNode((node) => {
         rowCount++;
         const isValid = isNonDefaultRow(node.data, gridName);
         debugLog(`Grid ${gridKey}: Row ${rowCount} validation: ${isValid}`, node.data);
-        
+
         if (isValid) {
           const data = { ...node.data };
           data.minutes_per_item = data.mins_per_item;
@@ -214,7 +214,7 @@ export function collectSimpleGridData(section) {
     const timeKey = `simple${capitalize(section)}TimeTable`;
     const timeGrid = window.grids[timeKey];
     debugLog(`Processing simple time grid ${timeKey}, exists: ${!!timeGrid}, has API: ${!!(timeGrid && timeGrid.api)}`);
-    
+
     let timeEntries = [];
     const seenTimeEntries = new Set();
 
@@ -231,7 +231,7 @@ export function collectSimpleGridData(section) {
         const valueTime = parseFloat(row.value_of_time) || 0;
 
         const isEmptyRow = hours === 0;
-        
+
         // Create unique key for time entry
         const entryKey = `${description}-${hours}-${wage}-${charge}`;
         debugLog(`Time row ${rowCount}: "${description}", hours=${hours}, empty=${isEmptyRow}, duplicate=${seenTimeEntries.has(entryKey)}`);
@@ -269,7 +269,7 @@ export function collectSimpleGridData(section) {
     const matKey = `simple${capitalize(section)}MaterialsTable`;
     const matGrid = window.grids[matKey];
     debugLog(`Processing simple materials grid ${matKey}, exists: ${!!matGrid}, has API: ${!!(matGrid && matGrid.api)}`);
-    
+
     let materialEntries = [];
     const seenMaterialEntries = new Set();
 
@@ -283,7 +283,7 @@ export function collectSimpleGridData(section) {
         const retailPrice = parseFloat(row.retail_price) || 0;
 
         const isEmptyRow = materialCost === 0 && retailPrice === 0;
-        
+
         // Create unique key for material entry
         const entryKey = `${description}-${materialCost}-${retailPrice}`;
         debugLog(`Material row ${rowCount}: "${description}", cost=${materialCost}, retail=${retailPrice}, empty=${isEmptyRow}, duplicate=${seenMaterialEntries.has(entryKey)}`);
@@ -317,7 +317,7 @@ export function collectSimpleGridData(section) {
     const adjKey = `simple${capitalize(section)}AdjustmentsTable`;
     const adjGrid = window.grids[adjKey];
     debugLog(`Processing simple adjustments grid ${adjKey}, exists: ${!!adjGrid}, has API: ${!!(adjGrid && adjGrid.api)}`);
-    
+
     let adjustmentEntries = [];
     const seenAdjustmentEntries = new Set();
 
@@ -332,7 +332,7 @@ export function collectSimpleGridData(section) {
         const priceAdj = parseFloat(row.price_adjustment) || 0;
 
         const isEmptyRow = costAdj === 0 && priceAdj === 0;
-        
+
         // Create unique key for adjustment entry
         const entryKey = `${description}-${costAdj}-${priceAdj}-${comments}`;
         debugLog(`Adjustment row ${rowCount}: "${description}", cost adj=${costAdj}, price adj=${priceAdj}, empty=${isEmptyRow}, duplicate=${seenAdjustmentEntries.has(entryKey)}`);
@@ -405,6 +405,173 @@ async function fetchImageAsBase64(url) {
   } catch (error) {
     console.error(`Error fetching image from ${url}:`, error);
     throw error;
+  }
+}
+
+function processNotesHtml(html) {
+  if (!html) return "N/A";
+
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+
+  function processNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent;
+    }
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const children = Array.from(node.childNodes).map(processNode).filter(Boolean);
+
+      if (children.length === 0) return null;
+
+      const result = {
+        text: children.length === 1 && typeof children[0] === 'string' ? children[0] : children
+      };
+
+      // Process style attributes if they exist
+      if (node.style) {
+        if (node.style.color) {
+          result.color = node.style.color;
+        }
+        if (node.style.backgroundColor) {
+          result.background = node.style.backgroundColor;
+        }
+        if (node.style.textAlign) {
+          result.alignment = node.style.textAlign;
+        }
+      }
+
+      switch (node.nodeName.toLowerCase()) {
+        // Basic formatting
+        case 'strong':
+        case 'b':
+          result.bold = true;
+          break;
+        case 'em':
+        case 'i':
+          result.italics = true;
+          break;
+        case 'u':
+          result.decoration = 'underline';
+          break;
+        case 'strike':
+        case 's':
+          result.decoration = 'lineThrough';
+          break;
+          
+        // Headers
+        case 'h1':
+          result.fontSize = 24;
+          result.bold = true;
+          result.margin = [0, 10, 0, 5];
+          break;
+        case 'h2':
+          result.fontSize = 20;
+          result.bold = true;
+          result.margin = [0, 8, 0, 4];
+          break;
+        case 'h3':
+          result.fontSize = 18;
+          result.bold = true;
+          result.margin = [0, 6, 0, 3];
+          break;
+        case 'h4':
+          result.fontSize = 16;
+          result.bold = true;
+          result.margin = [0, 5, 0, 2];
+          break;
+        case 'h5':
+          result.fontSize = 14;
+          result.bold = true;
+          result.margin = [0, 4, 0, 2];
+          break;
+        case 'h6':
+          result.fontSize = 12;
+          result.bold = true;
+          result.margin = [0, 4, 0, 2];
+          break;
+        
+        // Special blocks  
+        case 'blockquote':
+          return { 
+            text: children,
+            italics: true,
+            margin: [20, 5, 20, 5],
+            color: '#666666',
+            alignment: 'left'
+          };
+        case 'pre':
+        case 'code-block':
+        case 'code':
+          return {
+            text: children,
+            font: 'Courier',
+            background: '#f4f4f4',
+            fontSize: 10,
+            margin: [5, 5, 5, 5],
+            padding: [5, 5, 5, 5]
+          };
+          
+        // Structure  
+        case 'p':
+          // Check for alignment defined via Quill classes
+          if (node.classList.contains('ql-align-center')) {
+            return { text: children, margin: [0, 0, 0, 5], alignment: 'center' };
+          } else if (node.classList.contains('ql-align-right')) {
+            return { text: children, margin: [0, 0, 0, 5], alignment: 'right' };
+          } else if (node.classList.contains('ql-align-justify')) {
+            return { text: children, margin: [0, 0, 0, 5], alignment: 'justify' };
+          }
+          return { text: children, margin: [0, 0, 0, 5] };
+          
+        case 'ul':
+          return {
+            ul: children.map(item => typeof item === 'string' ? { text: item } : item)
+          };
+        case 'ol':
+          return {
+            ol: children.map(item => typeof item === 'string' ? { text: item } : item)
+          };
+        case 'li':
+          return result;
+          
+        // Indentation - handled via Quill classes
+        default:
+          // Check if it's a span or div with special Quill classes
+          if (node.classList) {
+            if (node.classList.contains('ql-indent-1')) result.margin = [20, 0, 0, 0];
+            else if (node.classList.contains('ql-indent-2')) result.margin = [40, 0, 0, 0];
+            else if (node.classList.contains('ql-indent-3')) result.margin = [60, 0, 0, 0];
+            else if (node.classList.contains('ql-indent-4')) result.margin = [80, 0, 0, 0];
+            
+            // Check colors through Quill classes
+            const colorClasses = Array.from(node.classList)
+              .filter(cls => cls.startsWith('ql-color-') || cls.startsWith('ql-bg-'));
+            
+            colorClasses.forEach(cls => {
+              if (cls.startsWith('ql-color-')) {
+                const color = cls.replace('ql-color-', '#');
+                result.color = color;
+              } else if (cls.startsWith('ql-bg-')) {
+                const bgColor = cls.replace('ql-bg-', '#');
+                result.background = bgColor;
+              }
+            });
+          }
+      }
+
+      return result;
+    }
+
+    return null;
+  }
+
+  try {
+    const processedContent = Array.from(tempDiv.childNodes).map(processNode).filter(Boolean);
+    return processedContent.length > 0 ? processedContent : "N/A";
+  } catch (error) {
+    console.error("Error processing HTML notes for PDF:", error);
+    return "Error processing formatted notes";
   }
 }
 
@@ -626,6 +793,10 @@ async function exportJobToPDF(jobData) {
                 ["Client", jobData.client_name || "N/A"],
                 ["Contact Person", jobData.contact_person || "N/A"],
                 ["Description", jobData.description || "N/A"],
+                [
+                  "Notes",
+                  processNotesHtml(jobData.notes)
+                ],
                 [
                   "Job Created On",
                   new Date(jobData.created_at).toLocaleDateString("en-US", {

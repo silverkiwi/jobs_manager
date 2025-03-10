@@ -60,7 +60,7 @@
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="adminMenu">
                                 {% comment %} <li><a class="dropdown-item" href="{% url 'export_to_ims' %}">Export to IMS</a></li> {% endcomment %}
-                                <li><a class="dropdown-item" id="monthEndButton">Run Month End</a></li>
+                                <li><a class="dropdown-item" href="{% url 'month_end' %}">Run Month End</a></li>
                                 <li><a class="dropdown-item" href="{% url 'admin:workflow_staff_changelist' %}">Edit Staff</a></li>
                                 <li><a class="dropdown-item" href="{% url 'admin:workflow_companydefaults_changelist' %}">Edit Company Defaults</a></li>
                             </ul>
@@ -113,6 +113,7 @@
         {% block content %}{% endblock %}
     </div>
 
+    <!-- Alert Modal -->
     <div class="modal fade" id="alert-container" tabindex="-1" aria-labelledby="alert-modal-label" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">

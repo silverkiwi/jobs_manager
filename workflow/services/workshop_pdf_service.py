@@ -1,7 +1,8 @@
+import html
 import logging
-import mimetypes
 import os
 from io import BytesIO
+import re
 import time
 
 from django.conf import settings
@@ -28,7 +29,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 def wait_until_file_ready(file_path, max_wait=10):
-    """Tenta abrir o arquivo e fecha imediatamente. Se falhar, aguarda um pouco."""
+    """Try to open the file."""
     wait_time = 0
     while wait_time < max_wait:
         try:
@@ -54,6 +55,89 @@ def get_image_dimensions(image_path):
             img_height_pt *= scale
 
         return img_width_pt, img_height_pt
+
+
+def convert_html_to_reportlab(html_content):
+    """
+    Converts HTML from Quill editor to ReportLab-compatible XML format,
+    with enhanced support for lists.
+    """
+    if not html_content:
+        return "N/A"
+    
+    # Clean specific Quill elements
+    html_content = re.sub(r'<span class="ql-ui"[^>]*>.*?</span>', '', html_content)
+    html_content = re.sub(r' data-list="[^"]*"', '', html_content)
+    html_content = re.sub(r' contenteditable="[^"]*"', '', html_content)
+
+    html_content = re.sub(r'<h1[^>]*>(.*?)</h1>', r'<font size="18"><b>\1</b></font><br/><br/>', html_content, flags=re.DOTALL)
+    html_content = re.sub(r'<h2[^>]*>(.*?)</h2>', r'<font size="16"><b>\1</b></font><br/><br/>', html_content, flags=re.DOTALL)
+    html_content = re.sub(r'<h3[^>]*>(.*?)</h3>', r'<font size="14"><b>\1</b></font><br/><br/>', html_content, flags=re.DOTALL)
+    html_content = re.sub(r'<h4[^>]*>(.*?)</h4>', r'<font size="13"><b>\1</b></font><br/><br/>', html_content, flags=re.DOTALL)
+    
+    html_content = re.sub(r'<blockquote[^>]*>(.*?)</blockquote>', r'<i>\1</i><br/><br/>', html_content, flags=re.DOTALL)
+    
+    html_content = re.sub(r'<pre[^>]*>(.*?)</pre>', r'<font face="Courier">\1</font><br/><br/>', html_content, flags=re.DOTALL)
+    
+    # First, proccess lists separately
+    def process_list(match, list_type):
+        list_content = match.group(1)
+        # Extract all list items
+        items = re.findall(r'<li[^>]*>(.*?)</li>', list_content, re.DOTALL)
+        
+        # Format items for ReportLab
+        result = "<br/>"
+        for i, item in enumerate(items):
+            # Use the correct prefix based on list type
+            if list_type == "ol":
+                prefix = f"{i+1}. "
+            else:  # list_type == "ul"
+                prefix = "• "
+            result += f"{prefix}{item}<br/>"
+        return result
+    
+    # Process each list type separately and explicitly
+    # Ordered lists - explicitly pass "ol" as list_type
+    html_content = re.sub(r'<ol[^>]*>(.*?)</ol>', 
+                          lambda m: process_list(m, "ol"), 
+                          html_content, flags=re.DOTALL)
+    
+    # Unordered lists - explicitly pass "ul" as list_type
+    html_content = re.sub(r'<ul[^>]*>(.*?)</ul>', 
+                          lambda m: process_list(m, "ul"), 
+                          html_content, flags=re.DOTALL)
+    
+    # Now process the remaining tags
+    replacements = [
+        # Text formatting
+        (r'<strong>(.*?)</strong>', r'<b>\1</b>'),
+        (r'<b>(.*?)</b>', r'<b>\1</b>'),
+        (r'<em>(.*?)</em>', r'<i>\1</i>'),
+        (r'<i>(.*?)</i>', r'<i>\1</i>'),
+        (r'<u>(.*?)</u>', r'<u>\1</u>'),
+        (r'<s>(.*?)</s>', r'<strike>\1</strike>'),
+        (r'<strike>(.*?)</strike>', r'<strike>\1</strike>'),
+        
+        # Links
+        (r'<a href="(.*?)">(.*?)</a>', r'<link href="\1">\2</link>'),
+        
+        # Paragraphs and line breaks
+        (r'<p[^>]*>(.*?)</p>', r'\1<br/><br/>'),
+        (r'<br[^>]*>', r'<br/>'),
+    ]
+    
+    # Apply replacements
+    for pattern, replacement in replacements:
+        html_content = re.sub(pattern, replacement, html_content, flags=re.DOTALL)
+    
+    # Clean unsupported tags
+    html_content = re.sub(r'<(?!/?b|/?i|/?u|/?strike|/?link|br/)[^>]*>', '', html_content)
+    
+    # Clean extra line breaks
+    html_content = re.sub(r'<br/><br/><br/>', r'<br/><br/>', html_content)
+    html_content = re.sub(r'<br/><br/>$', '', html_content)
+    
+    return html_content
 
 
 def create_workshop_pdf(job):
@@ -90,6 +174,7 @@ def create_workshop_pdf(job):
             ["Contact", job.contact_person or "N/A"],
             # Using Paragraph for description ensures text will wrap automatically
             ["Description", Paragraph(job.description or "N/A", description_style)],
+            ["Notes", Paragraph(convert_html_to_reportlab(job.notes) if job.notes else "N/A", description_style)],
         ]
 
         details_table = Table(job_details, colWidths=[150, CONTENT_WIDTH - 150])

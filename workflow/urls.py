@@ -54,6 +54,7 @@ from workflow.views import (
     time_overview_view,
     workshop_view,
     xero_view,
+    job_management_view,
 )
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
@@ -218,7 +219,7 @@ urlpatterns = [
         workshop_view.WorkshopPDFView.as_view(),
         name="workshop-pdf",
     ),
-    path("month-end/", edit_job_view_ajax.process_month_end, name="month_end"),
+    path("month-end/", job_management_view.month_end_view, name="month_end"),
     path(
         "jobs/<uuid:job_id>/update_status/",
         kanban_view.update_job_status,

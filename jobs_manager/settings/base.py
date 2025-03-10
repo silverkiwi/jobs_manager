@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     'django.contrib.sites',
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
     "django_tables2",
     "workflow",
     "simple_history",
@@ -218,6 +219,8 @@ STATICFILES_DIRS = [
     ("moment", "node_modules/moment"),
     # SortableJS (JS)
     ("sortablejs", "node_modules/sortablejs"),
+    # Quill (CSS/JS)
+    ("quill", "node_modules/quill/dist"),
 ]
 
 # Default primary key field type

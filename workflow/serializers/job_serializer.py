@@ -35,6 +35,7 @@ class JobSerializer(serializers.ModelSerializer):
             "contact_person",
             "contact_phone",
             "job_number",
+            "notes",
             "order_number",
             "created_at",
             "updated_at",

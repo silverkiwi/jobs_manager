@@ -11,6 +11,7 @@ from workflow.models import Job
 
 
 def kanban_view(request: HttpRequest) -> HttpResponse:
+    # Get all jobs for the kanban board
     jobs = Job.objects.all()
     context = {
         "jobs": jobs,
