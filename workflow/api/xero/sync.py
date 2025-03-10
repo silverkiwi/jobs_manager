@@ -1111,3 +1111,111 @@ def synchronise_xero_data(delay_between_requests=1):
     finally:
         cache.delete('xero_sync_lock')
 
+
+def delete_client_from_xero(client):
+    """
+    Delete a client from Xero.
+    """
+    if not client.xero_contact_id:
+        logger.info(f"Client {client.name} has no Xero contact ID - skipping Xero deletion")
+        return True
+
+    xero_tenant_id = get_tenant_id()
+    accounting_api = AccountingApi(api_client)
+
+    try:
+        accounting_api.delete_contact(
+            xero_tenant_id,
+            client.xero_contact_id
+        )
+        logger.info(f"Successfully deleted client {client.name} from Xero")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to delete client {client.name} from Xero: {str(e)}")
+        raise
+
+
+def archive_clients_in_xero(clients, batch_size=50):
+    """
+    Archive multiple clients in Xero in batches.
+    Returns a tuple of (success_count, error_count).
+    """
+    if not clients:
+        return 0, 0
+
+    xero_tenant_id = get_tenant_id()
+    accounting_api = AccountingApi(api_client)
+    success_count = 0
+    error_count = 0
+    
+    # Process in batches to avoid rate limits
+    for i in range(0, len(clients), batch_size):
+        batch = clients[i:i + batch_size]
+        contacts_data = {
+            "contacts": [
+                {
+                    "ContactID": client.xero_contact_id,
+                    "ContactStatus": "ARCHIVED"
+                }
+                for client in batch
+                if client.xero_contact_id
+            ]
+        }
+        
+        if not contacts_data["contacts"]:
+            continue
+            
+        try:
+            accounting_api.update_or_create_contacts(
+                xero_tenant_id,
+                contacts=contacts_data
+            )
+            success_count += len(contacts_data["contacts"])
+            
+            # Add a small delay between batches to avoid rate limits
+            if i + batch_size < len(clients):
+                time.sleep(0.5)
+                
+        except Exception as e:
+            logger.error(f"Failed to archive batch of clients in Xero: {str(e)}")
+            error_count += len(contacts_data["contacts"])
+            
+    return success_count, error_count
+
+
+def delete_clients_from_xero(clients):
+    """
+    Delete multiple clients from Xero.
+    Returns a tuple of (success_count, error_count).
+    """
+    if not clients:
+        return 0, 0
+
+    xero_tenant_id = get_tenant_id()
+    accounting_api = AccountingApi(api_client)
+    success_count = 0
+    error_count = 0
+    
+    for client in clients:
+        if not client.xero_contact_id:
+            logger.info(f"Client {client.name} has no Xero contact ID - skipping Xero deletion")
+            continue
+            
+        try:
+            accounting_api.delete_contact(
+                xero_tenant_id,
+                client.xero_contact_id
+            )
+            success_count += 1
+            logger.info(f"Successfully deleted client {client.name} from Xero")
+            
+            # Add a small delay between deletions to avoid rate limits
+            time.sleep(1)
+            
+        except Exception as e:
+            error_count += 1
+            logger.error(f"Failed to delete client {client.name} from Xero: {str(e)}")
+            raise
+            
+    return success_count, error_count
+

@@ -15,6 +15,11 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView
 from django.contrib import messages
+from django.db.models import Q
+from django.core.paginator import Paginator
+from django.views.decorators.http import require_POST
+from django.utils.decorators import method_decorator
+from django.db import transaction
 
 from xero_python.accounting import AccountingApi
 from xero_python.accounting.models import Contact
@@ -27,7 +32,7 @@ from xero_python.api_client.oauth2 import OAuth2Token
 from xero_python.exceptions import AccountingBadRequestException
 from xero_python.identity import IdentityApi
 
-from workflow.api.xero.sync import synchronise_xero_data
+from workflow.api.xero.sync import synchronise_xero_data, delete_clients_from_xero
 from workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
