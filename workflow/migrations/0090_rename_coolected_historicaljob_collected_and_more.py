@@ -15,55 +15,20 @@ def add_collected_if_missing(apps, schema_editor):
     # Check if the column exists using raw SQL
     cursor = schema_editor.connection.cursor()
     
-    # For HistoricalJob table
-    try:
-        cursor.execute(
-            f"SELECT coolected FROM {HistoricalJob._meta.db_table} LIMIT 1"
-        )
-    except Exception as e:
-        # If coolected doesn't exist, add collected directly
-        print(f"Adding collected field to HistoricalJob: {e}", file=sys.stderr)
-        schema_editor.add_field(
-            HistoricalJob,
-            models.BooleanField(default=False, name="collected")
-        )
-    else:
-        # If coolected exists, rename it to collected
-        print(f"Renaming coolected to collected in HistoricalJob", file=sys.stderr)
-        schema_editor.alter_field(
-            HistoricalJob,
-            HistoricalJob._meta.get_field("coolected"),
-            HistoricalJob._meta.get_field("collected"),
-        )
-        
-    # For Job table
-    try:
-        cursor.execute(
-            f"SELECT coolected FROM {Job._meta.db_table} LIMIT 1"
-        )
-    except Exception as e:
-        # If coolected doesn't exist, add collected directly
-        print(f"Adding collected field to Job: {e}", file=sys.stderr)
-        schema_editor.add_field(
-            Job,
-            models.BooleanField(default=False, name="collected")
-        )
-    else:
-        # If coolected exists, rename it to collected
-        print(f"Renaming coolected to collected in Job", file=sys.stderr)
-        schema_editor.alter_field(
-            Job,
-            Job._meta.get_field("coolected"),
-            Job._meta.get_field("collected"),
-        )
+    # Migration has already been applied
+    print("Migration 0090 is actually a no-op since 0089 already adds the 'collected' field.")
+    print("Skipping the actual field operations to avoid conflicts.")
+
+    # The original code had bugs in the add_field calls and is no longer needed
+    # since migration 0089 already adds the 'collected' field to both models
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('workflow', '0089_historicaljob_coolected_job_coolected'),
+        ('workflow', '0089_companydefaults_starting_job_number_and_more'),
     ]
 
     operations = [
-        migrations.RunPython(add_collected_if_missing),
+        migrations.RunPython(add_collected_if_missing, migrations.RunPython.noop),
     ]
