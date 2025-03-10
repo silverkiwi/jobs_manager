@@ -26,7 +26,7 @@ def add_collected_if_missing(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('workflow', '0089_companydefaults_starting_job_number_and_more'),
+        ('workflow', '0090_alter_staff_options'),
     ]
 
     operations = [
