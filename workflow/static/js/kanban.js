@@ -15,7 +15,10 @@ document.addEventListener("DOMContentLoaded", function () {
       fetchStatusValues();
     });
 
-  document.getElementById("search").addEventListener("input", filterJobs);
+  document.getElementById("search").addEventListener("input", function() {
+    filterJobs();
+    updateColumnCounts();
+  });
 
   // Add event for "Load More" buttons
   document.querySelectorAll(".load-more").forEach((button) => {
@@ -71,6 +74,8 @@ function loadJobs(status, reset = false) {
       totalDisplay.textContent = data.total_jobs;
 
       loadMoreContainer.style.display = data.has_next ? "flex" : "none";
+      
+      updateColumnCounts();
 
       // Reinitialize SortableJS after loading new jobs
       initializeDragAndDrop();
@@ -87,17 +92,42 @@ function createJobCard(job) {
   card.setAttribute("data-job-description", job.description || "");
   card.setAttribute("data-job-number", job.job_number);
   
-  // Simplificado e mais compacto
   card.innerHTML = `
-    <div class="job-card-header">
-      <div class="job-card-title">${job.job_number}: ${job.name}</div>
-    </div>
-    <div class="job-card-body">
-      <small>${job.client ? job.client.name : ""}</small>
+    <div class="job-card-title">${job.job_number}</div>
+    <div class="job-card-body small">
+      ${job.name}
     </div>
   `;
   
-  // Adiciona o event listener para abrir o detalhe do job
+  // Tooltip container (Hidden initially)
+  let tooltip = document.createElement("div");
+  tooltip.className = "job-tooltip";
+  tooltip.textContent = job.description;
+  tooltip.style.display = "none";
+
+  // Append tooltip to document body (so it floats near cursor)
+  document.body.appendChild(tooltip);
+
+  // Show tooltip on hover
+  card.addEventListener("mouseenter", (event) => {
+    if (job.description) {
+      tooltip.style.display = "block";
+      tooltip.style.left = `${event.pageX + 10}px`;
+      tooltip.style.top = `${event.pageY + 10}px`;
+    }
+  });
+
+  // Move tooltip with cursor
+  card.addEventListener("mousemove", (event) => {
+    tooltip.style.left = `${event.pageX + 10}px`;
+    tooltip.style.top = `${event.pageY + 10}px`;
+  });
+
+  // Hide tooltip on mouse leave
+  card.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+  });
+
   card.addEventListener("click", () => {
     window.location.href = `/job/${job.id}/`;
   });
@@ -107,31 +137,55 @@ function createJobCard(job) {
 
 // Initialize SortableJS to allow moving jobs between columns
 function initializeDragAndDrop() {
-  document.querySelectorAll('.kanban-column .job-list').forEach(jobList => {
-    if (jobList.closest('#archived')) {
-        // Para a coluna de arquivados, não permitimos arrastar DE lá 
-        // (mas permitimos que jobs sejam movidos PARA lá)
-        new Sortable(jobList, {
-            group: { 
-                name: 'jobs',
-                pull: false, // Não permite arrastar de arquivados
-                put: true    // Permite soltar em arquivados
-            },
-            animation: 150,
-            // ... resto das opções existentes
+  document.querySelectorAll(".job-list").forEach((container) => {
+    new Sortable(container, {
+      group: "shared",
+      animation: 150,
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-drag",
+      dragClass: "sortable-drag",
+      onStart: function() {
+        document.querySelectorAll('.kanban-column').forEach(col => {
+          col.classList.add('drop-target-potential');
         });
-    } else {
-        // Para outras colunas, inicialização normal
-        new Sortable(jobList, {
-            group: 'jobs',
-            animation: 150,
-            // ... resto das opções existentes
+      },
+      onEnd: function (evt) {
+        const itemEl = evt.item;
+        const oldStatus = evt.from.closest(".kanban-column").id;
+        const newStatus = evt.to.closest(".kanban-column").id;
+        const jobId = itemEl.getAttribute("data-id");
+
+        // Remove a classe de destino potencial
+        document.querySelectorAll('.kanban-column').forEach(col => {
+          col.classList.remove('drop-target-potential');
         });
-    }
-});
+
+        if (!oldStatus || !newStatus || oldStatus === newStatus) {
+          return;
+        }
+
+        console.log(`Job ${jobId} moved from ${oldStatus} to ${newStatus}`);
+
+        updateJobStatus(jobId, newStatus);
+
+        // Update affected column counters
+        updateColumnHeader(oldStatus);
+        updateColumnHeader(newStatus);
+        
+        updateColumnCounts();
+      },
+    });
+  });
 }
 
 function updateJobStatus(jobId, newStatus) {
+  // Show visual feedback that the status change is in progress
+  const jobCard = document.querySelector(`.job-card[data-id="${jobId}"]`);
+  if (jobCard) {
+    jobCard.style.opacity = "0.7";
+    jobCard.classList.add('updating');
+  }
+
   fetch(`/jobs/${jobId}/update_status/`, {
     method: "POST",
     headers: {
@@ -142,12 +196,34 @@ function updateJobStatus(jobId, newStatus) {
   })
     .then((response) => response.json())
     .then((data) => {
-      if (!data.success) {
+      if (data.success) {
+        if (jobCard) {
+          jobCard.style.opacity = "1";
+          jobCard.classList.remove('updating');
+          jobCard.classList.add('update-success');
+          setTimeout(() => {
+            jobCard.classList.remove('update-success');
+          }, 1000);
+        }
+        updateColumnCounts();
+      } else {
         console.error("Failed to update job status:", data.error);
+        if (jobCard) {
+          jobCard.style.opacity = "1";
+          jobCard.classList.remove('updating');
+          jobCard.classList.add('update-error');
+          setTimeout(() => {
+            jobCard.classList.remove('update-error');
+          }, 1000);
+        }
       }
     })
     .catch((error) => {
       console.error("Error updating job status:", error);
+      if (jobCard) {
+        jobCard.style.opacity = "1";
+        jobCard.classList.remove('updating');
+      }
     });
 }
 
@@ -161,7 +237,24 @@ function updateColumnHeader(status) {
   const jobCards = column.querySelectorAll(".job-card");
   const countDisplay = document.querySelector(`#${status}-count`);
 
-  countDisplay.textContent = jobCards.length;
+  if (countDisplay) {
+    countDisplay.textContent = jobCards.length;
+  }
+}
+
+function updateColumnCounts() {
+  // Update count for each column
+  document.querySelectorAll('.kanban-column').forEach(column => {
+    const columnId = column.id;
+    const jobList = column.querySelector('.job-list');
+    const countDisplay = document.querySelector(`#${columnId}-count`);
+    
+    if (countDisplay && jobList) {
+      const visibleCount = Array.from(jobList.children)
+        .filter(child => child.style.display !== 'none').length;
+      countDisplay.textContent = visibleCount;
+    }
+  });
 }
 
 function filterJobs() {

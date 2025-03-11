@@ -59,11 +59,11 @@
   {% for status_key, status_label in status_choices %}
   {% if status_key != "archived" %}
   <div id="{{ status_key }}" class="kanban-column">
-      <div class="column-header">{{ status_label }} (<span id="{{ status_key }}-count">0</span>/<span id="{{ status_key }}-total">0</span>)</div>
+      <div class="column-header">{{ status_label }} <small class="ms-1">(<span id="{{ status_key }}-count">0</span>/<span id="{{ status_key }}-total">0</span>)</small></div>
       <div class="job-list"></div>
       
-      <div id="{{ status_key }}-load-more-container" class="load-more-container mb-2" style="display: none;">
-          <button id="{{ status_key }}-load-more" class="load-more btn btn-secondary btn-sm" data-status="{{ status_key }}">
+      <div id="{{ status_key }}-load-more-container" class="load-more-container mb-1" style="display: none;">
+          <button id="{{ status_key }}-load-more" class="load-more btn btn-secondary btn-sm py-0 px-2" data-status="{{ status_key }}">
               <i class="bi bi-arrow-down me-1"></i>More
           </button>
       </div>
@@ -76,7 +76,7 @@
   <div class="archive-header">
     <h3 class="archive-title">
       <i class="bi bi-archive"></i> Archived Jobs 
-      (<span id="archived-count">0</span>/<span id="archived-total">0</span>)
+      <small class="ms-1">(<span id="archived-count">0</span>/<span id="archived-total">0</span>)</small>
     </h3>
     <button class="archive-toggle" id="toggleArchive">
       <i class="bi bi-chevron-down"></i>
@@ -99,21 +99,5 @@
 {% block extra_js %}
 <script src="{% static 'sortablejs/Sortable.min.js' %}"></script>
 <script src="{% static 'js/kanban.js' %}"></script>
-<script>
-  // Toggle archive section visibility
-  document.getElementById('toggleArchive').addEventListener('click', function() {
-    const archiveContainer = document.getElementById('archiveContainer');
-    const toggleIcon = this.querySelector('i');
-    
-    if (archiveContainer.style.display === 'none') {
-      archiveContainer.style.display = 'grid';
-      toggleIcon.classList.remove('bi-chevron-down');
-      toggleIcon.classList.add('bi-chevron-up');
-    } else {
-      archiveContainer.style.display = 'none';
-      toggleIcon.classList.remove('bi-chevron-up');
-      toggleIcon.classList.add('bi-chevron-down');
-    }
-  });
-</script>
+<script src="{% static 'js/archive-toggle.js' %}"></script>
 {% endblock %}
