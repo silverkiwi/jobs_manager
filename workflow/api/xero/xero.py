@@ -91,10 +91,12 @@ def store_token(token: Dict[str, Any]) -> None:
     if token.get("expires_in"):
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=token["expires_in"])
         token_data["expires_at"] = expires_at.timestamp()
+        logger.info(f"Token will expire at {expires_at.isoformat()}")
 
     # Store in cache - use Xero's expires_in for the cache timeout
     cache_timeout = token.get("expires_in", 1740)  # fallback to 29 minutes if not provided
     cache.set("xero_token", token_data, timeout=cache_timeout)
+    logger.info(f"Token stored in cache with timeout of {cache_timeout} seconds")
 
     # Get tenant ID if available
     try:
@@ -109,14 +111,19 @@ def store_token(token: Dict[str, Any]) -> None:
         if not xero_token:
             xero_token = XeroToken()
         
+        # Only update refresh token if one is provided
+        if token_data.get("refresh_token"):
+            xero_token.refresh_token = token_data["refresh_token"]
+            logger.info("Updated refresh token in database")
+        
         xero_token.access_token = token_data["access_token"]
-        xero_token.refresh_token = token_data["refresh_token"]
         xero_token.token_type = token_data["token_type"]
         xero_token.expires_at = expires_at
-        xero_token.scope = token_data["scope"]  # Use scope from token response
+        xero_token.scope = token_data["scope"]
         if tenant_id:
             xero_token.tenant_id = tenant_id
         xero_token.save()
+        logger.info(f"Token stored in database with expiry at {expires_at.isoformat() if expires_at else 'None'}")
     except Exception as e:
         logger.error(f"Failed to store token in database: {e}")
         # Don't raise - we still have the token in cache
@@ -161,8 +168,9 @@ def get_valid_token() -> Optional[Dict[str, Any]]:
     expires_at = token.get("expires_at")
     if expires_at:
         expires_at_datetime = datetime.fromtimestamp(expires_at, tz=timezone.utc)
-        if datetime.now(timezone.utc) > expires_at_datetime:
-            logger.info(f"Xero token expired at {expires_at_datetime.isoformat()}, refreshing...")
+        # Refresh token if it expires in less than 5 minutes
+        if datetime.now(timezone.utc) > expires_at_datetime - timedelta(minutes=5):
+            logger.info(f"Xero token expiring soon at {expires_at_datetime.isoformat()}, refreshing...")
             try:
                 token = refresh_token()
                 logger.info("Successfully refreshed Xero token")
