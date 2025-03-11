@@ -133,7 +133,7 @@ class SerializerFieldSyncTest(APITestCase):
 
 class JobApiTests(TestCase):
     fixtures = [
-        "company_defaults_fixture.json",
+        "company_defaults_test_fixture.json",  # Use test fixture with Demo Company tenant ID
         "logins.json",
         "staff.json",
     ]  # We can't even test without fixtures

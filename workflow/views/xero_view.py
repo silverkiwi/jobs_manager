@@ -32,7 +32,7 @@ from xero_python.api_client.oauth2 import OAuth2Token
 from xero_python.exceptions import AccountingBadRequestException
 from xero_python.identity import IdentityApi
 
-from workflow.api.xero.sync import synchronise_xero_data, delete_clients_from_xero
+from workflow.api.xero.sync import synchronise_xero_data, delete_clients_from_xero, get_last_modified_time
 from workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
@@ -45,6 +45,7 @@ from workflow.api.xero.xero import (
 )
 from workflow.enums import InvoiceStatus, QuoteStatus
 from workflow.models import Invoice, Job, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults
+from workflow.models.xero_token import XeroToken
 from workflow.models.quote import Quote
 from workflow.utils import extract_messages
 
@@ -683,11 +684,16 @@ def delete_xero_invoice(request, job_id):
 
 def xero_disconnect(request):
     """
-    Disconnects from Xero by clearing the token from cache.
+    Disconnects from Xero by clearing the token from cache and database.
     """
     try:
+        # Clear from cache
         cache.delete('xero_token')
         cache.delete('xero_tenant_id')
+        
+        # Clear from database
+        XeroToken.objects.all().delete()
+        
         messages.success(request, "Successfully disconnected from Xero")
     except Exception as e:
         logger.error(f"Error disconnecting from Xero: {str(e)}")
