@@ -19,7 +19,7 @@
   --ag-row-height: 22px; /* Reduced from 38px */
   --ag-header-height: 32px; /* Reduced from 42px */
   
-  border-radius: var(--border-radius);
+  border-radius: ;
   box-shadow: var(--card-shadow);
   overflow: visible;
   border: none;
@@ -66,7 +66,6 @@
   overflow: visible;
   min-width: 30px; /* Reduced from 50px */
   display: flex;
-  align-items: center;
   max-height: none !important; /* Important to prevent cutoff */
 }
 
@@ -141,6 +140,13 @@
   margin-bottom: 0;
   border-bottom: none;
   overflow: visible;
+}
+
+.totals-table.ag-theme-alpine .ag-cell {
+  display: flex;
+  align-items: flex-start !important;
+  justify-content: flex-start !important; /* Left-align cell content */
+  text-align: left !important;
 }
 
 /* Enhanced delete icon */
@@ -374,7 +380,7 @@
 
 .ag-cell-last-right-pinned,
 .ag-cell:last-child {
-  justify-content: center;
+  justify-content: flex-start;
   padding: 0 !important;
 }
 
@@ -553,6 +559,7 @@
 .timesheet-grid .ag-root-wrapper {
   height: auto !important;
   overflow: visible;
+  border-radius: 1rem;
 }
 
 .timesheet-grid .ag-root {

@@ -237,6 +237,15 @@ export function createAdvancedTimeGridOptions(
   commonGridOptions,
   trashCanColumn,
 ) {
+  const enhancedTrashColumn = {
+    ...trashCanColumn,
+    width: 80,
+    minWidth: 80,
+    maxWidth: 80,
+    flex: 0,
+    suppressSizeToFit: true,
+  };
+
   return {
     ...commonGridOptions,
     columnDefs: [
@@ -324,9 +333,9 @@ export function createAdvancedTimeGridOptions(
       },
 
       {
-        ...trashCanColumn,
-        minWidth: 40,
-        maxWidth: 40,
+        ...enhancedTrashColumn,
+        minWidth: 120,
+        flex: 1
       },
     ],
     rowData: [],
@@ -338,6 +347,15 @@ export function createAdvancedMaterialsGridOptions(
   commonGridOptions,
   trashCanColumn,
 ) {
+  const enhancedTrashColumn = {
+    ...trashCanColumn,
+    width: 80,
+    minWidth: 80,
+    maxWidth: 80,
+    flex: 0,
+    suppressSizeToFit: true,
+  };
+
   return {
     ...commonGridOptions,
     columnDefs: [
@@ -396,7 +414,7 @@ export function createAdvancedMaterialsGridOptions(
         flex: 2,
         width: 150
       },
-      trashCanColumn,
+      enhancedTrashColumn,
     ],
     rowData: [],
     context: { gridType: "MaterialsTable" },
@@ -407,6 +425,15 @@ export function createAdvancedAdjustmentsGridOptions(
   commonGridOptions,
   trashCanColumn,
 ) {
+  const enhancedTrashColumn = {
+    ...trashCanColumn,
+    width: 80,
+    minWidth: 80,
+    maxWidth: 80,
+    flex: 0,
+    suppressSizeToFit: true,
+  };
+
   return {
     ...commonGridOptions,
     columnDefs: [
@@ -444,7 +471,7 @@ export function createAdvancedAdjustmentsGridOptions(
         flex: 2,
         width: 175
       },
-      trashCanColumn,
+      enhancedTrashColumn,
     ],
     rowData: [],
     context: { gridType: "AdjustmentTable" },
@@ -453,6 +480,15 @@ export function createAdvancedAdjustmentsGridOptions(
 
 // Simple grids
 export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
+  const enhancedTrashColumn = {
+    ...trashCanColumn,
+    width: 80,
+    minWidth: 80,
+    maxWidth: 80,
+    flex: 0,
+    suppressSizeToFit: true,
+  };
+
   return {
     ...commonGridOptions,
     columnDefs: [
@@ -502,7 +538,7 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
         editable: false,
         hide: true,
       },
-      trashCanColumn,
+      enhancedTrashColumn,
     ],
     context: { gridType: "SimpleTimeTable" },
   };
@@ -512,6 +548,15 @@ export function createSimpleMaterialsGridOptions(
   commonGridOptions,
   trashCanColumn,
 ) {
+  const enhancedTrashColumn = {
+    ...trashCanColumn,
+    width: 80,
+    minWidth: 80,
+    maxWidth: 80,
+    flex: 0,
+    suppressSizeToFit: true,
+  };
+
   return {
     ...commonGridOptions,
     columnDefs: [
@@ -539,7 +584,7 @@ export function createSimpleMaterialsGridOptions(
         minWidth: 80,
         width: 230
       },
-      trashCanColumn,
+      enhancedTrashColumn,
     ],
     context: { gridType: "SimpleMaterialsTable" },
   };
@@ -549,6 +594,15 @@ export function createSimpleAdjustmentsGridOptions(
   commonGridOptions,
   trashCanColumn,
 ) {
+  const enhancedTrashColumn = {
+    ...trashCanColumn,
+    width: 80,
+    minWidth: 80,
+    maxWidth: 80,
+    flex: 0,
+    suppressSizeToFit: true,
+  };
+
   return {
     ...commonGridOptions,
     columnDefs: [
@@ -576,7 +630,7 @@ export function createSimpleAdjustmentsGridOptions(
         minWidth: 80,
         width: 230
       },
-      trashCanColumn,
+      enhancedTrashColumn,
     ],
     context: { gridType: "SimpleAdjustmentsTable" },
   };
@@ -609,6 +663,7 @@ export function createSimpleTotalsGridOptions(gridKey) {
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
+        cellStyle: { "text-align": "start" }
       },
     ],
     rowData: [{ cost: 0, retail: 0 }],

@@ -45,6 +45,7 @@
   transition: all var(--transition-speed) ease;
   background-color: white;
   box-shadow: var(--card-shadow);
+  font-size: 0.75rem;
 }
 
 .week-nav-btn:hover {

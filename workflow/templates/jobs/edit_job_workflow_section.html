@@ -33,20 +33,18 @@
             <!-- Hidden ISO Date Field (Autosaved when quote is accepted) -->
             <input type="hidden" id="quote_acceptance_date_iso" name="quote_acceptance_date_iso" class="autosave-input"
                 value="{{ job.quote_acceptance_date|default:''|date:'c' }}">
-
-            <!-- Accept Quote Button -->
-            {% if pricing_type == "fixed_price" %}
-            <button id="acceptQuoteButton" class="btn btn-success" 
-            {% if job.latest_quote_pricing.total_cost|floatformat:"2" == "0.00" %}disabled{% endif %}>
-                <i class="bi bi-check-circle me-2"></i>Accept Quote
-            </button>
-            {% endif %}
         </div>
     </div>
 
     <!-- Action Buttons -->
-    <div class="workflow-actions mt-4 mb-4 p-3 border-top border-bottom border-light">
+    <div class="workflow-actions mt-4 mb-4 border-top border-bottom border-light">
         <div class="d-flex flex-wrap gap-2">
+            <!-- Accept Quote Button -->
+            {% if pricing_type == "fixed_price" %}
+            <button id="acceptQuoteButton" class="btn btn-success" {% if job.latest_quote_pricing.total_cost|floatformat:"2" == "0.00" %}disabled{% endif %}>
+                <i class="bi bi-check-circle me-2"></i>Accept Quote
+            </button>
+            {% endif %}
             <button type="button" class="btn btn-warning" id="invoiceJobButton" {% if invoiced %} disabled {% endif %}>
                 <i class="bi bi-receipt me-2"></i>Invoice Job
             </button>
@@ -59,7 +57,7 @@
                 id="deleteInvoiceButton">
                 <i class="bi bi-trash me-2"></i>Delete Xero Invoice
             </button>
-            <button type="button" class="btn btn-info ms-auto" id="contactClientButton">
+            <button type="button" class="btn btn-info" id="contactClientButton">
                 <i class="bi bi-envelope me-2"></i>Contact Client about Job
             </button>
         </div>
