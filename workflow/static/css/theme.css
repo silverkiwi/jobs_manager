@@ -215,6 +215,8 @@ body {
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
   padding: 0.75rem 1rem;
+  position: relative;
+  z-index: 1030;
 }
 
 .navbar-brand {
@@ -439,6 +441,7 @@ body {
   border: none;
   box-shadow: var(--card-shadow);
   padding: 0.5rem 0;
+  z-index: 1050;
 }
 
 .dropdown-item {
@@ -449,6 +452,11 @@ body {
 .dropdown-item:hover {
   background-color: rgba(67, 97, 238, 0.1);
   color: var(--primary-color);
+}
+
+.dropdown {
+  position: relative;
+  z-index: 1040;
 }
 
 /* Kanban board styling */

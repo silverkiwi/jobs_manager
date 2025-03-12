@@ -19,7 +19,6 @@
   --ag-row-height: 22px; /* Reduced from 38px */
   --ag-header-height: 32px; /* Reduced from 42px */
   
-  border-radius: ;
   box-shadow: var(--card-shadow);
   overflow: visible;
   border: none;
