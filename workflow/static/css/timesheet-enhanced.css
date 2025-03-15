@@ -316,6 +316,7 @@
 
 #summary-section {
   max-height: 250px;
+  overflow-y: auto;
 }
 
 .ag-theme-alpine.timesheet-grid {
@@ -326,6 +327,6 @@
 }
 
 #timesheet-grid {
-  min-height: 80px !important;
+  max-height: 80px;
   height: auto !important;
 }

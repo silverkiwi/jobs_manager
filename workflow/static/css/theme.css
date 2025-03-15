@@ -232,6 +232,7 @@ body {
   transition: all var(--transition-speed) ease;
   padding: 0.5rem 1rem !important;
   font-weight: 500;
+  color: var(--dark-text);
 }
 
 .nav-link:hover {
