@@ -160,6 +160,8 @@ class Job(models.Model):
         help_text="Internal notes about the job. Not shown on the invoice.",
     )
 
+    created_by = models.ForeignKey("Staff", on_delete=models.SET_NULL, null=True)
+
     class Meta:
         ordering = ["job_number"]
 
@@ -212,24 +214,19 @@ class Job(models.Model):
         is_new = self._state.adding
         original_status = None if is_new else Job.objects.get(pk=self.pk).status
 
+        create_creation_event = False
+        if (staff and is_new) or (not self.created_by and staff):
+            create_creation_event = True
+            self.created_by = staff
+
         # Step 1: Check if this is a new instance (based on `self._state.adding`)
         if not self.job_number:
             self.job_number = self.generate_job_number()
             logger.debug(f"Saving job with job number: {self.job_number}")
+
         if self.charge_out_rate is None:
             company_defaults = CompanyDefaults.objects.first()
             self.charge_out_rate = company_defaults.charge_out_rate
-
-        if (
-            staff
-            and not JobEvent.objects.filter(job=self, event_type="created").exists()
-        ):
-            JobEvent.objects.create(
-                job=self,
-                event_type="created",
-                description=f"Job {self.name} created",
-                staff=staff,
-            )
 
         if is_new:
             # Creating a new job is tricky because of the circular reference.
@@ -261,8 +258,18 @@ class Job(models.Model):
                 ]
             )
 
+            if create_creation_event and staff:
+                JobEvent.objects.create(
+                    job=self,
+                    event_type="created",
+                    description=f"Job {self.name} created",
+                    staff=staff,
+                )
+
         else:
             if original_status != self.status and staff:
+                super(Job, self).save(*args, **kwargs)
+
                 JobEvent.objects.create(
                     job=self,
                     event_type="status_change",
@@ -272,6 +279,8 @@ class Job(models.Model):
                     ),
                     staff=staff,
                 )
+
+                return
 
             # Step 5: Save the Job to persist everything, including relationships
             super(Job, self).save(*args, **kwargs)

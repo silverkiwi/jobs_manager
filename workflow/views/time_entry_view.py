@@ -18,7 +18,7 @@ from workflow.models import Job, Staff, TimeEntry
 from workflow.serializers.time_entry_serializer import (
     TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
 )
-from workflow.utils import extract_messages, get_jobs_data
+from workflow.utils import extract_messages, get_jobs_data, get_excluded_staff
 
 logger = logging.getLogger(__name__)
 
@@ -52,18 +52,7 @@ class TimesheetEntryView(TemplateView):
 
     # Excluding app users ID's to avoid them being loaded in timesheet views because they do not have entries
     # (Valerie and Corrin included as they are not supposed to enter hours)
-    EXCLUDED_STAFF_IDS = [
-        "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
-        "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
-        "d335acd4-800e-517a-8ff4-ba7aada58d14",
-        "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
-    ]
-
-    # Also excluding users that don't have IMS id
-    excluded_staff = Staff.objects.filter(ims_payroll_id__isnull=True)
-    
-    excluded_staff = [str(staff.id) for staff in excluded_staff]
-    EXCLUDED_STAFF_IDS.extend(excluded_staff)
+    EXCLUDED_STAFF_IDS = get_excluded_staff()
 
     def get(self, request, date, staff_id, *args, **kwargs):
         """

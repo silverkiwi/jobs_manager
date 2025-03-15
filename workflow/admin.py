@@ -58,7 +58,6 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
         "last_name",
         "is_staff",
         "is_active",
-        "id"
     )
     list_filter = (
         "is_staff",

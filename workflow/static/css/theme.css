@@ -116,12 +116,13 @@ body {
 .btn-warning {
   background-color: var(--warning-color);
   border-color: var(--warning-color);
-  color: #333;
+  color: var(--light-text);
 }
 
 .btn-info {
   background-color: var(--info-color);
   border-color: var(--info-color);
+  color: var(--light-text);
 }
 
 .btn:after {

@@ -1,13 +1,38 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, UpdateView
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
 
 from workflow.forms import StaffChangeForm, StaffCreationForm
+from workflow.serializers.staff_serializer import StaffNameSerializer
+from workflow.utils import get_excluded_staff
+
 
 Staff = get_user_model()
+
+
+class StaffListAPIView(generics.ListAPIView):
+    queryset = Staff.objects.all()
+    serializer_class = StaffNameSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset(request)
+        serializer = StaffNameSerializer(queryset, many=True)
+        return JsonResponse(serializer.data, safe=False)
+    
+    def get_queryset(self, request):
+        actual_users = eval(request.headers.get("X-Actual-Users", "False"))
+        match actual_users:
+            case True:
+                excluded_ids = get_excluded_staff()
+                return Staff.objects.exclude(id__in=excluded_ids)
+            case False:
+                return Staff.objects.all()
 
 
 class StaffListView(LoginRequiredMixin, UserPassesTestMixin, ListView):

@@ -211,6 +211,12 @@
   animation: fadeInRight 0.3s ease-out;
 }
 
+.job-card-result {
+  display: flex;
+  flex-direction: column;
+  min-height: 150px; /* Minimum height to ensure space for footer */
+}
+
 .job-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(67, 97, 238, 0.2);
@@ -243,6 +249,7 @@
 
 .job-card-body {
   font-size: 0.8rem;
+  color: var(--dark-text);
 }
 
 /* Job attributes */
@@ -320,6 +327,92 @@
 
 .status-hold .job-status-ribbon {
   background-color: var(--warning-color);
+}
+
+.simple-search-container {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+}
+
+.advanced-search-container {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid var(--primary-color);
+}
+
+#searchResultsContainer {
+  padding: 1rem;
+}
+
+.search-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.search-results-grid .job-card {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  transition: all 0.2s ease;
+  border-left: 4px solid var(--primary-color);
+}
+
+.search-results-grid .job-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  color: white;
+  margin-left: auto;
+  margin-right: 0.5rem;
+}
+
+.status-badge.quoting { background-color: #f0ad4e; }
+.status-badge.approved { background-color: #5cb85c; }
+.status-badge.in_progress { background-color: #0275d8; }
+.status-badge.completed { background-color: #5bc0de; }
+.status-badge.rejected { background-color: #d9534f; }
+.status-badge.archived { background-color: #777; }
+.status-badge.on_hold { background-color: #aa66cc; }
+.status-badge.special { background-color: #ff7043; }
+
+/* Job meta footer section - always sticks to bottom of card */
+.job-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: auto; /* Pushes element to bottom of flex parent */
+  border-top: 1px solid rgba(0,0,0,0.1);
+  padding-top: 0.5rem;
+  position: relative;
+}
+
+/* Ensure content area can grow but footer stays at bottom */
+.job-card p.job-description {
+  flex-grow: 1; /* Allows description to expand and fill available space */
+}
+
+#advancedSearchButton {
+  color: var(--light-bg);
 }
 
 /* Search and filter controls */
@@ -516,7 +609,7 @@
   border-bottom: none;
 }
 
-/* Styling for job tooltip */
+/* Styling for job tooltip */ 
 .job-tooltip {
   position: absolute;
   background-color: rgba(0, 0, 0, 0.8);
@@ -527,4 +620,15 @@
   max-width: 250px;
   z-index: 1000;
   pointer-events: none;
+}
+
+.search-match {
+  box-shadow: 0 0 0 2px var(--primary-color);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.5); }
+  70% { box-shadow: 0 0 0 5px rgba(67, 97, 238, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); }
 }
