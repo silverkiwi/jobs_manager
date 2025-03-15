@@ -2,7 +2,7 @@
   --primary-color: #4361ee;
   --primary-hover: #3a56d4;
   --secondary-color: #3f37c9;
-  --success-color: #4cc9f0;
+  --success-color: #36b143;
   --danger-color: #f72585;
   --warning-color: #f9c74f;
   --info-color: #4cc9f0;
@@ -81,6 +81,7 @@ body {
   transition: all var(--transition-speed) ease;
   position: relative;
   overflow: hidden;
+  color: var(--light-text);
 }
 
 .btn-primary {
@@ -92,6 +93,7 @@ body {
   background-color: var(--primary-hover);
   border-color: var(--primary-hover);
   transform: translateY(-2px);
+  color: var(--light-text);
 }
 
 .btn-secondary {
@@ -187,8 +189,8 @@ body {
 }
 
 .alert-success {
-  background-color: rgba(76, 201, 240, 0.2);
-  color: #0077b6;
+  background-color: rgba(60, 199, 74, 0.131);
+  color: var(--success-color);
   border-left: 4px solid var(--success-color);
 }
 
@@ -521,6 +523,13 @@ a {
 
 a:hover {
   color: var(--primary-hover);
+}
+
+a.animated-link {
+  color: var(--secondary-color);
+  text-decoration: underline;
+  font-weight: 500;
+  padding-bottom: 2px;
 }
 
 a.animated-link:after {

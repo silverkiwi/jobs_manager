@@ -1,6 +1,10 @@
 /* Enhanced styles for timesheets */
 
 /* Overview header styling */
+.paid-absence-btn {
+  color: var(--success-color);
+}
+
 .timesheet-header {
   text-align: center;
   margin-bottom: 2rem;
@@ -46,6 +50,7 @@
   background-color: white;
   box-shadow: var(--card-shadow);
   font-size: 0.75rem;
+  color: var(--dark-text);
 }
 
 .week-nav-btn:hover {
@@ -302,4 +307,25 @@
 
 .status-indicator.missing {
   background-color: var(--danger-color);
+}
+
+#current-jobs {
+  max-height: 600px;
+  max-width: 910px;
+}
+
+#summary-section {
+  max-height: 250px;
+}
+
+.ag-theme-alpine.timesheet-grid {
+  width: 100%;
+  min-height: 80px;
+  display: block;
+  overflow: auto !important;
+}
+
+#timesheet-grid {
+  min-height: 80px !important;
+  height: auto !important;
 }

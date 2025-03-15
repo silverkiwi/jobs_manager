@@ -24,7 +24,7 @@
             {% for staff in staff_data %}
             <tr>
                 <td>
-                    <a href="{% url 'timesheet_entry' date=date staff_id=staff.staff_id %}">
+                    <a href="{% url 'timesheet_entry' date=date staff_id=staff.staff_id %}" class="animated-link">
                         {{ staff.name }}
                     </a>
                 </td>
