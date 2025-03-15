@@ -84,6 +84,11 @@ body {
   color: var(--light-text);
 }
 
+.btn-outline-primary,
+.btn-outline-secondary {
+  color: var(--dark-text);
+}
+
 .btn-primary {
   background-color: var(--primary-color);
   border-color: var(--primary-color);
