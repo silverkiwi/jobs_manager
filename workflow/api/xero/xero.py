@@ -87,16 +87,17 @@ def store_token(token: Dict[str, Any]) -> None:
     }
 
     # Get expiry time from Xero's response
-    expires_at = None
-    if token.get("expires_in"):
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=token["expires_in"])
-        token_data["expires_at"] = expires_at.timestamp()
-        logger.info(f"Token will expire at {expires_at.isoformat()}")
+    if not token.get("expires_in"):
+        logger.error("No expires_in provided in token response from Xero")
+        raise ValueError("Missing expires_in in Xero token response")
 
-    # Store in cache - use Xero's expires_in for the cache timeout
-    cache_timeout = token.get("expires_in", 1740)  # fallback to 29 minutes if not provided
-    cache.set("xero_token", token_data, timeout=cache_timeout)
-    logger.info(f"Token stored in cache with timeout of {cache_timeout} seconds")
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=token["expires_in"])
+    token_data["expires_at"] = expires_at.timestamp()
+    logger.info(f"Token will expire at {expires_at.isoformat()}")
+
+    # Store in cache with the actual expiry time
+    cache.set("xero_token", token_data, timeout=token["expires_in"])
+    logger.info(f"Token stored in cache with timeout of {token['expires_in']} seconds")
 
     # Get tenant ID if available
     try:
@@ -140,15 +141,17 @@ def refresh_token() -> Optional[Dict[str, Any]]:
         return None
 
     try:
-        token_api = TokenApi(api_client)
+        token_api = TokenApi(
+            client_id=settings.XERO_CLIENT_ID,
+            client_secret=settings.XERO_CLIENT_SECRET
+        )
         refreshed_token = token_api.refresh_token(token)
         refreshed_dict = refreshed_token.to_dict()
         logger.info(f"Token refreshed successfully at {datetime.now(timezone.utc).isoformat()}")
 
         # Save the new token immediately and log the expiry time
         store_token(refreshed_dict)
-        expires_in = refreshed_dict.get("expires_in", 0)
-        new_expiry = (datetime.now(timezone.utc) + timedelta(seconds=expires_in)).isoformat()
+        new_expiry = (datetime.now(timezone.utc) + timedelta(seconds=refreshed_dict["expires_in"])).isoformat()
         logger.info(f"New token stored at {datetime.now(timezone.utc).isoformat()} with expiry at {new_expiry}")
 
         return refreshed_dict
