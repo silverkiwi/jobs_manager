@@ -113,8 +113,7 @@ export function createCostGridOptions() {
 }
 
 /**
- * Recalcula cost_of_time e value_of_time de uma row simples de Time,
- * usando hours * wage_rate e hours * charge_out_rate.
+ * Recalc cost_of_time e value_of_time for a simple time row
  */
 export function recalcSimpleTimeRow(row) {
   const hours = parseFloat(row.hours) || 0;
@@ -126,8 +125,7 @@ export function recalcSimpleTimeRow(row) {
 }
 
 /**
- * Calcula os totais (cost, retail) para cada seção (estimate, quote, reality)
- * e atualiza a SimpleTotalsTable correspondente.
+ * Function that calculate totals (cost, retail) for each section (estimate, quote, reality)
  */
 export function calculateSimpleTotals() {
   const simpleTotals = {
@@ -145,102 +143,161 @@ export function calculateSimpleTotals() {
       console.log(`Processing section: ${section}`);
     }
 
+    // Reality is always complex
+    const isRealitySection = section === 'reality';
+
     // 1) Time
-    {
-      const timeGridKey = `simple${capitalize(section)}TimeTable`;
-      const timeApi = window.grids[timeGridKey]?.api;
-      if (timeApi) {
-        const updatedTimeRows = [];
-        timeApi.forEachNode((node) => {
-          recalcSimpleTimeRow(node.data);
-
-          updatedTimeRows.push(node.data);
-
-          const cost = parseFloat(node.data.cost_of_time) || 0;
-          const retail = parseFloat(node.data.value_of_time) || 0;
-          simpleTotals[section].cost += cost;
-          simpleTotals[section].retail += retail;
-        });
-
-        if (updatedTimeRows.length > 0) {
-          timeApi.applyTransaction({ update: updatedTimeRows });
-        }
-
-        if (Environment.isDebugMode()) {
-          console.log(`Time totals for ${section}:`, {
-            cost: simpleTotals[section].cost,
-            retail: simpleTotals[section].retail,
-          });
-        }
-      }
-    }
-
+    processTimeGrid(section, isRealitySection, simpleTotals);
+    
     // 2) Materials
-    {
-      const matGridKey = `simple${capitalize(section)}MaterialsTable`;
-      const matApi = window.grids[matGridKey]?.api;
-      if (matApi) {
-        matApi.forEachNode((node) => {
-          const cost = parseFloat(node.data.material_cost) || 0;
-          const retail = parseFloat(node.data.retail_price) || 0;
-          simpleTotals[section].cost += cost;
-          simpleTotals[section].retail += retail;
-        });
-        if (Environment.isDebugMode()) {
-          console.log(`Materials totals for ${section}:`, {
-            cost: simpleTotals[section].cost,
-            retail: simpleTotals[section].retail,
-          });
-        }
-      }
-    }
-
+    processMaterialsGrid(section, isRealitySection, simpleTotals);
+    
     // 3) Adjustments
-    {
-      const adjGridKey = `simple${capitalize(section)}AdjustmentsTable`;
-      const adjApi = window.grids[adjGridKey]?.api;
-      if (adjApi) {
-        adjApi.forEachNode((node) => {
-          const costAdj = parseFloat(node.data.cost_adjustment) || 0;
-          const priceAdj = parseFloat(node.data.price_adjustment) || 0;
-          simpleTotals[section].cost += costAdj;
-          simpleTotals[section].retail += priceAdj;
-        });
-        if (Environment.isDebugMode()) {
-          console.log(`Adjustments totals for ${section}:`, {
-            cost: simpleTotals[section].cost,
-            retail: simpleTotals[section].retail,
-          });
-        }
-      }
-    }
+    processAdjustmentsGrid(section, isRealitySection, simpleTotals);
   });
 
-  sections.forEach((section) => {
-    const stKey = `simple${capitalize(section)}TotalsTable`;
-    const stGrid = window.grids[stKey];
-    if (stGrid && stGrid.api) {
-      const rowUpdates = [];
-      stGrid.api.forEachNode((node) => {
-        node.data.cost = simpleTotals[section].cost;
-        node.data.retail = simpleTotals[section].retail;
-        rowUpdates.push(node.data);
-      });
-
-      if (rowUpdates.length > 0) {
-        stGrid.api.applyTransaction({ update: rowUpdates });
-      }
-
-      if (Environment.isDebugMode()) {
-        console.log(`Final totals for ${section}:`, {
-          cost: simpleTotals[section].cost,
-          retail: simpleTotals[section].retail,
-        });
-      }
-    }
-  });
+  updateTotalsTables(simpleTotals);
 
   if (Environment.isDebugMode()) {
     console.log("Completed calculateSimpleTotals calculation", simpleTotals);
   }
+}
+
+// Added some aux functions
+function processTimeGrid(section, isRealitySection, simpleTotals) {
+  const timeGridKey = isRealitySection 
+    ? `${section}TimeTable` 
+    : `simple${capitalize(section)}TimeTable`;
+
+  const timeApi = window.grids[timeGridKey]?.api;
+  if (!timeApi) return;
+
+  const updatedTimeRows = [];
+  
+  timeApi.forEachNode((node) => {
+    if (isRealitySection) {
+      processComplexTimeRow(node.data, section, simpleTotals);
+      return;
+    }
+    
+    // Simple grid handling
+    processSimpleTimeRow(node.data, section, simpleTotals, updatedTimeRows);
+  });
+
+  // Update only for simple
+  if (!isRealitySection && updatedTimeRows.length > 0) {
+    timeApi.applyTransaction({ update: updatedTimeRows });
+  }
+
+  if (Environment.isDebugMode()) {
+    console.log(`Time totals for ${section}:`, {
+      cost: simpleTotals[section].cost,
+      retail: simpleTotals[section].retail,
+    });
+  }
+}
+
+function processComplexTimeRow(data, section, simpleTotals) {
+  const totalMinutes = parseFloat(data.total_minutes) || 0;
+  const wage = parseFloat(data.wage_rate) || 0;
+  const charge = parseFloat(data.charge_out_rate) || 0;
+  const hours = totalMinutes / 60;
+  
+  const cost = hours * wage;
+  const retail = parseFloat(data.revenue) || 0;
+  simpleTotals[section].cost += cost;
+  simpleTotals[section].retail += retail;
+}
+
+function processSimpleTimeRow(data, section, simpleTotals, updatedTimeRows) {
+  recalcSimpleTimeRow(data);
+  updatedTimeRows.push(data);
+
+  const cost = parseFloat(data.cost_of_time) || 0;
+  const retail = parseFloat(data.value_of_time) || 0;
+  simpleTotals[section].cost += cost;
+  simpleTotals[section].retail += retail;
+}
+
+function processMaterialsGrid(section, isRealitySection, simpleTotals) {
+  const matGridKey = isRealitySection 
+    ? `${section}MaterialsTable` 
+    : `simple${capitalize(section)}MaterialsTable`;
+    
+  const matApi = window.grids[matGridKey]?.api;
+  if (!matApi) return;
+
+  matApi.forEachNode((node) => {
+    if (isRealitySection) {
+      // Complex grid
+      const cost = (parseFloat(node.data.unit_cost) || 0) * (parseFloat(node.data.quantity) || 0);
+      const retail = parseFloat(node.data.revenue) || 0;
+      simpleTotals[section].cost += cost;
+      simpleTotals[section].retail += retail;
+      return;
+    }
+    
+    // Simple grid
+    const cost = parseFloat(node.data.material_cost) || 0;
+    const retail = parseFloat(node.data.retail_price) || 0;
+    simpleTotals[section].cost += cost;
+    simpleTotals[section].retail += retail;
+  });
+  
+  if (Environment.isDebugMode()) {
+    console.log(`Materials totals for ${section}:`, {
+      cost: simpleTotals[section].cost,
+      retail: simpleTotals[section].retail,
+    });
+  }
+}
+
+function processAdjustmentsGrid(section, isRealitySection, simpleTotals) {
+  const adjGridKey = isRealitySection 
+    ? `${section}AdjustmentsTable` 
+    : `simple${capitalize(section)}AdjustmentsTable`;
+
+  const adjApi = window.grids[adjGridKey]?.api;
+  if (!adjApi) return;
+
+  adjApi.forEachNode((node) => {
+    const costAdj = parseFloat(node.data.cost_adjustment) || 0;
+    const priceAdj = parseFloat(node.data.price_adjustment) || 0;
+    
+    simpleTotals[section].cost += costAdj;
+    simpleTotals[section].retail += priceAdj;
+  });
+  
+  if (Environment.isDebugMode()) {
+    console.log(`Adjustments totals for ${section}:`, {
+      cost: simpleTotals[section].cost,
+      retail: simpleTotals[section].retail,
+    });
+  }
+}
+
+function updateTotalsTables(simpleTotals) {
+  sections.forEach((section) => {
+    const stKey = `simple${capitalize(section)}TotalsTable`;
+    const stGrid = window.grids[stKey];
+    if (!stGrid || !stGrid.api) return;
+
+    const rowUpdates = [];
+    stGrid.api.forEachNode((node) => {
+      node.data.cost = simpleTotals[section].cost;
+      node.data.retail = simpleTotals[section].retail;
+      rowUpdates.push(node.data);
+    });
+
+    if (rowUpdates.length > 0) {
+      stGrid.api.applyTransaction({ update: rowUpdates });
+    }
+
+    if (Environment.isDebugMode()) {
+      console.log(`Final totals for ${section}:`, {
+        cost: simpleTotals[section].cost,
+        retail: simpleTotals[section].retail,
+      });
+    }
+  });
 }
