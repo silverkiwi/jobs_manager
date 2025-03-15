@@ -155,12 +155,14 @@ export function calculateTotalCost() {
 }
 
 export function onCellKeyDown(params) {
+  // For reality grids, or complex mode, add new rows on Enter
+  const gridKey = params.context?.gridKey || '';
   const isComplex = document.getElementById("complex-job").textContent.toLowerCase() === 'true';
 
-  if (params.event.key === "Enter" && isComplex) {
+  // Handle Enter key for both complex mode and reality grids
+  if (params.event.key === "Enter" && (isComplex || gridKey.includes('reality'))) {
     const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
     if (isLastRow) {
-      const gridKey = params.context.gridKey;
       const newRow = createNewRow(params.context.gridType);
       if (newRow) {
         params.api.applyTransaction({ add: [newRow] });
@@ -297,18 +299,18 @@ export function checkRealityValues() {
         // Check for revenue or cost values > 0
         const revenue = parseFloat(node.data.revenue || 0);
         const cost = parseFloat(node.data.cost || 0);
-        
+
         // For materials, also check quantity and unit_cost/unit_revenue
         const quantity = parseFloat(node.data.quantity || 0);
         const unitCost = parseFloat(node.data.unit_cost || 0);
         const unitRevenue = parseFloat(node.data.unit_revenue || 0);
-        
+
         // For time entries, check minutes
         const minutes = parseFloat(node.data.total_minutes || 0);
-        
-        if (revenue > 0 || cost > 0 || 
-            (quantity > 0 && (unitCost > 0 || unitRevenue > 0)) ||
-            minutes > 0) {
+
+        if (revenue > 0 || cost > 0 ||
+          (quantity > 0 && (unitCost > 0 || unitRevenue > 0)) ||
+          minutes > 0) {
           hasRealValues = true;
         }
       });

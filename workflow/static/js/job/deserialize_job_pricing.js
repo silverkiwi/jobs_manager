@@ -53,6 +53,16 @@ export function getGridData(section, gridType) {
 
   const sectionKey = `${section}_pricing`;
   const sectionData = window.latest_job_pricings_json[sectionKey];
+
+  let effectiveGridType = gridType;
+  if (section === "reality" && gridType.startsWith("Simple")) {
+    // Converting simple to complex when reality section is detected
+    effectiveGridType = gridType.replace("Simple", "");
+    if (Environment.isDebugMode()) {
+      console.log(`Reality section detected. Converting grid type from ${gridType} to ${effectiveGridType}`);
+    }
+  }
+
   if (!sectionData) {
     // Section not found -> new row
     if (Environment.isDebugMode()) {
@@ -60,13 +70,13 @@ export function getGridData(section, gridType) {
         `Debug: No data found for section ${sectionKey}, creating new row`,
       );
     }
-    return [createNewRow(gridType)];
+    return [createNewRow(effectiveGridType)];
   }
 
   // Convert "SimpleXYZTable" => "XYZTable" for internal usage
-  let realGridType = gridType;
-  if (gridType.startsWith("Simple")) {
-    realGridType = gridType.replace("Simple", "");
+  let realGridType = effectiveGridType;
+  if (effectiveGridType.startsWith("Simple")) {
+    realGridType = effectiveGridType.replace("Simple", "");
   }
 
   // Convert e.g. "TimeTable" => "time_entries", "MaterialsTable" => "material_entries", etc.
@@ -88,7 +98,8 @@ export function getGridData(section, gridType) {
     return [createNewRow(gridType)];
   }
 
-  return loadExistingJobEntries(sectionData[entryType], gridType);
+  if (Environment.isDebugMode()) console.log(`Loading existing ${entryType} for ${sectionKey} | ${effectiveGridType}`);
+  return loadExistingJobEntries(sectionData[entryType], effectiveGridType);
 }
 
 /**
@@ -166,7 +177,7 @@ function loadSimpleJobTime(entries) {
     const hours = parseFloat(entry.total_minutes / 60) || 0;
     const wage = parseFloat(entry.wage_rate) || 32;
     const charge = parseFloat(entry.charge_out_rate) || 105;
-    
+
     return {
       description: '',
       hours: hours,
