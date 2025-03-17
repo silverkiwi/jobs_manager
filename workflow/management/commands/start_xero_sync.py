@@ -16,23 +16,32 @@ class Command(BaseCommand):
     help = 'Starts the Xero sync scheduler with token refresh heartbeat'
 
     def handle(self, *args, **options):
+        # Add a console handler directly to our logger
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        
+        # Get our logger and add the handler
+        logger.addHandler(handler)
+        logger.setLevel(logging.DEBUG)
+        
+        # Test that debug logging is working
+        logger.debug("Debug logging enabled for Xero sync process")
+
         def token_heartbeat():
-            """Check and refresh token if needed, without performing any data sync."""
+            """Refresh Xero token every 5 minutes."""
             try:
-                logger.debug(f"Running token heartbeat check at {timezone.now()}")
                 token = XeroToken.objects.first()
                 if not token:
-                    logger.debug("No Xero token found. Skipping heartbeat.")
+                    logger.debug("No Xero token found. Skipping refresh.")
                     return
                 
-                # get_valid_token will automatically refresh if needed
-                token = get_valid_token()
-                if token:
-                    logger.debug("Token is valid or was refreshed successfully")
-                else:
-                    logger.warning("Failed to validate/refresh token during heartbeat")
+                logger.debug("Running token heartbeat - refreshing Xero token")
+                refresh_token()
+                logger.debug("Token heartbeat completed")
             except Exception as e:
-                logger.error(f"Error in token heartbeat: {str(e)}")
+                logger.error(f"Error in token refresh: {str(e)}")
 
         def xero_sync_job():
             """Full data sync job that runs hourly."""

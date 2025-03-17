@@ -26,6 +26,11 @@ api_client = ApiClient(
     ),
 )
 
+token_api = TokenApi(
+    api_client,
+    client_id=settings.XERO_CLIENT_ID,
+    client_secret=settings.XERO_CLIENT_SECRET
+)
 
 # Helper function for pretty printing JSON/dict objects
 def pretty_print(obj):
@@ -133,31 +138,53 @@ def store_token(token: Dict[str, Any]) -> None:
 
 
 def refresh_token() -> Optional[Dict[str, Any]]:
-    current_time = datetime.now(timezone.utc).isoformat()
-    logger.info(f"Initiating token refresh at {current_time}")
+    """Refresh the Xero OAuth token."""
+    logger.debug("Starting token refresh")
+    
     token = get_token()
-    if not token or "refresh_token" not in token:
-        logger.info(f"No valid token found to refresh at {datetime.now(timezone.utc).isoformat()}")
+    if not token:
+        logger.debug("No token found to refresh")
         return None
 
+    # Log the current token state
+    current_expiry = datetime.fromtimestamp(token['expires_at'], tz=timezone.utc)
+    current_token = token['access_token'][:10] + "..."
+    logger.debug(f"Current token before refresh:")
+    logger.debug(f"  Access token: {current_token}")
+    logger.debug(f"  Expires at: {current_expiry}")
+
     try:
+        # Create token API with proper parameters
         token_api = TokenApi(
+            api_client,
             client_id=settings.XERO_CLIENT_ID,
             client_secret=settings.XERO_CLIENT_SECRET
         )
-        refreshed_token = token_api.refresh_token(token)
-        refreshed_dict = refreshed_token.to_dict()
-        logger.info(f"Token refreshed successfully at {datetime.now(timezone.utc).isoformat()}")
+        
+        # Refresh the token
+        refreshed_token = token_api.refresh_token(token['refresh_token'], token['scope'])
+        
+        # Log the new token state
+        new_expiry = datetime.now(timezone.utc) + timedelta(seconds=refreshed_token["expires_in"])
+        new_token_start = refreshed_token['access_token'][:10] + "..."
+        
+        logger.debug("Token refresh completed:")
+        logger.debug(f"  New access token: {new_token_start}")
+        logger.debug(f"  New expiry: {new_expiry}")
+        
+        # Explicitly log whether the token changed
+        if current_token != new_token_start:
+            logger.debug("Token was CHANGED during refresh")
+        else:
+            logger.debug("Token remained the SAME after refresh")
 
-        # Save the new token immediately and log the expiry time
-        store_token(refreshed_dict)
-        new_expiry = (datetime.now(timezone.utc) + timedelta(seconds=refreshed_dict["expires_in"])).isoformat()
-        logger.info(f"New token stored at {datetime.now(timezone.utc).isoformat()} with expiry at {new_expiry}")
-
-        return refreshed_dict
+        # Save the refreshed token
+        store_token(refreshed_token)
+        
+        return refreshed_token
     except Exception as e:
-        logger.error(f"Failed to refresh token at {datetime.now(timezone.utc).isoformat()}: {str(e)}", exc_info=True)
-        raise
+        logger.error(f"Token refresh failed: {str(e)}")
+        raise  # Re-raise to stop execution
 
 
 def get_valid_token() -> Optional[Dict[str, Any]]:
