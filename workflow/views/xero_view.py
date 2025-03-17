@@ -488,7 +488,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         return str(self.job.invoice.xero_id) if hasattr(self.job, "invoice") else None
 
     def get_xero_update_method(self):
-        self.xero_api.update_or_create_invoices
+        return self.xero_api.update_or_create_invoices
     
     def get_local_model(self):
         return Invoice
@@ -836,33 +836,6 @@ def xero_disconnect(request):
         messages.error(request, "Failed to disconnect from Xero")
     
     return redirect("/")
-
-
-def delete_xero_quote(request, job_id):
-    """
-    Deletes a quote in Xero for a given job.
-    """
-    tenant_id = ensure_xero_authentication()
-    if isinstance(
-        tenant_id, JsonResponse
-    ):  # If the tenant ID is an error message, return it directly
-        return tenant_id
-
-    try:
-        job = Job.objects.get(id=job_id)
-        creator = XeroQuoteCreator(job)
-        response = json.loads(creator.delete_document().content.decode())
-        if not response.get("success"):
-            logger.error(f"Failed to delete quote: {response.get("error")}")
-            messages.error(request, f"Failed to delete quote: {response.get("error")}")
-            return JsonResponse(
-                {"success": True, "messages": extract_messages(request)}
-            )
-        messages.success(request, "Quote deleted successfully")
-        return JsonResponse({"success": True, "messages": extract_messages(request)})
-    except Exception as e:
-        logger.error(f"Error in delete_xero_quote: {str(e)}")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 class XeroIndexView(TemplateView):
