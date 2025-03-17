@@ -797,7 +797,7 @@ def delete_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        response = json.loads(creator.create_document().content.decode())
+        response = json.loads(creator.delete_document().content.decode())
 
         if not response.get("success"):
             messages.error(request, f"Failed to delete quote: {response.get("error")}")
