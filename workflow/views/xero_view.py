@@ -470,7 +470,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
         
     def delete_document(self):
         response = super().delete_document()
-        if response and response.invoices:
+        if response and response.quotes:
             self.job.quote.delete()
             logger.info(f"Quote {self.job.quote.id} deleted successfully for job {self.job.id}")
             return JsonResponse({"success": True})
@@ -665,7 +665,7 @@ def create_xero_invoice(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroInvoiceCreator(job)
-        response = creator.create_document()
+        response = json.loads(creator.create_document().content.decode())
 
         if not response.get("success"):
             messages.error(
@@ -713,7 +713,7 @@ def create_xero_quote(request: HttpRequest, job_id) -> HttpResponse:
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        response = creator.create_document()
+        response = json.loads(creator.create_document().content.decode())
 
         if not response.get("success"):
             messages.error(request, f"Failed to create quote: {response.get('error')}")
@@ -757,8 +757,7 @@ def delete_xero_invoice(request: HttpRequest, job_id) -> HttpResponse:
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroInvoiceCreator(job)
-        response = creator.delete_document()
-
+        response = json.loads(creator.create_document().content.decode())
         if not response.get("success"):
             messages.error(
                 request, f"Failed to delete invoice: {response.get("error")}"
@@ -798,7 +797,7 @@ def delete_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        response = creator.delete_document()
+        response = json.loads(creator.create_document().content.decode())
 
         if not response.get("success"):
             messages.error(request, f"Failed to delete quote: {response.get("error")}")
