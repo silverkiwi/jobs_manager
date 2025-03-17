@@ -431,6 +431,19 @@ class XeroInvoiceCreator(XeroDocumentCreator):
     Handles invoice creation in Xero.
     """
 
+    def get_xero_id(self):
+        return self.job.invoice.xero_id if hasattr(self.job, "invoice") else None
+
+    def get_xero_update_method(self):
+        self.xero_api.update_or_create_invoices
+    
+    def get_local_model(self):
+        return Invoice
+    
+    def validate_job(self):
+        if self.job.invoiced:
+            raise ValueError(f"Job {self.job.id} is already invoiced.")
+
     def get_line_items(self):
         """
         Generates invoice-specific LineItems.
