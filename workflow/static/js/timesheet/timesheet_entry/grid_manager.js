@@ -78,11 +78,11 @@ export function adjustGridHeight() {
   window.grid.forEachNode(() => rowCount++);
   const rowHeight = 40;
   const headerHeight = 50;
-  const padding = 20;
+  const padding = 5;
   const maxHeight = Math.min(
     rowCount * rowHeight + headerHeight + padding,
     350,
   );
 
-  gridElement.style.height = `${maxHeight}px`;
+  gridElement.style.maxHeight = `${maxHeight}px`;
 }

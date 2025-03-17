@@ -1,0 +1,332 @@
+/* Enhanced styles for timesheets */
+
+/* Overview header styling */
+.paid-absence-btn {
+  color: var(--success-color);
+}
+
+.timesheet-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.timesheet-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.timesheet-date-display {
+  font-family: "Roboto Mono", monospace;
+  font-size: 1.15rem;
+  font-weight: bold;
+  padding: 0.75rem 1.5rem;
+  background-color: rgba(67, 97, 238, 0.1);
+  border-radius: var(--border-radius);
+  display: inline-block;
+  box-shadow: var(--card-shadow);
+  margin: 1rem 0;
+}
+
+/* Week navigation controls */
+.week-navigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.week-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 1rem;
+  border-radius: var(--border-radius);
+  transition: all var(--transition-speed) ease;
+  background-color: white;
+  box-shadow: var(--card-shadow);
+  font-size: 0.75rem;
+  color: var(--dark-text);
+}
+
+.week-nav-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.week-nav-btn i {
+  margin-right: 0.5rem;
+}
+
+.week-nav-btn i.right {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+/* Timesheet daily view enhancements */
+.timesheet-daily-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.timesheet-daily-date {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.timesheet-daily-controls {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Timesheet cards */
+.timesheet-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(5px);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  transition: all var(--transition-speed) ease;
+}
+
+.timesheet-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+}
+
+.timesheet-card-header {
+  padding: 1rem 1.5rem;
+  background-color: rgba(67, 97, 238, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.timesheet-card-header h5 {
+  margin: 0;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.timesheet-card-body {
+  padding: 1.5rem;
+}
+
+/* Timesheet entry form styling */
+.timesheet-form-container {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(5px);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 1.5rem;
+}
+
+/* Keyboard shortcuts card */
+.keyboard-shortcuts-card {
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.7);
+  transition: all var(--transition-speed) ease;
+}
+
+.keyboard-shortcuts-card:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.keyboard-shortcuts-card .card-header {
+  padding: 0.75rem 1.25rem;
+}
+
+.keyboard-shortcuts-card .card-body {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.keyboard-shortcut-badge {
+  background-color: #f8f9fa;
+  color: #212529;
+  padding: 0.25rem 0.5rem;
+  font-family: 'Roboto Mono', monospace;
+  border-radius: 4px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Summary section styling */
+.summary-section {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(5px);
+  border-radius: var(--border-radius);
+  padding: 1.25rem;
+  box-shadow: var(--card-shadow);
+  transition: all var(--transition-speed) ease;
+}
+
+.summary-section:hover {
+  box-shadow: 0 8px 25px rgba(67, 97, 238, 0.15);
+}
+
+.summary-section h4 {
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.summary-table {
+  width: 100%;
+}
+
+.summary-table th {
+  background-color: rgba(67, 97, 238, 0.1);
+  color: var(--primary-color);
+  font-weight: 600;
+  padding: 0.75rem;
+}
+
+.summary-table td {
+  padding: 0.75rem;
+}
+
+.summary-table tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Current jobs styling */
+.current-jobs-container {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(5px);
+  border-radius: var(--border-radius);
+  padding: 1.25rem;
+  box-shadow: var(--card-shadow);
+  transition: all var(--transition-speed) ease;
+  height: 100%;
+}
+
+.current-jobs-container:hover {
+  box-shadow: 0 8px 25px rgba(67, 97, 238, 0.15);
+}
+
+.current-jobs-container h4 {
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Audit trail or activity log styling */
+.activity-item {
+  display: flex;
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: all var(--transition-speed) ease;
+}
+
+.activity-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.activity-icon {
+  margin-right: 0.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: rgba(67, 97, 238, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  font-size: 1.25rem;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-time {
+  font-size: 0.85rem;
+  color: var(--muted-text);
+  margin-top: 0.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .timesheet-daily-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .week-navigation {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .week-nav-btn {
+    width: 100%;
+  }
+  
+  .timesheet-daily-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* Timesheet grid enhancements */
+.ag-theme-alpine.timesheet-grid {
+  --ag-header-background-color: rgba(67, 97, 238, 0.2);
+  --ag-header-foreground-color: var(--primary-color);
+  --ag-selected-row-background-color: rgba(67, 97, 238, 0.15);
+}
+
+/* Status indicators */
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.status-indicator.complete {
+  background-color: var(--success-color);
+}
+
+.status-indicator.partial {
+  background-color: var(--warning-color);
+}
+
+.status-indicator.missing {
+  background-color: var(--danger-color);
+}
+
+#current-jobs {
+  max-height: 600px;
+  max-width: 910px;
+}
+
+#summary-section {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.ag-theme-alpine.timesheet-grid {
+  width: 100%;
+  min-height: 80px;
+  display: block;
+  overflow: auto !important;
+}
+
+#timesheet-grid {
+  max-height: 80px;
+  height: auto !important;
+}

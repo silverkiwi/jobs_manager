@@ -16,6 +16,7 @@ from workflow.models import (
     Staff,
     TimeEntry,
 )
+from workflow.utils import get_excluded_staff
 
 logger = logging.getLogger(__name__)
 DEBUG_FORM = False  # Toggle form debugging
@@ -285,16 +286,6 @@ class PaidAbsenceForm(forms.Form):
         ("other", "Other Leave"),
     ]
 
-    EXCLUDED_STAFF_IDS = [
-        "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
-        "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
-        "d335acd4-800e-517a-8ff4-ba7aada58d14",
-        "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
-        # ID's for the same account on different environments
-        "843589ac-6d64-4056-91af-aefb25fbe8ea",
-        "7b467c53-78c5-4020-95f0-138f1f1bafc8"
-    ]
-
     leave_type = forms.ChoiceField(
         choices=LEAVE_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
@@ -313,7 +304,7 @@ class PaidAbsenceForm(forms.Form):
 
     staff = forms.ModelChoiceField(
         queryset=Staff.objects.filter(is_active=True, is_staff=False).exclude(
-            Q(id__in=EXCLUDED_STAFF_IDS)
+            Q(id__in=get_excluded_staff())
         ),
         widget=forms.Select(attrs={"class": "form-control"}),
         label="Staff Member",

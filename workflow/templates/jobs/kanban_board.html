@@ -2,44 +2,177 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/kanban.css' %}">
+<link rel="stylesheet" href="{% static 'css/kanban-enhanced.css' %}">
+<link rel="stylesheet" href="{% static 'css/job-cards.css' %}">
+<link rel="stylesheet" href="{% static 'css/animation-utils.css' %}">
 {% endblock %}
 
 {% block content %}
 
-<div class="search-container">
-  <input type="text" id="search" class="form-control" placeholder="🔍 Search jobs...">
-
-  <div class="left-container">
-    <div class="job-controls">
-      <label for="jobPageSize" class="form-label">Jobs per page:</label>
-      <select id="jobPageSize" class="form-select">
-        <option value="10">10</option>
-        <option value="20">20</option>
-        <option value="50">50</option>
-        <option value="100">100</option>
-      </select>
+<div id="monthEndModal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Select Jobs for Month-End Processing</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="monthEndForm">
+          <label for="jobSelector" class="form-label">Jobs</label>
+          <select id="jobSelector" class="form-select" multiple>
+            {% for job in jobs %}
+            <option value="{{ job.id }}">{{ job.name }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Close
+        </button>
+        <button type="button" id="confirmMonthEnd" class="btn btn-primary">
+          <i class="bi bi-calendar-check me-1"></i>Process
+        </button>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="kanban-board">
-  {% for status_key, status_label in status_choices %}
-  <div id="{{ status_key }}" class="kanban-column">
-      <div class="column-header">{{ status_label }} (<span id="{{ status_key }}-count">0</span> of <span id="{{ status_key }}-total">0</span>)</div>
-      <div class="job-list"></div>
-      
-      <div id="{{ status_key }}-load-more-container" class="load-more-container mb-2" style="display: none;">
-          <button id="{{ status_key }}-load-more" class="load-more btn btn-secondary" data-status="{{ status_key }}">
-              Load More
-          </button>
-      </div>
+<div class="search-container">
+  <div class="simple-search-container">
+    <input type="text" id="search" class="form-control"
+      placeholder="🔍 Search jobs (name, description, client, contact, creator)...">
+    <div class="left-container">
+      <button id="monthEndButton" class="btn btn-primary btn-sm">
+        <i class="bi bi-calendar-month me-1"></i>Month End
+      </button>
+      <button type="button" id="advancedSearchButton" class="btn btn-info btn-sm hover-lift">
+        <i class="bi bi-search me-1"></i>Advanced Search
+      </button>
+    </div>
   </div>
-  {% endfor %}  
+
+  <div id="advancedSearchContainer" class="advanced-search-container" style="display: none;">
+    <form id="advancedSearchForm" class="row g-3">
+      <div class="col-md-4">
+        <label for="advName" class="form-label">Job Name</label>
+        <input type="text" class="form-control" id="advName" name="name">
+      </div>
+      <div class="col-md-4">
+        <label for="advDescription" class="form-label">Description</label>
+        <input type="text" class="form-control" id="advDescription" name="description">
+      </div>
+      <div class="col-md-4">
+        <label for="advClient" class="form-label">Client</label>
+        <select name="client_name" id="advClient" class="form-select">
+          <option value="">Any Client</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="advCreatedBy" class="form-label">Created By</label>
+        <select name="created_by" id="advCreatedBy" class="form-select">
+          <option value="">Any User</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="advCreatedAfter" class="form-label">Created After</label>
+        <input type="date" class="form-control" id="advCreatedAfter" name="created_after">
+      </div>
+      <div class="col-md-4">
+        <label for="advCreatedBefore" class="form-label">Created Before</label>
+        <input type="date" class="form-control" id="advCreatedBefore" name="created_before">
+      </div>
+      <div class="col-md-4">
+        <label for="advStatus" class="form-label">Status</label>
+        <select name="status" id="advStatus" class="form-select" multiple>
+          {% for status_key, status_label in status_choices %}
+          <option value="{{ status_key }}">{{ status_label }}</option>
+          {% endfor %}
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="advPaid" class="form-label">Payment Status</label>
+        <select name="paid" id="advPaid" class="form-select">
+          <option value="">Any</option>
+          <option value="true">Paid</option>
+          <option value="false">Not Paid</option>
+        </select>
+      </div>
+      <div class="col-12 mt-3">
+        <button class="btn btn-primary" type="submit">
+          <i class="bi bi-search me-1"></i>Search
+        </button>
+        <button class="btn btn-outline-secondary ms-2" type="reset">
+          <i class="bi bi-x-circle me-1"></i>Clear Filters
+        </button>
+        <button id="closeAdvancedSearch" class="btn btn-outline-secondary ms-2" type="button">
+          <i class="bi bi-chevron-up me-1"></i>Close Advanced Search
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="searchResultsContainer" style="display: none;">
+  <div class="search-results-header">
+    <h3>Search Results <small>(<span id="result-count">0</span> jobs)</small></h3>
+    <button id="backToKanban" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-lanban me-1"></i>Back to Kanban
+    </button>
+  </div>
+  <div id="searchResults" class="search-results-grid">
+    <!-- Results will be displayed here -->
+  </div>
+</div>
+
+<div id="kanbanContainer">
+  <div class="kanban-board">
+    {% for status_key, status_label in status_choices %}
+    {% if status_key != "archived" %}
+    <div id="{{ status_key }}" class="kanban-column">
+      <div class="column-header">{{ status_label }} <small class="ms-1">(<span
+            id="{{ status_key }}-count">0</span>)</small></div>
+      <div class="job-list"></div>
+
+      <div id="{{ status_key }}-load-more-container" class="load-more-container mb-1" style="display: none;">
+        <button id="{{ status_key }}-load-more" class="load-more btn btn-secondary btn-sm py-0 px-2"
+          data-status="{{ status_key }}">
+          <i class="bi bi-arrow-down me-1"></i>More
+        </button>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="archive-section">
+    <div class="archive-header">
+      <h3 class="archive-title">
+        <i class="bi bi-archive"></i> Archived Jobs
+        <small class="ms-1">(<span id="archived-count">0</span>/<span id="archived-total">0</span>)</small>
+      </h3>
+      <button class="archive-toggle" id="toggleArchive">
+        <i class="bi bi-chevron-down"></i>
+      </button>
+    </div>
+
+    <div id="archiveContainer" class="archive-grid" style="display: none;">
+      <div id="archived" class="kanban-column">
+        <div class="job-list"></div>
+        <div id="archived-load-more-container" class="load-more-container mb-2" style="display: none;">
+          <button id="archived-load-more" class="load-more btn btn-secondary btn-sm" data-status="archived">
+            <i class="bi bi-arrow-down me-1"></i>More
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'sortablejs/Sortable.min.js' %}"></script>
-<script src="{% static 'js/kanban.js' %}"></script>
+<script type="module" src="{% static 'js/kanban.js' %}"></script>
+<script src="{% static 'js/archive-toggle.js' %}"></script>
 {% endblock %}

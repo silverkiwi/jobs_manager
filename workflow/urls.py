@@ -78,6 +78,7 @@ urlpatterns = [
     path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
     path("api/client-detail/", client_view.client_detail, name="client_detail"),
+    path("api/staff/all/", staff_view.StaffListAPIView.as_view(), name="all_staff_api"),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
         submit_quote_view.generate_quote_pdf,
@@ -106,6 +107,11 @@ urlpatterns = [
         "api/fetch_status_values/",
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
+    ),
+    path(
+        "api/job/advanced-search/",
+        kanban_view.advanced_search,
+        name="advanced-search"
     ),
     path(
         "api/job/<uuid:job_id>/delete/",

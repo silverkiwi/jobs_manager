@@ -14,7 +14,10 @@ window.timesheet_data = timesheet_data;
 const csrftoken = getCookie("csrftoken");
 
 const gridDiv = document.querySelector("#timesheet-grid");
-initializeGrid(gridDiv, gridOptions);
+initializeGrid(gridDiv, {
+  ...gridOptions,
+  domLayout: 'autoHeight',
+});
 
 document.addEventListener("DOMContentLoaded", function () {
   fetchJobs();

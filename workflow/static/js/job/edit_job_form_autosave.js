@@ -136,8 +136,9 @@ function isNonDefaultRow(data, gridName) {
 
 function collectGridData(section) {
   console.log(`collectGridData called for section: ${section}`);
-  const isComplex = document.getElementById("complex-job").textContent.toLowerCase() === "true";
-  console.log(`Job complexity status: isComplex=${isComplex}`);
+  // Ensuring reality section is always complex
+  const isComplex = section === "reality" || document.getElementById("complex-job").textContent.toLowerCase() === "true";
+  console.log(`Job complexity status for section ${section}: isComplex=${isComplex}`);
 
   switch (isComplex) {
     case true:
