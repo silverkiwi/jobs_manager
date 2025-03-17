@@ -416,7 +416,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
                 )
             case "delete":
                 return XeroQuote(
-                    id=self.get_xero_id(),
+                    quote_id=self.get_xero_id(),
                     contact=self.get_xero_contact(),
                     line_items=self.get_line_items(),
                     date=format_date(timezone.now()),
@@ -539,7 +539,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                 )
             case "delete":
                 return XeroInvoice(
-                    id=self.get_xero_id(),
+                    invoice_id=self.get_xero_id(),
                     type="ACCREC",
                     contact=self.get_xero_contact(),
                     line_items=self.get_line_items(),
