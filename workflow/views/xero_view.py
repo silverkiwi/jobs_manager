@@ -336,7 +336,6 @@ class XeroDocumentCreator(ABC):
         Handles document deletion and API communication with Xero.
         """
         self.validate_client()
-        self.validate_job()
         xero_document = self.get_xero_document(type="delete")
 
         try:
