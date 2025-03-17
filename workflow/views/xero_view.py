@@ -367,7 +367,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
     """
 
     def get_xero_id(self):
-        return self.job.quote.xero_id if hasattr(self.job, "quote") else None
+        return str(self.job.quote.xero_id) if hasattr(self.job, "quote") else None
 
     def get_xero_update_method(self):
         return self.xero_api.update_or_create_quotes
@@ -485,7 +485,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
     """
 
     def get_xero_id(self):
-        return self.job.invoice.xero_id if hasattr(self.job, "invoice") else None
+        return str(self.job.invoice.xero_id) if hasattr(self.job, "invoice") else None
 
     def get_xero_update_method(self):
         self.xero_api.update_or_create_invoices
@@ -665,7 +665,7 @@ def create_xero_invoice(request, job_id):
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroInvoiceCreator(job)
-        response = json.loads(creator.create_document().content.decode())
+        response = creator.create_document()
 
         if not response.get("success"):
             messages.error(
@@ -700,7 +700,7 @@ def create_xero_invoice(request, job_id):
         )
 
 
-def create_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
+def create_xero_quote(request: HttpRequest, job_id) -> HttpResponse:
     """
     Creates a quote in Xero for a given job.
     """
@@ -713,7 +713,7 @@ def create_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        response = json.loads(creator.create_document().content.decode())
+        response = creator.create_document()
 
         if not response.get("success"):
             messages.error(request, f"Failed to create quote: {response.get('error')}")
@@ -744,7 +744,7 @@ def create_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
         )
 
 
-def delete_xero_invoice(request: HttpRequest, job_id: uuid) -> HttpResponse:
+def delete_xero_invoice(request: HttpRequest, job_id) -> HttpResponse:
     """
     Deletes an invoice in Xero for a given job.
     """
@@ -757,7 +757,7 @@ def delete_xero_invoice(request: HttpRequest, job_id: uuid) -> HttpResponse:
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroInvoiceCreator(job)
-        response = json.loads(creator.delete_document().content.decode())
+        response = creator.delete_document()
 
         if not response.get("success"):
             messages.error(
@@ -798,7 +798,7 @@ def delete_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
     try:
         job = Job.objects.get(id=job_id)
         creator = XeroQuoteCreator(job)
-        response = json.loads(creator.delete_document().content.decode())
+        response = creator.delete_document()
 
         if not response.get("success"):
             messages.error(request, f"Failed to delete quote: {response.get("error")}")
