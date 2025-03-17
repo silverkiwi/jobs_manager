@@ -255,6 +255,10 @@ DROPBOX_WORKFLOW_FOLDER = os.getenv('DROPBOX_WORKFLOW_FOLDER', os.path.join(os.p
 
 SITE_ID = 1
 
+# 20MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+
 def validate_required_settings():
     """Validate that all required settings are properly configured."""
     required_settings = {
