@@ -8,14 +8,43 @@ import os
 
 from workflow.models.xero_token import XeroToken
 from workflow.api.xero.sync import synchronise_xero_data
+from workflow.api.xero.xero import get_valid_token, refresh_token
 
 logger = logging.getLogger("xero")
 
 class Command(BaseCommand):
-    help = 'Starts the Xero sync scheduler that runs every hour'
+    help = 'Starts the Xero sync scheduler with token refresh heartbeat'
 
     def handle(self, *args, **options):
+        # Add a console handler directly to our logger
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        
+        # Get our logger and add the handler
+        logger.addHandler(handler)
+        logger.setLevel(logging.DEBUG)
+        
+        # Test that debug logging is working
+        logger.debug("Debug logging enabled for Xero sync process")
+
+        def token_heartbeat():
+            """Refresh Xero token every 5 minutes."""
+            try:
+                token = XeroToken.objects.first()
+                if not token:
+                    logger.debug("No Xero token found. Skipping refresh.")
+                    return
+                
+                logger.debug("Running token heartbeat - refreshing Xero token")
+                refresh_token()
+                logger.debug("Token heartbeat completed")
+            except Exception as e:
+                logger.error(f"Error in token refresh: {str(e)}")
+
         def xero_sync_job():
+            """Full data sync job that runs hourly."""
             # Check if we have a valid Xero token
             token = XeroToken.objects.first()
             if not token:
@@ -33,7 +62,17 @@ class Command(BaseCommand):
         # Initialize the scheduler
         scheduler = BackgroundScheduler()
 
-        # Add the job to the scheduler
+        # Add the token heartbeat job - runs every 5 minutes
+        scheduler.add_job(
+            token_heartbeat,
+            trigger=IntervalTrigger(minutes=5),
+            id='xero_token_heartbeat',
+            name='Xero Token Heartbeat',
+            replace_existing=True,
+            next_run_time=timezone.now()  # Run immediately on startup
+        )
+
+        # Add the full sync job
         scheduler.add_job(
             xero_sync_job,
             trigger=IntervalTrigger(hours=sync_interval_hours),
@@ -43,17 +82,13 @@ class Command(BaseCommand):
             next_run_time=timezone.now()  # Run immediately on startup
         )
 
+        # Start the scheduler
+        scheduler.start()
+        logger.info("Started Xero scheduler with token heartbeat")
+
         try:
-            logger.info("Starting Xero sync scheduler...")
-            scheduler.start()
-            # Keep the command running but not blocking
+            # Keep the script running
             while True:
-                try:
-                    timezone.now()  # Simple operation to check if Django is still alive
-                    import time
-                    time.sleep(60)  # Check every minute
-                except Exception:
-                    break
+                pass
         except (KeyboardInterrupt, SystemExit):
-            logger.info("Shutting down Xero sync scheduler...")
             scheduler.shutdown()

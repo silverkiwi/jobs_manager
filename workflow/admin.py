@@ -18,6 +18,7 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
     edit_link.allow_tags = True
 
     list_display = ["edit_link", "charge_out_rate", "wage_rate", "time_markup", "materials_markup", "starting_job_number"]
+    
     fieldsets = (
         (
             None,
@@ -41,6 +42,17 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
                     ("thu_start", "thu_end"),
                     ("fri_start", "fri_end"),
                 )
+            },
+        ),
+        (
+            "Xero Integration",
+            {
+                "fields": (
+                    "xero_tenant_id",
+                    "last_xero_sync",
+                    "last_xero_deep_sync",
+                ),
+                "description": "To force a deep sync, clear the 'last_xero_deep_sync' field or set it to a date more than 30 days ago.",
             },
         ),
     )
@@ -75,6 +87,21 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
                     "wage_rate",
                     "ims_payroll_id",
                 )
+            },
+        ),
+        (
+            "Working Hours",
+            {
+                "fields": (
+                    "hours_mon",
+                    "hours_tue",
+                    "hours_wed",
+                    "hours_thu",
+                    "hours_fri",
+                    "hours_sat",
+                    "hours_sun",
+                ),
+                "description": "Set standard working hours for each day of the week. Use 0 for non-working days.",
             },
         ),
         (

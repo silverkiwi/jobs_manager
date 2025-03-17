@@ -16,6 +16,9 @@ class CompanyDefaults(models.Model):
 
     starting_job_number = models.IntegerField(default=1, help_text="Helper field to set the starting job number based on the latest paper job")
 
+    # Xero integration
+    xero_tenant_id = models.CharField(max_length=100, null=True, blank=True, help_text="The Xero tenant ID to use for this company")
+
     # Default working hours (Mon-Fri, 7am - 3pm)
     mon_start = models.TimeField(default="07:00")
     mon_end = models.TimeField(default="15:00")

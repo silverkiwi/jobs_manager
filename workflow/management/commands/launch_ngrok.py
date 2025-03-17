@@ -11,14 +11,14 @@ class Command(BaseCommand):
         load_dotenv()
 
         # Get preferred and fallback domains
-        PREFERRED_DOMAIN = "msm-workflow.ngrok-free.app"
-        FALLBACK_DOMAIN = "measured-enormously-man.ngrok-free.app"
+        PREFERRED_DOMAIN = "msm-workflow"
+        FALLBACK_DOMAIN = "measured-enormously-man"
 
         try:
             # Try preferred domain first
             self.stdout.write("Attempting to start ngrok tunnel...")
             try:
-                tunnel = ngrok.connect(8000, domain=PREFERRED_DOMAIN)
+                tunnel = ngrok.connect(8000, domain=PREFERRED_DOMAIN, region="au")
                 self.stdout.write(
                     self.style.SUCCESS(f"Tunnel established at: {tunnel.public_url}")
                 )
