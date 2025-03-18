@@ -546,6 +546,8 @@ class XeroInvoiceCreator(XeroDocumentCreator):
             )
         ])
 
+        return xero_line_items
+
     def get_xero_document(self, type):
         """
         Creates an invoice object for Xero.
