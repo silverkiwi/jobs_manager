@@ -43,7 +43,7 @@ from workflow.api.xero.xero import (
     get_valid_token,
     refresh_token,
 )
-from workflow.enums import InvoiceStatus, QuoteStatus
+from workflow.enums import InvoiceStatus, JobPricingType, QuoteStatus
 from workflow.models import Invoice, Job, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults
 from workflow.models.xero_token import XeroToken
 from workflow.models.quote import Quote
@@ -222,6 +222,11 @@ class XeroDocumentCreator(ABC):
     Base class for creating Xero Documents (Invoices, Quotes, Contacts).
     Implements common logic and provides abstract methods for customization.
     """
+
+    job: Job
+    client: Client
+    xero_api: AccountingApi
+    xero_tenant_id: str
 
     def __init__(self, job):
         self.job = job
@@ -501,24 +506,43 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         """
         Generates invoice-specific LineItems.
         """
-        description_line_item = (
-            LineItem(description=self.job.description) if self.job.description else None
-        )
+        pricing_type: JobPricingType = self.job.pricing_type
 
-        xero_line_items = [
+        match pricing_type:
+            case JobPricingType.TIME_AND_MATERIALS:
+                return self.get_time_and_materials_line_items()
+            case JobPricingType.FIXED_PRICE:
+                return self.get_fixed_price_line_items()
+            case _:
+                raise ValueError(f"Unknown pricing type: {pricing_type}")
+    
+    def get_time_and_materials_line_items(self):
+        """
+        Generates LineItems for time and materials pricing.
+        """
+        xero_line_items = []
+        xero_line_items.append(
+            LineItem(
+                description=self.job.description or f"Invoice for job {self.job.name}",
+                quantity=1,
+                quantity=1,
+                unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
+                account_code=200,
+            ),
+        )
+        return xero_line_items
+    
+    def get_fixed_price_line_items(self):
+        xero_line_items = []
+        xero_line_items.append(
             LineItem(
                 description="Price as quoted",
                 quantity=1,
-                unit_amount=float(self.job.latest_reality_pricing.total_revenue)
+                unit_amount=float(self.job.latest_quote_pricing.total_revenue)
                 or 0.00,
                 account_code=200,
             )
-        ]
-
-        if description_line_item:
-            xero_line_items.append(description_line_item)
-
-        return xero_line_items
+        )
 
     def get_xero_document(self, type):
         """
