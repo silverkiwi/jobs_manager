@@ -523,7 +523,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         xero_line_items = []
         xero_line_items.append(
             LineItem(
-                description=self.job.description or f"Invoice for job {self.job.name}",
+                description=f"Invoice for job: {self.job.name}: {self.job.description}" or f"Invoice for job {self.job.name}",
                 quantity=1,
                 unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
                 account_code=200,
@@ -535,7 +535,10 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         xero_line_items = []
         xero_line_items.append(
             LineItem(
-                description="Price as quoted",
+                description="Price as quoted"
+            ),
+            LineItem(
+                description=f"Invoice for job: {self.job.name}: {self.job.description}",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue)
                 or 0.00,
