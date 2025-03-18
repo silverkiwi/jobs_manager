@@ -532,8 +532,8 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         return xero_line_items
     
     def get_fixed_price_line_items(self):
-        xero_line_items = []
-        xero_line_items.append(
+        xero_line_items: list[LineItem] = []
+        xero_line_items.extend([
             LineItem(
                 description="Price as quoted"
             ),
@@ -544,7 +544,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                 or 0.00,
                 account_code=200,
             )
-        )
+        ])
 
     def get_xero_document(self, type):
         """
