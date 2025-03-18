@@ -32,6 +32,7 @@ from xero_python.api_client.oauth2 import OAuth2Token
 from xero_python.exceptions import AccountingBadRequestException
 from xero_python.identity import IdentityApi
 
+from django.conf import settings
 from workflow.api.xero.sync import synchronise_xero_data, delete_clients_from_xero, get_last_modified_time
 from workflow.api.xero.xero import (
     api_client,
@@ -427,7 +428,7 @@ class XeroQuoteCreator(XeroDocumentCreator):
                     date=format_date(timezone.now()),
                     expiry_date=format_date(timezone.now() + timedelta(days=30)),
                     line_amount_types="Exclusive",
-                    reference=f"Quote for job {self.job.id}",
+                    reference=f"Quote for job {self.job.name}",
                     currency_code="NZD",
                     status="DELETED",
                 )
