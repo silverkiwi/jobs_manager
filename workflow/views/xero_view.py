@@ -525,7 +525,6 @@ class XeroInvoiceCreator(XeroDocumentCreator):
             LineItem(
                 description=self.job.description or f"Invoice for job {self.job.name}",
                 quantity=1,
-                quantity=1,
                 unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
                 account_code=200,
             ),
