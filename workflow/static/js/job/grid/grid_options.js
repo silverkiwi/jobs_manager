@@ -376,7 +376,7 @@ export function createAdvancedMaterialsGridOptions(
         headerName: "Qtd.",
         field: "quantity",
         editable: true,
-        maxWidth: 90,
+        maxWidth: 150,
         valueParser: numberParser,
       },
       {
@@ -386,7 +386,7 @@ export function createAdvancedMaterialsGridOptions(
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
-        width: 300,
+        width: 350,
         flex: 1
       },
       {
@@ -442,7 +442,7 @@ export function createAdvancedAdjustmentsGridOptions(
         field: "description",
         editable: true,
         flex: 2,
-        minWidth: 355
+        minWidth: 395
       },
       {
         headerName: "Cost Adjustment",
@@ -451,7 +451,7 @@ export function createAdvancedAdjustmentsGridOptions(
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
-        width: 350,
+        width: 425,
         flex: 1,
       },
       {
@@ -487,6 +487,7 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
     maxWidth: 80,
     flex: 0,
     suppressSizeToFit: true,
+    hide: true
   };
 
   return {
@@ -555,6 +556,7 @@ export function createSimpleMaterialsGridOptions(
     maxWidth: 80,
     flex: 0,
     suppressSizeToFit: true,
+    hide: true
   };
 
   return {
@@ -601,6 +603,7 @@ export function createSimpleAdjustmentsGridOptions(
     maxWidth: 80,
     flex: 0,
     suppressSizeToFit: true,
+    hide: true
   };
 
   return {
