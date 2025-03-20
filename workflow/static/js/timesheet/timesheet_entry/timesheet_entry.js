@@ -4,7 +4,7 @@ import {
   initializeGrid,
   adjustGridHeight,
 } from "./grid_manager.js";
-import { gridOptions } from "./grid.js";
+import { gridOptions, checkExistingShopJobs } from "./grid.js";
 import { getCookie } from "./utils.js";
 import { timesheet_data, rowStateTracker } from "./state.js";
 import { fetchJobs } from "./job_section.js";
@@ -60,6 +60,9 @@ document.addEventListener("DOMContentLoaded", function () {
   if (window.timesheet_data.time_entries?.length > 0) {
     window.grid.applyTransaction({ add: window.timesheet_data.time_entries });
     triggerAutoCalculationForAllRows();
+    
+    // Check existing jobs to mark Shop Jobs
+    checkExistingShopJobs();
   } else {
     window.grid.applyTransaction({
       add: [createNewRow()],

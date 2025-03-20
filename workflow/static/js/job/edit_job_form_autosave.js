@@ -1334,20 +1334,27 @@ function copyGridData(sourceGridApi, targetGridApi) {
 
 export function copyEstimateToQuote() {
   try {
+    // Determine if we're in simple or complex mode
+    const isComplex = document.getElementById("complex-job").textContent.toLowerCase() === "true";
+    console.log(`Copy estimate to quote - Mode: ${isComplex ? 'Complex' : 'Simple'}`);
+
     const grids = ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
 
     grids.forEach((gridName) => {
-      const estimateGridKey = `estimate${gridName}`;
-      const quoteGridKey = `quote${gridName}`;
+      // Select the correct grid keys based on the mode
+      const estimateGridKey = isComplex ? `estimate${gridName}` : `simpleEstimate${gridName}`;
+      const quoteGridKey = isComplex ? `quote${gridName}` : `simpleQuote${gridName}`;
+      
       const estimateGridApi = window.grids[estimateGridKey]?.api;
       const quoteGridApi = window.grids[quoteGridKey]?.api;
 
+      console.log(`Attempting to copy from ${estimateGridKey} to ${quoteGridKey}`);
+      
       if (estimateGridApi && quoteGridApi) {
         copyGridData(estimateGridApi, quoteGridApi);
+        console.log(`Successfully copied data from ${estimateGridKey} to ${quoteGridKey}`);
       } else {
-        throw new Error(
-          `Grid API not found for keys: ${estimateGridKey}, ${quoteGridKey}`
-        );
+        console.error(`Grid API not found for keys: ${estimateGridKey}, ${quoteGridKey}`);
       }
     });
 

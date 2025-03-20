@@ -14,6 +14,21 @@ function deleteIconCellRenderer() {
   return `<span class="delete-icon">🗑️</span>`;
 }
 
+// Custom function to render the billable cell
+function billableCellRenderer(params) {
+  if (params.data?.is_shop_job) {
+    return `<div class="non-billable-shop" title="Shop jobs cannot be billable" 
+            style="display: flex; align-items: center; justify-content: center; 
+            color: #888; cursor: not-allowed;">
+            <span style="font-size: 16px">❌</span>
+            </div>`;
+  }
+  
+  // Renders the default checkbox for non-shop jobs
+  const checked = params.value ? 'checked' : '';
+  return `<input type="checkbox" ${checked} class="ag-checkbox-input" />`;
+}
+
 export const gridOptions = {
   columnDefs: [
     {
@@ -72,8 +87,11 @@ export const gridOptions = {
       field: "is_billable",
       headerName: "Billable",
       width: 60,
-      editable: true,
-      cellRenderer: "agCheckboxCellRenderer",
+      editable: (params) => {
+        console.log("Checking if billable is editable:", !params.data?.is_shop_job);
+        return !params.data?.is_shop_job;
+      },
+      cellRenderer: billableCellRenderer,
     },
     {
       field: "description",
@@ -235,6 +253,19 @@ export const gridOptions = {
 
       if (!job) return;
 
+      // Check if it's a shop job (client "MSM (Shop)")
+      const isShopJob = job.client_name === "MSM (Shop)";
+      console.log(`Job ${job.job_number} client: ${job.client_name}, isShopJob: ${isShopJob}`);
+      
+      // If it's a shop job, set is_billable as false
+      if (isShopJob) {
+        params.node.setDataValue("is_billable", false);
+        params.node.setDataValue("is_shop_job", true);
+        console.log("Shop job detected - setting is_billable to false");
+      } else {
+        params.node.setDataValue("is_shop_job", false);
+      }
+
       job.hours_spent += Number(params.newValue || 0);
       params.node.setDataValue("job_name", job.name);
       params.node.setDataValue("client", job.client_name);
@@ -249,7 +280,7 @@ export const gridOptions = {
       });
     }
 
-    // Recalculate amounts if rate type or hours changesb
+    // Recalculate amounts if rate type or hours changes
     if (["rate_type", "hours"].includes(params.column?.colId)) {
       params.node.setDataValue("rate_type", Number(params.newValue));
       calculateAmounts(params.node.data);
@@ -319,6 +350,12 @@ export const gridOptions = {
 
         // To switch the billable state of the entry through the Shift + Enter shortcut
         if (column.colId === "is_billable") {
+          // Don't allow changes if it's a shop job
+          if (params.data?.is_shop_job) {
+            console.log("Cannot toggle billable status for shop job");
+            return;
+          }
+          
           node.data.is_billable = !node.data.is_billable;
           api.refreshCells({
             rowNodes: [node],
@@ -347,4 +384,19 @@ function createNewRowShortcut(api) {
   console.log("Adjusting grid height");
   adjustGridHeight();
   updateSummarySection();
+}
+
+// Check during initialization if any existing job is a shop job
+export function checkExistingShopJobs() {
+  if (!window.grid) return;
+  
+  window.grid.forEachNode((node) => {
+    if (node.data?.job_data?.client_name === "MSM (Shop)") {
+      console.log("Found existing shop job, setting is_shop_job flag");
+      node.setDataValue("is_shop_job", true);
+      node.setDataValue("is_billable", false);
+    }
+  });
+  
+  window.grid.refreshCells({ force: true });
 }
