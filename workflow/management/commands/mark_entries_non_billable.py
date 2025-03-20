@@ -30,7 +30,7 @@ class Command(BaseCommand):
         # Find all billable Shop job entries
         entries_query = TimeEntry.objects.filter(
             is_billable=True,
-            job__client_name='MSM (Shop)'
+            job_pricing__job__client_name='MSM (Shop)'
         )
         
         # Apply limit if specified
