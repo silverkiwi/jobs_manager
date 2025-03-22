@@ -158,7 +158,9 @@ function collectGridData(section) {
 }
 
 function collectAdvancedGridData(section) {
-  const grids = ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
+  const grids = section === "reality"
+    ? ["MaterialsTable", "AdjustmentsTable"]
+    : ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
   const sectionData = {};
 
   debugLog(`collectAdvancedGridData starting for section: ${section}`);
@@ -202,6 +204,11 @@ function collectAdvancedGridData(section) {
     }
   });
 
+  // To ensure that reality section always has an empty time entries array to avoid autosaving
+  if (section === "reality") {
+    sectionData["time_entries"] = [];
+  }
+ 
   debugLog(`collectAdvancedGridData completed for ${section}:`, sectionData);
   return sectionData;
 }

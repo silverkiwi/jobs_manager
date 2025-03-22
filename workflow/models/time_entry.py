@@ -3,6 +3,7 @@ import uuid
 from decimal import Decimal
 
 from django.db import models
+from django.forms import ValidationError
 
 logger = logging.getLogger(__name__)
 
