@@ -268,12 +268,14 @@ export function createNewRow(gridType) {
         description: "",
         material_cost: 0,
         retail_price: 0,
+        isManualOverride: false,
       };
     case "SimpleAdjustmentsTable":
       return {
         description: "",
         cost_adjustment: 0,
         price_adjustment: 0,
+        isManualOverride: false,
       };
     case "SimpleTotalTable":
       return {
