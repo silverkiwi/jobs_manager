@@ -193,6 +193,65 @@ export function createCommonGridOptions() {
           });
           calculateSimpleTotals();
           break;
+
+        case "SimpleMaterialsTable":
+          if (event.column.colId === "material_cost" && !data.isManualOverride) {
+            fetchMaterialsMarkup(data).then((markupRate) => {
+              const cost = parseFloat(data.material_cost) || 0;
+              data.retail_price = calculateRetailRate(cost, markupRate);
+              event.api.refreshCells({
+                rowNodes: [event.node],
+                columns: ["retail_price"],
+                force: true,
+              });
+              calculateSimpleTotals();
+            });
+          }
+
+          if (event.column.colId === "retail_price") {
+            const cost = parseFloat(data.material_cost) || 0;
+            const retail = parseFloat(data.retail_price) || 0;
+
+            fetchMaterialsMarkup(data).then((markupRate) => {
+              const calculatedRetail = calculateRetailRate(cost, markupRate);
+              if (retail !== calculatedRetail) {
+                data.isManualOverride = true;
+              } else {
+                data.isManualOverride = false;
+              }
+              calculateSimpleTotals();
+            });
+          }
+          break;
+
+        case "SimpleAdjustmentsTable":
+          if (event.column.colId === "cost_adjustment" && !data.isManualOverride) {
+            fetchMaterialsMarkup(data).then((markupRate) => {
+              const cost = parseFloat(data.cost_adjustment) || 0;
+              data.price_adjustment = calculateRetailRate(cost, markupRate);
+              event.api.refreshCells({
+                rowNodes: [event.node],
+                columns: ["price_adjustment"],
+                force: true,
+              });
+              calculateSimpleTotals();
+            });
+          }
+
+          if (event.column.colId === "price_adjustment") {
+            const cost = parseFloat(data.cost_adjustment) || 0;
+            const retail = parseFloat(data.price_adjustment) || 0;
+
+            fetchMaterialsMarkup(data).then((markupRate) => {
+              const calculatedRetail = calculateRetailRate(cost, markupRate);
+              if (retail !== calculatedRetail) {
+                data.isManualOverride = true;
+              } else {
+                data.isManualOverride = false;
+              }
+              calculateSimpleTotals();
+            });
+          }
       }
 
       event.api.refreshCells({
