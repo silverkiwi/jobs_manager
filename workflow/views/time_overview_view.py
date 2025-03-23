@@ -322,6 +322,8 @@ class TimesheetOverviewView(TemplateView):
             has_paid_leave = time_entries.filter(
                 job_pricing__job__name__icontains="Leave"
             ).exists()
+            if has_paid_leave:
+                leave_type = time_entries.get(job_pricing__job__name__icontains="Leave").job_pricing.job.name
 
             # Convert scheduled_hours to Decimal before calculation
             overtime = Decimal(daily_hours) - Decimal(scheduled_hours) if daily_hours > scheduled_hours else 0
@@ -351,6 +353,7 @@ class TimesheetOverviewView(TemplateView):
                     "day": day,
                     "hours": daily_hours,
                     "status": self._get_status(daily_hours, scheduled_hours, has_paid_leave),
+                    "leave_type": leave_type if leave_type else None,
                     "standard_hours": standard_hours,
                     "time_and_half_hours": time_and_half_hours,
                     "double_time_hours": double_time_hours,
