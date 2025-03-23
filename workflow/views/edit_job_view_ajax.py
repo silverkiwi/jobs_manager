@@ -131,17 +131,13 @@ def edit_job_view_ajax(request, job_id=None):
 
     sync_job_folder(job)
     job_files = job.files.all()
-    # job_files_json = json.dumps(
-    #     [
-    #         {
-    #             "id": str(file.id),  # UUID of the file
-    #             "filename": file.filename,
-    #             "url": f"/media/{file.file_path}",  # File URL
-    #             "uploaded_at": file.uploaded_at.isoformat(),
-    #         }
-    #         for file in job_files
-    #     ],
-    # )
+    
+    # Verify if there's only JobSummary.pdf
+    has_only_summary = False
+    if job_files.count() == 0:
+        has_only_summary = True
+    elif job_files.count() == 1 and job_files.first().filename == "JobSummary.pdf":
+        has_only_summary = True
 
     # Serialize the job files data to JSO
     # Include the Latest Revision Data
@@ -179,6 +175,7 @@ def edit_job_view_ajax(request, job_id=None):
         "pricing_type": job.pricing_type,
         "company_defaults": company_defaults,
         "job_files": job_files,
+        "has_only_summary_pdf": has_only_summary,
         "historical_job_pricings_json": historical_job_pricings_json,  # Revisions
         "latest_job_pricings_json": latest_job_pricings_json,  # Latest version
     }

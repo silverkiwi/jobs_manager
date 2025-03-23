@@ -135,7 +135,7 @@
 <div class="job-files-section grid-section">
     <h2 class="page-title">Attached Files</h2>
     <div id="file-list">
-        {% if job_files %}
+        {% if job_files and not has_only_summary_pdf %}
         <div class="job-files-grid">
             {% for file in job_files %}
             {% if file.filename != 'JobSummary.pdf' %}
