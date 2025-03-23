@@ -240,11 +240,11 @@ function detectLeaveType(leaveJobName) {
 
     if (lowerName.includes("annual")) {
         return "Annual";
-    } 
+    }
 
     if (lowerName.includes("sick")) {
         return "Sick";
-    } 
+    }
 
     return "Other";
 }
