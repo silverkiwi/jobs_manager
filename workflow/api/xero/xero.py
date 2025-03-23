@@ -220,9 +220,9 @@ def get_authentication_url(state: str) -> str:
         "scope": " ".join(settings.XERO_SCOPES),
         "state": state,
     }
-    logger.debug(f"Generating authentication URL with params: \n{pretty_print(params)}")
+    logger.info(f"Generating authentication URL with params: \n{pretty_print(params)}")
     url = f"https://login.xero.com/identity/connect/authorize?{urlencode(params)}"
-    logger.debug(f"Generated URL: {url}")
+    logger.info(f"Generated URL: {url}")
     return url
 
 
