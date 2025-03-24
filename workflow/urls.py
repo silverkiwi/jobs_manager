@@ -59,6 +59,7 @@ from workflow.views import (
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views
+from workflow.views.purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, autosave_purchase_order_view
 
 urlpatterns = [
     # Redirect to Kanban board
@@ -74,6 +75,11 @@ urlpatterns = [
         "api/autosave-timesheet/",
         time_entry_view.autosave_timesheet_view,
         name="autosave_timesheet-api",
+    ),
+    path(
+        "api/autosave-purchase-order/",
+        autosave_purchase_order_view,
+        name="autosave_purchase_order_api",
     ),
     path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
@@ -330,6 +336,10 @@ urlpatterns = [
         ),
         name="password_change_done",
     ),
+    # Purchase Order URLs
+    path('purchase-orders/', PurchaseOrderListView.as_view(), name='purchase_orders'),
+    path('purchase-orders/new/', PurchaseOrderCreateView.as_view(), name='new_purchase_order'),
+
     # This URL doesn't match our naming pattern - need to fix.
     # Probably should be in api/internal?
     path(

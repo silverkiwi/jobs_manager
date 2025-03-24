@@ -15,6 +15,8 @@ from workflow.models import (
     MaterialEntry,
     Staff,
     TimeEntry,
+    PurchaseOrder,
+    PurchaseOrderLine,
 )
 from workflow.utils import get_excluded_staff
 
@@ -311,3 +313,24 @@ class PaidAbsenceForm(forms.Form):
         empty_label="Select a staff member",
         required=True,
     )
+
+
+class PurchaseOrderForm(forms.ModelForm):
+    class Meta:
+        model = PurchaseOrder
+        fields = ['supplier', 'po_number', 'order_date', 'expected_delivery']
+        widgets = {
+            'order_date': forms.DateInput(attrs={'type': 'date'}),
+            'expected_delivery': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+
+class PurchaseOrderLineForm(forms.ModelForm):
+    class Meta:
+        model = PurchaseOrderLine
+        fields = ['job', 'description', 'quantity', 'unit_cost']
+        widgets = {
+            'description': forms.TextInput(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'unit_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }

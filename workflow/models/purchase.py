@@ -1,6 +1,10 @@
 import uuid
 
 from django.db import models
+from django.db.models import Max
+
+from workflow.helpers import get_company_defaults
+from workflow.models import CompanyDefaults
 
 
 class PurchaseOrder(models.Model):
@@ -21,7 +25,7 @@ class PurchaseOrder(models.Model):
     )
     po_number = models.CharField(max_length=50, unique=True)
     order_date = models.DateField()
-    expected_delivery = models.DateField()
+    expected_delivery = models.DateField(null=True, blank=True)
     xero_id = models.UUIDField(unique=True, null=True, blank=True)
     status = models.CharField(
         max_length=20,
@@ -36,6 +40,33 @@ class PurchaseOrder(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def generate_po_number(self):
+        """Generate a sequential PO number based on company defaults."""
+        company_defaults = get_company_defaults()
+        starting_number = company_defaults.starting_po_number
+
+        highest_po = PurchaseOrder.objects.all().aggregate(Max('po_number'))['po_number__max'] or 0
+        
+        # If the highest PO is a string (like "PO-12345"), extract the number part
+        if isinstance(highest_po, str) and '-' in highest_po:
+            try:
+                highest_po = int(highest_po.split('-')[1])
+            except (IndexError, ValueError):
+                highest_po = 0
+        
+        # Generate the next number
+        next_number = max(starting_number, int(highest_po) + 1)
+        
+        # Return with PO prefix
+        return f"PO-{next_number}"
+
+    def save(self, *args, **kwargs):
+        """Save the model and auto-generate PO number if none exists."""
+        if not self.po_number:
+            self.po_number = self.generate_po_number()
+        
+        super().save(*args, **kwargs)
 
     def reconcile(self):
         """Check received quantities against ordered quantities."""
@@ -59,6 +90,14 @@ class PurchaseOrderLine(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     purchase_order = models.ForeignKey(
         PurchaseOrder, on_delete=models.CASCADE, related_name="lines"
+    )
+    job = models.ForeignKey(
+        "Job",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="purchase_order_lines",
+        help_text="The job this purchase line is for",
     )
     description = models.CharField(max_length=200)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
