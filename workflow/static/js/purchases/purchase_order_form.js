@@ -6,6 +6,9 @@
 
 import { debouncedAutosave, markLineItemAsDeleted } from './purchase_order_autosave.js';
 import { ActiveJobCellEditor } from './job_cell_editor.js';
+import { renderMessages } from './messages.js';
+import { updateJobsList } from './job_section.js';
+import { updateSummarySection } from './summary.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     // Parse JSON data - exactly like timesheet does
@@ -204,6 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // After grid initialization
     window.grid.addEventListener('firstDataRendered', function() {
         adjustGridHeight();
+        updateJobSummary();
     });
     
     // Using autosave - no save button needed
@@ -221,9 +225,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Determine which cells to refresh based on what changed
         const jobId = params.data.job;
-        const affectsAllJobRows = ['job', 'quantity', 'unit_cost'].includes(params.colDef.field);
+        const changedField = params.colDef.field;
+        const isCostRelatedChange = ['job', 'quantity', 'unit_cost'].includes(changedField);
         
-        if (jobId && affectsAllJobRows) {
+        if (jobId && isCostRelatedChange) {
             // Find all nodes with this job
             const nodesToRefresh = [];
             window.grid.forEachNode(node => {
@@ -241,6 +246,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 columns: ['total'],
                 force: true
             });
+            
+            // Check if materials cost exceeds estimated cost
+            const job = window.purchaseData.jobs.find(j => j.id === jobId);
+            if (job) {
+                // Calculate total cost for this job from all rows
+                let jobTotal = 0;
+                window.grid.forEachNode(node => {
+                    if (node.data.job === jobId && node.data.unit_cost !== 'TBC') {
+                        jobTotal += node.data.quantity * node.data.unit_cost;
+                    }
+                });
+                
+                // Show warning if cost exceeds estimate
+                if (jobTotal > job.estimated_materials) {
+                    renderMessages(
+                        [{
+                            level: "warning",
+                            message: `Materials cost $${jobTotal.toFixed(2)} exceeds estimated $${job.estimated_materials.toFixed(2)}.`
+                        }],
+                        "purchase-order"
+                    );
+                }
+            }
         } else {
             // Update only this row's total
             params.api.refreshCells({
@@ -249,6 +277,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 force: true
             });
         }
+        
+        // Update job summary section
+        updateJobSummary();
         
         adjustGridHeight();
         debouncedAutosave();
@@ -306,6 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Failed to remove row');
                 
             adjustGridHeight();
+            updateJobSummary();
             debouncedAutosave();
         }
     }
@@ -336,4 +368,60 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial adjustment
     adjustGridHeight();
-}); 
+    
+    // Initialize job summary section
+    updateJobSummary();
+});
+
+/**
+ * Updates the job summary section with details about each job's materials costs
+ * Follows the pattern from timesheet's updateSummarySection function
+ */
+function updateJobSummary() {
+    const grid = window.grid;
+    if (!grid) {
+        console.error("Grid instance not found.");
+        return;
+    }
+
+    // Create a map to track job totals
+    const jobTotals = new Map();
+    
+    // Iterate through grid rows to calculate summary data
+    grid.forEachNode((node) => {
+        const jobId = node?.data?.job;
+        if (!jobId) return;
+        
+        const job = window.purchaseData.jobs.find(j => j.id === jobId);
+        if (!job) return;
+        
+        // Calculate cost for this line item
+        const quantity = node.data.quantity || 0;
+        const unitCost = node.data.unit_cost === 'TBC' ? 0 : (node.data.unit_cost || 0);
+        const lineCost = quantity * unitCost;
+        
+        // Add to job total
+        if (!jobTotals.has(jobId)) {
+            jobTotals.set(jobId, {
+                id: jobId,
+                job_number: job.job_number,
+                name: job.name,
+                client_name: job.client_name,
+                estimated_materials: job.estimated_materials,
+                materials_purchased: 0
+            });
+        }
+        
+        jobTotals.get(jobId).materials_purchased += lineCost;
+    });
+    
+    // Convert map to array and sort by job number
+    const jobSummaries = Array.from(jobTotals.values())
+        .sort((a, b) => a.job_number.localeCompare(b.job_number));
+    
+    // Update the job cards
+    updateJobsList(jobSummaries);
+    
+    // Update the summary section
+    updateSummarySection();
+}

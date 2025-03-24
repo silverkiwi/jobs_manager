@@ -118,6 +118,40 @@
         </div>
     </div>
 
+    <hr>
+
+    <div class="container-fluid d-flex flex-row gap-2">
+        <!-- Current Jobs Section -->
+        <div class="flex-grow-1" style="flex-basis: 65%">
+            <h4 class="text-center mb-3">Current Jobs</h4>
+            <div id="current-jobs" class="current-jobs-container">
+                <div class="row row-cols-1 g-3 w-100" id="jobs-list">
+                    <!-- Dynamic job cards will be added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="flex-grow-1" style="flex-basis: 35%">
+            <h4 class="text-center mb-3">Summary</h4>
+            <div id="summary-section" class="summary-section">
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Category</th>
+                            <th class="text-center">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-table-body" class="align-self-center justify-self-center">
+                        <!-- Rows will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
     <div class="d-flex justify-content-end">
         <a href="{% url 'purchase_orders' %}" class="btn btn-secondary">
             <i class="bi bi-x-circle me-2"></i>Cancel
@@ -150,5 +184,7 @@
 <script type="module" src="{% static 'js/purchases/client_lookup.js' %}"></script>
 <script type="module" src="{% static 'js/purchases/messages.js' %}"></script>
 <script type="module" src="{% static 'js/purchases/purchase_order_autosave.js' %}"></script>
+<script type="module" src="{% static 'js/purchases/job_section.js' %}"></script>
+<script type="module" src="{% static 'js/purchases/summary.js' %}"></script>
 <script type="module" src="{% static 'js/purchases/purchase_order_form.js' %}"></script>
 {% endblock %} 
