@@ -45,7 +45,7 @@ class Command(BaseCommand):
         ]
 
         # Get the shop client
-        shop_client = Client.objects.get(name="MSM (Shop)")
+        shop_client = Client.objects.get(name="Demo Shop")
 
         # Iterate through the shop jobs and create them
         for idx, job_details in enumerate(shop_jobs, start=1):

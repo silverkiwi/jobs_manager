@@ -15,7 +15,7 @@ async function handlePrintCheckboxChange(e) {
 export async function uploadJobFile(jobNumber, file, method) {
   if (!jobNumber || !file) return;
   
-  showUploadFeedback(file.name);
+  if (file.name !== "JobSummary.pdf") showUploadFeedback(file.name);
   console.log(`[uploadJobFile] Starting file upload/update for job ${jobNumber} using ${method}`);
   console.log(`[uploadJobFile] File details: name=${file.name}, size=${file.size}, type=${file.type}`);
 
