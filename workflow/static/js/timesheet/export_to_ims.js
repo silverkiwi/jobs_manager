@@ -110,38 +110,251 @@ function updateOverviewTable(data) {
         console.error("Table body not found.");
         return;
     }
+
+    table.classList.add("ims-view-container");
     tbody.innerHTML = "";
 
     data.staff_data.forEach((staff) => {
         const tr = document.createElement("tr");
 
+        // Staff name cell
         const tdName = document.createElement("td");
         tdName.textContent = staff.name;
         tr.appendChild(tdName);
 
+        // For each week day, create a formatted cell
         staff.weekly_hours.forEach((dayData) => {
             const td = document.createElement("td");
-            td.innerHTML = `
-          <div><strong>Total:</strong> ${dayData.hours}</div>
-          <div><strong>Std:</strong> ${dayData.standard_hours}</div>
-          <div><strong>1.5x:</strong> ${dayData.time_and_half_hours}</div>
-          <div><strong>2x:</strong> ${dayData.double_time_hours}</div>
-          <div><strong>Unpaid:</strong> ${dayData.unpaid_hours}</div>
-          <div><strong>OT:</strong> ${dayData.overtime}</div>
-          <div><small class="text-muted">${dayData.status}</small></div>
-        `;
+            td.classList.add("ims-data-cell");
+
+            const isLeave = dayData.status === "Leave";
+            const leaveType = isLeave ? detectLeaveType(dayData.leave_type) : null;
+            const isWarning = dayData.status === "⚠";
+            const isComplete = dayData.status === "✓";
+            const isEmpty = dayData.hours === 0;
+
+            let cellContent = `
+                <div class="ims-hour-total">
+                    <span>Total</span>
+                    <span>${formatHourValue(dayData.hours)}</span>
+                </div>
+
+                <div class="ims-hour-row">
+                    <span>Standard</span>
+                    <span>${formatHourValue(dayData.standard_hours)}</span>
+                </div>
+
+                <div class="ims-hour-row">
+                    <span class="ims-hour-label">1.5x</span>
+                    <span class="ims-hour-value">${formatHourValue(dayData.time_and_half_hours)}</span>
+                </div>
+
+                <div class="ims-hour-row">
+                    <span class="ims-hour-label">2x</span>
+                    <span class="ims-hour-value">${formatHourValue(dayData.double_time_hours)}</span>
+                </div>
+            `;
+
+            if (isLeave) {
+                const leaveClass = `ims-leave-${leaveType.toLowerCase()}`;
+                const leaveIcon = getLeaveIcon(leaveType);
+                cellContent += `
+                    <div class="ims-leave-box ${leaveClass}">
+                        <div class="ims-leave-type">
+                            <i class="${leaveIcon}"></i>
+                            <span>${getLeaveTypeLabel(leaveType)} Leave</span>
+                        </div>
+                        <div class="ims-leave-hours">
+                            <span>Hours:</span>
+                            <span>${formatHourValue(dayData.hours)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (isEmpty) {
+                cellContent += `<div class="ims-status ims-status-empty">-</div>`;
+            }
+
+            if (isWarning) {
+                cellContent += `<div class="ims-status ims-status-warning">⚠</div>`;
+            }
+
+            if (dayData.overtime > 0) {
+                cellContent += `<div class="ims-status ims-status-overtime">OT: ${formatHourValue(dayData.overtime)}</div>`;
+            }
+
+            if (isComplete) {
+                cellContent += `<div class="ims-status ims-status-ok">✓</div>`;
+            }
+
+            td.innerHTML = cellContent;
             tr.appendChild(td);
         });
 
         const tdTotal = document.createElement("td");
-        tdTotal.textContent = staff.total_hours;
+        tdTotal.innerHTML = `
+            <div class="ims-hour-total">
+                <span>Total</span>
+                <span>${formatHourValue(staff.total_hours)}</span>
+            </div>
+            ${staff.total_overtime > 0 ?
+                `<div class="ims-hour-row">
+                    <span class="ims-hour-label">Overtime</span>
+                    <span class="ims-hour-value">${formatHourValue(staff.total_overtime)}</span>
+                </div>` : ''
+            }
+        `;
+        tdTotal.classList.add("ims-data-cell");
         tr.appendChild(tdTotal);
 
         const tdBillable = document.createElement("td");
-        tdBillable.textContent = staff.total_billable_hours;
+        tdBillable.innerHTML = `
+            <div class="ims-hour-total">
+                <span>Billable</span>
+                <span>${formatHourValue(staff.total_billable_hours)}</span>
+            </div>
+            <div class="ims-hour-row">
+                <span class="ims-hour-label">Percentage</span>
+                <span class="ims-hour-value">${staff.billable_percentage}%</span>
+            </div>
+        `;
+        tdBillable.classList.add("ims-data-cell");
         tr.appendChild(tdBillable);
 
         tbody.appendChild(tr);
+    });
+
+    addIMSSummary(data.totals);
+}
+
+/**
+ * Determines the leave type based on the job name
+ * @param {string} leaveJobName Leave job name
+ * @returns {string} Leave type (Annual, Sick, Other)
+ */
+function detectLeaveType(leaveJobName) {
+    if (!leaveJobName) return "Other";
+
+    const lowerName = leaveJobName.toLowerCase();
+
+    if (lowerName.includes("annual")) {
+        return "Annual";
+    }
+
+    if (lowerName.includes("sick")) {
+        return "Sick";
+    }
+
+    return "Other";
+}
+
+/**
+ * Returns the proper icon for the leave type
+ * @param {string} leaveType 
+ */
+function getLeaveIcon(leaveType) {
+    switch (leaveType) {
+        case "Annual":
+            return "far fa-calendar-alt";
+        case "Sick":
+            return "fas fa-head-side-cough";
+        default:
+            return "fas fa-bed";
+    }
+}
+
+/**
+ * Returns the proper label for the leave type
+ * @param {string} leaveType 
+ */
+function getLeaveTypeLabel(leaveType) {
+    switch (leaveType) {
+        case "Annual":
+            return "Annual";
+        case "Sick":
+            return "Sick";
+        default:
+            return "Other";
+    }
+}
+
+function formatHourValue(hours) {
+    if (hours === null || hours === undefined || isNaN(hours)) return "0.0";
+    return parseFloat(hours).toFixed(1);
+}
+
+function addIMSSummary(totals) {
+    const existingSummary = document.getElementById("ims-floating-summary");
+    if (existingSummary) {
+        existingSummary.remove();
+    }
+
+    const container = document.querySelector(".container");
+    if (!container) return;
+
+    const summaryCard = document.createElement("div");
+
+    summaryCard.id = "ims-floating-summary";
+    summaryCard.className = "ims-summary-card";
+    summaryCard.innerHTML= `
+        <h4 class="mb-3">IMS Summary</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="ims-hour-row">
+                    <span>Total Hours</span>
+                    <span>${formatHourValue(totals.total_hours)}</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="ims-hour-row">
+                    <span class="ims-hour-label">Billable %</span>
+                    <span class="ims-hour-value">${totals.billable_percentage}%</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.insertBefore(summaryCard, container.firstChild);
+}
+
+function updateTableHeaderIMS(weekDays) {
+    const headerRow = document.querySelector("#overviewTable thead tr");
+
+    if (!headerRow) {
+        console.error("Table header not found.");
+        return;
+    }
+
+    headerRow.querySelectorAll("th").forEach(th => {
+        th.classList.add("ims-header-cell");
+    });
+
+    const headerCells = headerRow.querySelectorAll("th");
+
+    weekDays.forEach((dayStr, index) => {
+        try {
+            const day = parseDateWithoutTimezone(dayStr);
+
+            if (isNaN(day.getTime())) {
+                throw new Error("Invalid date:", dayStr);
+            }
+
+            const dayLabel = day.toLocaleDateString("en-AU", { 
+                weekday: "short",
+                day: "numeric",
+                month: "numeric"
+            });
+
+            if (headerCells[index + 1]) {
+                headerCells[index + 1].textContent = dayLabel;
+            }
+        } catch (error) {
+            console.error(`Error updating data ${dayStr}:`, error);
+            if (headerCells[index + 1]) {
+                headerCells[index + 1].textContent = "Day " + (index + 1);
+            }
+        }
     });
 }
 
@@ -162,28 +375,6 @@ function updateNavigationUrls(data) {
     }
 }
 
-function updateTableHeaderIMS(weekDays) {
-    const headerRow = document.querySelector("#overviewTable thead tr");
-    if (!headerRow) {
-        console.error("Table header not found.");
-        return;
-    }
-    const headerCells = headerRow.querySelectorAll("th");
-
-    weekDays.forEach((dayStr, index) => {
-        const day = parseDateWithoutTimezone(dayStr);
-        const dayLabel = day.toLocaleDateString("en-US", { weekday: "short" });
-        if (headerCells[index + 1]) {
-            headerCells[index + 1].textContent = dayLabel;
-        }
-    });
-}
-
-function parseDateWithoutTimezone(dateStr) {
-    const parts = dateStr.split("-");
-    return new Date(parts[0], parts[1] - 1, parts[2], 12);
-}
-
 function updateBillableHeader() {
     const headerRow = document.querySelector("#overviewTable thead tr");
     if (!headerRow) {
@@ -195,5 +386,11 @@ function updateBillableHeader() {
         console.error("Not enough header cells.");
         return;
     }
-    headerCells[headerCells.length - 1].textContent = "Total Billable";
+    headerCells[headerCells.length - 2].textContent = "Weekly Total";
+    headerCells[headerCells.length - 1].textContent = "Billable Hours";
+}
+
+function parseDateWithoutTimezone(dateStr) {
+    const parts = dateStr.split("-");
+    return new Date(parts[0], parts[1] - 1, parts[2], 12);
 }

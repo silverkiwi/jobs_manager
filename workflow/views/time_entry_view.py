@@ -321,6 +321,7 @@ def autosave_timesheet_view(request):
     try:
         logger.debug("Timesheet autosave request received")
         data = json.loads(request.body)
+        logger.info("Request data: %s", json.dumps(data, indent=2))
         time_entries = data.get("time_entries", [])
         deleted_entries = data.get("deleted_entries", [])
 
@@ -412,6 +413,19 @@ def autosave_timesheet_view(request):
                     logger.debug(f"Processing entry with ID: {entry_id}")
                     entry = TimeEntry.objects.get(id=entry_id)
 
+                    if entry.staff is None:
+                        logger.warning(f"Entry {entry_id} has no staff assigned")
+                        staff_id = entry_data.get("staff_id")
+                        if staff_id:
+                            try:
+                                staff = Staff.objects.get(id=staff_id)
+                                entry.staff = staff
+                                logger.info(f"Restored staff {staff.name} assignment for entry {entry.id}")
+                            except Staff.DoesNotExist:
+                                logger.error(f"Staff with ID {staff_id} not found")
+                        else:
+                            logger.error(f"Staff ID not provided for entry {entry.id}")
+                            raise ValueError("Staff ID not provided")
                     # Identify old job before changing
                     old_job_id = (
                         entry.job_pricing.job.id if entry.job_pricing.job else None

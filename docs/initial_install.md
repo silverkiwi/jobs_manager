@@ -57,6 +57,7 @@ Our application expects a **MariaDB 11.5.2** (or MySQL-compatible) database.
 4. Load initial data (optional):
     ```bash
     python manage.py loaddata workflow/fixtures/initial_data.json
+    # This way, you'll be seeding the database with some standard users, a default company and a default admin with credentials "defaultadmin@example.com:Default-admin-password"
     ```
 
 ### 5. Start the Development Server

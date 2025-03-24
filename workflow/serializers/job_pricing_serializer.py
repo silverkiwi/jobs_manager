@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
+from workflow.enums import JobPricingStage
 from workflow.models import JobPricing
 from workflow.serializers.adjustment_entry_serializer import AdjustmentEntrySerializer
 from workflow.serializers.material_entry_serializer import MaterialEntrySerializer
@@ -128,11 +129,8 @@ class JobPricingSerializer(serializers.ModelSerializer):
         return validated
 
     def update(self, instance, validated_data):
-        # logger.debug(f"JobPricingSerializer update called for instance {instance.id}")
-        # logger.debug(f"JobPricingSerializer validated_data: {validated_data}")
-
         # Update time entries
-        if "time_entries" in validated_data:
+        if "time_entries" in validated_data and instance.pricing_stage != JobPricingStage.REALITY:
             # Delete existing entries
             instance.time_entries.all().delete()
             # Create new entries using serializer
@@ -147,6 +145,11 @@ class JobPricingSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {"time_entries": time_entry_serializer.errors}
                     )
+                
+        # Remove time entries if the pricing stage is REALITY
+        if "time_entries" in validated_data:
+            validated_data.pop("time_entries")
+
 
         # Update material entries
         if "material_entries" in validated_data:
@@ -188,9 +191,11 @@ class JobPricingSerializer(serializers.ModelSerializer):
                         {"adjustment_entries": adjustment_entry_serializer.errors}
                     )
 
-        # Update other fields
+        # Update other fields (that aren't relationships, otherwise they would be handled above)
+        related_fields = ["time_entries", "material_entries", "adjustment_entries"]
         for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+            if attr not in related_fields:
+                setattr(instance, attr, value)
 
         instance.save()
         return instance

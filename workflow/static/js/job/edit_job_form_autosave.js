@@ -158,7 +158,9 @@ function collectGridData(section) {
 }
 
 function collectAdvancedGridData(section) {
-  const grids = ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
+  const grids = section === "reality"
+    ? ["MaterialsTable", "AdjustmentsTable"]
+    : ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
   const sectionData = {};
 
   debugLog(`collectAdvancedGridData starting for section: ${section}`);
@@ -202,6 +204,11 @@ function collectAdvancedGridData(section) {
     }
   });
 
+  // To ensure that reality section always has an empty time entries array to avoid autosaving
+  if (section === "reality") {
+    sectionData["time_entries"] = [];
+  }
+ 
   debugLog(`collectAdvancedGridData completed for ${section}:`, sectionData);
   return sectionData;
 }
@@ -1126,17 +1133,17 @@ function saveDataToServer(collectedData) {
         return response.json().then((data) => {
           if (data.errors) {
             handleValidationErrors(data.errors);
+            const errorMsg = extractErrorMessages(data.errors);
             renderMessages(
               [
                 {
                   level: "error",
-                  message: "Failed to save data. Please try again.",
+                  message: "Autosave failed: " + errorMsg,
                 },
               ],
               "job-details",
             );
           }
-          throw new Error("Validation errors occurred");
         });
       }
       return response.json();
@@ -1164,6 +1171,36 @@ function saveDataToServer(collectedData) {
     });
 }
 
+// Function to extract error messages from a nested error structure
+function extractErrorMessages(errors) {
+  // Handle simple string error case
+  if (typeof errors === 'string') return errors;
+  
+  // Array case - use flatMap to avoid nesting
+  if (Array.isArray(errors)) {
+    return errors
+      .flatMap(error => {
+        if (!error) return [];
+        if (typeof error !== 'object') return String(error);
+        
+        // Extract message or delegate to recursive call
+        return error.message || error.string || extractErrorMessages(error);
+      })
+      .filter(Boolean)
+      .join(". ");
+  }
+  
+  // Object case - collect all nested errors
+  if (errors && typeof errors === 'object') {
+    return Object.values(errors)
+      .flatMap(value => extractErrorMessages(value))
+      .filter(Boolean)
+      .join(". ");
+  }
+  
+  return "";
+}
+
 function handleValidationErrors(errors) {
   // Clear previous error messages
   document
@@ -1180,7 +1217,7 @@ function handleValidationErrors(errors) {
       element.classList.add("is-invalid");
       const errorDiv = document.createElement("div");
       errorDiv.className = "invalid-feedback";
-      errorDiv.innerText = messages.join(", ");
+      
       element.parentElement.appendChild(errorDiv);
 
       // Attach listener to remove the error once the user modifies the field

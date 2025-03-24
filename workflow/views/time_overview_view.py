@@ -322,6 +322,9 @@ class TimesheetOverviewView(TemplateView):
             has_paid_leave = time_entries.filter(
                 job_pricing__job__name__icontains="Leave"
             ).exists()
+            leave_type = None
+            if has_paid_leave:
+                leave_type = time_entries.get(job_pricing__job__name__icontains="Leave").job_pricing.job.name
 
             # Convert scheduled_hours to Decimal before calculation
             overtime = Decimal(daily_hours) - Decimal(scheduled_hours) if daily_hours > scheduled_hours else 0
@@ -351,6 +354,7 @@ class TimesheetOverviewView(TemplateView):
                     "day": day,
                     "hours": daily_hours,
                     "status": self._get_status(daily_hours, scheduled_hours, has_paid_leave),
+                    "leave_type": leave_type if leave_type else None,
                     "standard_hours": standard_hours,
                     "time_and_half_hours": time_and_half_hours,
                     "double_time_hours": double_time_hours,
@@ -588,11 +592,24 @@ class TimesheetOverviewView(TemplateView):
                 {"success": False, "messages": extract_messages(request)}, status=400
             )
 
-        leave_jobs = {
-            "annual": "eecdc751-0207-4f00-a47a-ca025a7cf935",
-            "sick": "4dd8ec04-35a0-4c99-915f-813b6b8a3584",
-            "other": "cd2085c7-0793-403e-b78d-63b3c134e59d",
+        # Get leave job IDs dynamically instead of hardcoding them
+        leave_jobs = {}
+        leave_types = {
+            "annual": "Annual Leave",
+            "sick": "Sick Leave",
+            "other": "Other Leave"
         }
+        
+        for leave_key, leave_name in leave_types.items():
+            job = Job.objects.filter(name=leave_name).first()
+            if job:
+                leave_jobs[leave_key] = str(job.id)
+            else:
+                logger.error(f"Leave job '{leave_name}' not found in database")
+                messages.error(request, f"Leave type '{leave_name}' not configured in system.")
+                return JsonResponse(
+                    {"success": False, "messages": extract_messages(request)}, status=400
+                )
 
         job_pricing = JobPricing.objects.filter(job_id=leave_jobs[leave_type]).first()
         if not job_pricing:
