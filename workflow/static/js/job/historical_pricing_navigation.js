@@ -7,6 +7,8 @@
 let currentHistoricalIndex = -1; // -1 means current data (not historical)
 let historicalPricings = [];
 let isViewingHistorical = false;
+let originalGridState = null;
+let localJobPricingHistory = []; // Use a local variable for backup
 
 /**
  * Initialize the historical pricing navigation
@@ -14,14 +16,29 @@ let isViewingHistorical = false;
 export function initHistoricalNavigation() {
   console.log("=== HISTORICAL NAVIGATION DEBUG ===");
   
-  // Get historical pricing data from the page
-  historicalPricings = window.historical_job_pricings_json || [];
-  console.log("Historical pricing records found:", historicalPricings.length);
+  // Debug what data is available
+  console.log("window.jobPricingHistory:", window.jobPricingHistory);
+  console.log("window.historical_job_pricings_json:", window.historical_job_pricings_json);
   
-  if (historicalPricings.length > 0) {
-    console.log("First historical record sample:", historicalPricings[0]);
-  } else {
-    console.warn("No historical pricing data available!");
+  // Try to find historical data in various possible locations
+  if (window.jobPricingHistory && Array.isArray(window.jobPricingHistory)) {
+    localJobPricingHistory = window.jobPricingHistory;
+    console.log(`Historical pricing records found: ${localJobPricingHistory.length}`);
+    
+    if (localJobPricingHistory.length > 0) {
+      console.log(`First historical record sample:`, localJobPricingHistory[0]);
+    }
+  } 
+  // Try alternative source if primary not found
+  else if (window.historical_job_pricings_json && Array.isArray(window.historical_job_pricings_json)) {
+    localJobPricingHistory = window.historical_job_pricings_json;
+    window.jobPricingHistory = localJobPricingHistory; // Set it for consistency
+    console.log(`Historical pricing records found in alternative source: ${localJobPricingHistory.length}`);
+  }
+  else {
+    console.warn("No historical pricing data found in expected locations");
+    localJobPricingHistory = []; // Default to empty
+    window.jobPricingHistory = localJobPricingHistory; // Set it for consistency
   }
   
   // Only show navigation if we have historical data and job is special
@@ -34,7 +51,7 @@ export function initHistoricalNavigation() {
     console.log(`Element #${id} exists:`, !!element);
   });
   
-  if (historicalPricings.length > 0 && jobStatus === 'special') {
+  if (localJobPricingHistory.length > 0 && jobStatus === 'special') {
     const nav = document.getElementById('historicalPricingNav');
     if (nav) {
       nav.classList.remove('d-none');
@@ -73,24 +90,31 @@ export function initHistoricalNavigation() {
   }
   
   // Call this in init
-  addDebugButton();
+  // addDebugButton();
 }
 
 /**
  * Navigate to the previous month's historical data
  */
 function navigateToPreviousMonth() {
-  console.log("Navigating to previous month");
-  console.log("Current index:", currentHistoricalIndex, "Max index:", historicalPricings.length - 1);
+  const historySource = window.jobPricingHistory || localJobPricingHistory;
   
-  if (currentHistoricalIndex < historicalPricings.length - 1) {
-    currentHistoricalIndex++;
-    console.log("New index:", currentHistoricalIndex);
-    loadHistoricalData(currentHistoricalIndex);
-    updateNavigationButtons();
-  } else {
-    console.log("Already at oldest record, can't go further back");
+  if (!historySource || historySource.length === 0) {
+    console.log("No historical data available");
+    return;
   }
+  
+  let newIndex = currentHistoricalIndex;
+  
+  if (newIndex === -1) {
+    // If at current data, go to most recent historical
+    newIndex = 0;
+  } else if (newIndex < historySource.length - 1) {
+    // Navigate one entry older
+    newIndex++;
+  }
+  
+  loadHistoricalData(newIndex);
 }
 
 /**
@@ -140,7 +164,7 @@ function updateNavigationButtons() {
   }
   
   // Update button states
-  prevBtn.disabled = currentHistoricalIndex >= historicalPricings.length - 1;
+  prevBtn.disabled = currentHistoricalIndex >= localJobPricingHistory.length - 1;
   nextBtn.disabled = currentHistoricalIndex <= -1;
   returnBtn.classList.toggle('d-none', currentHistoricalIndex === -1);
   
@@ -150,7 +174,7 @@ function updateNavigationButtons() {
     monthDisplay.title = 'Viewing current job data';
     console.log("Date display set to: Current Data");
   } else {
-    const historicalData = historicalPricings[currentHistoricalIndex];
+    const historicalData = localJobPricingHistory[currentHistoricalIndex];
     
     if (historicalData && historicalData.created_at) {
       const date = new Date(historicalData.created_at);
@@ -177,52 +201,112 @@ function updateNavigationButtons() {
  * Load historical data for a specific index
  */
 function loadHistoricalData(index) {
+  console.log(`Loading historical data index: ${index}`);
   isViewingHistorical = (index !== -1);
+  currentHistoricalIndex = index;
   
-  // Add this debug message
-  console.log(`Loading historical data - isViewingHistorical set to: ${isViewingHistorical}`);
+  // Insert this near the top of the function
+  inspectAllGrids();
   
-  // If returning to current data, reload the page to ensure fresh data
+  // If returning to current view
   if (index === -1) {
-    console.log("Returning to current data - will reload all current data from server");
-    // Store that we're returning to current view
-    sessionStorage.setItem('returning_to_current_view', 'true');
-    // Reload the page to get fresh data from server
+    // Restore original grid state if we saved it
+    if (originalGridState !== null) {
+      console.log(`Restoring original grid state: ${originalGridState}`);
+      
+      // Get current toggle state
+      const currentToggleState = document.getElementById('toggleGridButton').checked;
+      
+      // Only toggle if the state is different
+      if (currentToggleState !== originalGridState) {
+        console.log("Toggling grid back to original state");
+        toggleGrid("historical");
+      }
+      
+      originalGridState = null;
+    }
+    
+    // Force reload from server
+    console.log("Reloading current data from server");
     window.location.reload();
     return;
   }
   
-  // If we're here, we're loading a historical snapshot
-  const historicalData = jobPricingHistory[index];
-  console.log(`Historical data to load: ${JSON.stringify(historicalData)}`);
+  // CRITICAL FIX: Always use local variable, not window variable
+  if (index >= localJobPricingHistory.length) {
+    console.error(`Error: Historical data index ${index} out of bounds (max: ${localJobPricingHistory.length - 1})`);
+    return;
+  }
   
-  // Format date for display
-  const dateStr = formatHistoricalDate(historicalData.created_at);
-  document.getElementById('currentHistoricalMonth').textContent = dateStr;
+  const historicalData = localJobPricingHistory[index];
   
-  // Force more aggressive grid clearing - add this code
-  console.log("Performing aggressive grid clearing before loading historical data");
-  const allGridIds = Object.keys(window.grids || {});
-  allGridIds.forEach(gridId => {
-    if (window.grids[gridId] && window.grids[gridId].api) {
-      console.log(`Force clearing grid: ${gridId}`);
-      const api = window.grids[gridId].api;
-      // Try multiple clearing methods
-      api.setRowData([]);
-      const rowCount = api.getDisplayedRowCount();
-      if (rowCount > 0) {
-        console.log(`Grid ${gridId} still has ${rowCount} rows - trying more aggressive clearing`);
-        const allRowNodes = [];
-        api.forEachNode(node => allRowNodes.push(node));
-        if (allRowNodes.length > 0) {
-          api.applyTransaction({ remove: allRowNodes.map(node => node.data) });
-        }
-      }
-    }
+  if (!historicalData) {
+    console.error(`Error: No historical data found at index ${index}`);
+    return;
+  }
+  
+  console.log("Successfully retrieved historical data:", historicalData);
+  
+  // Set visual indicator that we're in historical mode
+  document.body.classList.add('viewing-historical-data');
+  
+  // Create or update the historical banner
+  createHistoricalBanner(historicalData.created_at);
+  
+  // Show the date of the historical data in the navigation control
+  if (historicalData.created_at) {
+    setHistoricalDateDisplay(historicalData.created_at);
+  }
+  
+  // Update all section types: reality, estimate, quote
+  const sections = ['reality', 'estimate', 'quote'];
+  
+  // Update each section
+  sections.forEach(section => {
+    // Update time entries
+    updateEntriesGrid(section, 'time', historicalData[`${section}_time_entries`] || []);
+    
+    // Update material entries
+    updateEntriesGrid(section, 'material', historicalData[`${section}_material_entries`] || []);
+    
+    // Update adjustment entries
+    updateEntriesGrid(section, 'adjustment', historicalData[`${section}_adjustment_entries`] || []);
   });
   
-  // Then load the historical data into grids as before
-  // Rest of your existing loading code...
+  // Update totals for all tables
+  updateTotals(historicalData);
+  
+  // Ensure navigation buttons reflect correct state
+  setTimeout(updateNavigationButtons, 100);
+
+  // Add this at the end of your loadHistoricalData function
+  setTimeout(() => {
+    console.log("=== DELAYED GRID VERIFICATION (after 1 second) ===");
+    console.log("Checking if grids have maintained historical data...");
+    
+    ['reality', 'estimate', 'quote'].forEach(section => {
+      ['time', 'material', 'adjustment'].forEach(type => {
+        const gridId = `${section}${capitalize(type)}Table`;
+        if (window.grids && window.grids[gridId] && window.grids[gridId].api) {
+          const api = window.grids[gridId].api;
+          const currentRows = [];
+          api.forEachNode(node => {
+            currentRows.push(node.data);
+          });
+          console.log(`DELAYED CHECK: ${gridId} has ${currentRows.length} rows`);
+          
+          // Get the expected historical data
+          const keyToCheck = `${section}_${type}_entries`;
+          const expectedEntries = historicalData[keyToCheck] || [];
+          console.log(`DELAYED CHECK: Expected ${expectedEntries.length} rows for ${keyToCheck}`);
+          
+          if (currentRows.length !== expectedEntries.length) {
+            console.warn(`GRID MISMATCH AFTER 1 SECOND: ${gridId} has ${currentRows.length} rows but should have ${expectedEntries.length}`);
+          }
+        }
+      });
+    });
+  }, 1000);
 }
 
 /**
@@ -469,133 +553,136 @@ function setCurrentDateDisplay() {
   }
 }
 
-/**
- * Update a specific entries grid with historical data
- */
-function updateEntriesGrid(section, entryType, entries) {
-  console.log(`Updating ${section} ${entryType} entries grid with ${entries.length} records`);
+// New utility function to force clear a grid
+function forceGridDataClear(gridId) {
+  console.log(`Force clearing data for grid: ${gridId}`);
   
-  // Generate grid ID based on section and entry type - FIX PLURALIZATION
-  let gridId;
-  if (entryType === 'material') {
-    gridId = `${section}MaterialsTable`; // Note the plural "Materials"
-  } else if (entryType === 'adjustment') {
-    gridId = `${section}AdjustmentsTable`; // Note the plural "Adjustments"
-  } else {
-    gridId = `${section}${capitalize(entryType)}Table`;
+  // Try all possible methods to clear the grid
+  const grid = window.grids?.[gridId];
+  if (!grid) return false;
+  
+  try {
+    // Method 1: Use AG Grid API if available
+    if (grid.api && typeof grid.api.setRowData === 'function') {
+      grid.api.setRowData([]);
+      console.log(`Cleared ${gridId} using api.setRowData`);
+      return true;
+    }
+    
+    // Method 2: Try to access the gridOptions API
+    if (grid.gridOptions && grid.gridOptions.api && 
+        typeof grid.gridOptions.api.setRowData === 'function') {
+      grid.gridOptions.api.setRowData([]);
+      console.log(`Cleared ${gridId} using gridOptions.api.setRowData`);
+      return true;
+    }
+    
+    // Method 3: Try to access the raw DOM element
+    const gridElement = document.getElementById(gridId);
+    if (gridElement && gridElement.classList.contains('ag-theme-alpine')) {
+      // For AG Grid, try to find and manipulate the internal row container
+      const rowContainer = gridElement.querySelector('.ag-center-cols-container');
+      if (rowContainer) {
+        rowContainer.innerHTML = '';
+        console.log(`Cleared ${gridId} by emptying row container DOM`);
+        return true;
+      }
+    }
+
+    // Method 4: Last resort - try to completely reinitialize the grid
+    if (typeof window.reinitializeGrid === 'function') {
+      window.reinitializeGrid(gridId, { rowData: [] });
+      console.log(`Cleared ${gridId} by reinitialization`);
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error(`Error clearing grid ${gridId}:`, error);
+    return false;
+  }
+}
+
+// Update the updateEntriesGrid function to use the force clearing method
+function updateEntriesGrid(section, entryType, entriesData) {
+  console.log(`Updating ${section} ${entryType} grid with ${entriesData.length} entries`);
+  
+  // Fix capitalization for grid IDs (first letter of section is lowercase)
+  const complexGridId = section + 
+    (entryType === 'time' ? 'TimeTable' : 
+     entryType === 'material' ? 'MaterialsTable' : 
+     'AdjustmentsTable');
+  
+  // Correct capitalization for simple grid IDs
+  const sectionCap = section.charAt(0).toUpperCase() + section.slice(1);
+  const simpleGridId = 'simple' + sectionCap + 
+    (entryType === 'time' ? 'TimeTable' : 
+     entryType === 'material' ? 'MaterialsTable' : 
+     'AdjustmentsTable');
+  
+  // Check if itemized pricing is on or off
+  const isItemizedOn = document.getElementById('toggleGridButton')?.checked;
+  
+  // Define primary and fallback grid IDs based on current toggle state
+  const primaryGridId = isItemizedOn ? complexGridId : simpleGridId;
+  const fallbackGridId = isItemizedOn ? simpleGridId : complexGridId;
+  
+  console.log(`Trying to update primary grid: ${primaryGridId}, fallback: ${fallbackGridId}`);
+  
+  // CRITICAL: First force clear both grids before updating
+  forceGridDataClear(primaryGridId);
+  forceGridDataClear(fallbackGridId);
+  
+  // Now attempt to update the primary grid
+  let updated = updateSingleGrid(primaryGridId, entriesData);
+  
+  // If primary update failed, try the fallback
+  if (!updated) {
+    console.log(`Primary grid ${primaryGridId} update failed, trying fallback ${fallbackGridId}`);
+    updated = updateSingleGrid(fallbackGridId, entriesData);
   }
   
-  console.log(`Setting ${entries.length} rows on grid: ${gridId}`);
+  if (!updated) {
+    console.error(`Failed to update either grid for ${section} ${entryType}`);
+  }
   
-  // Update the grid with historical entries
+  return updated;
+}
+
+// Helper function to update a single grid
+function updateSingleGrid(gridId, data) {
+  const grid = window.grids?.[gridId];
+  if (!grid) {
+    console.log(`Grid ${gridId} not found or not initialized`);
+    return false;
+  }
+  
   try {
-    if (!window.grids || !window.grids[gridId] || !window.grids[gridId].api) {
-      console.log(`Grid ${gridId} not found or has no API - this may be normal if tab isn't active`);
-      return;
-    }
+    console.log(`Updating grid ${gridId} with data`);
     
-    const api = window.grids[gridId].api;
-    
-    // DEBUG: Log current contents before clearing
-    console.log(`BEFORE CLEARING: ${gridId} current contents:`);
-    const beforeRows = [];
-    api.forEachNode(node => {
-      beforeRows.push(node.data);
-    });
-    console.log(`${gridId} has ${beforeRows.length} rows before clearing`);
-    
-    // AGGRESSIVE GRID CLEARING - Method 1: Use setRowData with empty array
-    console.log(`CLEARING GRID ${gridId} - Method 1: setRowData with empty array`);
-    if (typeof api.setRowData === 'function') {
-      api.setRowData([]);
-    }
-    
-    // AGGRESSIVE GRID CLEARING - Method 2: Get and remove all rows
-    console.log(`CLEARING GRID ${gridId} - Method 2: applyTransaction with remove`);
-    const allRows = [];
-    api.forEachNode(node => {
-      allRows.push(node.data);
-    });
-    
-    if (allRows.length > 0) {
-      console.log(`Found ${allRows.length} rows still in grid ${gridId}, removing them all`);
-      api.applyTransaction({ remove: allRows });
-    }
-    
-    // VERIFICATION: Check grid is empty
-    const verificationRows = [];
-    api.forEachNode(node => {
-      verificationRows.push(node.data);
-    });
-    
-    if (verificationRows.length > 0) {
-      console.warn(`CRITICAL: Grid ${gridId} still has ${verificationRows.length} rows after clearing!`);
-      // Try one more extreme method - replace the grid model
-      if (api.setRowData) {
-        api.setRowData([]);
-      }
+    // Try different approaches to update the grid data
+    if (typeof grid.setData === 'function') {
+      grid.setData(data);
+      return true;
+    } else if (grid.api && typeof grid.api.setRowData === 'function') {
+      grid.api.setRowData(data);
+      return true;
+    } else if (grid.gridOptions && grid.gridOptions.api && 
+               typeof grid.gridOptions.api.setRowData === 'function') {
+      grid.gridOptions.api.setRowData(data);
+      return true;
     } else {
-      console.log(`Grid ${gridId} successfully cleared - contains 0 rows`);
-    }
-    
-    // Only now add the historical entries
-    if (entries.length > 0) {
-      // Create deep copies of the entries to avoid reference issues
-      const entriesCopy = JSON.parse(JSON.stringify(entries));
-      console.log(`Adding ${entriesCopy.length} historical entries to ${gridId}`);
-      
-      // DEBUG: Log the actual data being added
-      console.log(`HISTORICAL DATA SAMPLE for ${gridId}:`, 
-                 entriesCopy.length > 0 ? JSON.stringify(entriesCopy[0]) : "No entries");
-      
-      // Try setRowData first (complete replacement)
-      if (typeof api.setRowData === 'function') {
-        console.log(`Using setRowData for ${gridId}`);
-        api.setRowData(entriesCopy);
-      } else {
-        // Fallback to applyTransaction
-        console.log(`Using applyTransaction for ${gridId}`);
-        api.applyTransaction({ add: entriesCopy });
+      // Try accessing the internal state directly (AG Grid specific)
+      if (grid._internalState) {
+        grid._internalState.rowData = data;
+        grid.api.refreshCells({ force: true });
+        return true;
       }
-      
-      // Force refresh
-      api.refreshCells({ force: true });
-      
-      // Final verification
-      const finalRows = [];
-      api.forEachNode(node => {
-        finalRows.push(node.data);
-      });
-      console.log(`AFTER UPDATE: Grid ${gridId} contains ${finalRows.length} rows (should be ${entries.length})`);
-      
-      // DEBUG: Log the actual data in the grid after update
-      if (finalRows.length > 0) {
-        console.log(`FINAL DATA SAMPLE for ${gridId}:`, JSON.stringify(finalRows[0]));
-        
-        // Compare keys to see if data structure matches expected
-        if (entriesCopy.length > 0) {
-          const expectedKeys = Object.keys(entriesCopy[0]).sort();
-          const actualKeys = Object.keys(finalRows[0]).sort();
-          console.log(`Expected keys: ${expectedKeys.join(', ')}`);
-          console.log(`Actual keys: ${actualKeys.join(', ')}`);
-          
-          // Check if they're different
-          const missingKeys = expectedKeys.filter(k => !actualKeys.includes(k));
-          const extraKeys = actualKeys.filter(k => !expectedKeys.includes(k));
-          
-          if (missingKeys.length > 0) {
-            console.warn(`MISSING KEYS in grid data: ${missingKeys.join(', ')}`);
-          }
-          if (extraKeys.length > 0) {
-            console.warn(`EXTRA KEYS in grid data: ${extraKeys.join(', ')}`);
-          }
-        }
-      }
+      return false;
     }
-    
-    console.log(`Successfully updated ${gridId} with historical data`);
-  } catch (error) {
-    console.error(`Error updating grid ${gridId}:`, error);
+  } catch (err) {
+    console.error(`Error updating grid ${gridId}:`, err);
+    return false;
   }
 }
 
@@ -726,18 +813,37 @@ function isInHistoricalMode() {
 
 window.isInHistoricalMode = isInHistoricalMode;
 
-// Add function to check if we're returning from a historical view
-function initializeAfterPageLoad() {
-  if (sessionStorage.getItem('returning_to_current_view') === 'true') {
-    console.log("Page reloaded after returning from historical view - ensuring fresh data");
-    sessionStorage.removeItem('returning_to_current_view');
-    // Force reload of all current data from the server
-    // This might be a call to your data loading function or similar
+// Add this function to be called at the beginning of loadHistoricalData
+function inspectAllGrids() {
+  console.log("=== LISTING ALL AVAILABLE GRID IDs ===");
+  
+  if (window.grids) {
+    const gridIds = Object.keys(window.grids);
+    console.log(`Found ${gridIds.length} grid IDs:`);
+    
+    gridIds.forEach(id => {
+      const grid = window.grids[id];
+      const hasAPI = grid && grid.api ? "yes" : "no";
+      console.log(`- ${id} (has API: ${hasAPI})`);
+      
+      if (grid && grid.api) {
+        // Log info about the API capabilities
+        const capabilities = [];
+        if (typeof grid.api.setRowData === 'function') capabilities.push('setRowData');
+        if (typeof grid.api.getRowData === 'function') capabilities.push('getRowData');
+        if (typeof grid.api.sizeColumnsToFit === 'function') capabilities.push('sizeColumnsToFit');
+        
+        if (capabilities.length > 0) {
+          console.log(`  - API capabilities: ${capabilities.join(', ')}`);
+        }
+      }
+    });
+  } else {
+    console.warn("No window.grids object found!");
+  }
+  
+  // Also inspect related globals
+  if (window.agGrid) {
+    console.log("AG Grid is available globally");
   }
 }
-
-// Call this from your document ready function
-document.addEventListener('DOMContentLoaded', function() {
-  initializeAfterPageLoad();
-  // Your other initialization code...
-});
