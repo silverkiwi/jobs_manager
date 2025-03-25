@@ -40,14 +40,14 @@ function formatDate(dateStr) {
 export function checkQueryParam(exportToIMSButton) {
     const params = new URLSearchParams(window.location.search);
     const exportToIMSQuery = params.get('export_to_ims') === '1';
-  
+
     if (exportToIMSQuery) {
-      exportToIMSButton.click();
-      checkIMSButton(exportToIMSButton);
-      toggleTableToIMS();
-      if (window.DEBUG_MODE) {
-        console.log("Export to IMS query parameter detected, toggling table to IMS view");
-      }
+        exportToIMSButton.click();
+        checkIMSButton(exportToIMSButton);
+        toggleTableToIMS();
+        if (window.DEBUG_MODE) {
+            console.log("Export to IMS query parameter detected, toggling table to IMS view");
+        }
     }
 }
 
@@ -129,44 +129,75 @@ function updateOverviewTable(data) {
 
             const isLeave = dayData.status === "Leave";
             const leaveType = isLeave ? detectLeaveType(dayData.leave_type) : null;
-            const isWarning = dayData.status === "⚠";
-            const isComplete = dayData.status === "✓";
-            const isEmpty = dayData.hours === 0;
 
+            const leaveHours = isLeave ? (dayData.leave_hours || 0) : 0;
+            const workHours = isLeave ? 
+                ((dayData.hours || 0) - leaveHours) : 
+                (dayData.hours || 0);
+            
             let cellContent = `
                 <div class="ims-hour-total">
                     <span>Total</span>
-                    <span>${formatHourValue(dayData.hours)}</span>
-                </div>
+                    <span>${formatHourValue(workHours)}</span>
+                </div>`
 
-                <div class="ims-hour-row">
-                    <span>Standard</span>
-                    <span>${formatHourValue(dayData.standard_hours)}</span>
-                </div>
+            let annualLeaveHours = 0;
+            let sickLeaveHours = 0;
+            let otherLeaveHours = 0;
 
-                <div class="ims-hour-row">
-                    <span class="ims-hour-label">1.5x</span>
-                    <span class="ims-hour-value">${formatHourValue(dayData.time_and_half_hours)}</span>
-                </div>
+            if (isLeave && leaveType) {
+                switch (leaveType.toLowerCase()) {
+                    case "annual":
+                        annualLeaveHours += dayData.hours;
+                        break;
+                    case "sick":
+                        sickLeaveHours += dayData.hours;
+                        break;
+                    default:
+                        otherLeaveHours += dayData.hours;
+                        break;
+                }
+            }
 
-                <div class="ims-hour-row">
-                    <span class="ims-hour-label">2x</span>
-                    <span class="ims-hour-value">${formatHourValue(dayData.double_time_hours)}</span>
-                </div>
-            `;
-
-            if (isLeave) {
-                const leaveClass = `ims-leave-${leaveType.toLowerCase()}`;
-                const leaveIcon = getLeaveIcon(leaveType);
+            const isWarning = dayData.status === "⚠";
+            const isComplete = dayData.status === "✓";
+            const isEmpty = dayData.hours === 0;
+            
+            if (dayData.standard_hours > 0 || dayData.time_and_half_hours > 0 || dayData.double_time_hours > 0) {
                 cellContent += `
-                    <div class="ims-leave-box ${leaveClass}">
-                        <div class="ims-leave-type">
-                            <i class="${leaveIcon}"></i>
-                            <span>${getLeaveTypeLabel(leaveType)} Leave</span>
-                        </div>
-                        <div class="ims-leave-hours">
-                            <span>Hours:</span>
-                            <span>${formatHourValue(dayData.hours)}</span>
+                    <div class="ims-work-section">
+                        <div class="ims-leave-header">Work Hours</div>
+                        ${dayData.standard_hours > 0 ? 
+                            `<div class="ims-hour-row">
+                                <span>Standard</span>
+                                <span>${formatHourValue(dayData.standard_hours)}</span>
+                            </div>` : ''}
+                        
+                        ${dayData.time_and_half_hours > 0 ? 
+                            `<div class="ims-hour-row">
+                                <span class="ims-hour-label">1.5x</span>
+                                <span class="ims-hour-value">${formatHourValue(dayData.time_and_half_hours)}</span>
+                            </div>` : ''}
+                        
+                        ${dayData.double_time_hours > 0 ? 
+                            `<div class="ims-hour-row">
+                                <span class="ims-hour-label">2x</span>
+                                <span class="ims-hour-value">${formatHourValue(dayData.double_time_hours)}</span>
+                            </div>` : ''}
+                    </div>
+                `;
+            }
+
+            if (isLeave && dayData.leave_hours > 0) {
+                const leaveTypeLabel = getLeaveTypeLabel(leaveType);
+                const leaveClass = `ims-leave-${leaveType.toLowerCase()}`;
+                
+                cellContent += `
+                    <div class="ims-leave-section ${leaveClass}">
+                        <div class="ims-leave-header">${leaveTypeLabel} Leave</div>
+                        <div class="ims-hour-row">
+                            <span>Hours</span>
+                            <span>${formatHourValue(dayData.leave_hours)}</span>
                         </div>
                     </div>
                 `;
@@ -193,11 +224,66 @@ function updateOverviewTable(data) {
         });
 
         const tdTotal = document.createElement("td");
+        tdTotal.classList.add("ims-data-cell");
+
+        const stdHours = parseFloat(staff.total_standard_hours || 0);
+        const timeHalfHours = parseFloat(staff.total_time_and_half_hours || 0);
+        const doubleTimeHours = parseFloat(staff.total_double_time_hours || 0);
+
+        const totalWorkHours = stdHours + timeHalfHours + doubleTimeHours;
+        
+        const totalLeaveHours = (
+            parseFloat(staff.total_annual_leave_hours || 0) +
+            parseFloat(staff.total_sick_leave_hours || 0) +
+            parseFloat(staff.total_other_leave_hours || 0)
+        );
+
         tdTotal.innerHTML = `
             <div class="ims-hour-total">
                 <span>Total</span>
                 <span>${formatHourValue(staff.total_hours)}</span>
             </div>
+
+            ${totalWorkHours > 0 ? 
+                `<div class="ims-work-section">
+                    <div class="ims-section-header">Work Hours</div>
+                    ${staff.total_standard_hours > 0 ? 
+                        `<div class="ims-hour-row">
+                            <span>Standard</span>
+                            <span>${formatHourValue(staff.total_standard_hours)}</span>
+                        </div>` : ''}
+                    ${staff.total_time_and_half_hours > 0 ? 
+                        `<div class="ims-hour-row">
+                            <span>1.5x</span>
+                            <span>${formatHourValue(staff.total_time_and_half_hours)}</span>
+                        </div>` : ''}
+                    ${staff.total_double_time_hours > 0 ? 
+                        `<div class="ims-hour-row">
+                            <span>2x</span>
+                            <span>${formatHourValue(staff.total_double_time_hours)}</span>
+                        </div>` : ''}
+                </div>` : ''}
+
+            ${totalLeaveHours > 0 ? 
+                `<div class="ims-leave-section">
+                    <div class="ims-section-header">Leave Hours</div>
+                    ${staff.total_annual_leave_hours > 0 ? 
+                        `<div class="ims-hour-row ims-leave-annual">
+                            <span>Annual</span>
+                            <span>${formatHourValue(staff.total_annual_leave_hours)}</span>
+                        </div>` : ''}
+                    ${staff.total_sick_leave_hours > 0 ? 
+                        `<div class="ims-hour-row ims-leave-sick">
+                            <span>Sick</span>
+                            <span>${formatHourValue(staff.total_sick_leave_hours)}</span>
+                        </div>` : ''}
+                    ${staff.total_other_leave_hours > 0 ? 
+                        `<div class="ims-hour-row ims-leave-other">
+                            <span>Other</span>
+                            <span>${formatHourValue(staff.total_other_leave_hours)}</span>
+                        </div>` : ''}
+                </div>` : ''}
+
             ${staff.total_overtime > 0 ?
                 `<div class="ims-hour-row">
                     <span class="ims-hour-label">Overtime</span>
@@ -205,7 +291,7 @@ function updateOverviewTable(data) {
                 </div>` : ''
             }
         `;
-        tdTotal.classList.add("ims-data-cell");
+
         tr.appendChild(tdTotal);
 
         const tdBillable = document.createElement("td");
@@ -224,8 +310,6 @@ function updateOverviewTable(data) {
 
         tbody.appendChild(tr);
     });
-
-    addIMSSummary(data.totals);
 }
 
 /**
@@ -271,6 +355,7 @@ function getLeaveIcon(leaveType) {
 function getLeaveTypeLabel(leaveType) {
     switch (leaveType) {
         case "Annual":
+            
             return "Annual";
         case "Sick":
             return "Sick";
@@ -282,40 +367,6 @@ function getLeaveTypeLabel(leaveType) {
 function formatHourValue(hours) {
     if (hours === null || hours === undefined || isNaN(hours)) return "0.0";
     return parseFloat(hours).toFixed(1);
-}
-
-function addIMSSummary(totals) {
-    const existingSummary = document.getElementById("ims-floating-summary");
-    if (existingSummary) {
-        existingSummary.remove();
-    }
-
-    const container = document.querySelector(".container");
-    if (!container) return;
-
-    const summaryCard = document.createElement("div");
-
-    summaryCard.id = "ims-floating-summary";
-    summaryCard.className = "ims-summary-card";
-    summaryCard.innerHTML= `
-        <h4 class="mb-3">IMS Summary</h4>
-        <div class="row">
-            <div class="col-md-6">
-                <div class="ims-hour-row">
-                    <span>Total Hours</span>
-                    <span>${formatHourValue(totals.total_hours)}</span>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="ims-hour-row">
-                    <span class="ims-hour-label">Billable %</span>
-                    <span class="ims-hour-value">${totals.billable_percentage}%</span>
-                </div>
-            </div>
-        </div>
-    `;
-
-    container.insertBefore(summaryCard, container.firstChild);
 }
 
 function updateTableHeaderIMS(weekDays) {
@@ -340,7 +391,7 @@ function updateTableHeaderIMS(weekDays) {
                 throw new Error("Invalid date:", dayStr);
             }
 
-            const dayLabel = day.toLocaleDateString("en-AU", { 
+            const dayLabel = day.toLocaleDateString("en-AU", {
                 weekday: "short",
                 day: "numeric",
                 month: "numeric"
