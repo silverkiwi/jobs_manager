@@ -95,7 +95,6 @@ dmypy.json
 *.swp
 *.swo
 *~
-/workflow/fixtures/
 /.__debug_sql.lock
 /node_modules/
 
