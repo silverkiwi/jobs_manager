@@ -681,7 +681,7 @@
 }
 
 .ims-leave-other .ims-leave-type {
-  color: var(--warning-color);
+  color: #fd7e14;
 }
 
 .ims-leave-sick {
@@ -766,22 +766,59 @@
   color: var(--primary-color);
 }
 
-/* Floating summary for IMS View */
-.ims-summary-card {
-  position: sticky;
-  top: 1rem;
-  z-index: 100;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(15px);
-  border-radius: var(--border-radius);
-  padding: 1rem;
-  box-shadow: var(--card-shadow);
-  margin-bottom: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all var(--transition-speed) ease;
+/* New styles for IMS leave section */
+.ims-leave-section {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
 }
 
-.ims-summary-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 20px rgba(67, 97, 238, 0.15);
+.ims-leave-header {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--primary-color);
+}
+
+.ims-leave-annual,
+.ims-leave-sick,
+.ims-leave-other {
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  margin-top: 0.5rem;
+  border-left: 3px solid var(--primary-color);
+}
+
+.ims-leave-annual, .ims-leave-annual .ims-leave-header {
+  color: #198754;
+  border-left-color: #198754;
+}
+
+.ims-leave-sick, .ims-leave-sick .ims-leave-header {
+  color: #dc3545;
+  border-left-color: #dc3545;
+}
+
+.ims-leave-other, .ims-leave-other .ims-leave-header {
+  color: #fd7e14;
+  border-left-color: #fd7e14;
+}
+
+.ims-overtime {
+  color: #6f42c1;
+  font-weight: 500;
+}
+
+.ims-section-header {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.ims-work-section {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
 }
