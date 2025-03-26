@@ -22,6 +22,7 @@ from workflow.models import XeroJournal, Quote
 from workflow.models.client import Client
 from workflow.models.invoice import Bill, CreditNote, Invoice
 from workflow.models.xero_account import XeroAccount
+from workflow.models.purchase import PurchaseOrder, PurchaseOrderLine
 logger = logging.getLogger("xero")
 
 
@@ -635,6 +636,87 @@ def sync_quotes(quotes):
             raise
 
 
+def sync_purchase_orders(purchase_orders):
+    """
+    Sync Purchase Orders fetched from Xero API.
+    """
+    for po_data in purchase_orders:
+        xero_id = getattr(po_data, "purchase_order_id")
+        
+        # Retrieve the supplier for the purchase order
+        client = Client.objects.filter(xero_contact_id=po_data.contact.contact_id).first()
+        if not client:
+            logger.warning(f"Supplier not found for purchase order {po_data.purchase_order_number}")
+            continue
+
+        # Serialize and clean the JSON received from the API
+        raw_json = serialise_xero_object(po_data)
+        
+        try:
+            # Retrieve or create the purchase order
+            try:
+                purchase_order = PurchaseOrder.objects.get(xero_id=xero_id)
+                created = False
+            except PurchaseOrder.DoesNotExist:
+                purchase_order = PurchaseOrder(xero_id=xero_id, supplier=client)
+                created = True
+
+            # Update fields from Xero data
+            purchase_order.po_number = po_data.purchase_order_number
+            purchase_order.order_date = po_data.date
+            purchase_order.expected_delivery = po_data.delivery_date
+            
+            # Set Xero sync fields
+            purchase_order.xero_last_modified = raw_json.get("_updated_date_utc")
+            purchase_order.xero_last_synced = timezone.now()
+            
+            # Map Xero status to our status
+            xero_status = po_data.status
+            if xero_status == "DRAFT":
+                purchase_order.status = "draft"
+            elif xero_status == "SUBMITTED":
+                purchase_order.status = "submitted"
+            elif xero_status == "AUTHORISED":
+                purchase_order.status = "submitted"
+            elif xero_status == "BILLED":
+                purchase_order.status = "fully_received"
+            elif xero_status == "DELETED":
+                purchase_order.status = "void"
+            else:
+                purchase_order.status = "draft"  # Default
+
+            purchase_order.save()
+
+            # Process line items
+            if hasattr(po_data, "line_items") and po_data.line_items:
+                for line_item in po_data.line_items:
+                    # Create or update line item
+                    po_line, line_created = PurchaseOrderLine.objects.update_or_create(
+                        purchase_order=purchase_order,
+                        item_code=line_item.item_code or "",
+                        description=line_item.description,
+                        defaults={
+                            "quantity": line_item.quantity,
+                            "unit_cost": line_item.unit_amount,
+                        }
+                    )
+                    
+                    if line_created:
+                        logger.info(f"Created line item for PO {purchase_order.po_number}: {line_item.description}")
+                    else:
+                        logger.info(f"Updated line item for PO {purchase_order.po_number}: {line_item.description}")
+
+            if created:
+                logger.info(f"New purchase order added: {purchase_order.po_number}")
+            else:
+                logger.info(f"Updated purchase order: {purchase_order.po_number}")
+
+        except Exception as e:
+            logger.error(f"Error processing purchase order {getattr(po_data, 'purchase_order_number', 'unknown')}: {str(e)}")
+            logger.error(f"Purchase order data: {raw_json}")
+            raise
+
+
 def sync_client_to_xero(client):
     """
     Sync a client from the local database to Xero - either create a new one or update an existing one.
@@ -929,6 +1011,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             'account': get_last_modified_time(XeroAccount),
             'journal': get_last_modified_time(XeroJournal),
             'quote': get_last_modified_time(Quote),
+            'purchase_order': get_last_modified_time(PurchaseOrder),
         }
     else:
         # Use fixed timestamp from days_back
@@ -941,6 +1024,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             'account': older_time,
             'journal': older_time,
             'quote': older_time,
+            'purchase_order': older_time,
         }
 
     logger.info("Starting first sync_xero_data call for accounts")
@@ -1008,6 +1092,15 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
         sync_function=sync_journals,
         last_modified_time=timestamps['journal'],
         pagination_mode="offset",
+    )
+
+    yield from sync_xero_data(
+        xero_entity_type="purchase_orders",
+        our_entity_type="purchase-orders",
+        xero_api_fetch_function=accounting_api.get_purchase_orders,
+        sync_function=sync_purchase_orders,
+        last_modified_time=timestamps['purchase_order'],
+        pagination_mode="page",
     )
 
 def one_way_sync_all_xero_data():

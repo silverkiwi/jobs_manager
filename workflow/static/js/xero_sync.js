@@ -1,7 +1,7 @@
 'use strict';
 
 // Constants for entity names and their order
-const ENTITIES = ['accounts', 'contacts', 'invoices', 'bills', 'journals', 'credit-notes'];
+const ENTITIES = ['accounts', 'contacts', 'invoices', 'bills', 'journals', 'credit-notes', 'purchase-orders'];
 const TOTAL_ENTITIES = ENTITIES.length;
 
 // UI Elements

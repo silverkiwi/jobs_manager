@@ -156,10 +156,15 @@ urlpatterns = [
         xero_view.xero_oauth_callback,
         name="xero_oauth_callback",
     ),
+        path(
+        "api/xero/disconnect/",
+        xero_view.xero_disconnect,
+        name="xero_disconnect",
+    ),
     path(
-        "api/xero/success/",
-        xero_view.success_xero_connection,
-        name="xero_success",
+        "api/xero/purchase-order/<uuid:purchase_order_id>/create/",
+        xero_view.create_xero_purchase_order,
+        name="create_xero_purchase_order",
     ),
     path(
         "api/xero/refresh/",
@@ -167,14 +172,14 @@ urlpatterns = [
         name="refresh_xero_data",
     ),
     path(
+        "api/xero/success/",
+        xero_view.success_xero_connection,
+        name="xero_success",
+    ),
+    path(
         "api/xero/sync-stream/",
         xero_view.stream_xero_sync,
         name="stream_xero_sync",
-    ),
-    path(
-        "api/xero/disconnect/",
-        xero_view.xero_disconnect,
-        name="xero_disconnect",
     ),
     path(
         "api/xero/create_invoice/<uuid:job_id>",
@@ -339,6 +344,7 @@ urlpatterns = [
     # Purchase Order URLs
     path('purchase-orders/', PurchaseOrderListView.as_view(), name='purchase_orders'),
     path('purchase-orders/new/', PurchaseOrderCreateView.as_view(), name='new_purchase_order'),
+    path('purchase-orders/<uuid:pk>/', PurchaseOrderCreateView.as_view(), name='edit_purchase_order'),
 
     # This URL doesn't match our naming pattern - need to fix.
     # Probably should be in api/internal?

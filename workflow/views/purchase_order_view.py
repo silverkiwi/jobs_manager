@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -34,13 +35,53 @@ class PurchaseOrderListView(LoginRequiredMixin, ListView):
 
 
 class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
-    """View to create a new purchase order, following the timesheet pattern."""
+    """View to create or edit a purchase order, following the timesheet pattern."""
     
     template_name = 'purchases/purchase_order_form.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'New Purchase Order'
+        
+        # Check if we're editing an existing purchase order
+        purchase_order_id = self.kwargs.get('pk')
+        purchase_order = None
+        
+        if purchase_order_id:
+            # Editing an existing purchase order
+            purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)
+            context['title'] = f'Purchase Order {purchase_order.po_number}'
+            context['purchase_order_id'] = str(purchase_order.id)
+            
+            # Add purchase order data
+            context['purchase_order_json'] = json.dumps({
+                'id': str(purchase_order.id),
+                'po_number': purchase_order.po_number,
+                'supplier': str(purchase_order.supplier.id),
+                'supplier_name': purchase_order.supplier.name,
+                'order_date': purchase_order.order_date.isoformat() if purchase_order.order_date else None,
+                'expected_delivery': purchase_order.expected_delivery.isoformat() if purchase_order.expected_delivery else None,
+                'status': purchase_order.status
+            })
+            
+            # Get line items for this purchase order
+            line_items = purchase_order.lines.all()
+            context['line_items_json'] = json.dumps([
+                {
+                    'id': str(line.id),
+                    'job': str(line.job.id) if line.job else None,
+                    'job_display_name': f"{line.job.job_number} - {line.job.name}" if line.job else None,
+                    'description': line.description,
+                    'quantity': float(line.quantity),
+                    'unit_cost': float(line.unit_cost) if line.unit_cost is not None else None,
+                    'price_tbc': line.price_tbc,
+                    'total': float(line.quantity * (line.unit_cost or 0))
+                } for line in line_items
+            ])
+        else:
+            # Creating a new purchase order
+            context['title'] = 'New Purchase Order'
+            context['purchase_order_json'] = json.dumps({})
+            context['line_items_json'] = json.dumps([])
         
         # Get active jobs for the line items - match exactly what timesheet view does
         jobs = Job.objects.filter(
@@ -58,10 +99,6 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
                 'estimated_materials': float(job.latest_estimate_pricing.total_material_cost)
             } for job in jobs
         ])
-        
-        # Empty line items array for new purchase orders
-        # This follows the timesheet pattern where we pass existing entries
-        context['line_items_json'] = json.dumps([])
         
         return context
     
@@ -154,144 +191,64 @@ def autosave_purchase_order_view(request):
         line_items = data.get("line_items", [])
         deleted_line_items = data.get("deleted_line_items", [])
         
+        # Log detailed information about the purchase order data
+        logger.debug("Purchase order data: %s", json.dumps(purchase_order_data, indent=2))
+        
         logger.debug(f"Number of line items: {len(line_items)}")
         logger.debug(f"Number of items to delete: {len(deleted_line_items)}")
         
-        # Handle deletions first, just like timesheet view does
-        if deleted_line_items:
-            for line_id in deleted_line_items:
-                logger.debug(f"Deleting line item with ID: {line_id}")
-                
-                try:
-                    line = PurchaseOrderLine.objects.get(id=line_id)
-                    messages.success(request, "Line item deleted successfully")
-                    line.delete()
-                    logger.debug(f"Line item with ID {line_id} deleted successfully")
-                except PurchaseOrderLine.DoesNotExist:
-                    logger.error(f"Line item with ID {line_id} not found for deletion")
+        # Handle deletions first - return error immediately if any line not found
+        for line_id in deleted_line_items:
+            logger.debug(f"Deleting line item with ID: {line_id}")
             
-            return JsonResponse(
-                {
-                    "success": True,
-                    "action": "remove",
-                    "messages": extract_messages(request),
-                },
-                status=200,
-            )
-        
-        # Validate we have something to process
-        if not line_items and not deleted_line_items:
-            logger.error("No valid items to process")
-            messages.info(request, "No changes to save.")
-            return JsonResponse(
-                {
-                    "error": "No line items provided",
-                    "messages": extract_messages(request),
-                },
-                status=400,
-            )
-        
-        # Get or create purchase order
-        po_id = purchase_order_data.get("id")
-        client_id = purchase_order_data.get("client_id")
-        
-        if not client_id:
-            messages.error(request, "Supplier is required")
-            return JsonResponse(
-                {"error": "Supplier is required", "messages": extract_messages(request)},
-                status=400,
-            )
-        
-        if po_id:
-            # Update existing purchase order
             try:
-                purchase_order = PurchaseOrder.objects.get(id=po_id)
-                purchase_order.supplier_id = client_id
-                purchase_order.expected_delivery = purchase_order_data.get("expected_delivery")
-                purchase_order.save()
-                logger.debug(f"Updated purchase order {purchase_order.po_number}")
-            except PurchaseOrder.DoesNotExist:
-                logger.error(f"Purchase order with ID {po_id} not found")
-                messages.error(request, f"Purchase order not found")
-                return JsonResponse(
-                    {"error": f"Purchase order not found", "messages": extract_messages(request)},
-                    status=404,
-                )
-        else:
-            # Create new purchase order
-            from datetime import datetime
-            purchase_order = PurchaseOrder(
-                supplier_id=client_id,
-                order_date=purchase_order_data.get("order_date") or datetime.now().date(),
-                expected_delivery=purchase_order_data.get("expected_delivery"),
-                status="draft"
-            )
-            purchase_order.save()
-            logger.debug(f"Created new purchase order {purchase_order.po_number}")
-        
-        # Process line items - similar to timesheet entry processing
-        updated_lines = []
-        for item_data in line_items:
-            if not item_data.get("job") or not item_data.get("description"):
-                logger.debug("Skipping incomplete line item: ", item_data)
-                continue
-                
-            line_id = item_data.get("id")
-            logger.debug(f"Processing line item: {json.dumps(item_data, indent=2)}")
-            
-            if line_id and line_id != "tempId":
-                try:
-                    logger.debug(f"Processing line item with ID: {line_id}")
-                    line = PurchaseOrderLine.objects.get(id=line_id)
-                    
-                    # Update existing line
-                    line.job_id = item_data.get("job")
-                    line.description = item_data.get("description")
-                    line.quantity = item_data.get("quantity", 1)
-                    line.unit_cost = item_data.get("unit_cost", 0) if item_data.get("unit_cost") != "TBC" else 0
-                    line.save()
-                    
-                    updated_lines.append(line)
-                    messages.success(request, "Line item updated successfully")
-                    logger.debug("Line item updated successfully")
-                    
-                    return JsonResponse(
-                        {
-                            "success": True,
-                            "po_number": purchase_order.po_number,
-                            "id": str(purchase_order.id),
-                            "action": "update",
-                            "messages": extract_messages(request),
-                        },
-                        status=200,
-                    )
-                    
-                except PurchaseOrderLine.DoesNotExist:
-                    logger.error(f"Line item with ID {line_id} not found")
-            else:
-                # Create new line
-                line = PurchaseOrderLine.objects.create(
-                    purchase_order=purchase_order,
-                    job_id=item_data.get("job"),
-                    description=item_data.get("description"),
-                    quantity=item_data.get("quantity", 1),
-                    unit_cost=item_data.get("unit_cost", 0) if item_data.get("unit_cost") != "TBC" else 0
-                )
-                
-                updated_lines.append(line)
-                messages.success(request, "Line item created successfully")
-                logger.debug("Line item created successfully")
-                
+                line = PurchaseOrderLine.objects.get(id=line_id)
+                line.delete()
+                logger.debug(f"Line item with ID {line_id} deleted successfully")
+            except PurchaseOrderLine.DoesNotExist:
+                # Return error immediately if line not found
+                logger.error(f"Line item with ID {line_id} not found for deletion")
+                messages.error(request, f"Line item with ID {line_id} not found for deletion")
                 return JsonResponse(
                     {
-                        "success": True,
-                        "po_number": purchase_order.po_number,
-                        "id": str(purchase_order.id),
-                        "action": "add",
+                        "success": False,
+                        "error": f"Line item with ID {line_id} not found for deletion",
                         "messages": extract_messages(request),
                     },
-                    status=200,
+                    status=404,
                 )
+        
+        # True upsert pattern
+        purchase_order, created = PurchaseOrder.objects.update_or_create(
+            id=purchase_order_data.get("id") or None,
+            defaults={
+                'supplier_id': purchase_order_data.get("client_id"),
+                'status': purchase_order_data.get("status"),
+                'order_date': purchase_order_data.get("order_date"),
+                'expected_delivery': purchase_order_data.get("expected_delivery") or None
+            }
+        )
+        if created:
+            logger.debug(f"Created purchase order {purchase_order.po_number}")
+        else:
+            logger.debug(f"Updated purchase order {purchase_order.po_number}")
+                
+        # Process line items - true upsert pattern
+        for item_data in line_items:
+            # Use update_or_create for true upsert
+            PurchaseOrderLine.objects.update_or_create(
+                id=item_data.get("id") or None,
+                defaults={
+                    'purchase_order': purchase_order,
+                    'job_id': item_data.get("job"),
+                    'description': item_data.get("description"),
+                    'quantity': item_data.get("quantity"),
+                    'unit_cost': item_data.get("unit_cost"),
+                    'price_tbc': item_data.get("price_tbc")
+                }
+            )
+            
+        logger.debug("Line items created successfully")
         
         return JsonResponse(
             {
@@ -299,7 +256,7 @@ def autosave_purchase_order_view(request):
                 "messages": extract_messages(request),
                 "po_number": purchase_order.po_number,
                 "id": str(purchase_order.id),
-                "action": "update",
+                "action": "save",
             }
         )
         
@@ -313,6 +270,12 @@ def autosave_purchase_order_view(request):
     except Exception as e:
         messages.error(request, f"Unexpected error: {str(e)}")
         logger.exception("Unexpected error during purchase order autosave")
+        
+        # Log more detailed information about the error
+        if hasattr(e, 'message_dict'):
+            # This is a ValidationError with field information
+            logger.error("Validation error details: %s", json.dumps(e.message_dict, indent=2))
+        
         return JsonResponse(
             {"error": str(e), "messages": extract_messages(request)}, status=500
         )

@@ -37,7 +37,7 @@
                             <td>{{ purchase_order.order_date }}</td>
                             <td>{{ purchase_order.get_status_display }}</td>
                             <td>
-                                <a href="#" class="btn btn-sm btn-primary disabled">
+                                <a href="{% url 'edit_purchase_order' purchase_order.id %}" class="btn btn-sm btn-primary">
                                     <i class="bi bi-eye"></i>
                                 </a>
                             </td>

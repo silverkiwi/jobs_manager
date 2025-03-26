@@ -2,6 +2,7 @@ import uuid
 
 from django.db import models
 from django.db.models import Max
+from django.utils import timezone
 
 from workflow.helpers import get_company_defaults
 from workflow.models import CompanyDefaults
@@ -40,6 +41,8 @@ class PurchaseOrder(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    xero_last_modified = models.DateTimeField(null=True, blank=True)
+    xero_last_synced = models.DateTimeField(null=True, blank=True, default=timezone.now)
 
     def generate_po_number(self):
         """Generate a sequential PO number based on company defaults."""
@@ -101,7 +104,8 @@ class PurchaseOrderLine(models.Model):
     )
     description = models.CharField(max_length=200)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_tbc = models.BooleanField(default=False, help_text="If true, the price is to be confirmed and unit cost will be None")
     item_code = models.CharField(max_length=20, blank=True)
     received_quantity = models.DecimalField(
         max_digits=10,

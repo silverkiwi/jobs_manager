@@ -48,6 +48,7 @@ from workflow.enums import InvoiceStatus, JobPricingType, QuoteStatus
 from workflow.models import Invoice, Job, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults
 from workflow.models.xero_token import XeroToken
 from workflow.models.quote import Quote
+from workflow.models.purchase import PurchaseOrder
 from workflow.utils import extract_messages
 
 logger = logging.getLogger("xero")
@@ -132,9 +133,25 @@ def generate_xero_sync_events():
             })}\n\n"
             return
 
+        # Send a heartbeat every 15 seconds to keep the connection alive
+        last_heartbeat = timezone.now()
+        
         # Proceed with sync if we have a valid token
         messages = synchronise_xero_data()
         for message in messages:
+            # Check if we need to send a heartbeat
+            now = timezone.now()
+            if (now - last_heartbeat).total_seconds() > 15:
+                heartbeat = {
+                    'datetime': now.isoformat(),
+                    'entity': 'sync',
+                    'severity': 'info',
+                    'message': 'Heartbeat',
+                    'progress': message.get('progress')
+                }
+                yield f"data: {json.dumps(heartbeat)}\n\n"
+                last_heartbeat = now
+                
             data = json.dumps(message)
             yield f"data: {data}\n\n"
     except Exception as e:
@@ -380,6 +397,137 @@ class XeroQuoteCreator(XeroDocumentCreator):
 
     def get_local_model(self):
         return Quote
+
+
+class XeroPurchaseOrderCreator(XeroDocumentCreator):
+    """
+    Handles Purchase Order creation in Xero.
+    """
+    
+    purchase_order = None
+    
+    def __init__(self, purchase_order):
+        self.purchase_order = purchase_order
+        self.client = purchase_order.supplier
+        self.xero_api = AccountingApi(api_client)
+        self.xero_tenant_id = get_tenant_id()
+    
+    def get_xero_id(self):
+        return str(self.purchase_order.xero_id) if self.purchase_order.xero_id else None
+    
+    def get_xero_update_method(self):
+        return self.xero_api.update_or_create_purchase_orders
+    
+    def get_local_model(self):
+        return PurchaseOrder
+    
+    def validate_job(self):
+        # For purchase orders, we validate the purchase order instead of a job
+        if self.purchase_order.status != 'draft':
+            raise ValueError(f"Purchase order {self.purchase_order.id} is not in draft status.")
+    
+    def get_line_items(self):
+        """
+        Generates purchase order-specific LineItems.
+        """
+        xero_line_items = []
+        
+        for line in self.purchase_order.lines.all():
+            description = line.description
+            if line.job:
+                description = f"{line.job.job_number} - {description}"
+            
+            # Skip lines with TBC unit cost
+            if line.unit_cost == 'TBC':
+                continue
+                
+            xero_line_items.append(
+                LineItem(
+                    description=description,
+                    quantity=float(line.quantity),
+                    unit_amount=float(line.unit_cost),
+                    account_code="200",  # Default account code for purchases
+                    tax_type="INPUT",    # Default tax type
+                )
+            )
+        
+        return xero_line_items
+    
+    def get_xero_document(self, type="create"):
+        """
+        Returns a Xero PurchaseOrder object.
+        """
+        if type == "create":
+            return PurchaseOrder(
+                contact=self.get_xero_contact(),
+                date=self.purchase_order.order_date,
+                delivery_date=self.purchase_order.expected_delivery,
+                line_items=self.get_line_items(),
+                status="SUBMITTED"
+            )
+        elif type == "delete":
+            return PurchaseOrder(
+                purchase_order_id=self.get_xero_id(),
+                status="DELETED"
+            )
+        else:
+            raise ValueError(f"Unknown document type: {type}")
+    
+    def create_document(self):
+        """
+        Override to handle purchase order-specific creation.
+        """
+        self.validate_client()
+        self.validate_job()
+        
+        xero_document = self.get_xero_document(type="create")
+        
+        try:
+            # Convert to PascalCase to match XeroAPI required format and clean payload
+            payload = convert_to_pascal_case(clean_payload(xero_document.to_dict()))
+            logger.debug(f"Serialized payload: {json.dumps(payload, indent=4)}")
+        except Exception as e:
+            logger.error(f"Error serializing XeroDocument: {str(e)}")
+            raise
+        
+        try:
+            response, http_status, http_headers = self.xero_api.create_purchase_orders(
+                self.xero_tenant_id, purchase_orders=payload, _return_http_data_only=False
+            )
+            
+            logger.debug(f"Response Content: {response}")
+            logger.debug(f"HTTP Status: {http_status}")
+            
+            # Update the purchase order status
+            if response and response.purchase_orders:
+                xero_po = response.purchase_orders[0]
+                self.purchase_order.xero_id = xero_po.purchase_order_id
+                self.purchase_order.status = 'submitted'
+                self.purchase_order.save()
+                
+                return JsonResponse({
+                    "success": True,
+                    "xero_id": str(self.purchase_order.xero_id),
+                    "status": self.purchase_order.status,
+                    "messages": [],
+                })
+            else:
+                return JsonResponse({
+                    "success": False,
+                    "error": "No purchase orders found in the response.",
+                    "messages": [],
+                }, status=400)
+                
+        except Exception as e:
+            logger.error(f"Error sending document to Xero: {str(e)}")
+            if hasattr(e, "body"):
+                logger.error(f"Response body: {e.body}")
+            
+            return JsonResponse({
+                "success": False,
+                "error": str(e),
+                "messages": [],
+            }, status=500)
 
     def validate_job(self):
         """
@@ -720,13 +868,52 @@ def create_xero_invoice(request, job_id):
                 "messages": extract_messages(request),
             }
         )
-
+    
     except Exception as e:
         logger.error(f"Error in create_invoice_job: {str(e)}")
         messages.error(request, "An error occurred while creating the invoice")
         return JsonResponse(
             {"success": False, "messages": extract_messages(request)}, status=500
         )
+
+
+def create_xero_purchase_order(request, purchase_order_id):
+    """
+    Creates a Purchase Order in Xero for a given purchase order.
+    """
+    tenant_id = ensure_xero_authentication()
+    if isinstance(tenant_id, JsonResponse):  # If the tenant ID is an error message, return it directly
+        return tenant_id
+
+    try:
+        purchase_order = PurchaseOrder.objects.get(id=purchase_order_id)
+        creator = XeroPurchaseOrderCreator(purchase_order)
+        response = creator.create_document()
+        
+        if not response.get("success"):
+            messages.error(request, f"Failed to create purchase order: {response.get('error')}")
+            return JsonResponse({
+                "success": False,
+                "error": response.get("error"),
+                "messages": extract_messages(request),
+            })
+        
+        messages.success(request, "Purchase order submitted to Xero successfully")
+        return JsonResponse({
+            "success": True,
+            "xero_id": response.get("xero_id"),
+            "status": response.get("status"),
+            "messages": extract_messages(request),
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in create_xero_purchase_order: {str(e)}")
+        messages.error(request, "An error occurred while creating the purchase order in Xero")
+        return JsonResponse({
+            "success": False,
+            "error": str(e),
+            "messages": extract_messages(request)
+        }, status=500)
 
 
 def create_xero_quote(request: HttpRequest, job_id) -> HttpResponse:
@@ -905,6 +1092,7 @@ def get_xero_sync_info(request):
             'journals': get_last_modified_time(XeroJournal),
             'credit-notes': get_last_modified_time(CreditNote),
             'quotes': get_last_modified_time(Quote),
+            'purchase-orders': get_last_modified_time(PurchaseOrder),
         }
 
         # Convert ISO strings to datetime objects for comparison

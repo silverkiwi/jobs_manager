@@ -42,13 +42,23 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label for="order_date" class="form-label">Order Date</label>
                         <input type="date" class="form-control" id="order_date" name="order_date" readonly>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label for="expected_delivery" class="form-label">Expected Delivery</label>
-                        <input type="date" id="expected_delivery" name="expected_delivery" class="form-control">
+                        <input type="date" id="expected_delivery" name="expected_delivery" class="form-control autosave-input">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select id="status" name="status" class="form-select autosave-input">
+                            <option value="draft">Draft</option>
+                            <option value="submitted">Submitted to Supplier</option>
+                            <option value="partially_received">Partially Received</option>
+                            <option value="fully_received">Fully Received</option>
+                            <option value="void">Voided</option>
+                        </select>
                     </div>
                 </div>
             </form>
@@ -152,7 +162,10 @@
 
     <hr>
 
-    <div class="d-flex justify-content-end">
+    <div class="d-flex justify-content-end gap-2">
+        <button id="submit-purchase-order" class="btn btn-primary">
+            <i class="bi bi-send me-2"></i>Submit to Xero
+        </button>
         <a href="{% url 'purchase_orders' %}" class="btn btn-secondary">
             <i class="bi bi-x-circle me-2"></i>Cancel
         </a>
@@ -165,6 +178,7 @@
 <!-- Hidden form for submission -->
 <form id="purchase-order-submit-form" method="post">
     {% csrf_token %}
+    <input type="hidden" id="purchase_order_id" name="purchase_order_id" value="{{ purchase_order_id|default:'' }}">
     <input type="hidden" id="purchase_order_data" name="purchase_order_data">
     <input type="hidden" id="line_items_data" name="line_items_data">
 </form>
@@ -175,6 +189,9 @@
 </script>
 <script id="line-items-data" type="application/json">
     {{ line_items_json|safe }}
+</script>
+<script id="purchase-order-data" type="application/json">
+    {{ purchase_order_json|safe }}
 </script>
 {% endblock %}
 

@@ -46,12 +46,18 @@ function collectPurchaseOrderData() {
   console.log('Collecting purchase order data for autosave');
   
   // Get basic form data
+  const purchaseOrderIdEl = document.getElementById('purchase_order_id');
   const clientIdEl = document.getElementById('client_id');
   const expectedDeliveryEl = document.getElementById('expected_delivery');
+  const orderDateEl = document.getElementById('order_date');
+  const statusEl = document.getElementById('status');
   
   const purchaseOrderData = {
+    id: purchaseOrderIdEl ? purchaseOrderIdEl.value : null,
     client_id: clientIdEl ? clientIdEl.value : null,
     expected_delivery: expectedDeliveryEl ? expectedDeliveryEl.value : null,
+    order_date: orderDateEl ? orderDateEl.value : null,
+    status: statusEl ? statusEl.value : 'draft',
   };
   
   // Collect line items from the grid
@@ -59,8 +65,8 @@ function collectPurchaseOrderData() {
   if (window.grid) {
     window.grid.forEachNode(node => {
       // Only include rows that have some data
-      if (node.data.job || node.data.description || 
-          node.data.quantity > 0 || node.data.unit_cost !== '') {
+      if (node.data.job || node.data.description ||
+          node.data.quantity > 0 || node.data.unit_cost !== '' || node.data.price_tbc) {
         lineItems.push({...node.data});
       }
     });
@@ -74,23 +80,70 @@ function collectPurchaseOrderData() {
 }
 
 /**
+ * Validates if the purchase order data is complete
+ * @param {Object} data The data to validate
+ * @returns {boolean} True if valid, false otherwise
+ */
+function validatePurchaseOrderData(data) {
+  // Check for incomplete line items
+  const incompleteItems = data.line_items.filter(
+    item => !item.job || !item.description
+  );
+  
+  // Get the purchase order ID if it exists
+  const purchaseOrderIdEl = document.getElementById('purchase_order_id');
+  const isPurchaseOrderEdit = purchaseOrderIdEl && purchaseOrderIdEl.value;
+  
+  // If there are incomplete items, show an error
+  if (incompleteItems.length > 0) {
+    console.log("Found incomplete line items, cannot save:", incompleteItems);
+    
+    // Create detailed error messages
+    const messages = [];
+    incompleteItems.forEach((item, index) => {
+      const lineNumber = data.line_items.indexOf(item) + 1;
+      const missing = !item.job ? 'job' : (!item.description ? 'description' : 'required fields');
+      messages.push({
+        level: "error",
+        message: `Line ${lineNumber}: Missing ${missing}.`
+      });
+    });
+    
+    // Add a summary message
+    messages.push({
+      level: "error",
+      message: "Cannot save: Please complete all required fields in line items."
+    });
+    
+    renderMessages(messages, "purchase-order-messages");
+    return false;
+  }
+  
+  // Check if we have anything to save for new POs
+  const completeItems = data.line_items.filter(
+    item => item.job && item.description
+  );
+  
+  if (
+    completeItems.length === 0 &&
+    data.deleted_line_items.length === 0 &&
+    !isPurchaseOrderEdit
+  ) {
+    console.log("No data to save - no complete line items, deletions, or purchase order changes");
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Main autosave function that collects data and sends it to the server
  */
 function autosaveData() {
   console.log('Autosaving purchase order data');
   const collectedData = collectPurchaseOrderData();
   
-  // Filter out incomplete line items
-  collectedData.line_items = collectedData.line_items.filter(
-    item => item.job && item.description
-  );
-  
-  // Changed validation - proceed if either we have entries to update or delete
-  if (
-    collectedData.line_items.length === 0 &&
-    collectedData.deleted_line_items.length === 0
-  ) {
-    console.log("No data to save - no line items or deletions");
+  if (!validatePurchaseOrderData(collectedData)) {
     return;
   }
   
