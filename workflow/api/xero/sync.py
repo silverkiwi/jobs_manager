@@ -1177,8 +1177,6 @@ def synchronise_xero_data(delay_between_requests=1):
             "progress": None
         }
         return
-    
-    cache.add('refresh_xero_data', True, timeout=(60 * 15)) # 15 minutes in cache
 
     logger.info("Starting bi-directional Xero sync")
     yield {
