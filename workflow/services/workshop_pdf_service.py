@@ -15,6 +15,8 @@ from reportlab.platypus import Paragraph, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.utils import ImageReader
 
+from workflow.models.job import Job
+
 logger = logging.getLogger(__name__)
 
 # A4 page dimensions (210 x 297 mm)
@@ -209,7 +211,7 @@ def add_title(pdf, y_position, job):
     pdf.setFillColor(colors.black)
     return y_position - 30
 
-def add_job_details_table(pdf, y_position, job):
+def add_job_details_table(pdf, y_position, job: Job):
     """Adds the job details table to the PDF and returns the new y_position."""
     job_details = [
         ["Job Number", job.job_number or "N/A"],
@@ -217,6 +219,8 @@ def add_job_details_table(pdf, y_position, job):
         ["Contact", job.contact_person or "N/A"],
         ["Description", Paragraph(job.description or "N/A", description_style)],
         ["Notes", Paragraph(convert_html_to_reportlab(job.notes) if job.notes else "N/A", description_style)],
+        ["Entry date", job.created_at.strftime("%d %b %Y")],
+        ["Order number", job.order_number or "N/A"],
     ]
 
     details_table = Table(job_details, colWidths=[150, CONTENT_WIDTH - 150])

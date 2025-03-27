@@ -526,9 +526,9 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
         """
         line_items = [
             LineItem(
-                description=self.job.description or f"Quote for Job {self.job.name}",
+                description=f"Quote for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
                 quantity=1,
-                unit_amount=float(self.job.latest_reality_pricing.total_revenue)
+                unit_amount=float(self.job.latest_quote_pricing.total_revenue)
                 or 0.00,
                 account_code=200,
             )
@@ -536,19 +536,31 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
 
         return line_items
 
-    def get_xero_document(self, type):
+    def get_xero_document(self, type: str) -> XeroQuote:
         """
         Creates a quote object for Xero creation or deletion.
         """
         match (type):
             case "create":
+                if self.job.order_number:
+                    return XeroQuote(
+                        contact=self.get_xero_contact(),
+                        line_items=self.get_line_items(),
+                        date=format_date(timezone.now()),
+                        expiry_date=format_date(timezone.now() + timedelta(days=30)),
+                        line_amount_types="Exclusive",
+                        reference=self.job.order_number,
+                        currency_code="NZD",
+                        status="DRAFT",
+                    )
+                
+                # If not order number, create quote without reference
                 return XeroQuote(
                     contact=self.get_xero_contact(),
                     line_items=self.get_line_items(),
                     date=format_date(timezone.now()),
                     expiry_date=format_date(timezone.now() + timedelta(days=30)),
                     line_amount_types="Exclusive",
-                    reference=f"Quote for job {self.job.id}",
                     currency_code="NZD",
                     status="DRAFT",
                 )
@@ -560,7 +572,7 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
                     date=format_date(timezone.now()),
                     expiry_date=format_date(timezone.now() + timedelta(days=30)),
                     line_amount_types="Exclusive",
-                    reference=f"Quote for job {self.job.name}",
+                    reference=f"Quote for job {self.job.job_number}",
                     currency_code="NZD",
                     status="DELETED",
                 )
@@ -656,7 +668,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         xero_line_items = []
         xero_line_items.append(
             LineItem(
-                description=f"Invoice for job: {self.job.name}: {self.job.description}" or f"Invoice for job {self.job.name}",
+                description=f"Invoice for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
                 quantity=1,
                 unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
                 account_code=200,
@@ -671,7 +683,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                 description="Price as quoted"
             ),
             LineItem(
-                description=f"Invoice for job: {self.job.name}: {self.job.description}",
+                description=f"Invoice for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue)
                 or 0.00,
@@ -687,17 +699,30 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         """
         match (type):
             case "create":
+                if self.job.order_number:
+                    return XeroInvoice(
+                        type="ACCREC",
+                        contact=self.get_xero_contact(),
+                        line_items=self.get_line_items(),
+                        date=format_date(timezone.now()),
+                        due_date=format_date(timezone.now() + timedelta(days=30)),
+                        line_amount_types="Exclusive",
+                        reference=self.job.order_number,
+                        currency_code="NZD",
+                        status="DRAFT",
+                    )
+                
+                # If not order number, create invoice without reference
                 return XeroInvoice(
-                    type="ACCREC",
-                    contact=self.get_xero_contact(),
-                    line_items=self.get_line_items(),
-                    date=format_date(timezone.now()),
-                    due_date=format_date(timezone.now() + timedelta(days=30)),
-                    line_amount_types="Exclusive",
-                    reference=f"Invoice for job {self.job.id}",
-                    currency_code="NZD",
-                    status="DRAFT",
-                )
+                        type="ACCREC",
+                        contact=self.get_xero_contact(),
+                        line_items=self.get_line_items(),
+                        date=format_date(timezone.now()),
+                        due_date=format_date(timezone.now() + timedelta(days=30)),
+                        line_amount_types="Exclusive",
+                        currency_code="NZD",
+                        status="DRAFT",
+                    )
             case "delete":
                 return XeroInvoice(
                     invoice_id=self.get_xero_id(),
@@ -707,7 +732,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                     date=format_date(timezone.now()),
                     due_date=format_date(timezone.now() + timedelta(days=30)),
                     line_amount_types="Exclusive",
-                    reference=f"Invoice for job {self.job.id}",
+                    reference=f"Invoice for job {self.job.job_number}",
                     currency_code="NZD",
                     status="DELETED",
                 )
