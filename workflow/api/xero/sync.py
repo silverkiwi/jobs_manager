@@ -131,6 +131,16 @@ def sync_xero_data(
                         "progress": 0.0,
                         "totalItems": total_items
                     }
+                case "accounts":
+                    total_items = len(items)  # For accounts, we get all items at once
+                    yield {
+                        "datetime": timezone.now().isoformat(),
+                        "entity": our_entity_type,
+                        "severity": "info",
+                        "message": f"Found {total_items} accounts to sync",
+                        "progress": 0.0,
+                        "totalItems": total_items
+                    }
                 case "journals":
                     total_items = len(items)  # For journals, we get all items at once
                     yield {
