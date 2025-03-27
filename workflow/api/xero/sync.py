@@ -338,16 +338,45 @@ def clean_raw_json(data):
     return recursively_clean(data)
 
 
+def get_or_fetch_client_by_contact_id(contact_id, invoice_number=None):
+    """
+    Get a client by Xero contact_id, fetching it from the API if not found locally.
+    Args:
+        contact_id: The Xero contact_id to search for.
+        invoice_number: Optional invoice number for logging purposes.
+    
+    Returns:
+        Client: The client instance found or fetched.
+    
+    Raises:
+        ValueError: If the client is not found in Xero.
+    """
+    client = Client.objects.filter(xero_contact_id=contact_id).first()
+    if client:
+        return client
+    
+    missing_client = AccountingApi(api_client).get_contact(get_tenant_id(), contact_id)
+    if not missing_client:
+        entity_ref = f"invoice {invoice_number}" if invoice_number else f"contact ID {contact_id}"
+        logger.warning(f"Client not found for {entity_ref}")
+        raise ValueError(f"Client not found for {entity_ref}")
+
+    return sync_clients([missing_client])[0]
+
 def sync_invoices(invoices):
     """Sync Xero invoices (ACCREC)."""
     for inv in invoices:
         xero_id = getattr(inv, "invoice_id")
 
         # Retrieve the client for the invoice first
-        client = Client.objects.filter(xero_contact_id=inv.contact.contact_id).first()
-        if not client:
-            logger.warning(f"Client not found for invoice {inv.invoice_number}")
-            raise ValueError(f"Client not found for invoice {inv.invoice_number}")
+        try:
+            client = get_or_fetch_client_by_contact_id(
+                inv.contact.contact_id,
+                inv.invoice_number
+            )
+        except ValueError as e:
+            logger.error(f"Error processing invoice {inv.invoice_number}: {str(e)}")
+            raise
 
         dirty_raw_json = serialise_xero_object(inv)
         raw_json = clean_raw_json(dirty_raw_json)
