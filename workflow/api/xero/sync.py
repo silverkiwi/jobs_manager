@@ -1032,7 +1032,7 @@ def deep_sync_xero_data(days_back=30):
 
 def synchronise_xero_data(delay_between_requests=1, refresh_xero_data=False):
     """Bidirectional sync with Xero - pushes changes TO Xero, then pulls FROM Xero"""
-    if not cache.add('xero_sync_lock', True, timeout=(60 * 60 * 4) and not refresh_xero_data):  # 4 hours
+    if not cache.add('xero_sync_lock', True, timeout=(60 * 60 * 4)) and not refresh_xero_data:  # 4 hours
         logger.info("Skipping sync - another sync is running")
         yield {
             "datetime": timezone.now().isoformat(),
