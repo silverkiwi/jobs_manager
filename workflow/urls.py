@@ -59,6 +59,7 @@ from workflow.views import (
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views
+from workflow.views.purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, autosave_purchase_order_view
 
 urlpatterns = [
     # Redirect to Kanban board
@@ -74,6 +75,11 @@ urlpatterns = [
         "api/autosave-timesheet/",
         time_entry_view.autosave_timesheet_view,
         name="autosave_timesheet-api",
+    ),
+    path(
+        "api/autosave-purchase-order/",
+        autosave_purchase_order_view,
+        name="autosave_purchase_order_api",
     ),
     path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
@@ -150,10 +156,15 @@ urlpatterns = [
         xero_view.xero_oauth_callback,
         name="xero_oauth_callback",
     ),
+        path(
+        "api/xero/disconnect/",
+        xero_view.xero_disconnect,
+        name="xero_disconnect",
+    ),
     path(
-        "api/xero/success/",
-        xero_view.success_xero_connection,
-        name="xero_success",
+        "api/xero/purchase-order/<uuid:purchase_order_id>/create/",
+        xero_view.create_xero_purchase_order,
+        name="create_xero_purchase_order",
     ),
     path(
         "api/xero/refresh/",
@@ -161,14 +172,14 @@ urlpatterns = [
         name="refresh_xero_data",
     ),
     path(
+        "api/xero/success/",
+        xero_view.success_xero_connection,
+        name="xero_success",
+    ),
+    path(
         "api/xero/sync-stream/",
         xero_view.stream_xero_sync,
         name="stream_xero_sync",
-    ),
-    path(
-        "api/xero/disconnect/",
-        xero_view.xero_disconnect,
-        name="xero_disconnect",
     ),
     path(
         "api/xero/create_invoice/<uuid:job_id>",
@@ -191,14 +202,14 @@ urlpatterns = [
         name="delete_quote",
     ),
     path(
-        "xero/sync-progress/",
-        xero_view.xero_sync_progress_page,
-        name="xero_sync_progress",
-    ),
-    path(
         "api/xero/sync-info/",
         xero_view.get_xero_sync_info,
         name="xero_sync_info",
+    ),
+    path(
+        "api/xero/sync/",
+        xero_view.synchronise_xero_data,
+        name="synchronise_xero_data",
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
@@ -330,6 +341,11 @@ urlpatterns = [
         ),
         name="password_change_done",
     ),
+    # Purchase Order URLs
+    path('purchase-orders/', PurchaseOrderListView.as_view(), name='purchase_orders'),
+    path('purchase-orders/new/', PurchaseOrderCreateView.as_view(), name='new_purchase_order'),
+    path('purchase-orders/<uuid:pk>/', PurchaseOrderCreateView.as_view(), name='edit_purchase_order'),
+
     # This URL doesn't match our naming pattern - need to fix.
     # Probably should be in api/internal?
     path(

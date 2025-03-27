@@ -27,6 +27,8 @@ def archive_and_reset_job_pricing(job_id):
         for pricing in current_pricings:
             pricing.is_historical = True
             pricing.save()
+            # Add to the archived_pricings relationship
+            job.archived_pricings.add(pricing)
 
         # Create new pricing for "estimate"
         estimate_pricing = JobPricing.objects.create(

@@ -1,18 +1,18 @@
 /**
- * Client lookup component for Job module
+ * Client/Supplier lookup component for Purchase Orders module
  * 
- * This JS module provides client search functionality with suggestions.
- * It is used for job creation/editing.
+ * This JS module provides client (supplier) search functionality with suggestions.
+ * It is used for purchase order forms.
  * 
- * Note: A virtually identical version of this component exists at:
- * workflow/static/js/purchases/client_lookup.js
- *  
+ * Note: A similar version of this component exists at:
+ * workflow/static/js/job/client_lookup.js
+ * 
  * Make sure you update both files if you make any changes.
- * 
+ *
  * Shared component for consistency across the application.
  */
 
-import { debouncedAutosave } from "./edit_job_form_autosave.js";
+import { debouncedAutosave } from "./purchase_order_autosave.js";
 
 document.addEventListener("DOMContentLoaded", function () {
   const clientInput = document.getElementById("client_name");
@@ -203,4 +203,4 @@ document.addEventListener("DOMContentLoaded", function () {
     const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
     return csrfToken ? csrfToken.value : "";
   }
-});
+}); 

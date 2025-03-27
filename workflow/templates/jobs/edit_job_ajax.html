@@ -7,7 +7,9 @@
 <link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
 <link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
 <link rel="stylesheet" href="{% static 'css/animation-utils.css' %}">
+<link rel="stylesheet" href="{% static 'css/historical_pricing.css' %}">
 <link rel="stylesheet" href="{% static 'quill/quill.snow.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
 <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
 {% endblock %}
 
@@ -29,6 +31,24 @@
                 Itemised pricing: <span class="toggle-state-off">OFF</span><span class="toggle-state-on">ON</span>
             </label>
         </div>
+
+        
+        <!-- Add Historical Navigation Controls -->
+        {% if job.status == 'special' %}
+        <div id="historicalPricingNav" class="historical-nav">
+            <button id="prevMonthBtn" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Previous
+            </button>
+            <span id="currentHistoricalMonth" class="mx-2 fw-bold">Current Data</span>
+            <button id="nextMonthBtn" class="btn btn-outline-secondary btn-sm">
+                Next <i class="bi bi-arrow-right"></i>
+            </button>
+            <button id="returnToCurrentBtn" class="btn btn-primary btn-sm ms-2 d-none">
+                <i class="bi bi-arrow-clockwise"></i> Return to Current
+            </button>
+        </div>
+        {% endif %}
+        
         <div>
             <label for="pricingTypeDropdown" class="form-label fw-bold">Pricing type:</label>
             <select id="pricingTypeDropdown" class="form-select">
