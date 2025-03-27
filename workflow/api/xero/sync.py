@@ -23,7 +23,6 @@ from workflow.models.client import Client
 from workflow.models.invoice import Bill, CreditNote, Invoice
 from workflow.models.xero_account import XeroAccount
 from workflow.models.purchase import PurchaseOrder, PurchaseOrderLine
-from workflow.templatetags.xero_tags import XERO_ENTITIES
 logger = logging.getLogger("xero")
 
 
@@ -121,8 +120,8 @@ def sync_xero_data(
 
             # Get total items for progress tracking
             match xero_entity_type:
-                case entity if entity in XERO_ENTITIES:
-                    total_items = getattr(entities, 'pagination', {}).get('item_count', 0)
+                case entity if entity in ["contacts", "invoices", "credit_notes", "purchase_orders"]:
+                    total_items = entities.pagination.item_count
                     yield {
                         "datetime": timezone.now().isoformat(),
                         "entity": our_entity_type,
