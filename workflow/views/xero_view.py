@@ -138,7 +138,7 @@ def generate_xero_sync_events():
         last_heartbeat = timezone.now()
         
         # Proceed with sync if we have a valid token
-        messages = synchronise_xero_data()
+        messages = synchronise_xero_data(refresh_xero_data=True)
         for message in messages:
             # Check if we need to send a heartbeat
             now = timezone.now()

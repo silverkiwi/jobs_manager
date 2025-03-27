@@ -1153,9 +1153,9 @@ def deep_sync_xero_data(days_back=30):
     }
     yield from _sync_all_xero_data(use_latest_timestamps=False, days_back=days_back)
 
-def synchronise_xero_data(delay_between_requests=1):
+def synchronise_xero_data(delay_between_requests=1, refresh_xero_data=False):
     """Bidirectional sync with Xero - pushes changes TO Xero, then pulls FROM Xero"""
-    if not cache.add('xero_sync_lock', True, timeout=(60 * 60 * 4)):  # 4 hours
+    if not cache.add('xero_sync_lock', True, timeout=(60 * 60 * 4)) and not refresh_xero_data:  # 4 hours
         logger.info("Skipping sync - another sync is running")
         yield {
             "datetime": timezone.now().isoformat(),
@@ -1165,6 +1165,8 @@ def synchronise_xero_data(delay_between_requests=1):
             "progress": None
         }
         return
+    
+    cache.add('refresh_xero_data', True, timeout=(60 * 15)) # 15 minutes in cache
 
     logger.info("Starting bi-directional Xero sync")
     yield {
@@ -1178,7 +1180,7 @@ def synchronise_xero_data(delay_between_requests=1):
     try:
         # PUSH changes TO Xero
         # Queue client synchronization
-#        enqueue_client_sync_tasks()
+        # enqueue_client_sync_tasks()
 
         company_defaults = CompanyDefaults.objects.get()
         now = timezone.now()
@@ -1233,6 +1235,7 @@ def synchronise_xero_data(delay_between_requests=1):
         raise
     finally:
         cache.delete('xero_sync_lock')
+        cache.delete('refresh_xero_data')
 
 
 def delete_client_from_xero(client):
