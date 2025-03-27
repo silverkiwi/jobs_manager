@@ -1,8 +1,8 @@
 /**
- * Job Cell Editor for Timesheets
+ * Job Cell Editor for Purchase Orders
  *
  * Note: A similar version of this component exists at:
- * workflow/static/js/purchases/job_cell_editor.js
+ * workflow/static/js/timesheet/timesheet_entry/job_cell_editor.js
  *
  * Make sure you update both files if you make any changes.
  *
@@ -12,7 +12,7 @@ export class ActiveJobCellEditor {
   init(params) {
     this.value = params.value;
     this.params = params;
-    this.jobs = window.timesheet_data.jobs; // Filtered to open jobs
+    this.jobs = window.purchaseData.jobs; // Filtered to open jobs
     this.highlightedIndex = -1; // Track the highlighted job
 
     // Container
@@ -117,7 +117,7 @@ export class ActiveJobCellEditor {
   filterJobs() {
     const searchTerm = this.input.value.trim().toLowerCase();
     const filteredJobs = this.jobs.filter((job) =>
-      job.job_display_name.toLowerCase().includes(searchTerm),
+      job.job_display_name.toLowerCase().includes(searchTerm)
     );
     this.populateList(filteredJobs.slice(0, 10)); // Limit results to 10
   }
@@ -130,7 +130,7 @@ export class ActiveJobCellEditor {
       case "ArrowDown":
         this.highlightedIndex = Math.min(
           this.highlightedIndex + 1,
-          items.length - 1,
+          items.length - 1
         );
         this.updateHighlight(items);
         break;
@@ -170,7 +170,7 @@ export class ActiveJobCellEditor {
   }
 
   selectJob(job) {
-    this.value = job.job_number;
+    this.value = job.id;
     this.params.stopEditing();
   }
 
