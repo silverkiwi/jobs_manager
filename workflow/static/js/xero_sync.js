@@ -118,6 +118,7 @@ class XeroSyncProgress {
     }
 
     handleError(error) {
+        console.error("[xero_sync] Error during sync stream:", error);
         this.eventSource?.close();
         
         if (this.retryCount < this.maxRetries) {
@@ -306,4 +307,4 @@ document.addEventListener('DOMContentLoaded', () => {
             window.xeroSyncProgress.disconnect();
         }
     });
-}); 
+});

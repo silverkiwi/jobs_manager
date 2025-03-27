@@ -133,7 +133,7 @@ def generate_xero_sync_events():
             return
 
         # Proceed with sync if we have a valid token
-        messages = synchronise_xero_data()
+        messages = synchronise_xero_data(refresh_xero_data=True)
         for message in messages:
             data = json.dumps(message)
             yield f"data: {data}\n\n"
