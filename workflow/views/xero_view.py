@@ -33,6 +33,7 @@ from xero_python.exceptions import AccountingBadRequestException
 from xero_python.identity import IdentityApi
 
 from django.conf import settings
+from workflow.templatetags.xero_tags import XERO_ENTITIES
 from workflow.api.xero.sync import synchronise_xero_data, delete_clients_from_xero, get_last_modified_time
 from workflow.api.xero.xero import (
     api_client,
@@ -175,35 +176,18 @@ def generate_xero_sync_events():
 
 
 def stream_xero_sync(request):
-    """Stream the Xero sync progress using Server-Sent Events."""
+    """Stream Xero sync progress events."""
     try:
-        # First try to get a valid token
-        token = get_valid_token()
-        if not token:
-            return JsonResponse({
-                "datetime": timezone.now().isoformat(),
-                "entity": "sync",
-                "severity": "error",
-                "message": "Your Xero session has expired. Please refresh the page to re-authenticate.",
-                "progress": None
-            }, status=401)
-
         response = StreamingHttpResponse(
-            streaming_content=generate_xero_sync_events(),
+            generate_xero_sync_events(),
             content_type='text/event-stream'
         )
         response['Cache-Control'] = 'no-cache'
         response['X-Accel-Buffering'] = 'no'
         return response
     except Exception as e:
-        logger.error(f"Error starting Xero sync: {str(e)}")
-        return JsonResponse({
-            "datetime": timezone.now().isoformat(),
-            "entity": "sync",
-            "severity": "error",
-            "message": f"Failed to start sync: {str(e)}",
-            "progress": None
-        }, status=500)
+        logger.error(f"Error in stream_xero_sync: {str(e)}")
+        raise
 
 
 def clean_payload(payload):
@@ -1069,8 +1053,13 @@ def xero_sync_progress_page(request):
             logger.info("No valid token found, redirecting to Xero authentication")
             return redirect("api_xero_authenticate")
             
-        # Render the progress page - the JavaScript will connect to the stream endpoint
-        return render(request, "xero/xero_sync_progress.html")
+        # Get entities list from xero_tags
+        from workflow.templatetags.xero_tags import XERO_ENTITIES
+            
+        # Render the progress page with entities data
+        return render(request, "xero/xero_sync_progress.html", {
+            'XERO_ENTITIES': XERO_ENTITIES
+        })
     except Exception as e:
         logger.error(f"Error accessing sync progress page: {str(e)}")
         if "token" in str(e).lower():
@@ -1079,46 +1068,37 @@ def xero_sync_progress_page(request):
 
 
 def get_xero_sync_info(request):
-    """Get initial sync information including last sync times and sync range."""
+    """Get current sync status and last sync times."""
     try:
-        company_defaults = CompanyDefaults.objects.get()
-        
-        # Get last sync times for each entity
+        # First verify we have a valid token
+        token = get_valid_token()
+        if not token:
+            return JsonResponse({
+                'error': 'No valid Xero token. Please authenticate.',
+                'redirect_to_auth': True
+            }, status=401)
+
+        # Get last sync times for each entity in the order we sync them
         last_syncs = {
-            'accounts': get_last_modified_time(XeroAccount),
-            'contacts': get_last_modified_time(Client),
-            'invoices': get_last_modified_time(Invoice),
-            'bills': get_last_modified_time(Bill),
-            'journals': get_last_modified_time(XeroJournal),
-            'credit-notes': get_last_modified_time(CreditNote),
-            'quotes': get_last_modified_time(Quote),
-            'purchase-orders': get_last_modified_time(PurchaseOrder),
+            'accounts': XeroAccount.objects.order_by('-xero_last_synced').first().xero_last_synced if XeroAccount.objects.exists() else None,
+            'contacts': Client.objects.order_by('-xero_last_synced').first().xero_last_synced if Client.objects.exists() else None,
+            'invoices': Invoice.objects.order_by('-xero_last_synced').first().xero_last_synced if Invoice.objects.exists() else None,
+            'bills': Bill.objects.order_by('-xero_last_synced').first().xero_last_synced if Bill.objects.exists() else None,
+            'purchase_orders': PurchaseOrder.objects.order_by('-xero_last_synced').first().xero_last_synced if PurchaseOrder.objects.exists() else None,
+            'credit_notes': CreditNote.objects.order_by('-xero_last_synced').first().xero_last_synced if CreditNote.objects.exists() else None,
+            'journals': XeroJournal.objects.order_by('-xero_last_synced').first().xero_last_synced if XeroJournal.objects.exists() else None,
         }
 
-        # Convert ISO strings to datetime objects for comparison
-        sync_times = []
-        for time_str in last_syncs.values():
-            try:
-                if time_str and time_str != "2000-01-01T00:00:00Z":
-                    sync_times.append(datetime.fromisoformat(time_str.replace('Z', '+00:00')))
-            except (ValueError, AttributeError):
-                continue
+        # Get sync range message
+        sync_range = "Syncing data since last successful sync"
 
-        # Determine sync range message
-        if (not company_defaults.last_xero_deep_sync or 
-            (timezone.now() - company_defaults.last_xero_deep_sync).days >= 30):
-            sync_range = "Starting deep sync - looking back 90 days"
-        else:
-            if sync_times:
-                earliest_sync = min(sync_times)
-                formatted_time = earliest_sync.strftime("%d/%m/%Y, %H:%M:%S")
-                sync_range = f"Syncing Xero since {formatted_time}"
-            else:
-                sync_range = "Starting initial sync"
+        # Check if a sync is in progress using the lock
+        sync_in_progress = cache.get('xero_sync_lock', False)
 
         return JsonResponse({
             'last_syncs': last_syncs,
             'sync_range': sync_range,
+            'sync_in_progress': sync_in_progress
         })
     except Exception as e:
         logger.error(f"Error getting sync info: {str(e)}")

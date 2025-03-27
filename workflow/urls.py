@@ -202,14 +202,14 @@ urlpatterns = [
         name="delete_quote",
     ),
     path(
-        "xero/sync-progress/",
-        xero_view.xero_sync_progress_page,
-        name="xero_sync_progress",
-    ),
-    path(
         "api/xero/sync-info/",
         xero_view.get_xero_sync_info,
         name="xero_sync_info",
+    ),
+    path(
+        "api/xero/sync/",
+        xero_view.synchronise_xero_data,
+        name="synchronise_xero_data",
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),

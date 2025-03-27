@@ -73,6 +73,8 @@ def sync_xero_data(
     page = 1
     page_size = 100
     total_processed = 0
+    total_items = None
+    current_batch_start = 0
 
     base_params = {
         "xero_tenant_id": xero_tenant_id,
@@ -97,7 +99,7 @@ def sync_xero_data(
 
         try:
             # Fetch the entities from the API based on the prepared parameters.
-            logger.info(f"Making API call for {xero_entity_type} with params: {params}")
+            logger.debug(f"Making API call for {xero_entity_type} with params: {params}")
             entities = xero_api_fetch_function(**params)
             if entities is None:
                 logger.error(f"API call returned None for {xero_entity_type}")
@@ -116,49 +118,72 @@ def sync_xero_data(
                 }
                 return
 
-            # Get total items if available for better progress tracking
-            total_items = None
-            if xero_entity_type in ["contacts", "invoices", "credit_notes"]:
-                # These entity types have pagination metadata
-                total_items = entities.pagination.item_count
-                yield {
-                    "datetime": timezone.now().isoformat(),
-                    "entity": our_entity_type,
-                    "severity": "info",
-                    "message": f"Found {total_items} items to sync",
-                    "progress": None,
-                    "lastSync": last_modified_time
-                }
-            elif xero_entity_type == "quotes":
-                # Quotes don't have pagination metadata, but we can count the quotes directly
-                quotes_list = entities.quotes
-                total_items = len(quotes_list)
-                yield {
-                    "datetime": timezone.now().isoformat(),
-                    "entity": our_entity_type,
-                    "severity": "info",
-                    "message": f"Found {total_items} items to sync",
-                    "progress": None,
-                    "lastSync": last_modified_time
-                }
+            # Get total items for progress tracking
+            match xero_entity_type:
+                case entity if entity in ["contacts", "invoices", "credit_notes", "purchase_orders"]:
+                    total_items = entities.pagination.item_count
+                    yield {
+                        "datetime": timezone.now().isoformat(),
+                        "entity": our_entity_type,
+                        "severity": "info",
+                        "message": f"Found {total_items} {our_entity_type} to sync",
+                        "progress": 0.0,
+                        "totalItems": total_items
+                    }
+                case "journals":
+                    total_items = len(items)  # For journals, we get all items at once
+                    yield {
+                        "datetime": timezone.now().isoformat(),
+                        "entity": our_entity_type,
+                        "severity": "info",
+                        "message": f"Found {total_items} journals to sync",
+                        "progress": 0.0,
+                        "totalItems": total_items
+                    }
+                case "quotes":
+                    total_items = len(items)  # For quotes, we get all items at once
+                    yield {
+                        "datetime": timezone.now().isoformat(),
+                        "entity": our_entity_type,
+                        "severity": "info",
+                        "message": f"Found {total_items} quotes to sync",
+                        "progress": 0.0,
+                        "totalItems": total_items
+                    }
+                case _:
+                    raise ValueError(f"Unexpected entity type: {xero_entity_type}")
 
             # Process the current batch of items
             try:
                 sync_function(items)
                 total_processed += len(items)
                 
-                # Calculate progress
+                # Calculate progress based on entity type
                 progress = None
                 if total_items:
                     progress = min(total_processed / total_items, 0.99)  # Cap at 99% until complete
+                
+                # Prepare progress message based on entity type
+                match xero_entity_type:
+                    case "journals":
+                        current_batch_end = max(item.journal_number for item in items)
+                        message = f"Processed journals {current_batch_start} to {current_batch_end}"
+                    case entity if entity in ["contacts", "invoices", "credit_notes", "purchase_orders"]:
+                        message = f"Processed {total_processed} of {total_items} {our_entity_type}"
+                    case "quotes":
+                        message = f"Processed {total_processed} of {total_items} quotes"
+                    case _:
+                        raise ValueError(f"Unexpected entity type: {xero_entity_type}")
                 
                 yield {
                     "datetime": timezone.now().isoformat(),
                     "entity": our_entity_type,
                     "severity": "info",
-                    "message": f"Processed {len(items)} {our_entity_type}",
+                    "message": message,
                     "progress": progress,
-                    "lastSync": timezone.now().isoformat()
+                    "lastSync": timezone.now().isoformat(),
+                    "processedCount": total_processed,
+                    "totalCount": total_items
                 }
 
             except Exception as e:
@@ -191,7 +216,9 @@ def sync_xero_data(
                     "severity": "info",
                     "message": f"Completed sync of {total_processed} {our_entity_type}",
                     "progress": 1.0,
-                    "lastSync": timezone.now().isoformat()
+                    "lastSync": timezone.now().isoformat(),
+                    "processedCount": total_processed,
+                    "totalCount": total_items
                 }
                 break
             else:
@@ -568,6 +595,7 @@ def sync_accounts(xero_accounts):
                     "tax_type": tax_type,
                     "enable_payments": enable_payments,
                     "xero_last_modified": xero_last_modified,
+                    "xero_last_synced": timezone.now(),
                     "raw_json": raw_json,
                 },
             )
@@ -1078,13 +1106,22 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
 
     yield from sync_xero_data(
         xero_entity_type="credit_notes",
-        our_entity_type="credit-notes",
+        our_entity_type="credit_notes",
         xero_api_fetch_function=accounting_api.get_credit_notes,
         sync_function=sync_credit_notes,
         last_modified_time=timestamps['credit_note'],
         pagination_mode="page",
     )
 
+    yield from sync_xero_data(
+        xero_entity_type="purchase_orders",
+        our_entity_type="purchase_orders",
+        xero_api_fetch_function=accounting_api.get_purchase_orders,
+        sync_function=sync_purchase_orders,
+        last_modified_time=timestamps['purchase_order'],
+        pagination_mode="page",
+    )
+    
     yield from sync_xero_data(
         xero_entity_type="journals",
         our_entity_type="journals",
@@ -1094,14 +1131,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
         pagination_mode="offset",
     )
 
-    yield from sync_xero_data(
-        xero_entity_type="purchase_orders",
-        our_entity_type="purchase-orders",
-        xero_api_fetch_function=accounting_api.get_purchase_orders,
-        sync_function=sync_purchase_orders,
-        last_modified_time=timestamps['purchase_order'],
-        pagination_mode="page",
-    )
+
 
 def one_way_sync_all_xero_data():
     """Sync all Xero data using latest modification times."""

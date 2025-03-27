@@ -43,6 +43,8 @@ class PurchaseOrder(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     xero_last_modified = models.DateTimeField(null=True, blank=True)
     xero_last_synced = models.DateTimeField(null=True, blank=True, default=timezone.now)
+    raw_json = models.JSONField(null=True, blank=True) 
+    online_url = models.URLField(max_length=500, null=True, blank=True)
 
     def generate_po_number(self):
         """Generate a sequential PO number based on company defaults."""
