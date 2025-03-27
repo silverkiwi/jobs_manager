@@ -121,11 +121,114 @@ def edit_job_view_ajax(request, job_id=None):
     # Fetch All Job Pricing Revisions for Each Pricing Stage
     historical_job_pricings = get_historical_job_pricings(job)
 
-    # Serialize the historical pricings without sections
-    historical_job_pricings_serialized = [
-        JobPricingSerializer(pricing).data for pricing in historical_job_pricings
-    ]
-
+    # Expand the serialization to include all necessary data for historical view
+    historical_job_pricings_serialized = []
+    for pricing in historical_job_pricings:
+        # Create the base structure with FLAT prefixed fields
+        pricing_data = {
+            'id': str(pricing.id),
+            'created_at': pricing.created_at.isoformat(),
+        }
+        
+        # Determine which pricing section this historical record belongs to
+        section_prefix = pricing.pricing_stage
+        
+        # Process time entries
+        time_entries = []
+        time_cost_total = 0
+        time_revenue_total = 0
+        
+        for entry in pricing.time_entries.all():
+            # Calculate cost and revenue
+            cost = entry.wage_rate * entry.hours if hasattr(entry, 'wage_rate') and hasattr(entry, 'hours') else 0
+            revenue = entry.charge_out_rate * entry.hours if hasattr(entry, 'charge_out_rate') and hasattr(entry, 'hours') else 0
+            
+            # Add to totals
+            time_cost_total += cost
+            time_revenue_total += revenue
+            
+            # Create entry object
+            time_entries.append({
+                'id': str(entry.id),
+                'description': entry.description if hasattr(entry, 'description') else '',
+                'hours': entry.hours if hasattr(entry, 'hours') else 0,
+                'cost': cost,
+                'revenue': revenue,
+            })
+        
+        # Assign with prefixed keys - THIS IS THE KEY CHANGE
+        pricing_data[f'{section_prefix}_time_entries'] = time_entries
+        pricing_data[f'{section_prefix}_time_cost'] = time_cost_total
+        pricing_data[f'{section_prefix}_time_revenue'] = time_revenue_total
+        
+        # Process material entries
+        material_entries = []
+        material_cost_total = 0
+        material_revenue_total = 0
+        
+        for entry in pricing.material_entries.all():
+            # Calculate cost and revenue
+            quantity = entry.quantity if hasattr(entry, 'quantity') else 0
+            unit_cost = entry.unit_cost if hasattr(entry, 'unit_cost') else 0
+            unit_revenue = entry.unit_revenue if hasattr(entry, 'unit_revenue') else 0
+            
+            cost = quantity * unit_cost
+            revenue = quantity * unit_revenue
+            
+            # Add to totals
+            material_cost_total += cost
+            material_revenue_total += revenue
+            
+            # Create entry object
+            material_entries.append({
+                'id': str(entry.id),
+                'description': entry.description if hasattr(entry, 'description') else '',
+                'quantity': quantity,
+                'cost': cost,
+                'revenue': revenue,
+                'unit_cost': unit_cost,
+                'unit_revenue': unit_revenue,
+            })
+        
+        # Assign with prefixed keys
+        pricing_data[f'{section_prefix}_material_entries'] = material_entries
+        pricing_data[f'{section_prefix}_material_cost'] = material_cost_total
+        pricing_data[f'{section_prefix}_material_revenue'] = material_revenue_total
+        
+        # Process adjustment entries
+        adjustment_entries = []
+        adjustment_cost_total = 0
+        adjustment_revenue_total = 0
+        
+        for entry in pricing.adjustment_entries.all():
+            # Get cost and revenue adjustments
+            cost_adjustment = entry.cost_adjustment if hasattr(entry, 'cost_adjustment') else 0
+            price_adjustment = entry.price_adjustment if hasattr(entry, 'price_adjustment') else 0
+            
+            # Add to totals
+            adjustment_cost_total += cost_adjustment
+            adjustment_revenue_total += price_adjustment
+            
+            # Create entry object
+            adjustment_entries.append({
+                'id': str(entry.id),
+                'description': entry.description if hasattr(entry, 'description') else '',
+                'cost': cost_adjustment,
+                'revenue': price_adjustment,
+            })
+        
+        # Assign with prefixed keys
+        pricing_data[f'{section_prefix}_adjustment_entries'] = adjustment_entries
+        pricing_data[f'{section_prefix}_adjustment_cost'] = adjustment_cost_total
+        pricing_data[f'{section_prefix}_adjustment_revenue'] = adjustment_revenue_total
+        
+        # Calculate and assign total cost and revenue with prefixed keys
+        pricing_data[f'{section_prefix}_total_cost'] = time_cost_total + material_cost_total + adjustment_cost_total
+        pricing_data[f'{section_prefix}_total_revenue'] = time_revenue_total + material_revenue_total + adjustment_revenue_total
+        
+        # Add this fully structured historical pricing record to the array
+        historical_job_pricings_serialized.append(pricing_data)
+    
     # Fetch the Latest Revision for Each Pricing Stage
     latest_job_pricings = get_latest_job_pricings(job)
 
