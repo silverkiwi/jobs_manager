@@ -122,7 +122,7 @@ def sync_xero_data(
             # Get total items for progress tracking
             match xero_entity_type:
                 case entity if entity in XERO_ENTITIES:
-                    total_items = entities.pagination.item_count
+                    total_items = getattr(entities, 'pagination', {}).get('item_count', 0)
                     yield {
                         "datetime": timezone.now().isoformat(),
                         "entity": our_entity_type,
