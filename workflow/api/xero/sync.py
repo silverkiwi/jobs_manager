@@ -182,6 +182,8 @@ def sync_xero_data(
                         message = f"Processed {total_processed} of {total_items} {our_entity_type}"
                     case "quotes":
                         message = f"Processed {total_processed} of {total_items} quotes"
+                    case "accounts":
+                        message = f"Processed {total_processed} of {total_items} accounts"
                     case _:
                         raise ValueError(f"Unexpected entity type: {xero_entity_type}")
                 
