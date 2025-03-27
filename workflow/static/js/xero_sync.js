@@ -92,29 +92,9 @@ class XeroSyncProgress {
             this.currentEntity = data.entity;
         }
 
-    handleError(error) {
-        console.error("[xero_sync] Error during sync stream:", error);
-        this.eventSource?.close();
-        
-        if (this.retryCount < this.maxRetries) {
-            this.retryCount++;
-            addLogMessage({
-                datetime: new Date().toISOString(),
-                severity: 'warning',
-                message: `Connection lost. Retrying in ${this.retryCount} seconds...`,
-            });
-            setTimeout(() => this.connect(), 1000 * this.retryCount);
-        } else {
-            addLogMessage({
-                datetime: new Date().toISOString(),
-                severity: 'error',
-                message: 'Max retries reached. Please refresh the page to try again.',
-            });
-          
         // Update individual entity progress if we have a progress value
         if (data.progress !== null) {
             this.updateEntityProgress(data.entity, data.progress);
-
         }
 
         // If we see a completion message, mark that entity as done
@@ -313,4 +293,4 @@ document.addEventListener('DOMContentLoaded', () => {
             window.xeroSyncProgress.disconnect();
         }
     });
-});
+}); 
