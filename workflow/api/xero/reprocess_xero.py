@@ -188,6 +188,9 @@ def set_client_fields(client, new_from_xero=False):
         client.django_created_at = client.xero_last_modified
         client.django_updated_at = client.xero_last_modified
 
+    xero_contact_id = raw_data.get("_contact_id")
+    client.xero_contact_id = xero_contact_id
+
     # Save the updated client information
     client.save()
 
