@@ -371,7 +371,7 @@ def sync_invoices(invoices):
         # Retrieve the client for the invoice first
         try:
             client = get_or_fetch_client_by_contact_id(
-                inv.contact.contact_id,
+                inv.contact.contact_id,     
                 inv.invoice_number
             )
         except ValueError as e:

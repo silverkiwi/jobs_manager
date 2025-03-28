@@ -154,6 +154,9 @@ def set_client_fields(client, new_from_xero=False):
 
     raw_data = client.raw_json
 
+    if "_contacts" in raw_data and raw_data["_contacts"]:
+        raw_data = raw_data["_contacts"][0]
+
     # Extract basic client fields from raw JSON
     client.name = raw_data.get("_name")
     client.email = raw_data.get("_email_address")
