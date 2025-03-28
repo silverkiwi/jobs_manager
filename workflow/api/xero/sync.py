@@ -1149,7 +1149,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
         xero_api_fetch_function=accounting_api.get_quotes,
         sync_function=sync_quotes,
         last_modified_time=timestamps['quote'],
-        pagination_mode="page",
+        pagination_mode="single",
     )
 
     yield from sync_xero_data(
