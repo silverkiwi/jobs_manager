@@ -1,0 +1,24 @@
+[
+    {
+        "model": "workflow.staff",
+        "pk": "a9bd99fac9fb43e38b25578c35b56fa6",
+        "fields": {
+            "email": "corrin+admin@morrissheetmetal.co.nz",
+            "password": "pbkdf2_sha256$720000$27PfToA4YXTrUGDIj1Ljx2$co34e0crkJM/BJty97z9iNMbT9aEHe4PHighDltCn0w=",
+            "is_staff": true,
+            "is_superuser": true,
+            "ims_payroll_id": "FAKE: 1"
+        }
+    },
+    {
+        "model": "workflow.staff",
+        "pk": "b50dd08a58ce4a6cb41ec3b71ed1d402",
+        "fields": {
+            "email": "corrin+testing@morrissheetmetal.co.nz",
+            "password": "pbkdf2_sha256$720000$46wDdRSwnh2BQ2nje90cdw$6L04ZOixrQtPFmwSzV850zdJVXuaxU8xmMz1L+8PSEQ=",
+            "is_staff": true,
+            "is_superuser": false,
+            "ims_payroll_id": "FAKE: 2"
+        }
+    }
+]

@@ -60,6 +60,7 @@ from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views
 from workflow.views.purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, autosave_purchase_order_view
+from workflow.views.delivery_receipt_view import DeliveryReceiptListView, DeliveryReceiptCreateView
 
 urlpatterns = [
     # Redirect to Kanban board
@@ -208,7 +209,7 @@ urlpatterns = [
     ),
     path(
         "api/xero/sync/",
-        xero_view.synchronise_xero_data,
+        xero_view.start_xero_sync,
         name="synchronise_xero_data",
     ),
     # Other URL patterns
@@ -345,6 +346,10 @@ urlpatterns = [
     path('purchase-orders/', PurchaseOrderListView.as_view(), name='purchase_orders'),
     path('purchase-orders/new/', PurchaseOrderCreateView.as_view(), name='new_purchase_order'),
     path('purchase-orders/<uuid:pk>/', PurchaseOrderCreateView.as_view(), name='edit_purchase_order'),
+
+    # Delivery Receipt URLs
+    path('delivery-receipts/', DeliveryReceiptListView.as_view(), name='delivery_receipts'),
+    path('delivery-receipts/<uuid:pk>/', DeliveryReceiptCreateView.as_view(), name='edit_delivery_receipt'),
 
     # This URL doesn't match our naming pattern - need to fix.
     # Probably should be in api/internal?

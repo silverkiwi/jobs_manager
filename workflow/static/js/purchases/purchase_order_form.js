@@ -10,6 +10,9 @@ import { renderMessages } from './messages.js';
 import { updateJobsList } from './job_section.js';
 import { updateSummarySection } from './summary.js';
 
+// Track autosave state - default to true since data is already saved when loading
+let lastAutosaveSuccess = true;
+
 // Helper function to convert status code to display name
 function getStatusDisplay(status) {
     const statusMap = {
@@ -23,87 +26,33 @@ function getStatusDisplay(status) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Parse JSON data - exactly like timesheet does
-    const jobsData = JSON.parse(document.getElementById('jobs-data').textContent);
-    const lineItemsData = document.getElementById('line-items-data') ?
-        JSON.parse(document.getElementById('line-items-data').textContent) : [];
-    const purchaseOrderData = document.getElementById('purchase-order-data') ?
-        JSON.parse(document.getElementById('purchase-order-data').textContent) : {};
+    console.log('DOM Content Loaded');
     
+    // Parse JSON data from HTML elements
+    const jobsDataElement = document.getElementById('jobs-data');
+    const lineItemsDataElement = document.getElementById('line-items-data');
+    const purchaseOrderDataElement = document.getElementById('purchase-order-data');
+    
+    // Store data globally
     window.purchaseData = {
-        jobs: jobsData,
-        lineItems: lineItemsData,
-        purchaseOrder: purchaseOrderData
+        jobs: jobsDataElement ? JSON.parse(jobsDataElement.textContent) : [],
+        lineItems: lineItemsDataElement ? JSON.parse(lineItemsDataElement.textContent) : [],
+        purchaseOrder: purchaseOrderDataElement ? JSON.parse(purchaseOrderDataElement.textContent) : {}
     };
     
-    console.log('Available jobs:', jobsData);
-    console.log('Existing line items:', lineItemsData);
-    console.log('Purchase order data:', purchaseOrderData);
+    console.log('Purchase order data loaded:', window.purchaseData);
     
-    // If we have an existing purchase order, populate the form
-    if (purchaseOrderData && purchaseOrderData.id) {
-        // Set the purchase order ID
-        document.getElementById('purchase_order_id').value = purchaseOrderData.id;
-        
-        // Set the PO number
-        if (purchaseOrderData.po_number) {
-            document.getElementById('po_number').value = purchaseOrderData.po_number;
-        }
-        
-        // Set the supplier
-        if (purchaseOrderData.supplier) {
-            document.getElementById('client_id').value = purchaseOrderData.supplier;
-            document.getElementById('client_name').value = purchaseOrderData.supplier_name;
-        }
-        
-        // Set the dates
-        if (purchaseOrderData.order_date) {
-            document.getElementById('order_date').value = purchaseOrderData.order_date.split('T')[0];
-        }
-        
-        if (purchaseOrderData.expected_delivery) {
-            document.getElementById('expected_delivery').value = purchaseOrderData.expected_delivery.split('T')[0];
-        }
-        
-        if (purchaseOrderData.status) {
-            document.getElementById('status').value = purchaseOrderData.status;
-        }
-        
-        // If the status is not draft, make specific fields read-only
-        if (purchaseOrderData.status && purchaseOrderData.status !== 'draft') {
-            // Add a notice at the top of the form
-            const formElement = document.getElementById('purchase-order-details-form');
-            const noticeDiv = document.createElement('div');
-            noticeDiv.className = 'alert alert-info mb-3';
-            noticeDiv.innerHTML = `<i class="bi bi-info-circle me-2"></i>This purchase order is in <strong>${getStatusDisplay(purchaseOrderData.status)}</strong> status. Some fields cannot be edited.`;
-            formElement.prepend(noticeDiv);
-            
-            // Make specific fields read-only (but not expected_delivery)
-            const fieldsToLock = ['client_name', 'client_id', 'po_number', 'order_date'];
-            fieldsToLock.forEach(fieldId => {
-                const field = document.getElementById(fieldId);
-                if (field) {
-                    field.setAttribute('readonly', true);
-                    field.classList.add('form-control-plaintext');
-                    field.classList.remove('form-control');
-                }
-            });
-            
-            // Make the grid read-only
-            window.setTimeout(() => {
-                if (gridOptions && gridOptions.api) {
-                    gridOptions.api.setGridOption('readOnly', true);
-                }
-            }, 500);
-        }
-    } else {
-        // Set today's date for order date for new purchase orders
-        const today = new Date();
-        const formattedDate = today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-        document.getElementById('order_date').value = formattedDate;
+    // Update submit button state after data is loaded
+    updateSubmitButtonState();
+    
+    // Initialize grid only if we have the container
+    const gridDiv = document.querySelector('#purchase-order-lines-grid');
+    if (!gridDiv) {
+        console.error('Grid container not found');
+        return;
     }
     
-    // Initialize line items grid
+    // Create grid options
     const gridOptions = {
         columnDefs: [
             {
@@ -113,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cellEditor: ActiveJobCellEditor,
                 valueFormatter: params => {
                     if (!params.value) return '';
-                    const job = jobsData.find(j => j.id === params.value);
+                    const job = window.purchaseData.jobs.find(j => j.id === params.value);
                     return job ? job.job_display_name : '';
                 }
             },
@@ -217,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!params.data.job || params.data.price_tbc || params.value === 'TBC') return null;
                     
                     const jobId = params.data.job;
-                    const job = jobsData.find(j => j.id === jobId);
+                    const job = window.purchaseData.jobs.find(j => j.id === jobId);
                     
                     // Assert necessary conditions
                     console.assert(job, `Job with ID ${jobId} not found`);
@@ -226,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Calculate total cost for this job from all rows
                     let jobTotal = 0;
-                    window.grid.forEachNode(node => {
+                    params.api.forEachNode(node => {
                         if (node.data.job === jobId && !node.data.price_tbc && node.data.unit_cost !== null) {
                             jobTotal += node.data.quantity * node.data.unit_cost;
                         }
@@ -245,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!params.data.job) return formattedValue;
                     
                     const jobId = params.data.job;
-                    const job = jobsData.find(j => j.id === jobId);
+                    const job = window.purchaseData.jobs.find(j => j.id === jobId);
                     
                     // Assert necessary conditions
                     console.assert(job, `Job with ID ${jobId} not found`);
@@ -254,7 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Calculate total cost for this job from all rows
                     let jobTotal = 0;
-                    window.grid.forEachNode(node => {
+                    params.api.forEachNode(node => {
                         if (node.data.job === jobId && !node.data.price_tbc && node.data.unit_cost !== null) {
                             jobTotal += node.data.quantity * node.data.unit_cost;
                         }
@@ -307,30 +256,81 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // Initialize the grid
-    const gridDiv = document.querySelector('#purchase-order-lines-grid');
+    // Initialize with existing data or a blank row
+    gridOptions.rowData = window.purchaseData.lineItems.length ? window.purchaseData.lineItems : [createNewRow()];
+    
+    // Create the grid
     window.grid = agGrid.createGrid(gridDiv, gridOptions);
+    console.log('Grid initialized with data:', gridOptions.rowData);
     
-    // Check if we have existing line items (for edit mode)
-    const existingLineItems = window.purchaseData.lineItems || [];
+    // Initial adjustment
+    adjustGridHeight();
     
-    if (existingLineItems.length > 0) {
-        // If we have existing line items, add them to the grid
-        window.grid.applyTransaction({
-            add: existingLineItems
-        });
+    // Initialize job summary section
+    updateJobSummary();
+    
+    // If we have an existing purchase order, populate the form
+    if (window.purchaseData.purchaseOrder && window.purchaseData.purchaseOrder.id) {
+        // Set the purchase order ID
+        document.getElementById('purchase_order_id').value = window.purchaseData.purchaseOrder.id;
+        
+        // Set the PO number
+        if (window.purchaseData.purchaseOrder.po_number) {
+            document.getElementById('po_number').value = window.purchaseData.purchaseOrder.po_number;
+        }
+        
+        // Set the supplier
+        if (window.purchaseData.purchaseOrder.supplier) {
+            document.getElementById('client_id').value = window.purchaseData.purchaseOrder.supplier;
+            document.getElementById('client_name').value = window.purchaseData.purchaseOrder.supplier_name;
+        }
+        
+        // Set the dates
+        if (window.purchaseData.purchaseOrder.order_date) {
+            document.getElementById('order_date').value = window.purchaseData.purchaseOrder.order_date.split('T')[0];
+        }
+        
+        if (window.purchaseData.purchaseOrder.expected_delivery) {
+            document.getElementById('expected_delivery').value = window.purchaseData.purchaseOrder.expected_delivery.split('T')[0];
+        }
+        
+        if (window.purchaseData.purchaseOrder.status) {
+            document.getElementById('status').value = window.purchaseData.purchaseOrder.status;
+        }
+        
+        // If the status is not draft, make specific fields read-only
+        if (window.purchaseData.purchaseOrder.status && window.purchaseData.purchaseOrder.status !== 'draft') {
+            // Add a notice at the top of the form
+            const formElement = document.getElementById('purchase-order-details-form');
+            const noticeDiv = document.createElement('div');
+            noticeDiv.className = 'alert alert-info mb-3';
+            noticeDiv.innerHTML = `<i class="bi bi-info-circle me-2"></i>This purchase order is in <strong>${getStatusDisplay(window.purchaseData.purchaseOrder.status)}</strong> status. Some fields cannot be edited.`;
+            formElement.prepend(noticeDiv);
+            
+            // Make specific fields read-only (but not expected_delivery)
+            const fieldsToLock = ['client_name', 'client_id', 'po_number', 'order_date'];
+            fieldsToLock.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.setAttribute('readonly', true);
+                    field.classList.add('form-control-plaintext');
+                    field.classList.remove('form-control');
+                }
+            });
+            
+            // Make the grid read-only
+            window.setTimeout(() => {
+                if (gridOptions && gridOptions.api) {
+                    gridOptions.api.setGridOption('readOnly', true);
+                }
+            }, 500);
+        }
     } else {
-        // Otherwise, initialize with one empty row
-        window.grid.applyTransaction({
-            add: [createNewRow()]
-        });
+        // Set today's date for order date for new purchase orders
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        document.getElementById('order_date').value = formattedDate;
     }
-    
-    // After grid initialization
-    window.grid.addEventListener('firstDataRendered', function() {
-        adjustGridHeight();
-        updateJobSummary();
-    });
     
     // Using autosave - no save button needed
     
@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (jobId && isCostRelatedChange) {
             // Find all nodes with this job
             const nodesToRefresh = [];
-            window.grid.forEachNode(node => {
+            params.api.forEachNode(node => {
                 if (node.data.job === jobId) {
                     nodesToRefresh.push(node);
                 }
@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.assert(nodesToRefresh.length > 0, 'No rows found for job refresh');
             
             // Refresh total cells for all related job rows
-            window.grid.refreshCells({
+            params.api.refreshCells({
                 rowNodes: nodesToRefresh,
                 columns: ['total'],
                 force: true
@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (job) {
                 // Calculate total cost for this job from all rows
                 let jobTotal = 0;
-                window.grid.forEachNode(node => {
+                params.api.forEachNode(node => {
                     if (node.data.job === jobId && !node.data.price_tbc && node.data.unit_cost !== null) {
                         jobTotal += node.data.quantity * node.data.unit_cost;
                     }
@@ -409,7 +409,10 @@ document.addEventListener('DOMContentLoaded', function() {
         updateJobSummary();
         
         adjustGridHeight();
-        debouncedAutosave();
+        debouncedAutosave().then(success => {
+            lastAutosaveSuccess = success;
+            updateSubmitButtonState();
+        });
     }
     
     // Function to create a new empty row
@@ -498,7 +501,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             adjustGridHeight();
             updateJobSummary();
-            debouncedAutosave();
+            debouncedAutosave().then(success => {
+                lastAutosaveSuccess = success;
+                updateSubmitButtonState();
+            });
         }
     }
     
@@ -526,35 +532,58 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Removed saveOrder function as we're using autosave instead
     
-    // Initial adjustment
-    adjustGridHeight();
-    
-    // Initialize job summary section
-    updateJobSummary();
-    
     // Add event listeners for all form fields with the autosave-input class
     const autosaveInputs = document.querySelectorAll('.autosave-input');
     autosaveInputs.forEach(input => {
         input.addEventListener('change', function() {
-            debouncedAutosave();
+            // Update our data model if this is the status field
+            if (this.id === 'status' && window.purchaseData.purchaseOrder) {
+                window.purchaseData.purchaseOrder.status = this.value;
+            }
+            debouncedAutosave().then(success => {
+                lastAutosaveSuccess = success;
+                updateSubmitButtonState();
+            });
         });
     });
-    
+
     // Add event listener for the "Submit to Xero" button
     const submitButton = document.getElementById('submit-purchase-order');
     if (submitButton) {
         submitButton.addEventListener('click', function() {
             submitPurchaseOrderToXero();
         });
-        
-        // Only show the button for draft purchase orders
-        if (window.purchaseData.purchaseOrder &&
-            window.purchaseData.purchaseOrder.status &&
-            window.purchaseData.purchaseOrder.status !== 'draft') {
-            submitButton.style.display = 'none';
-        }
     }
 });
+
+/**
+ * Updates the submit button state based on autosave status and purchase order status
+ */
+function updateSubmitButtonState() {
+    const submitButton = document.getElementById('submit-purchase-order');
+    if (!submitButton) return;
+
+    const isDraft = !window.purchaseData.purchaseOrder ||
+                   !window.purchaseData.purchaseOrder.status ||
+                   window.purchaseData.purchaseOrder.status === 'draft';
+
+    console.log('updateSubmitButtonState:', {
+        isDraft,
+        lastAutosaveSuccess,
+        status: window.purchaseData.purchaseOrder?.status,
+        purchaseOrder: window.purchaseData.purchaseOrder
+    });
+
+    if (isDraft && lastAutosaveSuccess) {
+        submitButton.disabled = false;
+        submitButton.title = "Submit purchase order to Xero";
+    } else {
+        submitButton.disabled = true;
+        submitButton.title = isDraft ? 
+            "Please wait for changes to save before submitting" : 
+            "Only draft purchase orders can be submitted";
+    }
+}
 
 /**
  * Submits the purchase order to Xero
@@ -593,9 +622,10 @@ function submitPurchaseOrderToXero() {
                             "purchase-order-messages"
                         );
                         
-                        // Reset button
+                        // Reset button and update state
                         submitButton.innerHTML = originalText;
-                        submitButton.disabled = false;
+                        lastAutosaveSuccess = false;
+                        updateSubmitButtonState();
                     }
                 } else {
                     // Error saving
@@ -607,9 +637,10 @@ function submitPurchaseOrderToXero() {
                         "purchase-order-messages"
                     );
                     
-                    // Reset button
+                    // Reset button and update state
                     submitButton.innerHTML = originalText;
-                    submitButton.disabled = false;
+                    lastAutosaveSuccess = false;
+                    updateSubmitButtonState();
                 }
             })
             .catch(error => {
@@ -624,9 +655,10 @@ function submitPurchaseOrderToXero() {
                     "purchase-order-messages"
                 );
                 
-                // Reset button
+                // Reset button and update state
                 submitButton.innerHTML = originalText;
-                submitButton.disabled = false;
+                lastAutosaveSuccess = false;
+                updateSubmitButtonState();
             });
     } else {
         // We already have a purchase order ID, so we can submit to Xero directly
@@ -638,7 +670,6 @@ function submitPurchaseOrderToXero() {
  * Submit the purchase order to Xero
  */
 function submitToXero(purchaseOrderId, submitButton, originalText) {
-    
     // Submit to Xero
     fetch(`/api/xero/purchase-order/${purchaseOrderId}/create/`, {
         method: 'POST',
@@ -681,9 +712,10 @@ function submitToXero(purchaseOrderId, submitButton, originalText) {
                 "purchase-order-messages"
             );
             
-            // Reset button
+            // Reset button and update state
             submitButton.innerHTML = originalText;
-            submitButton.disabled = false;
+            lastAutosaveSuccess = false;
+            updateSubmitButtonState();
         }
     })
     .catch(error => {
@@ -698,9 +730,10 @@ function submitToXero(purchaseOrderId, submitButton, originalText) {
             "purchase-order-messages"
         );
         
-        // Reset button
+        // Reset button and update state
         submitButton.innerHTML = originalText;
-        submitButton.disabled = false;
+        lastAutosaveSuccess = false;
+        updateSubmitButtonState();
     });
 }
 
@@ -755,7 +788,12 @@ function updateJobSummary() {
     
     // Convert map to array and sort by job number
     const jobSummaries = Array.from(jobTotals.values())
-        .sort((a, b) => a.job_number.localeCompare(b.job_number));
+        .sort((a, b) => {
+            // Convert both job numbers to strings and compare
+            const aNum = String(a.job_number || '');
+            const bNum = String(b.job_number || '');
+            return aNum.localeCompare(bNum);
+        });
     
     // Update the job cards
     updateJobsList(jobSummaries);
