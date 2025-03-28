@@ -101,3 +101,4 @@ class Command(BaseCommand):
                 pass
         except (KeyboardInterrupt, SystemExit):
             scheduler.shutdown()
+            
