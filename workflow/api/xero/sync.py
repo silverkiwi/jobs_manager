@@ -351,12 +351,14 @@ def get_or_fetch_client_by_contact_id(contact_id, invoice_number=None):
         logger.warning(f"Client not found for {entity_ref}")
         raise ValueError(f"Client not found for {entity_ref}")
 
-    synced_clients = sync_clients([missing_client])
+    synced_clients = sync_clients([missing_client], sync_back_to_xero=False)
     if not synced_clients:
         entity_ref = f"invoice {invoice_number}" if invoice_number else f"contact ID {contact_id}"
         logger.warning(f"Client not found for {entity_ref}")
         raise ValueError(f"Client not found for {entity_ref}")
     return synced_clients[0]
+
+
 def sync_invoices(invoices):
     """Sync Xero invoices (ACCREC)."""
     for inv in invoices:
@@ -553,7 +555,7 @@ def sync_journals(journals):
             raise
 
 
-def sync_clients(xero_contacts):
+def sync_clients(xero_contacts, sync_back_to_xero=True):
     """
     Sync clients fetched from Xero API.
     Returns a list of Client instances that were created or updated.
@@ -589,7 +591,8 @@ def sync_clients(xero_contacts):
                     f"updated_at={client.xero_last_modified}"
                 )
 
-            sync_client_to_xero(client)
+            if sync_back_to_xero:
+                sync_client_to_xero(client)
             client_instances.append(client)
 
         except Exception as e:
