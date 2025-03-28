@@ -4,6 +4,7 @@ import { uploadJobFile, checkExistingJobFile } from "./job_file_handling.js";
 import { calculateSimpleTotals } from "./grid/revenue_cost_options.js";
 import { renderMessages } from "../timesheet/timesheet_entry/messages.js";
 import { debugLog } from "../env.js";
+import { initHistoricalNavigation } from "./historical_pricing_navigation.js";
 
 // Debounce function to avoid frequent autosave calls
 function debounce(func, wait) {
@@ -1092,6 +1093,12 @@ export function handleExportCosts() {
 
 // Autosave function to send data to the server
 export function autosaveData() {
+  // Prevent autosave when viewing historical data
+  if (window.isInHistoricalMode && window.isInHistoricalMode()) {
+    console.log("Autosave disabled while viewing historical data");
+    return;
+  }
+  
   const collectedData = collectAllData();
 
   // Skip autosave if the job is not yet ready for saving
@@ -1348,6 +1355,9 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
   });
+
+  // Initialize historical navigation
+  initHistoricalNavigation();
 });
 
 function getAllRowData(gridApi) {

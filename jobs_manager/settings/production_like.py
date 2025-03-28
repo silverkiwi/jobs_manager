@@ -10,6 +10,7 @@ load_dotenv(BASE_DIR / ".env")
 DEBUG = False
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS if host.strip()]
 
 INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "debug_toolbar"]
 

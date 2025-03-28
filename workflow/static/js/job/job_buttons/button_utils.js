@@ -81,14 +81,17 @@ export function addEventToTimeline(event, jobEventsList) {
 
 /**
  * Toggle between simple and complex grid views
- * @param {string} mode - 'simple', 'complex', 'manual', or 'automatic' (reads from checkbox)
+ * @param {string} source - 'simple', 'complex', 'manual', or 'automatic' (reads from checkbox)
  */
-export function toggleGrid(mode) {
+export function toggleGrid(source = "manual") {
   const toggleButton = document.getElementById('toggleGridButton');
   let isComplex;
   
+  // Add this parameter to check if the toggle is from historical navigation
+  const isFromHistorical = source === "historical";
+  
   // Determine complex mode based on input mode
-  switch (mode) {
+  switch (source) {
     case 'automatic':
       isComplex = toggleButton ? toggleButton.checked : false;
       break;
@@ -152,6 +155,11 @@ export function toggleGrid(mode) {
     calculateTotalCost();
     checkRealityValues();
   }, 100);
+
+  // If this toggle is coming from historical navigation, don't trigger autosave
+  if (!isFromHistorical) {
+    // Your normal autosave code
+  }
 }
 
 /**

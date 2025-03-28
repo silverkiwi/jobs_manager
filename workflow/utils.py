@@ -1,7 +1,5 @@
 from django.contrib.messages import get_messages
 
-from workflow.models import Staff, Job
-
 
 def extract_messages(request):
     """
@@ -67,6 +65,7 @@ def get_jobs_data(related_jobs):
             - client_name (str): The client name
             - charge_out_rate (float): The charge out rate
     """
+    from workflow.models import Job
 
     jobs = Job.objects.filter(id__in=related_jobs).select_related(
         "client", "latest_estimate_pricing", "latest_reality_pricing"
@@ -105,6 +104,7 @@ def get_excluded_staff():
     Returns:
         list: A list of staff IDs (as strings) who are excluded from the scheduling system
     """
+    from workflow.models import Staff
 
     # Static list of excluded staff IDs
     static_excluded_ids = [
