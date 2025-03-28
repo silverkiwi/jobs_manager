@@ -130,8 +130,18 @@ def sync_xero_data(
                         "progress": 0.0,
                         "totalItems": total_items
                     }
-                case entity if entity in ["accounts", "journals", "quotes"]:
+                case "accounts":
                     total_items = len(items)  # For accounts, we get all items at once
+                    yield {
+                        "datetime": timezone.now().isoformat(),
+                        "entity": our_entity_type,
+                        "severity": "info",
+                        "message": f"Found {total_items} accounts to sync",
+                        "progress": 0.0,
+                        "totalItems": total_items
+                    }
+                case "journals":
+                    total_items = len(items)  # For journals, we get all items at once
                     yield {
                         "datetime": timezone.now().isoformat(),
                         "entity": our_entity_type,
@@ -160,8 +170,10 @@ def sync_xero_data(
                         message = f"Processed journals {current_batch_start} to {current_batch_end}"
                     case entity if entity in ["contacts", "invoices", "credit_notes", "purchase_orders"]:
                         message = f"Processed {total_processed} of {total_items} {our_entity_type}"
-                    case entity if entity in ["accounts","quotes"]:
-                        message = f"Processed {total_processed} of {total_items} {our_entity_type}"
+                    case "quotes":
+                        message = f"Processed {total_processed} of {total_items} quotes"
+                    case "accounts":
+                        message = f"Processed {total_processed} of {total_items} accounts"
                     case _:
                         raise ValueError(f"Unexpected entity type: {xero_entity_type}")
                 
@@ -316,16 +328,49 @@ def clean_raw_json(data):
     return recursively_clean(data)
 
 
+def get_or_fetch_client_by_contact_id(contact_id, invoice_number=None):
+    """
+    Get a client by Xero contact_id, fetching it from the API if not found locally.
+    Args:
+        contact_id: The Xero contact_id to search for.
+        invoice_number: Optional invoice number for logging purposes.
+    
+    Returns:
+        Client: The client instance found or fetched.
+    
+    Raises:
+        ValueError: If the client is not found in Xero.
+    """
+    client = Client.objects.filter(xero_contact_id=contact_id).first()
+    if client:
+        return client
+    
+    missing_client = AccountingApi(api_client).get_contact(get_tenant_id(), contact_id)
+    if not missing_client:
+        entity_ref = f"invoice {invoice_number}" if invoice_number else f"contact ID {contact_id}"
+        logger.warning(f"Client not found for {entity_ref}")
+        raise ValueError(f"Client not found for {entity_ref}")
+
+    synced_clients = sync_clients([missing_client])
+    if not synced_clients:
+        entity_ref = f"invoice {invoice_number}" if invoice_number else f"contact ID {contact_id}"
+        logger.warning(f"Client not found for {entity_ref}")
+        raise ValueError(f"Client not found for {entity_ref}")
+    return synced_clients[0]
 def sync_invoices(invoices):
     """Sync Xero invoices (ACCREC)."""
     for inv in invoices:
         xero_id = getattr(inv, "invoice_id")
 
         # Retrieve the client for the invoice first
-        client = Client.objects.filter(xero_contact_id=inv.contact.contact_id).first()
-        if not client:
-            logger.warning(f"Client not found for invoice {inv.invoice_number}")
-            raise ValueError(f"Client not found for invoice {inv.invoice_number}")
+        try:
+            client = get_or_fetch_client_by_contact_id(
+                inv.contact.contact_id,     
+                inv.invoice_number
+            )
+        except ValueError as e:
+            logger.error(f"Error processing invoice {inv.invoice_number}: {str(e)}")
+            raise
 
         dirty_raw_json = serialise_xero_object(inv)
         raw_json = clean_raw_json(dirty_raw_json)
@@ -1177,7 +1222,7 @@ def synchronise_xero_data(delay_between_requests=1):
     try:
         # PUSH changes TO Xero
         # Queue client synchronization
-#        enqueue_client_sync_tasks()
+        # enqueue_client_sync_tasks()
 
         company_defaults = CompanyDefaults.objects.get()
         now = timezone.now()
