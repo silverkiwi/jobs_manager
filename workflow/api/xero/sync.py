@@ -146,10 +146,20 @@ def sync_xero_data(
                         "datetime": timezone.now().isoformat(),
                         "entity": our_entity_type,
                         "severity": "info",
-                        "message": f"Found {total_items} {our_entity_type} to sync",
+                        "message": f"Found {total_items} journals to sync",
                         "progress": 0.0,
                         "totalItems": total_items
                     }
+                # case "quotes":
+                #     total_items = len(items)  # For quotes, we get all items at once
+                #     yield {
+                #         "datetime": timezone.now().isoformat(),
+                #         "entity": our_entity_type,
+                #         "severity": "info",
+                #         "message": f"Found {total_items} quotes to sync",
+                #         "progress": 0.0,
+                #         "totalItems": total_items
+                #     }
                 case _:
                     raise ValueError(f"Unexpected entity type: {xero_entity_type}")
 
