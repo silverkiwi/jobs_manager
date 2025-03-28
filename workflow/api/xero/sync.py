@@ -82,7 +82,7 @@ def sync_xero_data(
     }
 
     # Only add pagination parameters for supported endpoints
-    if pagination_mode == "page" and xero_entity_type != "quotes":
+    if pagination_mode == "page" and xero_entity_type not in ["quotes", "accounts"]:
         # Page mode uses UpdatedDateUTC ordering for consistent incremental fetching.
         base_params.update({"page_size": page_size, "order": "UpdatedDateUTC ASC"})
 
@@ -130,23 +130,13 @@ def sync_xero_data(
                         "progress": 0.0,
                         "totalItems": total_items
                     }
-                case "journals":
-                    total_items = len(items)  # For journals, we get all items at once
+                case entity if entity in ["accounts", "journals", "quotes"]:
+                    total_items = len(items)  # For accounts, we get all items at once
                     yield {
                         "datetime": timezone.now().isoformat(),
                         "entity": our_entity_type,
                         "severity": "info",
-                        "message": f"Found {total_items} journals to sync",
-                        "progress": 0.0,
-                        "totalItems": total_items
-                    }
-                case "quotes":
-                    total_items = len(items)  # For quotes, we get all items at once
-                    yield {
-                        "datetime": timezone.now().isoformat(),
-                        "entity": our_entity_type,
-                        "severity": "info",
-                        "message": f"Found {total_items} quotes to sync",
+                        "message": f"Found {total_items} {our_entity_type} to sync",
                         "progress": 0.0,
                         "totalItems": total_items
                     }
@@ -170,8 +160,8 @@ def sync_xero_data(
                         message = f"Processed journals {current_batch_start} to {current_batch_end}"
                     case entity if entity in ["contacts", "invoices", "credit_notes", "purchase_orders"]:
                         message = f"Processed {total_processed} of {total_items} {our_entity_type}"
-                    case "quotes":
-                        message = f"Processed {total_processed} of {total_items} quotes"
+                    case entity if entity in ["accounts","quotes"]:
+                        message = f"Processed {total_processed} of {total_items} {our_entity_type}"
                     case _:
                         raise ValueError(f"Unexpected entity type: {xero_entity_type}")
                 
@@ -207,7 +197,7 @@ def sync_xero_data(
                 max_journal_number = max(item.journal_number for item in items)
                 offset = max_journal_number + 1
 
-            # Terminate if last batch was smaller than page size.
+            # Terminate if last batch was smaller than page size or if it's accounts
             if len(items) < page_size or pagination_mode == "single":
                 logger.info("Finished processing all items.")
                 yield {
@@ -571,6 +561,15 @@ def sync_accounts(xero_accounts):
     if xero_accounts is None:
         logger.error("xero_accounts is None - API call likely failed")
         raise ValueError("xero_accounts is None - API call likely failed")
+    
+    # Get all current Xero account IDs from the API response
+    current_xero_ids = {getattr(account, "account_id") for account in xero_accounts}
+    
+    # Disabled: This code is handy if you delete accounts in Xero, since the sync doesn't do this automatically
+    # # Delete any accounts that no longer exist in Xero
+    # deleted_count = XeroAccount.objects.exclude(xero_id__in=current_xero_ids).delete()[0]
+    # if deleted_count > 0:
+    #     logger.warning(f"Deleted {deleted_count} accounts that no longer exist in Xero")
         
     for account_data in xero_accounts:
         xero_account_id = getattr(account_data, "account_id")
