@@ -35,37 +35,24 @@ class XeroSyncProgress {
         this.initializeSync();
     }
 
-    initializeSync() {
-        if (this.isInitialized) return;
-        this.isInitialized = true;
-
-        // First check if a sync is already running
-        fetch('/api/xero/sync-info/')
-            .then(response => response.json())
-            .then(data => {
-                if (data.sync_in_progress) {
-                    // Connect to existing stream
-                    this.connectToStream();
-                } else {
-                    // Start a new sync
-                    fetch('/api/xero/refresh/')
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Failed to start sync');
-                            }
-                            // Only connect to stream after successfully starting a sync
-                            this.connectToStream();
-                        })
-                        .catch(error => {
-                            console.error('Error starting sync:', error);
-                            this.showError('Failed to start sync');
-                        });
-                }
-            })
-            .catch(error => {
-                console.error('Error checking sync status:', error);
-                this.showError('Failed to check sync status');
-            });
+    async initializeSync() {
+        // Check if a sync is already running
+        const response = await fetch('/api/xero/sync-info/');
+        const data = await response.json();
+        
+        if (data.sync_in_progress) {
+            // If a sync is running, connect to its stream
+            this.connectToStream();
+        } else {
+            // Start a new sync and wait for it to be ready
+            const syncResponse = await fetch('/api/xero/sync/');
+            if (!syncResponse.ok) {
+                throw new Error('Failed to start sync');
+            }
+            // Wait a moment for the sync to be ready
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            this.connectToStream();
+        }
     }
 
     connectToStream() {
@@ -258,7 +245,7 @@ class XeroSyncProgress {
         }
     }
 
-    initializeSyncStatus() {
+    async initializeSyncStatus() {
         // Initialize the sync status table with current state
         window.XERO_ENTITIES.forEach(entity => {
             this.updateEntityRow(entity, {
@@ -267,6 +254,23 @@ class XeroSyncProgress {
                 recordsUpdated: 0
             });
         });
+
+        // Get last sync times from server
+        try {
+            const response = await fetch('/api/xero/sync-info/');
+            const data = await response.json();
+            
+            // Update each entity with its last sync time
+            Object.entries(data.last_syncs).forEach(([entity, lastSync]) => {
+                if (lastSync) {
+                    this.updateEntityRow(entity, {
+                        lastSync: lastSync
+                    });
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching last sync times:', error);
+        }
     }
 }
 

@@ -34,7 +34,11 @@ function debounce(func, wait) {
   let timeout;
   return function(...args) {
     clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
+    return new Promise((resolve) => {
+      timeout = setTimeout(() => {
+        resolve(func.apply(this, args));
+      }, wait);
+    });
   };
 }
 
@@ -144,7 +148,7 @@ function autosaveData() {
   const collectedData = collectPurchaseOrderData();
   
   if (!validatePurchaseOrderData(collectedData)) {
-    return;
+    return Promise.resolve(false);
   }
   
   console.log("Saving data:", {
@@ -152,12 +156,13 @@ function autosaveData() {
     deletedLineItems: collectedData.deleted_line_items.length,
   });
   
-  saveDataToServer(collectedData);
+  return saveDataToServer(collectedData);
 }
 
 /**
  * Saves the collected data to the server via AJAX
  * @param {Object} collectedData The data to save
+ * @returns {Promise} A promise that resolves to true if save was successful
  */
 function saveDataToServer(collectedData) {
   console.log("Autosaving purchase order data to /api/autosave-purchase-order/...", {
@@ -165,7 +170,7 @@ function saveDataToServer(collectedData) {
     deleted_line_items: collectedData.deleted_line_items.length,
   });
   
-  fetch('/api/autosave-purchase-order/', {
+  return fetch('/api/autosave-purchase-order/', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -175,33 +180,36 @@ function saveDataToServer(collectedData) {
   })
   .then(response => {
     if (!response.ok) {
-      console.error("Server responded with an error:", response.status);
-      return response.json().then(data => {
-        console.error("Error details:", data);
-        throw new Error(data.error || "Server error");
-      });
+      throw new Error(`Server responded with status ${response.status}`);
     }
-    console.log("Autosave successful");
-    deletedLineItems = [];
     return response.json();
   })
   .then(data => {
-    // If this was a new PO and we got back a PO number, update the field
-    if (data.po_number && document.getElementById('po_number')) {
-      document.getElementById('po_number').value = data.po_number;
+    if (data.success) {
+      console.log('Autosave successful');
+      return true;
+    } else {
+      console.error('Autosave failed:', data.error);
+      renderMessages(
+        [{
+          level: "error",
+          message: data.error || "Failed to save changes. Please try again."
+        }],
+        "purchase-order"
+      );
+      return false;
     }
-    
-    // Display messages
-    renderMessages(data.messages || [], "purchase-order-messages");
-    
-    console.log("Autosave successful:", data);
   })
   .catch(error => {
-    console.error("Autosave failed:", error);
-    renderMessages([{
-      level: "error",
-      message: `Failed to save: ${error.message}`
-    }], "purchase-order-messages");
+    console.error('Autosave error:', error);
+    renderMessages(
+      [{
+        level: "error",
+        message: `Error saving changes: ${error.message}`
+      }],
+      "purchase-order"
+    );
+    return false;
   });
 }
 
