@@ -166,7 +166,7 @@ def set_client_fields(client, new_from_xero=False):
 
     # Handling the address
     addresses = raw_data.get("addresses", [])
-    client.address = addresses[0].get("address_line1", "") if addresses else ""3
+    client.address = addresses[0].get("address_line1", "") if addresses else ""
 
     # Handling payment terms (keeping the condition from old logic)
     payment_terms = raw_data.get("payment_terms")
