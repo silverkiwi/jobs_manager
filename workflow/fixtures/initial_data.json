@@ -1,7 +1,7 @@
 [
     {
       "model": "workflow.companydefaults",
-      "pk": "Demo Company (NZ)",
+      "pk": "Demo Company",
       "fields": {
         "time_markup": "0.30",
         "materials_markup": "0.20",
@@ -27,7 +27,7 @@
       "pk": "00000000-0000-0000-0000-000000000001",
       "fields": {
         "xero_contact_id": null,
-        "name": "Demo Shop",
+        "name": "Demo Company Shop",
         "email": "demo@example.com",
         "phone": null,
         "address": null,

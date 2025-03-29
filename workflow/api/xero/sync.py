@@ -615,7 +615,7 @@ def sync_clients(xero_contacts, sync_back_to_xero=True):
 
 def sync_accounts(xero_accounts):
     """Sync Xero accounts."""
-    logger.info(f"sync_accounts received: {xero_accounts}")
+    logger.debug(f"sync_accounts received: {xero_accounts}")
     if xero_accounts is None:
         logger.error("xero_accounts is None - API call likely failed")
         raise ValueError("xero_accounts is None - API call likely failed")
@@ -1086,8 +1086,10 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
     accounting_api = AccountingApi(api_client)
     logger.info("Created accounting_api")
 
+    # Determine timestamps based on sync type
     if use_latest_timestamps:
-        # Use latest timestamps from our database
+        # Use latest timestamps from our database for normal sync
+        logger.info("Performing normal sync using latest timestamps from database.")
         timestamps = {
             'contact': get_last_modified_time(Client),
             'invoice': get_last_modified_time(Invoice),
@@ -1099,8 +1101,9 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             'purchase_order': get_last_modified_time(PurchaseOrder),
         }
     else:
-        # Use fixed timestamp from days_back
+        # Use fixed timestamp from days_back (covers both regular deep syncs, and the initial sync)
         older_time = (timezone.now() - timedelta(days=days_back)).isoformat()
+        logger.info(f"Performing deep sync using fixed timestamp going back {days_back} days: {older_time}")
         timestamps = {
             'contact': older_time,
             'invoice': older_time,
@@ -1196,7 +1199,7 @@ def one_way_sync_all_xero_data():
 
 def deep_sync_xero_data(days_back=30):
     """
-    Sync all Xero data using a longer time window.
+    Sync all Xero data using a longer time window (days_back).
     Args:
         days_back: Number of days to look back for changes.
     """
@@ -1251,7 +1254,21 @@ def synchronise_xero_data(delay_between_requests=1):
                 "message": "Starting deep sync - looking back 90 days",
                 "progress": None
             }
-            yield from deep_sync_xero_data(days_back=90)
+            # Determine if this is the very first sync and set lookback period accordingly
+            is_first_sync = company_defaults.last_xero_deep_sync is None
+            days_to_sync = 5000 if is_first_sync else 90 # ~13 years for first sync, 90 days otherwise
+            log_message = f"Starting {'first' if is_first_sync else 'periodic'} deep sync - looking back {days_to_sync} days"
+            logger.info(log_message)
+            # Update the yielded message as well
+            yield {
+                "datetime": timezone.now().isoformat(),
+                "entity": "sync",
+                "severity": "info",
+                "message": log_message, # Use the dynamic log message
+                "progress": None
+            }
+            # Pass the calculated days_back, remove is_first_sync flag
+            yield from deep_sync_xero_data(days_back=days_to_sync)
             company_defaults.last_xero_deep_sync = now
             company_defaults.save()
             logger.info("Deep sync completed")
