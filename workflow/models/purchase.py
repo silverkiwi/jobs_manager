@@ -25,6 +25,7 @@ class PurchaseOrder(models.Model):
         help_text="Primary job this PO is for",
     )
     po_number = models.CharField(max_length=50, unique=True)
+    reference = models.CharField(max_length=100, blank=True, null=True, help_text="Optional reference for the purchase order")
     order_date = models.DateField()
     expected_delivery = models.DateField(null=True, blank=True)
     xero_id = models.UUIDField(unique=True, null=True, blank=True)
