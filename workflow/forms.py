@@ -318,7 +318,7 @@ class PaidAbsenceForm(forms.Form):
 class PurchaseOrderForm(forms.ModelForm):
     class Meta:
         model = PurchaseOrder
-        fields = ['supplier', 'po_number', 'order_date', 'expected_delivery']
+        fields = ['supplier', 'po_number', 'reference', 'order_date', 'expected_delivery']
         widgets = {
             'order_date': forms.DateInput(attrs={'type': 'date'}),
             'expected_delivery': forms.DateInput(attrs={'type': 'date'}),
