@@ -125,7 +125,7 @@ def get_excluded_staff():
             try:
                 uuid.UUID(staff.ims_payroll_id)
             except ValueError:
-                dynamic_excluded_ids.append(staff.ims_payroll_id)
+                dynamic_excluded_ids.append(staff.id)
         return static_excluded_ids + dynamic_excluded_ids
     
     # Return only static IDs if apps are not ready
