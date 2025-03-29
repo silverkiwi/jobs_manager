@@ -1,4 +1,5 @@
 import { createNewRow } from "../deserialize_job_pricing.js";
+import { lockQuoteGrids } from "../job_buttons/button_utils.js";
 import { sections } from "./grid_initialization.js";
 
 export function calculateGridHeight(gridApi, numRows) {
@@ -323,5 +324,20 @@ export function checkRealityValues() {
     if (deleteButton) {
       deleteButton.disabled = true;
     }
+  }
+}
+
+export function checkJobAccepted() {
+  console.log("Job accepted?", document.getElementById("job_status").value === "approved");
+  const job_status = document.getElementById("job_status").value;
+  const accepted = job_status === "approved" 
+    ? true 
+    : job_status === "completed"
+    ? true
+    : job_status === "archived"
+    ? true 
+    : false;
+  if (accepted) {
+    lockQuoteGrids();
   }
 }

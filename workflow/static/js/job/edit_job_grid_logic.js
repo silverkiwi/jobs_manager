@@ -60,7 +60,7 @@ import {
 } from "./grid/grid_initialization.js";
 
 // Grid calculations
-import { calculateTotalRevenue, calculateTotalCost, checkRealityValues } from "./grid/grid_utils.js";
+import { calculateTotalRevenue, calculateTotalCost, checkRealityValues, checkJobAccepted } from "./grid/grid_utils.js";
 
 // Button Handler
 import { handleButtonClick } from "./job_buttons/button_handlers.js";
@@ -127,10 +127,13 @@ document.addEventListener("DOMContentLoaded", function () {
   setTimeout(calculateTotalRevenue, 1000);
   setTimeout(calculateTotalCost, 1000);
   setTimeout(checkRealityValues, 1500);
+  setTimeout(checkJobAccepted, 2000);
 
   const isComplexJob = document.getElementById("complex-job").textContent.toLowerCase() === 'true';
   toggleGrid(isComplexJob ? "complex" : "simple");
   
   document.body.addEventListener("click", handleButtonClick);
   document.getElementById('pricingTypeDropdown').addEventListener('change', (event) => togglePricingType(event));
+  document.getElementById("job_status").addEventListener('change', checkJobAccepted);
+  console.log("Checking grids before checking job accepted",window.grids);
 });
