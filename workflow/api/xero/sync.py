@@ -428,13 +428,16 @@ def sync_bills(bills):
         dirty_raw_json = serialise_xero_object(bill_data)
         raw_json = clean_raw_json(dirty_raw_json)
         bill_number = raw_json["_invoice_number"]
-        # Retrieve the client for the bill first
-        client = Client.objects.filter(
-            xero_contact_id=bill_data.contact.contact_id
-        ).first()
-        if not client:
-            logger.warning(f"Client not found for bill {bill_number}")
-            continue
+        
+        # Retrieve the client for the bill
+        try:
+            client = get_or_fetch_client_by_contact_id(
+                bill_data.contact.contact_id,
+                bill_number
+            )
+        except ValueError as e:
+            logger.error(f"Error processing bill {bill_number}: {str(e)}")
+            raise
 
         # Retrieve or create the bill without saving immediately
         try:
@@ -479,12 +482,14 @@ def sync_credit_notes(notes):
         note_number = raw_json["_credit_note_number"]
 
         # Retrieve the client for the credit note
-        client = Client.objects.filter(
-            xero_contact_id=note_data.contact.contact_id
-        ).first()
-        if not client:
-            logger.warning(f"Client not found for credit note {note_number}")
-            continue
+        try:
+            client = get_or_fetch_client_by_contact_id(
+                note_data.contact.contact_id,
+                note_number
+            )
+        except ValueError as e:
+            logger.error(f"Error processing credit note {note_number}: {str(e)}")
+            raise
 
         # Retrieve or create the credit note without saving immediately
         try:
@@ -677,13 +682,16 @@ def sync_quotes(quotes):
     """
     for quote_data in quotes:
         xero_id = getattr(quote_data, "quote_id")
-        client = Client.objects.filter(
-            xero_contact_id=quote_data.contact.contact_id
-        ).first()
-
-        if not client:
-            logger.warning(f"Client not found for quote {xero_id}")
-            continue
+        
+        # Retrieve the client for the quote
+        try:
+            client = get_or_fetch_client_by_contact_id(
+                quote_data.contact.contact_id,
+                f"quote {xero_id}"
+            )
+        except ValueError as e:
+            logger.error(f"Error processing quote {xero_id}: {str(e)}")
+            raise
 
         # Serialize the quote data first
         raw_json = serialise_xero_object(quote_data)
@@ -729,11 +737,15 @@ def sync_purchase_orders(purchase_orders):
         xero_id = getattr(po_data, "purchase_order_id")
         
         # Retrieve the supplier for the purchase order
-        client = Client.objects.filter(xero_contact_id=po_data.contact.contact_id).first()
-        if not client:
-            logger.warning(f"Supplier not found for purchase order {po_data.purchase_order_number}")
-            continue
-
+        try:
+            client = get_or_fetch_client_by_contact_id(
+                po_data.contact.contact_id,
+                po_data.purchase_order_number
+            )
+        except ValueError as e:
+            logger.error(f"Error processing purchase order {po_data.purchase_order_number}: {str(e)}")
+            raise
+        
         # Serialize and clean the JSON received from the API
         raw_json = serialise_xero_object(po_data)
         

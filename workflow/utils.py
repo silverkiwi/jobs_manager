@@ -1,3 +1,4 @@
+import uuid
 from django.contrib.messages import get_messages
 
 
@@ -116,7 +117,6 @@ def get_excluded_staff():
     from django.apps import apps
     from django.db.utils import ProgrammingError, OperationalError
     
-    # Only access the database when applications are ready
     if apps.ready:
         try:
             # Get the Staff model dynamically only when needed
