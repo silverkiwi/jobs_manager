@@ -54,7 +54,7 @@ def api_fetch_status_values(request):
 def create_job_api(request):
     try:
         # Create the job with default values using the service function
-        new_job = Job.objects.create()
+        new_job = Job()
         new_job.save(staff=request.user)
 
         # Log that the job and pricings have been created successfully
@@ -456,7 +456,7 @@ def add_job_event(request, job_id):
                     "event_type": "manual_note",
                     "description": event.description,
                     "staff": (
-                        request.user.get_display_name() if request.user else "System"
+                        request.user.get_display_full_name() if request.user else "System"
                     ),
                 },
             },
