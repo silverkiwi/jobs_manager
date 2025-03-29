@@ -64,8 +64,8 @@ class PurchaseOrder(models.Model):
         # Generate the next number
         next_number = max(starting_number, int(highest_po) + 1)
         
-        # Return with PO prefix
-        return f"PO-{next_number}"
+        # Return with PO prefix and zero-padding (e.g., PO-0013)
+        return f"PO-{next_number:04d}"
 
     def save(self, *args, **kwargs):
         """Save the model and auto-generate PO number if none exists."""

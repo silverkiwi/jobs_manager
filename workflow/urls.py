@@ -53,9 +53,9 @@ from workflow.views import (
     time_entry_view,
     time_overview_view,
     workshop_view,
-    xero_view,
     job_management_view,
 )
+from workflow.views.xero import xero_view
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views

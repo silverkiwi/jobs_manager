@@ -4,7 +4,7 @@
  * Uses AG Grid for line items management, using the timesheet pattern
  */
 
-import { debouncedAutosave, markLineItemAsDeleted, collectPurchaseOrderData } from './purchase_order_autosave.js';
+import { debouncedAutosave, markLineItemAsDeleted, collectPurchaseOrderData, saveDataToServer } from './purchase_order_autosave.js';
 import { ActiveJobCellEditor } from './job_cell_editor.js';
 import { renderMessages } from './messages.js';
 import { updateJobsList } from './job_section.js';

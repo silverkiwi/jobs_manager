@@ -46,7 +46,7 @@ function debounce(func, wait) {
  * Collects all data from the purchase order form and grid
  * @returns {Object} Object containing purchase order and line item data
  */
-function collectPurchaseOrderData() {
+export function collectPurchaseOrderData() {
   console.log('Collecting purchase order data for autosave');
   
   // Get basic form data
@@ -164,7 +164,7 @@ function autosaveData() {
  * @param {Object} collectedData The data to save
  * @returns {Promise} A promise that resolves to true if save was successful
  */
-function saveDataToServer(collectedData) {
+export function saveDataToServer(collectedData) {
   console.log("Autosaving purchase order data to /api/autosave-purchase-order/...", {
     line_items: collectedData.line_items.length,
     deleted_line_items: collectedData.deleted_line_items.length,
