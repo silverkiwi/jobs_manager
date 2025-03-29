@@ -396,6 +396,114 @@ class XeroQuoteCreator(XeroDocumentCreator):
         """
         return not self.job.quoted
 
+    def get_line_items(self):
+        """
+        Generate quote-specific LineItems.
+        """
+        line_items = [
+            LineItem(
+                description=f"{self.job.description if self.job.description else f"Quote for job {self.job.job_number}"}",
+                quantity=1,
+                unit_amount=float(self.job.latest_quote_pricing.total_revenue)
+                or 0.00,
+                account_code=200,
+            )
+        ]
+
+        return line_items
+    
+    def get_xero_document(self, type: str) -> XeroQuote:
+        """
+        Creates a quote object for Xero creation or deletion.
+        """
+        match (type):
+            case "create":
+                if self.job.order_number:
+                    return XeroQuote(
+                        contact=self.get_xero_contact(),
+                        line_items=self.get_line_items(),
+                        date=format_date(timezone.now()),
+                        expiry_date=format_date(timezone.now() + timedelta(days=30)),
+                        line_amount_types="Exclusive",
+                        reference=self.job.order_number,
+                        currency_code="NZD",
+                        status="DRAFT",
+                    )
+                
+                # If not order number, create quote without reference
+                return XeroQuote(
+                    contact=self.get_xero_contact(),
+                    line_items=self.get_line_items(),
+                    date=format_date(timezone.now()),
+                    expiry_date=format_date(timezone.now() + timedelta(days=30)),
+                    line_amount_types="Exclusive",
+                    currency_code="NZD",
+                    status="DRAFT",
+                )
+            case "delete":
+                return XeroQuote(
+                    quote_id=self.get_xero_id(),
+                    contact=self.get_xero_contact(),
+                    line_items=self.get_line_items(),
+                    date=format_date(timezone.now()),
+                    expiry_date=format_date(timezone.now() + timedelta(days=30)),
+                    line_amount_types="Exclusive",
+                    reference=f"Quote for job {self.job.job_number}",
+                    currency_code="NZD",
+                    status="DELETED",
+                )
+
+    def create_document(self):
+        """Creates a quote and returns the quote URL."""
+        response = super().create_document()
+
+        if response and response.quotes:
+            xero_quote_data = response.quotes[0]
+            xero_quote_id = xero_quote_data.quote_id
+
+            quote_url = f"https://go.xero.com/app/quotes/edit/{xero_quote_id}"
+
+            quote = Quote.objects.create(
+                xero_id=xero_quote_id,
+                job=self.job,
+                client=self.client,
+                date=timezone.now().date(),
+                status=QuoteStatus.DRAFT,
+                total_excl_tax=Decimal(xero_quote_data.sub_total),
+                total_incl_tax=Decimal(xero_quote_data.total),
+                xero_last_modified=timezone.now(),
+                xero_last_synced=timezone.now(),
+                online_url=quote_url,
+                raw_json=json.dumps(response.to_dict(), default=str),
+            )
+
+            logger.info(f"Quote {quote.id} created successfully for job {self.job.id}")
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "xero_id": xero_quote_id,
+                    "client": self.client.name,
+                    "quote_url": quote_url,
+                }
+            )
+        else:
+            logger.error("No quotes found in the response or failed to create quote.")
+            return JsonResponse(
+                {"success": False, "error": "No quotes found in the response."},
+                status=400,
+            )
+        
+    def delete_document(self):
+        response = super().delete_document()
+        if response and response.quotes:
+            self.job.quote.delete()
+            logger.info(f"Quote {self.job.quote.id} deleted successfully for job {self.job.id}")
+            return JsonResponse({"success": True})
+        else:
+            logger.error("No quotes found in the response or failed to delete quote.")
+            return JsonResponse({"success": False, "error": "No quotes found in the response."}, status=400)
+
 
 class XeroPurchaseOrderCreator(XeroDocumentCreator):
     """
@@ -592,121 +700,6 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
             logger.error(f"Unexpected error sending PO {self.purchase_order.id} to Xero ({action_type}): {str(e)}", exc_info=True)
             return JsonResponse({"success": False, "error": f"An unexpected error occurred: {str(e)}", "messages": []}, status=500)
 
-    def validate_job(self):
-        """
-        Ensures the job is valid for quote creation.
-        """
-        if self.job.quoted:
-            raise ValueError(f"Job {self.job.id} is already quoted.")
-
-    def get_line_items(self):
-        """
-        Generate quote-specific LineItems.
-        """
-        line_items = [
-            LineItem(
-                description=f"Quote for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
-                quantity=1,
-                unit_amount=float(self.job.latest_quote_pricing.total_revenue)
-                or 0.00,
-                account_code=200,
-            )
-        ]
-
-        return line_items
-
-    def get_xero_document(self, type: str) -> XeroQuote:
-        """
-        Creates a quote object for Xero creation or deletion.
-        """
-        match (type):
-            case "create":
-                if self.job.order_number:
-                    return XeroQuote(
-                        contact=self.get_xero_contact(),
-                        line_items=self.get_line_items(),
-                        date=format_date(timezone.now()),
-                        expiry_date=format_date(timezone.now() + timedelta(days=30)),
-                        line_amount_types="Exclusive",
-                        reference=self.job.order_number,
-                        currency_code="NZD",
-                        status="DRAFT",
-                    )
-                
-                # If not order number, create quote without reference
-                return XeroQuote(
-                    contact=self.get_xero_contact(),
-                    line_items=self.get_line_items(),
-                    date=format_date(timezone.now()),
-                    expiry_date=format_date(timezone.now() + timedelta(days=30)),
-                    line_amount_types="Exclusive",
-                    currency_code="NZD",
-                    status="DRAFT",
-                )
-            case "delete":
-                return XeroQuote(
-                    quote_id=self.get_xero_id(),
-                    contact=self.get_xero_contact(),
-                    line_items=self.get_line_items(),
-                    date=format_date(timezone.now()),
-                    expiry_date=format_date(timezone.now() + timedelta(days=30)),
-                    line_amount_types="Exclusive",
-                    reference=f"Quote for job {self.job.job_number}",
-                    currency_code="NZD",
-                    status="DELETED",
-                )
-
-    def create_document(self):
-        """Creates a quote and returns the quote URL."""
-        response = super().create_document()
-
-        if response and response.quotes:
-            xero_quote_data = response.quotes[0]
-            xero_quote_id = xero_quote_data.quote_id
-
-            quote_url = f"https://go.xero.com/app/quotes/edit/{xero_quote_id}"
-
-            quote = Quote.objects.create(
-                xero_id=xero_quote_id,
-                job=self.job,
-                client=self.client,
-                date=timezone.now().date(),
-                status=QuoteStatus.DRAFT,
-                total_excl_tax=Decimal(xero_quote_data.sub_total),
-                total_incl_tax=Decimal(xero_quote_data.total),
-                xero_last_modified=timezone.now(),
-                xero_last_synced=timezone.now(),
-                online_url=quote_url,
-                raw_json=json.dumps(response.to_dict(), default=str),
-            )
-
-            logger.info(f"Quote {quote.id} created successfully for job {self.job.id}")
-
-            return JsonResponse(
-                {
-                    "success": True,
-                    "xero_id": xero_quote_id,
-                    "client": self.client.name,
-                    "quote_url": quote_url,
-                }
-            )
-        else:
-            logger.error("No quotes found in the response or failed to create quote.")
-            return JsonResponse(
-                {"success": False, "error": "No quotes found in the response."},
-                status=400,
-            )
-        
-    def delete_document(self):
-        response = super().delete_document()
-        if response and response.quotes:
-            self.job.quote.delete()
-            logger.info(f"Quote {self.job.quote.id} deleted successfully for job {self.job.id}")
-            return JsonResponse({"success": True})
-        else:
-            logger.error("No quotes found in the response or failed to delete quote.")
-            return JsonResponse({"success": False, "error": "No quotes found in the response."}, status=400)
-
 
 class XeroInvoiceCreator(XeroDocumentCreator):
     """
@@ -750,7 +743,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         xero_line_items = []
         xero_line_items.append(
             LineItem(
-                description=f"Invoice for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
+                description=f"{self.job.description if self.job.description else f"Invoice for job {self.job.job_number}"}",
                 quantity=1,
                 unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
                 account_code=200,
@@ -765,7 +758,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                 description="Price as quoted"
             ),
             LineItem(
-                description=f"Invoice for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
+                description=f"{self.job.description if self.job.description else f"Invoice for job {self.job.job_number}"}",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue)
                 or 0.00,
