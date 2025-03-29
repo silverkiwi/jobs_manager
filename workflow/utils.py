@@ -1,3 +1,4 @@
+import uuid
 from django.contrib.messages import get_messages
 
 
@@ -117,13 +118,14 @@ def get_excluded_staff():
     # Delaying database query execution
     from django.apps import apps
     
-    # Only access the database when applications are ready
     if apps.ready:
-        # Get the Staff model dynamically only when needed
         Staff = apps.get_model("workflow", "Staff")
-        dynamic_excluded_ids = [
-            str(staff.id) for staff in Staff.objects.filter(ims_payroll_id__isnull=True)
-        ]
+        dynamic_excluded_ids =  []
+        for staff in Staff.objects.all():
+            try:
+                uuid.UUID(staff.ims_payroll_id)
+            except ValueError:
+                dynamic_excluded_ids.append(staff.ims_payroll_id)
         return static_excluded_ids + dynamic_excluded_ids
     
     # Return only static IDs if apps are not ready
