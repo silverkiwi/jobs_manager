@@ -10,6 +10,26 @@ export function calculateGridHeight(gridApi, numRows) {
   return numRows * rowHeight + headerHeight;
 }
 
+// Helper function to check rows and add correct overflows
+export function updateGridOverflowClasses() {
+  Object.keys(window.grids).forEach(gridKey => {
+    const api = window.grids[gridKey]?.api;
+    if (api) {
+      const gridElement = document.querySelector(`#${gridKey}`);
+      if (gridElement) {
+        const rowCount = api.getDisplayedRowCount();
+        if (rowCount < 13) {
+          gridElement.classList.add('ag-rows-few');
+          gridElement.classList.remove('ag-rows-many');
+        } else {
+          gridElement.classList.add('ag-rows-many');
+          gridElement.classList.remove('ag-rows-few');
+        }
+      }
+    }
+  });
+}
+
 export function calculateTotalRevenue() {
   const revenueTotals = {
     time: { estimate: 0, quote: 0, reality: 0 },

@@ -221,7 +221,7 @@
     height: 60px;
     max-height: 360px;
     width: 100%;
-    overflow-y: auto;
+    overflow-y: hidden;
 }
 
 .totals-table {
