@@ -237,7 +237,7 @@ export function createNewRow(gridType) {
       return {
         item_code: "",
         description: "",
-        quantity: 0,
+        quantity: 1,
         unit_cost: 0,
         unit_revenue: 0,
         isManualOverride: false,

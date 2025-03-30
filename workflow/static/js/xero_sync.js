@@ -33,6 +33,7 @@ class XeroSyncProgress {
         this.isInitialized = false;
         this.initializeSyncStatus();
         this.initializeSync();
+        this.completedEntitiesSet = new Set();
     }
 
     async initializeSync() {
@@ -85,7 +86,13 @@ class XeroSyncProgress {
         }
 
         // If we see a completion message, mark that entity as done
-        if (data.message.includes("No items to sync") || data.message.includes("Processed") || data.message.includes("Completed sync of")) {
+        if (data.message.includes("No items to sync") || 
+            data.message.includes("Processed") || 
+            data.message.includes("Completed sync of") 
+            && !this.completedEntitiesSet.has(data.entity)
+        ) {
+                
+            this.completedEntitiesSet.add(data.entity);
             this.processedEntities++;
             this.overallProgress = (this.processedEntities / this.totalEntities) * 100;
             this.updateOverallProgress();

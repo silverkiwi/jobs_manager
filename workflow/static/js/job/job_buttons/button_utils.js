@@ -88,10 +88,10 @@ export function addEventToTimeline(event, jobEventsList) {
 export function toggleGrid(source = "manual") {
   const toggleButton = document.getElementById('toggleGridButton');
   let isComplex;
-
+  
   // Add this parameter to check if the toggle is from historical navigation
   const isFromHistorical = source === "historical";
-
+  
   // Determine complex mode based on input mode
   switch (source) {
     case 'automatic':

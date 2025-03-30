@@ -155,7 +155,7 @@ def advanced_search(request: HttpRequest) -> JsonResponse:
             jobs_query = jobs_query.filter(contact_person__icontains=contact_person)
         
         if created_by:
-            pass # TODO: Filter by user
+            jobs_query = jobs_query.filter(events__staff=created_by)
             
         if created_after:
             jobs_query = jobs_query.filter(created_at__gte=created_after)
