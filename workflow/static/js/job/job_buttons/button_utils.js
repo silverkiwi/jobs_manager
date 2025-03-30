@@ -1,5 +1,7 @@
+import { debouncedAutosave } from '../edit_job_form_autosave.js';
 import { sections, workType } from '../grid/grid_initialization.js';
 import { capitalize, calculateTotalRevenue, calculateTotalCost, checkRealityValues } from '../grid/grid_utils.js';
+import { getCSRFToken } from '../job_file_handling.js';
 
 /**
  * @description Functions to extract and manipulate URL data,
@@ -111,7 +113,7 @@ export function toggleGrid(source = "manual") {
     default:
       return; // Invalid mode, exit early
   }
-  
+
   // Store the complex mode in the hidden field
   const complexJobElement = document.getElementById('complex-job');
   if (complexJobElement) {
@@ -122,9 +124,9 @@ export function toggleGrid(source = "manual") {
   ['estimate', 'quote'].forEach(section => {
     const advancedGrid = document.getElementById(`advanced-${section}-grid`);
     const simpleGrid = document.getElementById(`simple-${section}-grid`);
-    
+
     if (!advancedGrid || !simpleGrid) return;
-    
+
     advancedGrid.classList.toggle('d-none', !isComplex);
     simpleGrid.classList.toggle('d-none', isComplex);
   });
@@ -132,12 +134,12 @@ export function toggleGrid(source = "manual") {
   // Reality section always uses advanced grid
   const realityAdvancedGrid = document.getElementById('advanced-reality-grid');
   const realitySimpleGrid = document.getElementById('simple-reality-grid');
-  
+
   if (realityAdvancedGrid && realitySimpleGrid) {
     realityAdvancedGrid.classList.remove('d-none');
     realitySimpleGrid.classList.add('d-none');
   }
-  
+
   // Make all simple totals tables visible
   ['simpleEstimateTotalsTable', 'simpleQuoteTotalsTable', 'simpleRealityTotalsTable'].forEach(tableId => {
     const table = document.getElementById(tableId);
@@ -150,7 +152,7 @@ export function toggleGrid(source = "manual") {
       const grid = window.grids[key];
       if (grid?.api) grid.api.sizeColumnsToFit();
     });
-    
+
     calculateTotalRevenue();
     calculateTotalCost();
     checkRealityValues();
@@ -168,11 +170,11 @@ export function toggleGrid(source = "manual") {
  */
 export function togglePricingType(event) {
   if (!event) return;
-  
+
   // Extract value from either event.target.value (DOM event) or event.value
   const newType = event.target?.value || event.value;
   if (!newType) return;
-  
+
   const jobId = getJobIdFromUrl();
   const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value;
   if (!csrfToken) {
@@ -200,14 +202,14 @@ export function togglePricingType(event) {
       }
 
       const isTimeMaterials = newType === 'time_materials';
-      
+
       // Update UI elements based on pricing type
       const elements = {
         quoteGrid: document.getElementById('quoteGrid'),
         quoteCheckbox: document.getElementById('quoteCheckbox'),
         copyEstimateButton: document.getElementById('copyEstimateToQuote')
       };
-      
+
       // Toggle visibility for each element
       Object.values(elements).forEach(element => {
         if (element) element.classList.toggle('d-none', isTimeMaterials);
@@ -227,13 +229,13 @@ export function togglePricingType(event) {
 export function toggleComplexJob() {
   const toggleButton = document.getElementById("toggleGridButton");
   if (!toggleButton) return false;
-  
+
   const isComplexElement = document.getElementById("complex-job");
   if (!isComplexElement) return false;
-  
+
   const isComplex = isComplexElement.textContent.toLowerCase() === 'true';
   const newValue = toggleButton.checked;
-  
+
   // No change needed if state hasn't changed
   if ((isComplex && newValue) || (!isComplex && !newValue)) {
     return true;
@@ -244,15 +246,15 @@ export function toggleComplexJob() {
     const latestJobPricingsElement = document.getElementById("latestJobPricingsData");
     if (latestJobPricingsElement) {
       const pricingsData = JSON.parse(latestJobPricingsElement.textContent);
-      
+
       // Check if any section has multiple pricing entries
       const hasMultipleEntries = sections.some(section => {
         if (!pricingsData[section]) return false;
-        return workType.some(type => 
+        return workType.some(type =>
           pricingsData[section][type] && pricingsData[section][type].length > 1
         );
       });
-      
+
       if (hasMultipleEntries) {
         alert("Cannot disable complex mode while multiple pricing entries exist.");
         toggleButton.checked = true;
@@ -279,25 +281,107 @@ export function toggleComplexJob() {
       complex_job: newValue,
     }),
   })
-  .then(response => response.json())
-  .then(data => {
-    if (data.error) {
-      console.error('API returned error:', data.error);
-      alert(data.error);
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        console.error('API returned error:', data.error);
+        alert(data.error);
+        toggleButton.checked = !toggleButton.checked;
+        return;
+      }
+
+      isComplexElement.textContent = newValue.toString();
+
+      // Update interface based on new complex job status
+      toggleGrid(newValue ? 'complex' : 'simple');
+    })
+    .catch(err => {
+      console.error('API request failed:', err);
+      alert("Error updating complex mode.");
       toggleButton.checked = !toggleButton.checked;
-      return;
-    }
-    
-    isComplexElement.textContent = newValue.toString();
-    
-    // Update interface based on new complex job status
-    toggleGrid(newValue ? 'complex' : 'simple');
-  })
-  .catch(err => {
-    console.error('API request failed:', err);
-    alert("Error updating complex mode.");
-    toggleButton.checked = !toggleButton.checked;
-  });
+    });
 
   return true;
+}
+
+export function lockQuoteGrids() {
+  const currentDateTimeISO = new Date().toISOString();
+  document.getElementById("quote_acceptance_date_iso").value = currentDateTimeISO;
+  console.log(`Quote acceptance date set to: ${currentDateTimeISO}`);
+
+  // Define tables to lock
+  const tablesToLock = [
+    // Complex quote tables
+    'quoteTimeTable',
+    'quoteMaterialsTable',
+    'quoteAdjustmentsTable',
+
+    // Simple quote tables
+    'simpleQuoteTimeTable',
+    'simpleQuoteMaterialsTable',
+    'simpleQuoteAdjustmentsTable',
+    'simpleQuoteTotalsTable'
+  ];
+
+  // Lock each table
+  console.log('Starting to lock tables for accepted quote');
+  tablesToLock.forEach(tableName => {
+    console.log(`Attempting to lock table: ${tableName}`);
+
+    if (window.grids[tableName] && window.grids[tableName].api) {
+      const gridApi = window.grids[tableName].api;
+      console.log(`Found valid grid API for: ${tableName}`);
+
+      // Set grid to read-only
+      gridApi.setGridOption('editType', 'none');
+      gridApi.setGridOption('editable', false);
+
+      // Disable row dragging and selection
+      gridApi.setGridOption('rowDragManaged', false);
+      gridApi.setGridOption('suppressRowDrag', true);
+      gridApi.setGridOption('suppressRowClickSelection', true);
+
+      // Update all columns to be non-editable
+      const columnDefs = gridApi.getColumnDefs();
+      columnDefs.forEach(col => {
+        col.editable = false;
+      });
+      gridApi.setGridOption("columnDefs", columnDefs);
+
+      // Refresh the grid
+      gridApi.refreshCells({ force: true });
+      console.log(`Successfully locked table: ${tableName}`);
+    } else {
+      console.log(`Table not found or has no API: ${tableName}`);
+    }
+  });
+  console.log('Finished locking all quote tables');
+}
+
+export function updateJobStatus(jobId) {
+  fetch(`/jobs/${jobId}/update_status/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCSRFToken()
+    },
+    body: JSON.stringify({
+      status: "approved"
+    })
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) {
+        renderMessages([{ "level": "danger", "message": data.error }], "toast-container");
+        return;
+      }
+
+      document.getElementById("job_status").value = "approved";
+      renderMessages([{ "level": "success", "message": "Job status updated successfully" }], "toast-container");
+      debouncedAutosave();
+    })
+    .catch(error => {
+      console.error('Error updating job status:', error);
+      renderMessages([{ "level": "danger", "message": `Failed to update job status: ${error}. Please try again.` }], "toast-container");
+    });
 }

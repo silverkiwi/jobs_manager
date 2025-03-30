@@ -122,9 +122,13 @@ def get_excluded_staff():
             # Get the Staff model dynamically only when needed
             # This is so the installation process can run without the database being ready
             from workflow.models import Staff
-            dynamic_excluded_ids = [
-                str(staff.id) for staff in Staff.objects.filter(ims_payroll_id__isnull=True)
-            ]
+            dynamic_excluded_ids = []
+            for staff in Staff.objects.all():
+                try:
+                    uuid.UUID(staff.ims_payroll_id)
+                except ValueError:
+                    # If the UUID conversion fails, add the staff ID to the excluded list
+                    dynamic_excluded_ids.append(staff.id)
             return static_excluded_ids + dynamic_excluded_ids
         except (ProgrammingError, OperationalError):
             # If the table doesn't exist yet (during migrations), return only static IDs

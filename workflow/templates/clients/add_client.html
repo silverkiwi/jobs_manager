@@ -39,6 +39,19 @@
 <div class="form-container card-enhanced fadeInUp">
     <h2 class="page-title">Add New Client</h2>
 
+    <div id="error-container" class="alert alert-danger" style="display: none;" role="alert">
+        <h4 class="alert-heading">Error</h4>
+        <p id="error-message"></p>
+        <div id="error-details" style="display: none;">
+            <hr>
+            <div class="small">
+                <strong id="error-type">Error Type: Unknown</strong><br>
+                Failed Operation: Adding client "<span id="error-name"></span>"
+                <span id="error-email-container">(<span id="error-email"></span>)</span>
+            </div>
+        </div>
+    </div>
+
     {% if error %}
     <div class="alert alert-danger" role="alert">
         <h4 class="alert-heading">Error</h4>

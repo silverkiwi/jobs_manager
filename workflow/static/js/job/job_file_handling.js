@@ -48,7 +48,7 @@ async function sendFileRequest(formData, method) {
   });
 }
 
-function getCSRFToken() {
+export function getCSRFToken() {
   return document.querySelector('[name="csrfmiddlewaretoken"]').value;
 }
 
