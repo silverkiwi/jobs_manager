@@ -49,7 +49,7 @@ function loadClientsDropdown() {
             const clientSelect = document.getElementById("advClient");
             data.forEach(client => {
                 const option = document.createElement("option");
-                option.value = client.id;
+                option.value = client.name;
                 option.textContent = client.name;
                 clientSelect.appendChild(option);
             });

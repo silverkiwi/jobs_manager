@@ -37,6 +37,15 @@ export function createCommonGridOptions() {
 
       window.grids[gridKey] = { api: params.api };
 
+      const rowCount = params.api.getDisplayedRowCount() || 1;
+      if (rowCount < 13) {
+        gridElement.classList.add('ag-rows-few');
+        gridElement.classList.remove('ag-rows-many');
+      } else {
+        gridElement.classList.add('ag-rows-many');
+        gridElement.classList.remove('ag-rows-few');
+      }
+
       // This avoids warning in case the grid is hidden (d-none)
       if (gridElement && gridElement.offsetWidth > 0) {
         params.api.sizeColumnsToFit();
@@ -47,6 +56,16 @@ export function createCommonGridOptions() {
     onGridSizeChanged: (params) => {
       const gridKey = params.context.gridKey;
       const gridElement = document.querySelector(`#${gridKey}`);
+      
+      const rowCount = params.api.getDisplayedRowCount();
+      if (rowCount < 13) {
+        gridElement.classList.add('ag-rows-few');
+        gridElement.classList.remove('ag-rows-many');
+      } else {
+        gridElement.classList.add('ag-rows-many');
+        gridElement.classList.remove('ag-rows-few');
+      }
+      
       if (gridElement && gridElement.offsetWidth > 0) {
         params.api.sizeColumnsToFit();
       }
@@ -138,6 +157,15 @@ export function createCommonGridOptions() {
       const gridKey = params.context.gridKey;
       const gridElement = document.querySelector(`#${gridKey}`);
       const rowCount = params.api.getDisplayedRowCount();
+
+      if (rowCount < 13) {
+        gridElement.classList.add('ag-rows-few');
+        gridElement.classList.remove('ag-rows-many');
+      } else {
+        gridElement.classList.add('ag-rows-many');
+        gridElement.classList.remove('ag-rows-few');
+      }
+      
       const newHeight = calculateGridHeight(params.api, rowCount);
       gridElement.style.height = `${newHeight}px`;
       adjustGridHeight(params.api, `${gridKey}`);
@@ -146,6 +174,17 @@ export function createCommonGridOptions() {
       const gridKey = event.context.gridKey;
       const gridType = event.context.gridType;
       const data = event.data;
+      
+      // Check row count and add helper classes to avoid overflow
+      const gridElement = document.querySelector(`#${gridKey}`);
+      const rowCount = event.api.getDisplayedRowCount();
+      if (rowCount < 13) {
+        gridElement.classList.add('ag-rows-few');
+        gridElement.classList.remove('ag-rows-many');
+      } else {
+        gridElement.classList.add('ag-rows-many');
+        gridElement.classList.remove('ag-rows-few');
+      }
 
       switch (gridType) {
         case "TimeTable":
@@ -553,7 +592,7 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Time Table",
+        headerName: "Time",
         field: "description",
         editable: false,
         flex: 2,
@@ -622,7 +661,7 @@ export function createSimpleMaterialsGridOptions(
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Materials Table",
+        headerName: "Materials",
         field: "description",
         editable: false,
         flex: 2,
@@ -669,7 +708,7 @@ export function createSimpleAdjustmentsGridOptions(
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Adjustments Table",
+        headerName: "Adjustments",
         field: "description",
         editable: false,
         flex: 2,
@@ -705,7 +744,7 @@ export function createSimpleTotalsGridOptions(gridKey) {
     ...commonGridOptions,
     columnDefs: [
       {
-        headerName: "Totals Table",
+        headerName: "Totals",
         field: "section",
         editable: false,
         maxWidth: 395,
