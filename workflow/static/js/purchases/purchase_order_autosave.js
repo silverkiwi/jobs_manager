@@ -186,10 +186,36 @@ export function saveDataToServer(collectedData) {
   })
   .then(data => {
     if (data.success) {
-      console.log('Autosave successful');
+      console.log('Autosave successful', data);
+      // If a new PO was created (or updated), update the hidden input and global data
+      if (data.id && data.po_number) {
+          const purchaseOrderIdInput = document.getElementById('purchase_order_id');
+          // Update hidden input only if it's currently empty (i.e., after initial creation)
+          if (purchaseOrderIdInput && !purchaseOrderIdInput.value) {
+              console.log(`Updating hidden input with new PO ID: ${data.id}`);
+              purchaseOrderIdInput.value = data.id;
+          }
+          // Update the global data store regardless (to keep it in sync)
+          if (window.purchaseData && window.purchaseData.purchaseOrder) {
+              window.purchaseData.purchaseOrder.id = data.id;
+              window.purchaseData.purchaseOrder.po_number = data.po_number;
+              // Optionally update the read-only PO number field if it exists and is empty
+              const poNumberInput = document.getElementById('po_number');
+              if (poNumberInput && !poNumberInput.value) {
+                  poNumberInput.value = data.po_number;
+              }
+          }
+          // Clear the deleted items list after a successful save (create or update)
+          // Prevents sending the same deletion request repeatedly
+          if (deletedLineItems.length > 0) {
+              deletedLineItems = [];
+              console.log("Cleared deleted line items list after successful save.");
+          }
+      }
       return true;
     } else {
-      console.error('Autosave failed:', data.error);
+      // Log the more detailed error from the backend if available
+      console.error('Autosave failed:', data.error || (data.messages ? data.messages.map(m => m.message).join('; ') : 'Unknown error'));
       renderMessages(
         [{
           level: "error",

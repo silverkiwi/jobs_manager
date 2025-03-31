@@ -82,7 +82,7 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
              logger.error("Purchase order object is missing in get_line_items.")
              return [] # Or raise error
 
-        for line in self.purchase_order.lines.all():
+        for line in self.purchase_order.po_lines.all(): # Correct related name
             # Skip lines marked as 'Price to be confirmed'
             if line.price_tbc or line.unit_cost is None: # Check both just in case
                 logger.debug(f"Skipping PO line {line.id} due to TBC price.")
@@ -271,5 +271,88 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
             logger.error(f"Unexpected error sending PO {self.purchase_order.id} to Xero ({action_type}): {str(e)}", exc_info=True)
             # Return JsonResponse directly for the view
             return JsonResponse({"success": False, "error": f"An unexpected error occurred: {str(e)}"}, status=500)
+
+    def delete_document(self):
+        """
+        Deletes the purchase order in Xero by setting its status to DELETED.
+        Updates the local PurchaseOrder record by clearing the Xero ID.
+        Returns a JsonResponse suitable for the calling view.
+        """
+        xero_id = self.get_xero_id()
+        if not xero_id:
+            logger.error(f"Cannot delete PO {self.purchase_order.id}: No Xero ID found.")
+            return JsonResponse({"success": False, "error": "Purchase Order not found in Xero (no Xero ID)."}, status=404)
+
+        logger.info(f"Attempting to delete purchase order {self.purchase_order.id} (Xero ID: {xero_id}) by setting status to DELETED.")
+
+        try:
+            # Prepare the minimal payload for deletion (setting status)
+            xero_document = XeroPurchaseOrder(purchase_order_id=xero_id, status="DELETED")
+            payload = convert_to_pascal_case(clean_payload(xero_document.to_dict()))
+            payload_list = {"PurchaseOrders": [payload]}
+            logger.debug(f"Serialized payload for delete: {json.dumps(payload_list, indent=4)}")
+
+        except Exception as e:
+            logger.error(f"Error serializing XeroDocument for delete: {str(e)}", exc_info=True)
+            return JsonResponse({"success": False, "error": f"Failed to serialize data for Xero deletion: {str(e)}"}, status=500)
+
+        try:
+            # Use the update method to set the status to DELETED
+            update_method = self.get_xero_update_method()
+            logger.info(f"Calling Xero API method for deletion: {update_method.__name__}")
+            response, http_status, http_headers = update_method(
+                self.xero_tenant_id,
+                purchase_orders=payload_list,
+                summarize_errors=False,
+                _return_http_data_only=False
+            )
+
+            logger.debug(f"Xero API Response Content (delete): {response}")
+            logger.debug(f"Xero API HTTP Status (delete): {http_status}")
+
+            # Process the response
+            if response and hasattr(response, 'purchase_orders') and response.purchase_orders:
+                xero_po_data = response.purchase_orders[0]
+
+                # Check for validation errors (though less likely for a status update)
+                if hasattr(xero_po_data, 'validation_errors') and xero_po_data.validation_errors:
+                    error_details = "; ".join([f"{err.message}" for err in xero_po_data.validation_errors])
+                    logger.error(f"Xero validation errors during delete for PO {self.purchase_order.id}: {error_details}")
+                    return JsonResponse({"success": False, "error": f"Xero validation errors during delete: {error_details}"}, status=400)
+
+                # Confirm status is DELETED (or check http_status)
+                if getattr(xero_po_data, 'status', None) == 'DELETED' or http_status < 300:
+                    # Clear local Xero ID and update status (optional, could just clear ID)
+                    self.purchase_order.xero_id = None
+                    # self.purchase_order.status = 'void' # Or keep local status? Discuss implications.
+                    self.purchase_order.xero_last_synced = timezone.now()
+                    self.purchase_order.save(update_fields=['xero_id', 'xero_last_synced']) # Add 'status' if changing it
+
+                    logger.info(f"Successfully deleted purchase order {self.purchase_order.id} in Xero (Xero ID: {xero_id}).")
+                    return JsonResponse({"success": True, "action": "delete"})
+                else:
+                    error_msg = f"Xero did not confirm deletion status for PO {self.purchase_order.id}. Status: {getattr(xero_po_data, 'status', 'Unknown')}"
+                    logger.error(error_msg)
+                    return JsonResponse({"success": False, "error": error_msg}, status=500)
+            else:
+                error_msg = "Unexpected or empty response from Xero API during delete."
+                logger.error(f"{error_msg} for PO {self.purchase_order.id}. Response: {response}")
+                return JsonResponse({"success": False, "error": error_msg}, status=500)
+
+        except AccountingBadRequestException as e:
+            error_body = {}
+            error_message = str(e)
+            try:
+                 if hasattr(e, 'body') and e.body:
+                      error_body = json.loads(e.body)
+                      error_message = error_body.get('Detail', error_body.get('Message', str(e)))
+            except json.JSONDecodeError:
+                 logger.warning("Could not decode Xero error body JSON during delete.")
+
+            logger.error(f"Xero API Bad Request during delete for PO {self.purchase_order.id}: {error_message} Body: {error_body}")
+            return JsonResponse({"success": False, "error": f"Xero Error during delete: {error_message}"}, status=e.status)
+        except Exception as e:
+            logger.error(f"Unexpected error deleting PO {self.purchase_order.id} from Xero: {str(e)}", exc_info=True)
+            return JsonResponse({"success": False, "error": f"An unexpected error occurred during deletion: {str(e)}"}, status=500)
 
 # Note: The misplaced Quote methods that were here previously have been removed.

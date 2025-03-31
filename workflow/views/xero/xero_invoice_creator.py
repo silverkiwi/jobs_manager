@@ -79,10 +79,10 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         xero_line_items = []
         xero_line_items.append(
             LineItem(
-                description=f"Invoice for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
+                description=f"Job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
                 quantity=1, # Typically T&M is invoiced as a single line item sum
                 unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
-                account_code="200", # Assuming account code 200 for revenue
+                account_code="200", # Assuming account code 200 for revenue # FIXME: Get this from a lookup to XeroAccount, not hardcoded
             ),
         )
         return xero_line_items
@@ -99,10 +99,10 @@ class XeroInvoiceCreator(XeroDocumentCreator):
         # xero_line_items.append(LineItem(description="Price as quoted")) # Consider if this is needed
         xero_line_items.append(
             LineItem(
-                description=f"Invoice for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''} (Fixed Price)",
+                description=f"Job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''} (Fixed Price)",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
-                account_code="200", # Assuming account code 200 for revenue
+                account_code="200", # Assuming account code 200 for revenue # FIXME: Get this from a lookup to XeroAccount, not hardcoded
             )
         )
         return xero_line_items

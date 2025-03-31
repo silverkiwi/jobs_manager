@@ -9,6 +9,7 @@ import { ActiveJobCellEditor } from './job_cell_editor.js';
 import { renderMessages } from './messages.js';
 import { updateJobsList } from './job_section.js';
 import { updateSummarySection } from './summary.js';
+import { deleteXeroPurchaseOrder } from './purchase_order_xero_actions.js';
 
 // Track autosave state - default to true since data is already saved when loading
 let lastAutosaveSuccess = true;
@@ -330,6 +331,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const today = new Date();
         const formattedDate = today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
         document.getElementById('order_date').value = formattedDate;
+    }
+    
+    // Add event listener for the delete Xero PO button
+    const deleteButton = document.getElementById('deleteXeroPOButton');
+    if (deleteButton) {
+        deleteButton.addEventListener('click', () => {
+            const purchaseOrderIdInput = document.getElementById('purchase_order_id');
+            const purchaseOrderId = purchaseOrderIdInput ? purchaseOrderIdInput.value : null;
+            
+            if (purchaseOrderId) {
+                deleteXeroPurchaseOrder(purchaseOrderId);
+            } else {
+                console.error("Cannot delete Xero PO: Purchase Order ID not found in hidden input.");
+                renderMessages([{ level: "error", message: "Cannot delete Xero PO: Purchase Order ID not found." }], "purchase-order-messages");
+            }
+        });
+    } else {
+        // Button might not exist if PO isn't in Xero yet, which is fine.
+        console.log("Delete Xero PO button not found (likely PO not submitted yet).");
     }
     
     // Using autosave - no save button needed

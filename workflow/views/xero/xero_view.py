@@ -283,17 +283,38 @@ def delete_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
         messages.error(request, f"An error occurred while deleting the quote: {str(e)}")
         return JsonResponse({"success": False, "error": str(e), "messages": extract_messages(request)}, status=500)
 
+
+def delete_xero_purchase_order(request: HttpRequest, purchase_order_id: uuid.UUID) -> HttpResponse: 
+    """Deletes a Purchase Order in Xero."""
+    tenant_id = ensure_xero_authentication()
+    if isinstance(tenant_id, JsonResponse): return tenant_id
+    try:
+        purchase_order = PurchaseOrder.objects.get(id=purchase_order_id)
+        # Assuming XeroPurchaseOrderCreator has a delete_document method similar to others
+        creator = XeroPurchaseOrderCreator(purchase_order=purchase_order)
+        response_data = creator.delete_document()
+        return _handle_creator_response(request, response_data, "Purchase Order deleted successfully from Xero", "Failed to delete Purchase Order from Xero")
+    except PurchaseOrder.DoesNotExist:
+        messages.error(request, f"Purchase Order with ID {purchase_order_id} not found.")
+        return JsonResponse({"success": False, "error": "Purchase Order not found.", "messages": extract_messages(request)}, status=404)
+    except Exception as e:
+        logger.error(f"Error in delete_xero_purchase_order view: {str(e)}", exc_info=True)
+        messages.error(request, f"An error occurred while deleting the Purchase Order from Xero: {str(e)}")
+        return JsonResponse({"success": False, "error": str(e), "messages": extract_messages(request)}, status=500)
+
+
 def xero_disconnect(request):
     """Disconnects from Xero by clearing the token from cache and database."""
-    try:
+    try: # Corrected indentation
         cache.delete('xero_token')
         cache.delete('xero_tenant_id') # Use consistent cache key
         XeroToken.objects.all().delete()
         messages.success(request, "Successfully disconnected from Xero")
-    except Exception as e:
+    except Exception as e: # Corrected indentation
         logger.error(f"Error disconnecting from Xero: {str(e)}")
         messages.error(request, "Failed to disconnect from Xero")
-    return redirect("/")
+    return redirect("/") # Corrected indentation
+
 
 class XeroIndexView(TemplateView):
     """Note this page is currently inaccessible. We are using a dropdown menu instead."""
