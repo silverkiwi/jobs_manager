@@ -5,7 +5,7 @@ from .client_view import ClientListView, ClientUpdateView
 from .dashboard_view import DashboardView
 from .invoice_view import InvoiceListView, InvoiceUpdateView
 from .job_file_view import BinaryFileRenderer, JobFileView
-from .material_entry_view import CreateMaterialEntryView, MaterialEntryUpdateView
+# Removed import for deleted material_entry_view
 from .report_view import CompanyProfitAndLossView, ReportsIndexView
 from .staff_view import StaffCreateView, StaffListView, StaffUpdateView
 from .time_entry_view import TimesheetEntryView
@@ -21,8 +21,6 @@ __all__ = [
     "InvoiceUpdateView",
     "BinaryFileRenderer",
     "JobFileView",
-    "CreateMaterialEntryView",
-    "MaterialEntryUpdateView",
     "ReportsIndexView",
     "CompanyProfitAndLossView",
     "StaffListView",

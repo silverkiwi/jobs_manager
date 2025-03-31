@@ -55,14 +55,8 @@ class JobPricingForm(forms.ModelForm):
         self.fields["pricing_stage"].disabled = True  # Make pricing_stage read-only
 
 
-class MaterialEntryForm(forms.ModelForm):
-    class Meta:
-        model = MaterialEntry
-        exclude = ["job_pricing"]
-
 
 class AdjustmentEntryForm(forms.ModelForm):
-    class Meta:
         model = AdjustmentEntry
         exclude = ["job_pricing"]
 

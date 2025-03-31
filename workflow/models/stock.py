@@ -48,18 +48,30 @@ class Stock(models.Model):
     source = models.CharField(
         max_length=50,
         choices=[
-            ('purchase_order', 'Purchase Order'),
-            ('split', 'Split from another stock item'),
-            ('manual', 'Manual Entry'),
+            ('purchase_order', 'Purchase Order Receipt'),
+            ('split_from_stock', 'Split/Offcut from Stock'),
+            ('manual', 'Manual Adjustment/Stocktake'),
         ],
-        help_text="Source of the stock item"
+        help_text="Origin of this stock item"
     )
-    
-    source_id = models.CharField(
-        max_length=100,
-        help_text="ID of the source item (e.g., PO number)"
+        
+    source_purchase_order_line = models.ForeignKey(
+        'PurchaseOrderLine',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_generated',
+        help_text="The PO line this stock originated from (if source='purchase_order')"
     )
-    
+    source_parent_stock = models.ForeignKey(
+        'self', 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='child_stock_splits',
+        help_text="The parent stock item this was split from (if source='split_from_stock')"
+    )
+
     notes = models.TextField(
         blank=True,
         help_text="Additional notes about the stock item"
@@ -94,42 +106,3 @@ class Stock(models.Model):
         super().save(*args, **kwargs)
         logger.info(f"Saved stock item: {self.description}")
     
-    def split(self, split_quantity: Decimal) -> 'Stock':
-        """
-        Split this stock item into two items.
-        
-        Args:
-            split_quantity: The quantity to split off into a new item
-            
-        Returns:
-            The new stock item created from the split
-        """
-        logger.debug(f"Splitting stock item {self.id} - quantity: {split_quantity}")
-        
-        if split_quantity <= 0:
-            raise ValueError("Split quantity must be positive")
-            
-        if split_quantity >= self.quantity:
-            raise ValueError("Split quantity must be less than current quantity")
-        
-        # Calculate the proportion of the split
-        proportion = split_quantity / self.quantity
-        
-        # Create new stock item
-        new_stock = Stock.objects.create(
-            job=self.job,
-            description=self.description,
-            quantity=split_quantity,
-            unit_cost=self.unit_cost,
-            date=timezone.now(),
-            source='split',
-            source_id=str(self.id),
-            notes=f"Split from stock item {self.id}"
-        )
-        
-        # Update this stock item
-        self.quantity -= split_quantity
-        self.save()
-        
-        logger.info(f"Split stock item {self.id} into {new_stock.id}")
-        return new_stock 

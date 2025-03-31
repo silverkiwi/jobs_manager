@@ -58,7 +58,7 @@ from workflow.views import (
 from workflow.views.xero import xero_view
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
-from workflow.views import password_views
+from workflow.views import password_views, stock_view 
 from workflow.views.purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, autosave_purchase_order_view
 from workflow.views.delivery_receipt_view import DeliveryReceiptListView, DeliveryReceiptCreateView
 
@@ -114,6 +114,18 @@ urlpatterns = [
         "api/fetch_status_values/",
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
+    ),
+    # Stock Consumption API
+    path(
+        "api/stock/consume/",
+        stock_view.consume_stock_api_view, # Point to the new view
+        name="consume_stock_api"
+    ),
+    # Get Available Stock for Job API
+    path(
+        "api/job/<uuid:job_id>/available-stock/",
+        stock_view.get_available_stock_api_view,
+        name="get_available_stock_api"
     ),
     path(
         "api/job/advanced-search/",
