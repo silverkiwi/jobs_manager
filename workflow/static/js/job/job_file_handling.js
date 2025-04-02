@@ -1,3 +1,5 @@
+import { renderMessages } from "../timesheet/timesheet_entry/messages.js";
+
 function attachPrintCheckboxListeners() {
   document.querySelectorAll(".print-on-jobsheet").forEach((checkbox) => {
     checkbox.removeEventListener("change", handlePrintCheckboxChange);
@@ -14,7 +16,7 @@ async function handlePrintCheckboxChange(e) {
 
 export async function uploadJobFile(jobNumber, file, method) {
   if (!jobNumber || !file) return;
-  
+
   if (file.name !== "JobSummary.pdf") showUploadFeedback(file.name);
   console.log(`[uploadJobFile] Starting file upload/update for job ${jobNumber} using ${method}`);
   console.log(`[uploadJobFile] File details: name=${file.name}, size=${file.size}, type=${file.type}`);
@@ -55,9 +57,9 @@ export function getCSRFToken() {
 async function processUploadResponse(response) {
   const data = await response.json();
   console.log(`[uploadJobFile] Response: status=${response.status}, ok=${response.ok}`, data);
-  
+
   hideUploadFeedback();
-  
+
   if (response.ok) {
     updateFileList(data.uploaded);
   } else {
@@ -72,7 +74,7 @@ function handleUploadError(error, method) {
 
 export async function deleteFile(fileId) {
   if (!fileId) return;
-  
+
   console.log(`[deleteFile] Deleting file with ID=${fileId}`);
   if (!confirm("Are you sure you want to delete this file?")) return;
 
@@ -97,7 +99,7 @@ function handleDeleteResponse(response, fileId) {
     );
     return;
   }
-  
+
   console.log(`[deleteFile] File with ID=${fileId} deleted successfully`);
   removeFileCard(fileId);
 }
@@ -235,7 +237,7 @@ function updateFileList(newFiles) {
 
 function createNewFileGrid() {
   const fileList = document.querySelector("#file-list");
-  
+
   // Remove any existing messages
   const noFilesMsg = fileList.querySelector("p");
   if (noFilesMsg) noFilesMsg.remove();
@@ -243,7 +245,7 @@ function createNewFileGrid() {
   const grid = document.createElement("div");
   grid.className = "job-files-grid";
   fileList.appendChild(grid);
-  
+
   updateNoFilesMessage();
   return grid;
 }
@@ -262,13 +264,13 @@ function showUploadFeedback(filename) {
 
 function getOrCreateFeedbackElement() {
   let feedbackEl = document.getElementById('file-upload-feedback');
-  
+
   if (feedbackEl) return feedbackEl;
-  
+
   feedbackEl = createFeedbackElement();
   ensureFeedbackStyles();
   document.body.appendChild(feedbackEl);
-  
+
   return feedbackEl;
 }
 
@@ -276,7 +278,7 @@ function createFeedbackElement() {
   const element = document.createElement('div');
   element.id = 'file-upload-feedback';
   element.className = 'upload-feedback';
-  
+
   element.innerHTML = `
     <div class="upload-spinner">
       <div class="spinner-border text-primary" role="status">
@@ -286,13 +288,13 @@ function createFeedbackElement() {
     <div>Uploading file</div>
     <div class="upload-filename"></div>
   `;
-  
+
   return element;
 }
 
 function ensureFeedbackStyles() {
   if (document.getElementById('upload-feedback-styles')) return;
-  
+
   const style = document.createElement('style');
   style.id = 'upload-feedback-styles';
   style.textContent = `
@@ -340,25 +342,25 @@ function hideUploadFeedback() {
 function updateNoFilesMessage() {
   const grid = document.querySelector(".job-files-grid");
   const fileList = document.querySelector("#file-list");
-  
+
   if (!fileList) return;
-  
+
   const hasVisibleFiles = grid && grid.querySelector('.file-card:not(.d-none)');
   const existingMessage = fileList.querySelector(".alert.alert-info");
-  
+
   if (hasVisibleFiles) {
     if (existingMessage) existingMessage.remove();
     return;
   }
-  
+
   // No visible files case
   if (existingMessage) return; // Message already exists
-  
+
   // Clean up empty grid
   if (grid && grid.children.length === 0) {
     grid.remove();
   }
-  
+
   // Create and add the message
   const noFilesMsg = createNoFilesMessage();
   fileList.appendChild(noFilesMsg);
@@ -388,16 +390,41 @@ function setupFileUploadEvents() {
   if (dropZone) {
     setupDropZoneEvents(dropZone);
   }
+
+  const captureButton = document.getElementById("capture-photo");
+  if (captureButton) {
+    captureButton.addEventListener("click", handlePhotoCapture);
+  }
+}
+
+async function handlePhotoCapture(e) {
+  e.preventDefault();
+
+  const jobNumber = document.querySelector('[name="job_number"]').value;
+  if (!jobNumber) {
+    renderMessages([{ "level": "danger", "message": "A job number is required to add photos." }]);
+    return;
+  }
+
+  try {
+    const photoFile = await capturePhotoFromCamera(jobNumber);
+
+    await processFiles([photoFile], jobNumber);
+  } catch (error) {
+    if (error.message !== "Photo capture canceled") {
+      console.error("[handlePhotocapture] Error capturing photo:", error);
+    }
+  }
 }
 
 function setupDropZoneEvents(dropZone) {
   dropZone.addEventListener("drop", handleFileDrop);
-  
-  ["dragenter", "dragover"].forEach(event => 
+
+  ["dragenter", "dragover"].forEach(event =>
     dropZone.addEventListener(event, () => dropZone.classList.add("drag-over"), false)
   );
-  
-  ["dragleave", "drop"].forEach(event => 
+
+  ["dragleave", "drop"].forEach(event =>
     dropZone.addEventListener(event, () => dropZone.classList.remove("drag-over"), false)
   );
 }
@@ -405,7 +432,7 @@ function setupDropZoneEvents(dropZone) {
 async function handleFileInputChange(event) {
   const files = event.target.files;
   if (!files.length) return;
-  
+
   const jobNumber = document.querySelector('[name="job_number"]').value;
   await processFiles(files, jobNumber);
 }
@@ -414,7 +441,7 @@ async function handleFileDrop(e) {
   e.preventDefault();
   const files = e.dataTransfer.files;
   if (!files.length) return;
-  
+
   const jobNumber = document.querySelector('[name="job_number"]').value;
   await processFiles(files, jobNumber);
 }
@@ -426,16 +453,178 @@ async function processFiles(files, jobNumber) {
       continue;
     }
 
-    const fileExists = await checkExistingJobFile(jobNumber, file.name);
-    await uploadJobFile(jobNumber, file, fileExists ? "PUT" : "POST");
+    try {
+      let fileToUpload = file;
+
+      if (isImageFile(file)) {
+        console.log(`[processFiles] Compressing image before upload: ${file.name}`);
+        fileToUpload = await compressImage(file);
+      }
+
+      const fileExists = await checkExistingJobFile(jobNumber, fileToUpload.name);
+      await uploadJobFile(jobNumber, fileToUpload, fileExists ? "PUT" : "POST");
+    } catch (error) {
+      console.error(`[processFiles] Error while searching file ${file.name}:`, error);
+    }
   }
 }
 
 function setupDocumentEvents() {
-  document.addEventListener("click", function(e) {
+  document.addEventListener("click", function (e) {
     if (e.target.classList.contains("delete-file")) {
       const fileId = e.target.dataset.fileId;
       if (fileId) deleteFile(fileId);
+    }
+  });
+}
+
+function isImageFile(file) {
+  return file.type.startsWith('image/');
+}
+
+async function compressImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+
+      img.onload = () => {
+        const maxWidth = 1280;
+        const maxHeight = 960;
+
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          const scaleWidth = maxWidth / width;
+          const scaleHeight = maxHeight / height;
+          const scaleFactor = Math.min(scaleWidth, scaleHeight);
+
+          width = Math.floor(width * scaleFactor);
+          height = Math.floor(height * scaleFactor);
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          const compressedFile = new File([blob], file.name, {
+            type: "image/jpeg",
+            lastModified: Date.now()
+          });
+
+          console.log(`[compressImage] Compressed image ${file.name}:
+            Original: ${(file.size / 1024 / 1024).toFixed(2)}MB,
+            Compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB
+          `);
+
+          resolve(compressedFile);
+        }, "image/jpeg", 0.7);
+
+      }
+    }
+  });
+}
+
+async function capturePhotoFromCamera(jobNumber) {
+  return new Promise((resolve, reject) => {
+    try {
+      const modalHtml = `
+        <div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="cameraModalLabel">Photo Capture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body p-0 bg-dark">
+                <video id="camera-preview" class="w-100" autoplay playsinline></video>
+                <canvas id="camera-canvas" class="d-none"></canvas>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel Capture</button>
+                <button type="button" class="btn btn-primary" id="capture-button">
+                  <i class="bi bi-camera"></i> Capture Photo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+      const cameraModal = document.getElementById('cameraModal');
+      const videoElement = document.getElementById('camera-preview');
+      const captureButton = document.getElementById('capture-button');
+      const canvas = document.getElementById('camera-canvas');
+
+      const modalInstance = new bootstrap.Modal(cameraModal);
+
+      modalInstance.show();
+
+      const cleanup = () => {
+        if (videoElement.srcObject) {
+          videoElement.srcObject.getTracks().forEach(track => track.stop());
+        }
+
+        modalInstance.hide();
+
+        cameraModal.addEventListener("hidden.bs.modal", () => {
+          cameraModal.remove();
+        });
+      };
+
+      cameraModal.addEventListener("hidden.bs.modal", () => {
+        cleanup();
+        reject(new Error("Photo capture canceled"));
+      });
+
+      navigator.mediaDevices
+        .getUserMedia({
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 960 }
+          }
+        })
+        .then(stream => {
+          videoElement.srcObject = stream;
+
+          captureButton.addEventListener('click', () => {
+
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+
+            const context = canvas.getContext('2d');
+            context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+              const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+              const file = new File([blob], `photo-${timestamp}.jpg`, { type: 'image/jpeg' });
+
+              cleanup();
+
+              resolve(file);
+            }, 'image/jpeg', 0.85);
+          });
+        })
+        .catch(error => {
+          console.error("Error trying to access camera:", error);
+          cleanup();
+          renderMessages([{ "level": "danger", "message": "It wasn't possible to access the camera. Check if you granted permission." }]);
+          reject(error);
+        });
+    } catch (error) {
+      console.error("Error trying to access camera:", error);
+      renderMessages([{ "level": "danger", "message": "Error initializing camera " + error.message }]);
+      reject(error);
     }
   });
 }
