@@ -62,7 +62,7 @@ class TimeEntry(models.Model):
     hours = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False)
     items = models.IntegerField(null=True, blank=True)  # For quotes/estimates
     minutes_per_item = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True, blank=True
+        max_digits=8, decimal_places=2, null=True, blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
