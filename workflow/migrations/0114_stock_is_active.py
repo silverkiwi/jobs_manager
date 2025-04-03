@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("workflow", "0112_remove_stock_source_id_materialentry_source_stock_and_more"),
+        ("workflow", "0113_remove_stock_source_id_materialentry_source_stock_and_more"),
     ]
 
     operations = [
