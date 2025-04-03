@@ -76,6 +76,7 @@ class Stock(models.Model):
         blank=True,
         help_text="Additional notes about the stock item"
     )
+    is_active = models.BooleanField(default=True, db_index=True, help_text="False when quantity reaches zero or item is fully consumed/transformed")
     
     # TODO: Add fields for:
     # - Location
@@ -105,4 +106,19 @@ class Stock(models.Model):
         
         super().save(*args, **kwargs)
         logger.info(f"Saved stock item: {self.description}")
+    
+    # Stock holding job name
+    STOCK_HOLDING_JOB_NAME = "Worker Admin"
+    _stock_holding_job = None
+    
+    @classmethod
+    def get_stock_holding_job(cls):
+        """
+        Returns the job designated for holding general stock.
+        This is a utility method to avoid repeating the job lookup across the codebase.
+        Uses a class-level cache to avoid repeated database queries.
+        """
+        if cls._stock_holding_job is None:
+            cls._stock_holding_job = Job.objects.get(name=cls.STOCK_HOLDING_JOB_NAME)
+        return cls._stock_holding_job
     

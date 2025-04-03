@@ -135,15 +135,6 @@
             <div id="simpleRealityAdjustmentsTable" class="ag-theme-alpine price-entry-table hover-lift simple-pricing-table"></div>
         </div>
         <div id="simpleRealityTotalsTable" class="ag-theme-alpine price-entry-table hover-lift totals-table simple-pricing-table"></div>
-
-        <!-- Add Button for Stock Consumption -->
-        <div class="mt-3">
-            <button type="button" class="btn btn-success" id="consumeStockBtn">
-                <i class="bi bi-box-seam me-2"></i> Consume Stock for Job
-            </button>
-        </div>
-        <!-- End Button -->
-
     </div>
 
     <div class="table-container">
@@ -280,47 +271,6 @@
         </div>
     </div>
 </div>
-
-<!-- Consume Stock Modal -->
-<div class="modal fade" id="consumeStockModal" tabindex="-1" aria-labelledby="consumeStockModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="consumeStockModalLabel">Consume Stock for Job {{ job.job_number }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="consumeStockForm">
-                    {% csrf_token %} {# Include CSRF token if submitting via standard POST #}
-                    <input type="hidden" name="job_id" value="{{ job.id }}">
-                    
-                    <div class="mb-3">
-                        <label for="stockItemSelect" class="form-label">Select Stock Item:</label>
-                        <select class="form-select" id="stockItemSelect" name="stock_item_id" required>
-                            <option value="" selected disabled>Loading available stock...</option>
-                            {# Options will be populated by JavaScript #}
-                        </select>
-                        <div id="stockItemDetails" class="form-text mt-1" style="display: none;">
-                            Available: <span id="stockAvailableQty"></span> | Unit Cost: $<span id="stockUnitCost"></span>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="quantityUsed" class="form-label">Quantity Used:</label>
-                        <input type="number" class="form-control" id="quantityUsed" name="quantity_used"
-                               min="0" step="any" required disabled> {# Disabled until stock item selected #}
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmConsumeStockBtn" disabled>Consume</button> {# Disabled initially #}
-            </div>
-        </div>
-    </div>
-</div>
-<!-- End Consume Stock Modal -->
-
 {% endblock %}
 
 {% block extra_js %}

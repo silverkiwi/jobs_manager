@@ -102,3 +102,42 @@ def consume_stock_api_view(request):
     except Exception as e:
         logger.exception(f"Unexpected error consuming stock: {e}")
         return JsonResponse({'error': 'An unexpected server error occurred.'}, status=500)
+
+def search_available_stock_api(request):
+    """
+    API endpoint to search available stock items for autocomplete.
+    Searches active stock items matching the search term.
+    Relies on is_active=True implicitly meaning quantity > 0 and
+    item is available for consumption (likely linked to Worker Admin job).
+    """
+    search_term = request.GET.get('q', '').strip()
+    limit = int(request.GET.get('limit', 25)) # Limit results
+
+    results = [] # Default to empty list
+
+    if search_term:
+        # Filter only by active status and description
+        # Assumes is_active=True implies quantity > 0 and correct job allocation
+        matching_stock = Stock.objects.filter(
+            is_active=True,
+            description__icontains=search_term
+        ).select_related('job').order_by('description')[:limit] # Keep select_related for job name display
+
+        # Serialize the data for autocomplete
+        results = [
+            {
+                'id': str(item.id),
+                # Display job name in text for clarity if needed, assuming active stock is under Worker Admin
+                'text': f"{item.description} (Avail: {item.quantity}, Loc: {item.job.name if item.job else 'N/A'})",
+                'description': item.description,
+                'quantity': float(item.quantity),
+                'unit_cost': float(item.unit_cost),
+            }
+            for item in matching_stock
+        ]
+
+    # Return results directly, matching ClientSearch response structure
+    return JsonResponse({'results': results})
+
+# Note: Broad exception handling removed to strictly match ClientSearch style.
+# Consider adding it back if more robustness is needed.

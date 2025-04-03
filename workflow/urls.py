@@ -46,7 +46,6 @@ from workflow.api.reports.pnl import CompanyProfitAndLossReport
 from workflow.views import (
     client_view,
     edit_job_view_ajax,
-    invoice_view,
     kanban_view,
     staff_view,
     submit_quote_view,
@@ -58,7 +57,7 @@ from workflow.views import (
 from workflow.views.xero import xero_view
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
-from workflow.views import password_views, stock_view 
+from workflow.views import password_views, stock_view, use_stock_view
 from workflow.views.purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, autosave_purchase_order_view
 from workflow.views.delivery_receipt_view import DeliveryReceiptListView, DeliveryReceiptCreateView
 
@@ -121,11 +120,11 @@ urlpatterns = [
         stock_view.consume_stock_api_view, # Point to the new view
         name="consume_stock_api"
     ),
-    # Get Available Stock for Job API
+    # Stock Search API (for autocomplete)
     path(
-        "api/job/<uuid:job_id>/available-stock/",
-        stock_view.get_available_stock_api_view,
-        name="get_available_stock_api"
+        "api/stock/search/",
+        stock_view.search_available_stock_api,
+        name="search_stock_api"
     ),
     path(
         "api/job/advanced-search/",
@@ -238,12 +237,6 @@ urlpatterns = [
     ),
     path("client/add/", client_view.AddClient, name="add_client"),
     path("clients/unused/", client_view.UnusedClientsView.as_view(), name="unused_clients"),
-    path("invoices/", invoice_view.InvoiceListView.as_view(), name="list_invoices"),
-    path(
-        "invoices/<uuid:pk>",
-        invoice_view.InvoiceUpdateView.as_view(),
-        name="update_invoice",
-    ),
     # Job URLs
     # Job Pricing URLs
     # Entry URLs
@@ -367,7 +360,10 @@ urlpatterns = [
     # Delivery Receipt URLs
     path('delivery-receipts/', DeliveryReceiptListView.as_view(), name='delivery_receipts'),
     path('delivery-receipts/<uuid:pk>/', DeliveryReceiptCreateView.as_view(), name='edit_delivery_receipt'),
-
+    
+    # Stock Management URLs
+    path('use-stock/', use_stock_view.use_stock_view, name='use_stock'),
+    
     # This URL doesn't match our naming pattern - need to fix.
     # Probably should be in api/internal?
     path(
