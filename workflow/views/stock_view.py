@@ -71,8 +71,15 @@ def consume_stock_api_view(request):
         logger.info(f"Created MaterialEntry {material_entry.id} for Job {job_id} from Stock {stock_item_id}")
 
         stock_item.quantity -= quantity_used
-        stock_item.save(update_fields=['quantity'])
-        logger.info(f"Updated Stock {stock_item_id} quantity to {stock_item.quantity}")
+        
+        # If quantity is now zero, set is_active to False
+        if stock_item.quantity <= 0:
+            stock_item.is_active = False
+            stock_item.save(update_fields=['quantity', 'is_active'])
+            logger.info(f"Updated Stock {stock_item_id} quantity to {stock_item.quantity} and deactivated it")
+        else:
+            stock_item.save(update_fields=['quantity'])
+            logger.info(f"Updated Stock {stock_item_id} quantity to {stock_item.quantity}")
 
         # --- Prepare Success Response ---
         response_data = {

@@ -45,6 +45,10 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error('Stock data element not found');
     }
     
+    // Check if a default job ID is provided
+    const defaultJobId = document.getElementById('defaultJobId')?.value;
+    
+
     // Column definitions for AG Grid
     const columnDefs = [
         { field: 'description', headerName: 'Description', flex: 2, filter: true, sortable: true },
@@ -162,20 +166,29 @@ document.addEventListener('DOMContentLoaded', function() {
             availableQuantityInput.value = stockItem.quantity;
             unitCostInput.value = stockItem.unit_cost;
             
-            // Reset other form fields
-            jobSelect.value = '';
+            // Set job selection - use default job ID if available
+            if (defaultJobId) {
+                jobSelect.value = defaultJobId;
+            } else {
+                jobSelect.value = '';
+            }
             
             // Set quantity based on button clicked
             if (useAll) {
                 quantityUsedInput.value = stockItem.quantity;
             } else {
-                quantityUsedInput.value = '';
+                // Set a default value of 1 or the max available quantity, whichever is smaller
+                const defaultQuantity = Math.min(1, parseFloat(stockItem.quantity));
+                quantityUsedInput.value = defaultQuantity;
             }
             
             quantityUsedInput.classList.remove('is-invalid');
             
             // Set max quantity
             quantityUsedInput.max = stockItem.quantity;
+            
+            // Validate the quantity after setting values
+            validateQuantity();
             
             // Show modal
             useStockModal.show();
@@ -215,6 +228,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const quantityUsed = parseFloat(quantityUsedInput.value || 0);
         const maxQuantity = parseFloat(quantityUsedInput.max || 0);
         let isValid = true;
+        // Simple debug logging
+        console.log('validateQuantity:', quantityUsed, maxQuantity);
+        console.log('Raw values:', quantityUsedInput.value, quantityUsedInput.max);
+        console.log('Condition result:', (quantityUsed <= 0 || quantityUsed > maxQuantity));
+        console.log('HTML5 validity:', quantityUsedInput.validity.valid);
+        
         
         if (quantityUsed <= 0 || quantityUsed > maxQuantity) {
             quantityUsedInput.classList.add('is-invalid');

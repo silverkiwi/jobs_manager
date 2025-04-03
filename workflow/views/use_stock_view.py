@@ -7,11 +7,18 @@ from workflow.utils import get_active_jobs
 from workflow.enums import MetalType
 
 logger = logging.getLogger(__name__)
-def use_stock_view(request):
+def use_stock_view(request, job_id=None):
     """
     View for the Use Stock page.
     Displays a list of available stock items and allows searching and consuming stock.
+    
+    Args:
+        request: The HTTP request
+        job_id: Optional job ID to pre-select in the dropdown (can be provided in URL path or query string)
     """
+    # Check if job_id is provided in query string
+    if not job_id and request.GET.get('job_id'):
+        job_id = request.GET.get('job_id')
     # Get all active stock items
     stock_items = Stock.objects.filter(is_active=True).order_by('description')
     
@@ -43,6 +50,15 @@ def use_stock_view(request):
             'location': item.location or ''
         })
     
+    # If job_id is provided, get the job object to pass to the template
+    default_job = None
+    if job_id:
+        try:
+            default_job = next((job for job in active_jobs if str(job.id) == str(job_id)), None)
+        except Exception as e:
+            logger.error(f"Error finding job with ID {job_id}: {e}")
+            # redirect to the error page here
+
     context = {
         'title': 'Use Stock',
         'stock_items': stock_items,
@@ -50,6 +66,7 @@ def use_stock_view(request):
         'active_jobs': active_jobs,
         'stock_holding_job': stock_holding_job,
         'metal_types': MetalType.choices,
+        'default_job_id': str(job_id) if job_id else None,
     }
     
     return render(request, 'purchases/use_stock.html', context)

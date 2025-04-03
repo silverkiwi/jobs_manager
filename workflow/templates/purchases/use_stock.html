@@ -87,6 +87,11 @@
 <script type="application/json" id="stockData">{{ stock_data_json|safe }}</script>
 {% csrf_token %}
 
+<!-- Hidden default job ID if provided -->
+{% if default_job_id %}
+<input type="hidden" id="defaultJobId" value="{{ default_job_id }}">
+{% endif %}
+
 <!-- Use Stock Modal -->
 <div class="modal fade" id="useStockModal" tabindex="-1" aria-labelledby="useStockModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -126,7 +131,7 @@
                     
                     <div class="mb-3">
                         <label for="quantityUsed" class="form-label">Quantity to Use</label>
-                        <input type="number" class="form-control" id="quantityUsed" min="0.01" step="0.01" required>
+                        <input type="number" class="form-control" id="quantityUsed" min="0.01" step="any" required>
                         <div class="invalid-feedback">
                             Please enter a valid quantity (must be greater than 0 and not exceed available quantity).
                         </div>
