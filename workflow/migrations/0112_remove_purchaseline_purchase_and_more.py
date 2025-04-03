@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("workflow", "0110_purchaseorder_reference"),
+        ("workflow", "0111_alter_timeentry_minutes_per_item"),
     ]
 
     operations = [
