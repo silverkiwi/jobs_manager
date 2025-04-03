@@ -114,11 +114,21 @@ urlpatterns = [
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
     ),
-    # Stock Consumption API
+    # Stock APIs
     path(
         "api/stock/consume/",
-        stock_view.consume_stock_api_view, # Point to the new view
+        stock_view.consume_stock_api_view,
         name="consume_stock_api"
+    ),
+    path(
+        "api/stock/create/",
+        stock_view.create_stock_api_view,
+        name="create_stock_api"
+    ),
+    path(
+        "api/stock/<uuid:stock_id>/deactivate/",
+        stock_view.deactivate_stock_api_view,
+        name="deactivate_stock_api"
     ),
     # Stock Search API (for autocomplete)
     path(
@@ -352,17 +362,17 @@ urlpatterns = [
         ),
         name="password_change_done",
     ),
-    # Purchase Order URLs
-    path('purchase-orders/', PurchaseOrderListView.as_view(), name='purchase_orders'),
-    path('purchase-orders/new/', PurchaseOrderCreateView.as_view(), name='new_purchase_order'),
-    path('purchase-orders/<uuid:pk>/', PurchaseOrderCreateView.as_view(), name='edit_purchase_order'),
+    # Purchase Order URLs with purchases prefix
+    path('purchases/purchase-orders/', PurchaseOrderListView.as_view(), name='purchase_orders'),
+    path('purchases/purchase-orders/new/', PurchaseOrderCreateView.as_view(), name='new_purchase_order'),
+    path('purchases/purchase-orders/<uuid:pk>/', PurchaseOrderCreateView.as_view(), name='edit_purchase_order'),
 
-    # Delivery Receipt URLs
-    path('delivery-receipts/', DeliveryReceiptListView.as_view(), name='delivery_receipts'),
-    path('delivery-receipts/<uuid:pk>/', DeliveryReceiptCreateView.as_view(), name='edit_delivery_receipt'),
+    # Delivery Receipt URLs with purchases prefix
+    path('purchases/delivery-receipts/', DeliveryReceiptListView.as_view(), name='delivery_receipts'),
+    path('purchases/delivery-receipts/<uuid:pk>/', DeliveryReceiptCreateView.as_view(), name='edit_delivery_receipt'),
     
-    # Stock Management URLs
-    path('use-stock/', use_stock_view.use_stock_view, name='use_stock'),
+    # Stock Management URLs with purchases prefix
+    path('purchases/use-stock/', use_stock_view.use_stock_view, name='use_stock'),
     
     # This URL doesn't match our naming pattern - need to fix.
     # Probably should be in api/internal?

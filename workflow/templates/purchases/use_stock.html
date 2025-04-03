@@ -158,7 +158,7 @@
                     
                     <div class="mb-3">
                         <label for="newStockQuantity" class="form-label">Quantity</label>
-                        <input type="number" class="form-control" id="newStockQuantity" min="0.01" step="0.01" required>
+                        <input type="number" class="form-control" id="newStockQuantity" min="0.01" step="0.01" value="1" required>
                     </div>
                     
                     <div class="mb-3">
@@ -167,14 +167,30 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="newStockSource" class="form-label">Source</label>
-                        <select class="form-select" id="newStockSource" required>
-                            <option value="" selected disabled>Select source...</option>
-                            <option value="purchase_order">Purchase Order Receipt</option>
-                            <option value="split_from_stock">Split/Offcut from Stock</option>
-                            <option value="manual">Manual Adjustment/Stocktake</option>
+                        <label for="newStockMetalType" class="form-label">Metal Type</label>
+                        <select class="form-select" id="newStockMetalType">
+                            {% for value, display_name in metal_types %}
+                            <option value="{{ value }}" {% if value == 'unspecified' %}selected{% endif %}>{{ display_name }}</option>
+                            {% endfor %}
                         </select>
                     </div>
+                    
+                    <div class="mb-3">
+                        <label for="newStockAlloy" class="form-label">Alloy (optional)</label>
+                        <input type="text" class="form-control" id="newStockAlloy" placeholder="e.g., 304, 6061">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="newStockSpecifics" class="form-label">Specifics (optional)</label>
+                        <input type="text" class="form-control" id="newStockSpecifics" placeholder="e.g., m8 countersunk socket screw">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="newStockLocation" class="form-label">Location (optional)</label>
+                        <input type="text" class="form-control" id="newStockLocation" placeholder="Where this item is stored">
+                    </div>
+                    
+                    <input type="hidden" id="newStockSource" value="manual">
                     
                     <div class="mb-3">
                         <label for="newStockNotes" class="form-label">Notes</label>

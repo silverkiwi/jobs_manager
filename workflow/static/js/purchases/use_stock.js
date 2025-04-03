@@ -48,10 +48,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Column definitions for AG Grid
     const columnDefs = [
         { field: 'description', headerName: 'Description', flex: 2, filter: true, sortable: true },
+        { field: 'metal_type', headerName: 'Metal Type', flex: 1, filter: true, sortable: true },
+        { field: 'alloy', headerName: 'Alloy', flex: 1, filter: true, sortable: true },
+        { field: 'specifics', headerName: 'Specifics', flex: 1, filter: true, sortable: true },
         { field: 'quantity', headerName: 'Quantity', flex: 1, sortable: true },
         { field: 'unit_cost', headerName: 'Unit Cost', flex: 1, valueFormatter: params => `$${parseFloat(params.value).toFixed(2)}` },
         { field: 'unit_revenue', headerName: 'Unit Revenue', flex: 1, valueFormatter: params => `$${parseFloat(params.value).toFixed(2)}` },
         { field: 'total_value', headerName: 'Total Value', flex: 1, valueFormatter: params => `$${parseFloat(params.value).toFixed(2)}` },
+        { field: 'location', headerName: 'Location', flex: 1, filter: true, sortable: true },
         {
             headerName: 'Actions',
             flex: 3,
@@ -99,9 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
         rowClass: 'ag-row-compact', // Add a class for custom styling
         overlayNoRowsTemplate: '<div class="no-results">No stock items available</div>'
     };
-    
     // Initialize the grid
-    const grid = new agGrid.Grid(stockGrid, gridOptions);
+    const grid = agGrid.createGrid(stockGrid, gridOptions);
     
     // Add event listener for the grid
     stockGrid.addEventListener('click', function(event) {
@@ -170,10 +173,14 @@ document.addEventListener('DOMContentLoaded', function() {
     addStockBtn.addEventListener('click', function() {
         // Reset form fields
         newStockDescriptionInput.value = '';
-        newStockQuantityInput.value = '';
+        newStockQuantityInput.value = '1'; 
         newStockUnitCostInput.value = '';
-        newStockSourceSelect.value = '';
+        newStockSourceSelect.value = 'manual';
         newStockNotesInput.value = '';
+        document.getElementById('newStockMetalType').value = 'unspecified';
+        document.getElementById('newStockAlloy').value = '';
+        document.getElementById('newStockSpecifics').value = '';
+        document.getElementById('newStockLocation').value = '';
         
         // Show modal
         addStockModal.show();
@@ -284,7 +291,11 @@ document.addEventListener('DOMContentLoaded', function() {
             quantity: parseFloat(newStockQuantityInput.value),
             unit_cost: parseFloat(newStockUnitCostInput.value),
             source: newStockSourceSelect.value,
-            notes: newStockNotesInput.value
+            notes: newStockNotesInput.value,
+            metal_type: document.getElementById('newStockMetalType').value,
+            alloy: document.getElementById('newStockAlloy').value,
+            specifics: document.getElementById('newStockSpecifics').value,
+            location: document.getElementById('newStockLocation').value
         };
         
         try {

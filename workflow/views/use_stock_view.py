@@ -4,10 +4,9 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from workflow.models import Stock, CompanyDefaults
 from workflow.utils import get_active_jobs
+from workflow.enums import MetalType
 
 logger = logging.getLogger(__name__)
-
-@login_required
 def use_stock_view(request):
     """
     View for the Use Stock page.
@@ -32,12 +31,16 @@ def use_stock_view(request):
         total_value = item.quantity * item.unit_cost
         
         stock_data.append({
-            'id': item.id,
+            'id': str(item.id),  # Convert UUID to string
             'description': item.description,
             'quantity': float(item.quantity),
             'unit_cost': float(item.unit_cost),
             'unit_revenue': float(unit_revenue),
-            'total_value': float(total_value)
+            'total_value': float(total_value),
+            'metal_type': item.metal_type,
+            'alloy': item.alloy or '',
+            'specifics': item.specifics or '',
+            'location': item.location or ''
         })
     
     context = {
@@ -46,6 +49,7 @@ def use_stock_view(request):
         'stock_data_json': json.dumps(stock_data),
         'active_jobs': active_jobs,
         'stock_holding_job': stock_holding_job,
+        'metal_types': MetalType.choices,
     }
     
     return render(request, 'purchases/use_stock.html', context)

@@ -1,13 +1,16 @@
 from decimal import Decimal
+import uuid
 from django.db import models
 from django.utils import timezone
 import logging
 
+from workflow.enums import MetalType
 from workflow.models.job import Job
 
 logger = logging.getLogger(__name__)
 
 class Stock(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """
     Model for tracking inventory items.
     Each stock item represents a quantity of material that can be assigned to jobs.
@@ -71,10 +74,32 @@ class Stock(models.Model):
         related_name='child_stock_splits',
         help_text="The parent stock item this was split from (if source='split_from_stock')"
     )
-
+    location = models.TextField(
+        blank=True,
+        help_text="Where we are keeping this"
+    )
     notes = models.TextField(
         blank=True,
         help_text="Additional notes about the stock item"
+    )
+    metal_type = models.CharField(
+        max_length=100,
+        choices=MetalType.choices,
+        default=MetalType.UNSPECIFIED,
+        blank=True,
+        help_text="Type of metal"
+    )
+    alloy = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Alloy specification (e.g., 304, 6061)"
+    )
+    specifics = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Specific details (e.g., m8 countersunk socket screw)"
     )
     is_active = models.BooleanField(default=True, db_index=True, help_text="False when quantity reaches zero or item is fully consumed/transformed")
     

@@ -8,12 +8,11 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 
-from workflow.models import Job, Stock, MaterialEntry, JobPricing
+from workflow.models import Job, Stock, MaterialEntry, JobPricing, CompanyDefaults
 from workflow.enums import JobPricingStage
 
 logger = logging.getLogger(__name__)
 
-@login_required
 @require_http_methods(["POST"])
 @transaction.atomic # Ensure database operations are atomic
 def consume_stock_api_view(request):
@@ -103,6 +102,100 @@ def consume_stock_api_view(request):
         logger.exception(f"Unexpected error consuming stock: {e}")
         return JsonResponse({'error': 'An unexpected server error occurred.'}, status=500)
 
+@require_http_methods(["POST"])
+@transaction.atomic
+def create_stock_api_view(request):
+    """
+    API endpoint to create a new stock item.
+    """
+    try:
+        data = json.loads(request.body)
+        description = data.get('description')
+        quantity_str = data.get('quantity')
+        unit_cost_str = data.get('unit_cost')
+        source = data.get('source')
+        notes = data.get('notes', '')
+        metal_type = data.get('metal_type', '')
+        alloy = data.get('alloy', '')
+        specifics = data.get('specifics', '')
+        location = data.get('location', '')
+
+        # --- Validation ---
+        if not all([description, quantity_str, unit_cost_str, source]):
+            logger.warning("Create stock request missing required data.")
+            return JsonResponse({'error': "Missing required data."}, status=400)
+
+        try:
+            quantity = Decimal(str(quantity_str))
+            if quantity <= 0:
+                logger.warning(f"Invalid quantity ({quantity}) for new stock.")
+                return JsonResponse({'error': "Quantity must be positive."}, status=400)
+        except (InvalidOperation, TypeError):
+            logger.warning(f"Invalid quantity format received: {quantity_str}")
+            return JsonResponse({'error': "Invalid quantity format."}, status=400)
+
+        try:
+            unit_cost = Decimal(str(unit_cost_str))
+            if unit_cost <= 0:
+                logger.warning(f"Invalid unit cost ({unit_cost}) for new stock.")
+                return JsonResponse({'error': "Unit cost must be positive."}, status=400)
+        except (InvalidOperation, TypeError):
+            logger.warning(f"Invalid unit cost format received: {unit_cost_str}")
+            return JsonResponse({'error': "Invalid unit cost format."}, status=400)
+
+        # Get the stock holding job
+        stock_holding_job = Stock.get_stock_holding_job()
+
+        # Get company defaults for markup calculation
+        company_defaults = CompanyDefaults.get_instance()
+        materials_markup = company_defaults.materials_markup
+
+        # Create the stock item
+        stock_item = Stock.objects.create(
+            job=stock_holding_job,
+            description=description,
+            quantity=quantity,
+            unit_cost=unit_cost,
+            source=source,
+            notes=notes,
+            metal_type=metal_type,
+            alloy=alloy,
+            specifics=specifics,
+            location=location,
+            is_active=True
+        )
+        logger.info(f"Created new Stock item {stock_item.id}: {description}")
+
+        # Calculate unit revenue using the materials markup
+        unit_revenue = unit_cost * (1 + materials_markup)
+        total_value = quantity * unit_cost
+
+        # Prepare response data
+        response_data = {
+            'success': True,
+            'message': 'Stock item created successfully.',
+            'stock_item': {
+                'id': str(stock_item.id),
+                'description': stock_item.description,
+                'quantity': float(stock_item.quantity),
+                'unit_cost': float(stock_item.unit_cost),
+                'unit_revenue': float(unit_revenue),
+                'total_value': float(total_value),
+                'metal_type': stock_item.metal_type,
+                'alloy': stock_item.alloy,
+                'specifics': stock_item.specifics,
+                'location': stock_item.location
+            }
+        }
+        return JsonResponse(response_data, status=201)  # Use 201 for resource creation
+
+    except json.JSONDecodeError:
+        logger.warning("Invalid JSON received for stock creation.")
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+    except Exception as e:
+        logger.exception(f"Unexpected error creating stock: {e}")
+        return JsonResponse({'error': 'An unexpected server error occurred.'}, status=500)
+
 def search_available_stock_api(request):
     """
     API endpoint to search available stock items for autocomplete.
@@ -141,3 +234,32 @@ def search_available_stock_api(request):
 
 # Note: Broad exception handling removed to strictly match ClientSearch style.
 # Consider adding it back if more robustness is needed.
+
+@require_http_methods(["POST"])
+@transaction.atomic
+def deactivate_stock_api_view(request, stock_id):
+    """
+    API endpoint to deactivate a stock item (soft delete).
+    Sets is_active=False to hide it from the UI.
+    """
+    try:
+        # Get the stock item
+        stock_item = get_object_or_404(Stock, id=stock_id)
+        
+        # Set is_active to False (soft delete)
+        stock_item.is_active = False
+        stock_item.save(update_fields=['is_active'])
+        
+        logger.info(f"Deactivated Stock item {stock_id}: {stock_item.description}")
+        
+        # Return success response
+        return JsonResponse({
+            'success': True,
+            'message': 'Stock item deleted successfully.'
+        })
+    except Http404 as e:
+        logger.warning(f"Stock item not found for deactivation: {stock_id}")
+        return JsonResponse({'error': str(e)}, status=404)
+    except Exception as e:
+        logger.exception(f"Unexpected error deactivating stock: {e}")
+        return JsonResponse({'error': 'An unexpected server error occurred.'}, status=500)
