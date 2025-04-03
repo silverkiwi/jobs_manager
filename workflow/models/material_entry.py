@@ -35,13 +35,21 @@ class MaterialEntry(models.Model):
     unit_revenue = models.DecimalField(
         max_digits=10, decimal_places=2, null=False, default=0
     )
+    source_stock = models.ForeignKey(
+        'Stock',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='consumed_entries',
+        help_text="The Stock item consumed to create this entry"
+    )
     purchase_order_line = models.ForeignKey(
         PurchaseOrderLine,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="material_entries",
-        help_text="Source purchase order line if created from a PO receipt",
+        help_text="Convenience link to original PO line (derived via source_stock)",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

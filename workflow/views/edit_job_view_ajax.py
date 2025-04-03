@@ -408,7 +408,6 @@ def process_month_end(request):
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
 
-@login_required
 @require_http_methods(["POST"])
 def add_job_event(request, job_id):
     """
@@ -625,7 +624,6 @@ def toggle_pricing_type(request):
 
 
 @require_http_methods(["POST"])
-@login_required
 def delete_job(request, job_id):
     """
     Deletes a job if it doesn't have any reality job pricing with actual data.
