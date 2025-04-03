@@ -1,6 +1,6 @@
 /**
- * Purchase Order Autosave
- * 
+ * Purchase Order Autosav
+ *
  * Handles automatic saving of purchase order data as changes are made.
  * Uses debouncing to prevent excessive server requests.
  * Follows the same pattern as timesheet autosave for consistency.
@@ -32,7 +32,7 @@ export function markLineItemAsDeleted(lineItemId) {
  */
 function debounce(func, wait) {
   let timeout;
-  return function(...args) {
+  return function (...args) {
     clearTimeout(timeout);
     return new Promise((resolve) => {
       timeout = setTimeout(() => {
@@ -47,115 +47,78 @@ function debounce(func, wait) {
  * @returns {Object} Object containing purchase order and line item data
  */
 export function collectPurchaseOrderData() {
-  console.log('Collecting purchase order data for autosave');
-  
+  console.log("Collecting purchase order data for autosave");
+
   // Get basic form data
-  const purchaseOrderIdEl = document.getElementById('purchase_order_id');
-  const clientIdEl = document.getElementById('client_id');
-  const expectedDeliveryEl = document.getElementById('expected_delivery');
-  const orderDateEl = document.getElementById('order_date');
-  const statusEl = document.getElementById('status');
-  
+  const purchaseOrderIdEl = document.getElementById("purchase_order_id");
+  const clientIdEl = document.getElementById("client_id");
+  const expectedDeliveryEl = document.getElementById("expected_delivery");
+  const orderDateEl = document.getElementById("order_date");
+  const statusEl = document.getElementById("status");
+
   const purchaseOrderData = {
     id: purchaseOrderIdEl ? purchaseOrderIdEl.value : null,
     client_id: clientIdEl ? clientIdEl.value : null,
     expected_delivery: expectedDeliveryEl ? expectedDeliveryEl.value : null,
     order_date: orderDateEl ? orderDateEl.value : null,
-    status: statusEl ? statusEl.value : 'draft',
+    status: statusEl ? statusEl.value : "draft",
   };
-  
+
   // Collect line items from the grid
   const lineItems = [];
   if (window.grid) {
-    window.grid.forEachNode(node => {
+    window.grid.forEachNode((node) => {
       // Only include rows that have some data
-      if (node.data.job || node.data.description ||
-          node.data.quantity > 0 || node.data.unit_cost !== '' || node.data.price_tbc) {
-        lineItems.push({...node.data});
+      if (
+        node.data.job ||
+        node.data.description ||
+        node.data.quantity > 0 ||
+        node.data.unit_cost !== "" ||
+        node.data.price_tbc
+      ) {
+        lineItems.push({ ...node.data });
       }
     });
   }
-  
+
   return {
     purchase_order: purchaseOrderData,
     line_items: lineItems,
-    deleted_line_items: deletedLineItems
+    deleted_line_items: deletedLineItems,
   };
 }
 
 /**
- * Validates if the purchase order data is complete
+ * Validates if the purchase order data is complete, and filter nodes that are empty
  * @param {Object} data The data to validate
- * @returns {boolean} True if valid, false otherwise
+ * @returns {Object} The inputted data, filtered with the valid nodes
  */
 function validatePurchaseOrderData(data) {
-  // Check for incomplete line items
-  const incompleteItems = data.line_items.filter(
-    item => !item.job || !item.description
+  data.line_items = data.line_items.filter(
+    (item) =>
+      item.job && item.description && (item.price_tbc || item.unit_cost),
   );
-  
-  // Get the purchase order ID if it exists
-  const purchaseOrderIdEl = document.getElementById('purchase_order_id');
-  const isPurchaseOrderEdit = purchaseOrderIdEl && purchaseOrderIdEl.value;
-  
-  // If there are incomplete items, show an error
-  if (incompleteItems.length > 0) {
-    console.log("Found incomplete line items, cannot save:", incompleteItems);
-    
-    // Create detailed error messages
-    const messages = [];
-    incompleteItems.forEach((item, index) => {
-      const lineNumber = data.line_items.indexOf(item) + 1;
-      const missing = !item.job ? 'job' : (!item.description ? 'description' : 'required fields');
-      messages.push({
-        level: "error",
-        message: `Line ${lineNumber}: Missing ${missing}.`
-      });
-    });
-    
-    // Add a summary message
-    messages.push({
-      level: "error",
-      message: "Cannot save: Please complete all required fields in line items."
-    });
-    
-    renderMessages(messages, "purchase-order-messages");
-    return false;
-  }
-  
-  // Check if we have anything to save for new POs
-  const completeItems = data.line_items.filter(
-    item => item.job && item.description
-  );
-  
-  if (
-    completeItems.length === 0 &&
-    data.deleted_line_items.length === 0 &&
-    !isPurchaseOrderEdit
-  ) {
-    console.log("No data to save - no complete line items, deletions, or purchase order changes");
-    return false;
-  }
-  
-  return true;
+
+  return data;
 }
 
 /**
  * Main autosave function that collects data and sends it to the server
  */
 function autosaveData() {
-  console.log('Autosaving purchase order data');
-  const collectedData = collectPurchaseOrderData();
-  
-  if (!validatePurchaseOrderData(collectedData)) {
-    return Promise.resolve(false);
+  console.log("Autosaving purchase order data");
+  let collectedData = validatePurchaseOrderData(collectPurchaseOrderData());
+
+  if (!collectedData || !(collectedData.line_items.length > 0)) {
+    console.log("No data to be saved - no valid rows detected.");
+    return;
   }
-  
+
   console.log("Saving data:", {
     lineItems: collectedData.line_items.length,
     deletedLineItems: collectedData.deleted_line_items.length,
   });
-  
+
   return saveDataToServer(collectedData);
 }
 
@@ -164,79 +127,126 @@ function autosaveData() {
  * @param {Object} collectedData The data to save
  * @returns {Promise} A promise that resolves to true if save was successful
  */
-export function saveDataToServer(collectedData) {
-  console.log("Autosaving purchase order data to /api/autosave-purchase-order/...", {
-    line_items: collectedData.line_items.length,
-    deleted_line_items: collectedData.deleted_line_items.length,
-  });
-  
-  return fetch('/api/autosave-purchase-order/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken()
+export async function saveDataToServer(collectedData) {
+  console.log(
+    "Autosaving purchase order data to /api/autosave-purchase-order/...",
+    {
+      line_items: collectedData.line_items.length,
+      deleted_line_items: collectedData.deleted_line_items.length,
     },
-    body: JSON.stringify(collectedData)
+  );
+
+  return fetch("/api/autosave-purchase-order/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCsrfToken(),
+    },
+    body: JSON.stringify(collectedData),
   })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`Server responded with status ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    if (data.success) {
-      console.log('Autosave successful', data);
-      // If a new PO was created (or updated), update the hidden input and global data
-      if (data.id && data.po_number) {
-          const purchaseOrderIdInput = document.getElementById('purchase_order_id');
-          // Update hidden input only if it's currently empty (i.e., after initial creation)
-          if (purchaseOrderIdInput && !purchaseOrderIdInput.value) {
-              console.log(`Updating hidden input with new PO ID: ${data.id}`);
-              purchaseOrderIdInput.value = data.id;
-          }
-          // Update the global data store regardless (to keep it in sync)
-          if (window.purchaseData && window.purchaseData.purchaseOrder) {
-              window.purchaseData.purchaseOrder.id = data.id;
-              window.purchaseData.purchaseOrder.po_number = data.po_number;
-              // Optionally update the read-only PO number field if it exists and is empty
-              const poNumberInput = document.getElementById('po_number');
-              if (poNumberInput && !poNumberInput.value) {
-                  poNumberInput.value = data.po_number;
-              }
-          }
-          // Clear the deleted items list after a successful save (create or update)
-          // Prevents sending the same deletion request repeatedly
-          if (deletedLineItems.length > 0) {
-              deletedLineItems = [];
-              console.log("Cleared deleted line items list after successful save.");
-          }
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
       }
+      return response.json();
+    })
+    .then((data) => {
+      if (!data.success) {
+        // Log the more detailed error from the backend if available
+        console.error(
+          "Autosave failed:",
+          data.error ||
+            (data.messages
+              ? data.messages.map((m) => m.message).join("; ")
+              : "Unknown error"),
+        );
+        renderMessages(
+          [
+            {
+              level: "error",
+              message:
+                data.error || "Failed to save changes. Please try again.",
+            },
+          ],
+          "purchase-order",
+        );
+        return false;
+      }
+
+      console.log("Autosave successful", data);
+
+      // If a new PO was created (or updated), update the hidden input and global data
+      // If a PO was deleted, we do an early return with some logs
+      if (!data.id || !data.po_number) {
+        console.log("Successfully deleted selected items.");
+        return true;
+      }
+
+      const purchaseOrderIdInput = document.getElementById("purchase_order_id");
+
+      // Update hidden input only if it's currently empty (i.e., after initial creation)
+      if (purchaseOrderIdInput && !purchaseOrderIdInput.value) {
+        console.log(`Updating hidden input with new PO ID: ${data.id}`);
+        purchaseOrderIdInput.value = data.id;
+      }
+
+      // Update the global data store regardless (to keep it in sync)
+      if (window.purchaseData && window.purchaseData.purchaseOrder) {
+        window.purchaseData.purchaseOrder.id = data.id;
+        window.purchaseData.purchaseOrder.po_number = data.po_number;
+
+        // Optionally update the read-only PO number field if it exists and is empty
+        const poNumberInput = document.getElementById("po_number");
+        if (poNumberInput && !poNumberInput.value) {
+          poNumberInput.value = data.po_number;
+        }
+      }
+
+      // Clear the deleted items list after a successful save (create or update)
+      // Prevents sending the same deletion request repeatedly
+      if (deletedLineItems.length > 0) {
+        deletedLineItems = [];
+        console.log("Cleared deleted line items list after successful save.");
+      }
+
+      // Check if we're in the default PO creation page
+      const defaultCreationPage = window.location.pathname.includes(
+        "/purchases/purchase-orders/new/",
+      );
+
+      if (defaultCreationPage) {
+        renderMessages([
+          {
+            level: "success",
+            message: "Autosaved completed, redirecting you in seconds...",
+          },
+        ]);
+
+        setTimeout(() => {
+          window.location.href = `/purchases/purchase-orders/${data.id}/`;
+        }, 1500);
+
+        return true;
+      }
+
+      renderMessages([
+        { level: "success", message: "Autosaved completed successfully" },
+      ]);
       return true;
-    } else {
-      // Log the more detailed error from the backend if available
-      console.error('Autosave failed:', data.error || (data.messages ? data.messages.map(m => m.message).join('; ') : 'Unknown error'));
+    })
+    .catch((error) => {
+      console.error("Autosave error:", error);
       renderMessages(
-        [{
-          level: "error",
-          message: data.error || "Failed to save changes. Please try again."
-        }],
-        "purchase-order"
+        [
+          {
+            level: "error",
+            message: `Error saving changes: ${error.message}`,
+          },
+        ],
+        "purchase-order",
       );
       return false;
-    }
-  })
-  .catch(error => {
-    console.error('Autosave error:', error);
-    renderMessages(
-      [{
-        level: "error",
-        message: `Error saving changes: ${error.message}`
-      }],
-      "purchase-order"
-    );
-    return false;
-  });
+    });
 }
 
 /**

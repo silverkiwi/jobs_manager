@@ -132,9 +132,7 @@
         </div>
     </div>
 
-    <hr>
-
-    <div class="container-fluid d-flex flex-row gap-2">
+    <div class="container-fluid d-flex flex-row gap-2 d-none">
         <!-- Current Jobs Section -->
         <div class="flex-grow-1" style="flex-basis: 65%">
             <h4 class="text-center mb-3">Current Jobs</h4>
@@ -164,9 +162,7 @@
         </div>
     </div>
 
-    <hr>
-
-    <div class="d-flex justify-content-end gap-2">
+    <div class="d-flex justify-content-center gap-2">
         {# Show Submit button only if PO is not yet in Xero #}
         {% if not purchase_order.xero_purchase_order_id %}
         <button id="submit-purchase-order" class="btn btn-primary">
