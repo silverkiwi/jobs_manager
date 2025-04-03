@@ -53,8 +53,6 @@ document.addEventListener('DOMContentLoaded', function() {
         { field: 'specifics', headerName: 'Specifics', flex: 1, filter: true, sortable: true },
         { field: 'quantity', headerName: 'Quantity', flex: 1, sortable: true },
         { field: 'unit_cost', headerName: 'Unit Cost', flex: 1, valueFormatter: params => `$${parseFloat(params.value).toFixed(2)}` },
-        { field: 'unit_revenue', headerName: 'Unit Revenue', flex: 1, valueFormatter: params => `$${parseFloat(params.value).toFixed(2)}` },
-        { field: 'total_value', headerName: 'Total Value', flex: 1, valueFormatter: params => `$${parseFloat(params.value).toFixed(2)}` },
         { field: 'location', headerName: 'Location', flex: 1, filter: true, sortable: true },
         {
             headerName: 'Actions',
@@ -92,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
             resizable: true,
             sortable: true
         },
-        rowHeight: 30, // Smaller row height for compact display
+        rowHeight: 40, // Increased row height to fit buttons
         headerHeight: 35,
         suppressCellFocus: true,
         animateRows: true,
@@ -101,7 +99,18 @@ document.addEventListener('DOMContentLoaded', function() {
         domLayout: 'normal',
         rowSelection: 'single',
         rowClass: 'ag-row-compact', // Add a class for custom styling
-        overlayNoRowsTemplate: '<div class="no-results">No stock items available</div>'
+        overlayNoRowsTemplate: '<div class="no-results">No stock items available</div>',
+        // Add onGridReady callback to handle API initialization
+        onGridReady: function(params) {
+            // Store API reference for later use
+            gridOptions.api = params.api;
+            gridOptions.columnApi = params.columnApi;
+            
+            // Debug logs - commented out now that everything is working
+            // console.log('Grid API in onGridReady:', params.api);
+            // console.log('Grid API methods:', Object.keys(params.api || {}));
+            // console.log('gridOptions.api in onGridReady:', gridOptions.api);
+        }
     };
     // Initialize the grid
     const grid = agGrid.createGrid(stockGrid, gridOptions);
@@ -120,11 +129,15 @@ document.addEventListener('DOMContentLoaded', function() {
         let stockItem = null;
         
         // Search through all rows to find the matching stock item
-        gridOptions.api.forEachNode(node => {
-            if (node.data.id == stockId) {
-                stockItem = node.data;
-            }
-        });
+        if (gridOptions.api) {
+            gridOptions.api.forEachNode(node => {
+                if (node.data && node.data.id == stockId) {
+                    stockItem = node.data;
+                }
+            });
+        } else {
+            console.error('Grid API not available when trying to find stock item');
+        }
         
         if (!stockItem) {
             alert('Stock item not found. Please refresh the page and try again.');
@@ -189,7 +202,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Search functionality
     stockSearchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase().trim();
-        gridOptions.api.setQuickFilter(searchTerm);
+        // In AG Grid v33.0.2, use setGridOption to set the quickFilterText as per documentation
+        gridOptions.api.setGridOption('quickFilterText', searchTerm);
     });
     
     // Validate quantity input
