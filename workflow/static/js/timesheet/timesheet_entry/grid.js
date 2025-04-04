@@ -23,9 +23,9 @@ function billableCellRenderer(params) {
             <span style="font-size: 16px">❌</span>
             </div>`;
   }
-  
+
   // Renders the default checkbox for non-shop jobs
-  const checked = params.value ? 'checked' : '';
+  const checked = params.value ? "checked" : "";
   return `<input type="checkbox" ${checked} class="ag-checkbox-input" />`;
 }
 
@@ -88,7 +88,10 @@ export const gridOptions = {
       headerName: "Billable",
       width: 60,
       editable: (params) => {
-        console.log("Checking if billable is editable:", !params.data?.is_shop_job);
+        console.log(
+          "Checking if billable is editable:",
+          !params.data?.is_shop_job,
+        );
         return !params.data?.is_shop_job;
       },
       cellRenderer: billableCellRenderer,
@@ -255,8 +258,10 @@ export const gridOptions = {
 
       // Check if it's a shop job (client "MSM (Shop)")
       const isShopJob = job.client_name === "MSM (Shop)";
-      console.log(`Job ${job.job_number} client: ${job.client_name}, isShopJob: ${isShopJob}`);
-      
+      console.log(
+        `Job ${job.job_number} client: ${job.client_name}, isShopJob: ${isShopJob}`,
+      );
+
       // If it's a shop job, set is_billable as false
       if (isShopJob) {
         params.node.setDataValue("is_billable", false);
@@ -355,7 +360,7 @@ export const gridOptions = {
             console.log("Cannot toggle billable status for shop job");
             return;
           }
-          
+
           node.data.is_billable = !node.data.is_billable;
           api.refreshCells({
             rowNodes: [node],
@@ -389,7 +394,7 @@ function createNewRowShortcut(api) {
 // Check during initialization if any existing job is a shop job
 export function checkExistingShopJobs() {
   if (!window.grid) return;
-  
+
   window.grid.forEachNode((node) => {
     if (node.data?.job_data?.client_name === "MSM (Shop)") {
       console.log("Found existing shop job, setting is_shop_job flag");
@@ -397,6 +402,6 @@ export function checkExistingShopJobs() {
       node.setDataValue("is_billable", false);
     }
   });
-  
+
   window.grid.refreshCells({ force: true });
 }

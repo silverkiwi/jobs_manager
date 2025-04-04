@@ -117,7 +117,7 @@ export class ActiveJobCellEditor {
   filterJobs() {
     const searchTerm = this.input.value.trim().toLowerCase();
     const filteredJobs = this.jobs.filter((job) =>
-      job.job_display_name.toLowerCase().includes(searchTerm)
+      job.job_display_name.toLowerCase().includes(searchTerm),
     );
     this.populateList(filteredJobs.slice(0, 10)); // Limit results to 10
   }
@@ -130,7 +130,7 @@ export class ActiveJobCellEditor {
       case "ArrowDown":
         this.highlightedIndex = Math.min(
           this.highlightedIndex + 1,
-          items.length - 1
+          items.length - 1,
         );
         this.updateHighlight(items);
         break;

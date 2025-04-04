@@ -18,8 +18,12 @@ export async function uploadJobFile(jobNumber, file, method) {
   if (!jobNumber || !file) return;
 
   if (file.name !== "JobSummary.pdf") showUploadFeedback(file.name);
-  console.log(`[uploadJobFile] Starting file upload/update for job ${jobNumber} using ${method}`);
-  console.log(`[uploadJobFile] File details: name=${file.name}, size=${file.size}, type=${file.type}`);
+  console.log(
+    `[uploadJobFile] Starting file upload/update for job ${jobNumber} using ${method}`,
+  );
+  console.log(
+    `[uploadJobFile] File details: name=${file.name}, size=${file.size}, type=${file.type}`,
+  );
 
   const formData = createFileFormData(jobNumber, file);
   try {
@@ -39,7 +43,9 @@ function createFileFormData(jobNumber, file) {
 
 async function sendFileRequest(formData, method) {
   const endpoint = "/api/job-files/";
-  console.log(`[uploadJobFile] Sending request to ${endpoint} (method=${method})`);
+  console.log(
+    `[uploadJobFile] Sending request to ${endpoint} (method=${method})`,
+  );
 
   return fetch(endpoint, {
     method: method,
@@ -56,7 +62,10 @@ export function getCSRFToken() {
 
 async function processUploadResponse(response) {
   const data = await response.json();
-  console.log(`[uploadJobFile] Response: status=${response.status}, ok=${response.ok}`, data);
+  console.log(
+    `[uploadJobFile] Response: status=${response.status}, ok=${response.ok}`,
+    data,
+  );
 
   hideUploadFeedback();
 
@@ -95,7 +104,7 @@ export async function deleteFile(fileId) {
 function handleDeleteResponse(response, fileId) {
   if (!response.ok) {
     console.error(
-      `[deleteFile] Failed to delete file ID=${fileId}. Response status: ${response.status}`
+      `[deleteFile] Failed to delete file ID=${fileId}. Response status: ${response.status}`,
     );
     return;
   }
@@ -105,7 +114,9 @@ function handleDeleteResponse(response, fileId) {
 }
 
 function removeFileCard(fileId) {
-  const fileCard = document.querySelector(`[data-file-id="${fileId}"]`)?.closest(".file-card");
+  const fileCard = document
+    .querySelector(`[data-file-id="${fileId}"]`)
+    ?.closest(".file-card");
   if (fileCard) {
     fileCard.remove();
     updateNoFilesMessage();
@@ -252,18 +263,18 @@ function createNewFileGrid() {
 
 // Get file extension to display in the file card
 function getFileExtension(filename) {
-  const parts = filename.split('.');
+  const parts = filename.split(".");
   return parts.length > 1 ? `.${parts.pop().toUpperCase()}` : filename;
 }
 
 function showUploadFeedback(filename) {
   const feedbackEl = getOrCreateFeedbackElement();
   updateFeedbackFilename(feedbackEl, filename);
-  feedbackEl.style.display = 'flex';
+  feedbackEl.style.display = "flex";
 }
 
 function getOrCreateFeedbackElement() {
-  let feedbackEl = document.getElementById('file-upload-feedback');
+  let feedbackEl = document.getElementById("file-upload-feedback");
 
   if (feedbackEl) return feedbackEl;
 
@@ -275,9 +286,9 @@ function getOrCreateFeedbackElement() {
 }
 
 function createFeedbackElement() {
-  const element = document.createElement('div');
-  element.id = 'file-upload-feedback';
-  element.className = 'upload-feedback';
+  const element = document.createElement("div");
+  element.id = "file-upload-feedback";
+  element.className = "upload-feedback";
 
   element.innerHTML = `
     <div class="upload-spinner">
@@ -293,10 +304,10 @@ function createFeedbackElement() {
 }
 
 function ensureFeedbackStyles() {
-  if (document.getElementById('upload-feedback-styles')) return;
+  if (document.getElementById("upload-feedback-styles")) return;
 
-  const style = document.createElement('style');
-  style.id = 'upload-feedback-styles';
+  const style = document.createElement("style");
+  style.id = "upload-feedback-styles";
   style.textContent = `
     .upload-feedback {
       position: fixed;
@@ -328,13 +339,13 @@ function ensureFeedbackStyles() {
 }
 
 function updateFeedbackFilename(feedbackEl, filename) {
-  feedbackEl.querySelector('.upload-filename').textContent = filename;
+  feedbackEl.querySelector(".upload-filename").textContent = filename;
 }
 
 function hideUploadFeedback() {
-  const feedbackEl = document.getElementById('file-upload-feedback');
+  const feedbackEl = document.getElementById("file-upload-feedback");
   if (feedbackEl) {
-    feedbackEl.style.display = 'none';
+    feedbackEl.style.display = "none";
   }
 }
 
@@ -345,7 +356,7 @@ function updateNoFilesMessage() {
 
   if (!fileList) return;
 
-  const hasVisibleFiles = grid && grid.querySelector('.file-card:not(.d-none)');
+  const hasVisibleFiles = grid && grid.querySelector(".file-card:not(.d-none)");
   const existingMessage = fileList.querySelector(".alert.alert-info");
 
   if (hasVisibleFiles) {
@@ -369,7 +380,8 @@ function updateNoFilesMessage() {
 function createNoFilesMessage() {
   const message = document.createElement("div");
   message.className = "alert alert-info";
-  message.innerHTML = '<i class="bi bi-info-circle me-2"></i>No files attached to this job.';
+  message.innerHTML =
+    '<i class="bi bi-info-circle me-2"></i>No files attached to this job.';
   return message;
 }
 
@@ -402,7 +414,9 @@ async function handlePhotoCapture(e) {
 
   const jobNumber = document.querySelector('[name="job_number"]').value;
   if (!jobNumber) {
-    renderMessages([{ "level": "danger", "message": "A job number is required to add photos." }]);
+    renderMessages([
+      { level: "danger", message: "A job number is required to add photos." },
+    ]);
     return;
   }
 
@@ -420,12 +434,20 @@ async function handlePhotoCapture(e) {
 function setupDropZoneEvents(dropZone) {
   dropZone.addEventListener("drop", handleFileDrop);
 
-  ["dragenter", "dragover"].forEach(event =>
-    dropZone.addEventListener(event, () => dropZone.classList.add("drag-over"), false)
+  ["dragenter", "dragover"].forEach((event) =>
+    dropZone.addEventListener(
+      event,
+      () => dropZone.classList.add("drag-over"),
+      false,
+    ),
   );
 
-  ["dragleave", "drop"].forEach(event =>
-    dropZone.addEventListener(event, () => dropZone.classList.remove("drag-over"), false)
+  ["dragleave", "drop"].forEach((event) =>
+    dropZone.addEventListener(
+      event,
+      () => dropZone.classList.remove("drag-over"),
+      false,
+    ),
   );
 }
 
@@ -457,14 +479,22 @@ async function processFiles(files, jobNumber) {
       let fileToUpload = file;
 
       if (isImageFile(file)) {
-        console.log(`[processFiles] Compressing image before upload: ${file.name}`);
+        console.log(
+          `[processFiles] Compressing image before upload: ${file.name}`,
+        );
         fileToUpload = await compressImage(file);
       }
 
-      const fileExists = await checkExistingJobFile(jobNumber, fileToUpload.name);
+      const fileExists = await checkExistingJobFile(
+        jobNumber,
+        fileToUpload.name,
+      );
       await uploadJobFile(jobNumber, fileToUpload, fileExists ? "PUT" : "POST");
     } catch (error) {
-      console.error(`[processFiles] Error while searching file ${file.name}:`, error);
+      console.error(
+        `[processFiles] Error while searching file ${file.name}:`,
+        error,
+      );
     }
   }
 }
@@ -479,7 +509,7 @@ function setupDocumentEvents() {
 }
 
 function isImageFile(file) {
-  return file.type.startsWith('image/');
+  return file.type.startsWith("image/");
 }
 
 async function compressImage(file) {
@@ -513,22 +543,25 @@ async function compressImage(file) {
 
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          const compressedFile = new File([blob], file.name, {
-            type: "image/jpeg",
-            lastModified: Date.now()
-          });
+        canvas.toBlob(
+          (blob) => {
+            const compressedFile = new File([blob], file.name, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
 
-          console.log(`[compressImage] Compressed image ${file.name}:
+            console.log(`[compressImage] Compressed image ${file.name}:
             Original: ${(file.size / 1024 / 1024).toFixed(2)}MB,
             Compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB
           `);
 
-          resolve(compressedFile);
-        }, "image/jpeg", 0.7);
-
-      }
-    }
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          0.7,
+        );
+      };
+    };
   });
 }
 
@@ -560,10 +593,10 @@ async function capturePhotoFromCamera(jobNumber) {
 
       document.body.insertAdjacentHTML("beforeend", modalHtml);
 
-      const cameraModal = document.getElementById('cameraModal');
-      const videoElement = document.getElementById('camera-preview');
-      const captureButton = document.getElementById('capture-button');
-      const canvas = document.getElementById('camera-canvas');
+      const cameraModal = document.getElementById("cameraModal");
+      const videoElement = document.getElementById("camera-preview");
+      const captureButton = document.getElementById("capture-button");
+      const canvas = document.getElementById("camera-canvas");
 
       const modalInstance = new bootstrap.Modal(cameraModal);
 
@@ -571,7 +604,7 @@ async function capturePhotoFromCamera(jobNumber) {
 
       const cleanup = () => {
         if (videoElement.srcObject) {
-          videoElement.srcObject.getTracks().forEach(track => track.stop());
+          videoElement.srcObject.getTracks().forEach((track) => track.stop());
         }
 
         modalInstance.hide();
@@ -591,39 +624,57 @@ async function capturePhotoFromCamera(jobNumber) {
           video: {
             facingMode: "environment",
             width: { ideal: 1280 },
-            height: { ideal: 960 }
-          }
+            height: { ideal: 960 },
+          },
         })
-        .then(stream => {
+        .then((stream) => {
           videoElement.srcObject = stream;
 
-          captureButton.addEventListener('click', () => {
-
+          captureButton.addEventListener("click", () => {
             canvas.width = videoElement.videoWidth;
             canvas.height = videoElement.videoHeight;
 
-            const context = canvas.getContext('2d');
+            const context = canvas.getContext("2d");
             context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
-            canvas.toBlob(blob => {
-              const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-              const file = new File([blob], `photo-${timestamp}.jpg`, { type: 'image/jpeg' });
+            canvas.toBlob(
+              (blob) => {
+                const timestamp = new Date()
+                  .toISOString()
+                  .replace(/[:.]/g, "-");
+                const file = new File([blob], `photo-${timestamp}.jpg`, {
+                  type: "image/jpeg",
+                });
 
-              cleanup();
+                cleanup();
 
-              resolve(file);
-            }, 'image/jpeg', 0.85);
+                resolve(file);
+              },
+              "image/jpeg",
+              0.85,
+            );
           });
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error trying to access camera:", error);
           cleanup();
-          renderMessages([{ "level": "danger", "message": "It wasn't possible to access the camera. Check if you granted permission." }]);
+          renderMessages([
+            {
+              level: "danger",
+              message:
+                "It wasn't possible to access the camera. Check if you granted permission.",
+            },
+          ]);
           reject(error);
         });
     } catch (error) {
       console.error("Error trying to access camera:", error);
-      renderMessages([{ "level": "danger", "message": "Error initializing camera " + error.message }]);
+      renderMessages([
+        {
+          level: "danger",
+          message: "Error initializing camera " + error.message,
+        },
+      ]);
       reject(error);
     }
   });
