@@ -14,7 +14,7 @@ export function initializePaidAbsenceModal(modalId, apiUrl) {
   }
 
   const paidAbsenceButton = document.querySelector(
-    '[data-bs-target="#' + modalId + '"]'
+    '[data-bs-target="#' + modalId + '"]',
   );
   const modalContainer = modal.querySelector(".modal-body");
 
@@ -44,10 +44,9 @@ export function initializePaidAbsenceModal(modalId, apiUrl) {
 
       // Insert the form HTML
       modalContainer.innerHTML = data.form_html;
-      
+
       // Now that the form exists, add the event listener
       setupFormSubmissionListener(modal, apiUrl);
-      
     } catch (error) {
       console.error("Error loading form:", error);
       renderMessages([{ level: "error", message: "Failed to load form." }]);
@@ -60,18 +59,18 @@ export function initializePaidAbsenceModal(modalId, apiUrl) {
  */
 function setupFormSubmissionListener(modal, apiUrl) {
   const form = modal.querySelector("form#paid-absence-form");
-  
+
   if (!form) {
     console.error("Form not found after loading");
     return;
   }
-  
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    
+
     const formData = new FormData(form);
     formData.append("action", "submit_paid_absence");
-    
+
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -81,17 +80,21 @@ function setupFormSubmissionListener(modal, apiUrl) {
         },
         body: new URLSearchParams(formData),
       });
-      
+
       const data = await response.json();
-      
+
       // Show success or error messages
-      renderMessages(data.messages || [{ level: "error", message: "Invalid server response" }]);
-      
+      renderMessages(
+        data.messages || [
+          { level: "error", message: "Invalid server response" },
+        ],
+      );
+
       if (data.success) {
         // Close the modal
         const modalInstance = bootstrap.Modal.getInstance(modal);
         modalInstance.hide();
-        
+
         // If necessary, reload the page after success
         if (data.reload) {
           window.location.reload();

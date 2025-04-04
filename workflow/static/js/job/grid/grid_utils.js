@@ -12,18 +12,18 @@ export function calculateGridHeight(gridApi, numRows) {
 
 // Helper function to check rows and add correct overflows
 export function updateGridOverflowClasses() {
-  Object.keys(window.grids).forEach(gridKey => {
+  Object.keys(window.grids).forEach((gridKey) => {
     const api = window.grids[gridKey]?.api;
     if (api) {
       const gridElement = document.querySelector(`#${gridKey}`);
       if (gridElement) {
         const rowCount = api.getDisplayedRowCount();
         if (rowCount < 13) {
-          gridElement.classList.add('ag-rows-few');
-          gridElement.classList.remove('ag-rows-many');
+          gridElement.classList.add("ag-rows-few");
+          gridElement.classList.remove("ag-rows-many");
         } else {
-          gridElement.classList.add('ag-rows-many');
-          gridElement.classList.remove('ag-rows-few');
+          gridElement.classList.add("ag-rows-many");
+          gridElement.classList.remove("ag-rows-few");
         }
       }
     }
@@ -177,11 +177,15 @@ export function calculateTotalCost() {
 
 export function onCellKeyDown(params) {
   // For reality grids, or complex mode, add new rows on Enter
-  const gridKey = params.context?.gridKey || '';
-  const isComplex = document.getElementById("complex-job").textContent.toLowerCase() === 'true';
+  const gridKey = params.context?.gridKey || "";
+  const isComplex =
+    document.getElementById("complex-job").textContent.toLowerCase() === "true";
 
   // Handle Enter key for both complex mode and reality grids
-  if (params.event.key === "Enter" && (isComplex || gridKey.includes('reality'))) {
+  if (
+    params.event.key === "Enter" &&
+    (isComplex || gridKey.includes("reality"))
+  ) {
     const isLastRow = params.api.getDisplayedRowCount() - 1 === params.rowIndex;
     if (isLastRow) {
       const newRow = createNewRow(params.context.gridType);
@@ -310,13 +314,17 @@ export function adjustGridHeight(gridApi, containerId) {
  * Checks if there are any real values in the reality section and disables delete buttons if necessary
  */
 export function checkRealityValues() {
-  const realityGrids = ['realityTimeTable', 'realityMaterialsTable', 'realityAdjustmentsTable'];
+  const realityGrids = [
+    "realityTimeTable",
+    "realityMaterialsTable",
+    "realityAdjustmentsTable",
+  ];
   let hasRealValues = false;
 
-  realityGrids.forEach(gridKey => {
+  realityGrids.forEach((gridKey) => {
     const gridData = window.grids[gridKey];
     if (gridData && gridData.api) {
-      gridData.api.forEachNode(node => {
+      gridData.api.forEachNode((node) => {
         // Check for revenue or cost values > 0
         const revenue = parseFloat(node.data.revenue || 0);
         const cost = parseFloat(node.data.cost || 0);
@@ -329,9 +337,12 @@ export function checkRealityValues() {
         // For time entries, check minutes
         const minutes = parseFloat(node.data.total_minutes || 0);
 
-        if (revenue > 0 || cost > 0 ||
+        if (
+          revenue > 0 ||
+          cost > 0 ||
           (quantity > 0 && (unitCost > 0 || unitRevenue > 0)) ||
-          minutes > 0) {
+          minutes > 0
+        ) {
           hasRealValues = true;
         }
       });
@@ -340,7 +351,7 @@ export function checkRealityValues() {
 
   // Disable delete buttons in reality section if there are real values
   if (hasRealValues) {
-    const deleteButton = document.getElementById('delete-job-btn');
+    const deleteButton = document.getElementById("delete-job-btn");
     if (deleteButton) {
       deleteButton.disabled = true;
     }
@@ -348,15 +359,19 @@ export function checkRealityValues() {
 }
 
 export function checkJobAccepted() {
-  console.log("Job accepted?", document.getElementById("job_status").value === "approved");
+  console.log(
+    "Job accepted?",
+    document.getElementById("job_status").value === "approved",
+  );
   const job_status = document.getElementById("job_status").value;
-  const accepted = job_status === "approved" 
-    ? true 
-    : job_status === "completed"
-    ? true
-    : job_status === "archived"
-    ? true 
-    : false;
+  const accepted =
+    job_status === "approved"
+      ? true
+      : job_status === "completed"
+        ? true
+        : job_status === "archived"
+          ? true
+          : false;
   if (accepted) {
     lockQuoteGrids();
   }

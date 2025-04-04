@@ -6,13 +6,13 @@ const messageTimestamps = new Map();
 
 function canShowMessage(messageKey) {
   if (Environment && Environment.isDebugMode()) {
-    console.log('Checking message:', messageKey);
-    console.log('Message already sent:', sentMessages.has(messageKey));
+    console.log("Checking message:", messageKey);
+    console.log("Message already sent:", sentMessages.has(messageKey));
   }
 
   if (!sentMessages.has(messageKey)) {
     if (Environment && Environment.isDebugMode()) {
-      console.log('Message not sent before, allowing');
+      console.log("Message not sent before, allowing");
     }
     messageTimestamps.set(messageKey, Date.now());
     sentMessages.add(messageKey);
@@ -24,31 +24,31 @@ function canShowMessage(messageKey) {
   const timeDiff = now - lastShown;
 
   if (Environment && Environment.isDebugMode()) {
-    console.log('Last shown:', lastShown);
-    console.log('Current time:', now);
-    console.log('Time difference:', timeDiff);
-    console.log('Message timeout:', MESSAGE_TIMEOUT);
+    console.log("Last shown:", lastShown);
+    console.log("Current time:", now);
+    console.log("Time difference:", timeDiff);
+    console.log("Message timeout:", MESSAGE_TIMEOUT);
   }
 
   if (timeDiff >= MESSAGE_TIMEOUT) {
     if (Environment && Environment.isDebugMode()) {
-      console.log('Timeout exceeded, clearing message and allowing');
+      console.log("Timeout exceeded, clearing message and allowing");
     }
     messageTimestamps.set(messageKey, Date.now());
     return true;
   }
 
   if (Environment && Environment.isDebugMode()) {
-    console.log('Message blocked - too soon to show again');
+    console.log("Message blocked - too soon to show again");
   }
 
   return false;
 }
 
 function createToastContainer() {
-  const container = document.createElement('div');
-  container.className = 'toast-container position-fixed top-0 end-0 p-3';
-  container.style.zIndex = '1070';
+  const container = document.createElement("div");
+  container.className = "toast-container position-fixed top-0 end-0 p-3";
+  container.style.zIndex = "1070";
   document.body.appendChild(container);
   return container;
 }
@@ -78,7 +78,9 @@ export function renderMessages(messages, containerId) {
   }
 
   // Toast container logic for when containerId is provided
-  const toastContainer = containerId ? (document.querySelector('.toast-container') || createToastContainer()) : null;
+  const toastContainer = containerId
+    ? document.querySelector(".toast-container") || createToastContainer()
+    : null;
 
   messages.forEach((msg) => {
     const messageKey = `${msg.level}:${msg.message}`;
@@ -89,12 +91,12 @@ export function renderMessages(messages, containerId) {
 
     if (containerId) {
       // Toast notification logic
-      const toastElement = document.createElement('div');
+      const toastElement = document.createElement("div");
       toastElement.className = `toast border-0 border-${msg.level}`;
-      toastElement.setAttribute('role', 'alert');
-      toastElement.setAttribute('aria-live', 'assertive');
-      toastElement.setAttribute('aria-atomic', 'true');
-      
+      toastElement.setAttribute("role", "alert");
+      toastElement.setAttribute("aria-live", "assertive");
+      toastElement.setAttribute("aria-atomic", "true");
+
       toastElement.innerHTML = `
         <div class="toast-header bg-${msg.level} text-white">
           <strong class="me-auto">${msg.level.charAt(0).toUpperCase() + msg.level.slice(1)}</strong>
@@ -110,12 +112,12 @@ export function renderMessages(messages, containerId) {
       const toast = new bootstrap.Toast(toastElement, {
         animation: true,
         autohide: true,
-        delay: 5000
+        delay: 5000,
       });
 
       toast.show();
 
-      toastElement.addEventListener('hidden.bs.toast', () => {
+      toastElement.addEventListener("hidden.bs.toast", () => {
         setTimeout(() => toastElement.remove(), 150);
       });
     } else {

@@ -156,7 +156,7 @@ function createGrid(
     gridKey,
     commonGridOptions,
     specificGridOptions,
-    rowData
+    rowData,
   );
 
   agGrid.createGrid(gridElement, gridOptions);
@@ -226,10 +226,10 @@ function getMaterialsTableOptions(section, baseMaterialsGridOptions) {
     // Create clone to avoid mutating the original
     const options = JSON.parse(JSON.stringify(baseMaterialsGridOptions));
     options.columnDefs.forEach((col) => {
-        col.editable = false; // Make all columns non-editable for reality
+      col.editable = false; // Make all columns non-editable for reality
     });
     // Remove columns without a 'field' property (like the trash can column)
-    options.columnDefs = options.columnDefs.filter(col => col.field);
+    options.columnDefs = options.columnDefs.filter((col) => col.field);
     return options;
   }
   // Normal case (Estimate/Quote) - return base options as is
@@ -289,7 +289,7 @@ function createGridOptions(
   gridKey,
   commonGridOptions,
   specificGridOptions,
-  rowData=[],
+  rowData = [],
 ) {
   return {
     ...commonGridOptions,

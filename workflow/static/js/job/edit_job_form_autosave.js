@@ -1,5 +1,10 @@
 import { createNewRow } from "./deserialize_job_pricing.js";
-import { capitalize, calculateTotalRevenue, calculateTotalCost, checkRealityValues } from "./grid/grid_utils.js";
+import {
+  capitalize,
+  calculateTotalRevenue,
+  calculateTotalCost,
+  checkRealityValues,
+} from "./grid/grid_utils.js";
 import { uploadJobFile, checkExistingJobFile } from "./job_file_handling.js";
 import { calculateSimpleTotals } from "./grid/revenue_cost_options.js";
 import { renderMessages } from "../timesheet/timesheet_entry/messages.js";
@@ -78,11 +83,7 @@ export function collectAllData() {
 function checkJobValidity(data) {
   console.log("Checking job validity...");
 
-  const requiredFields = [
-    "name",
-    "client_xero_id",
-    "job_number",
-  ];
+  const requiredFields = ["name", "client_xero_id", "job_number"];
   const invalidFields = requiredFields.filter(
     (field) => !data[field] || data[field].trim() === "" || data[field] == null,
   );
@@ -138,8 +139,12 @@ function isNonDefaultRow(data, gridName) {
 function collectGridData(section) {
   console.log(`collectGridData called for section: ${section}`);
   // Ensuring reality section is always complex
-  const isComplex = section === "reality" || document.getElementById("complex-job").textContent.toLowerCase() === "true";
-  console.log(`Job complexity status for section ${section}: isComplex=${isComplex}`);
+  const isComplex =
+    section === "reality" ||
+    document.getElementById("complex-job").textContent.toLowerCase() === "true";
+  console.log(
+    `Job complexity status for section ${section}: isComplex=${isComplex}`,
+  );
 
   switch (isComplex) {
     case true:
@@ -153,15 +158,18 @@ function collectGridData(section) {
       console.log(`Simple grid data collected for ${section}:`, simpleData);
       return simpleData;
     default:
-      console.error(`Unknown grid state: "${isComplex}" for section ${section}`);
+      console.error(
+        `Unknown grid state: "${isComplex}" for section ${section}`,
+      );
       return {};
   }
 }
 
 function collectAdvancedGridData(section) {
-  const grids = section === "reality"
-    ? ["MaterialsTable", "AdjustmentsTable"]
-    : ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
+  const grids =
+    section === "reality"
+      ? ["MaterialsTable", "AdjustmentsTable"]
+      : ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
   const sectionData = {};
 
   debugLog(`collectAdvancedGridData starting for section: ${section}`);
@@ -169,7 +177,9 @@ function collectAdvancedGridData(section) {
   grids.forEach((gridName) => {
     const gridKey = `${section}${gridName}`;
     const gridData = window.grids[gridKey];
-    debugLog(`Processing grid ${gridKey}, exists: ${!!gridData}, has API: ${!!(gridData && gridData.api)}`);
+    debugLog(
+      `Processing grid ${gridKey}, exists: ${!!gridData}, has API: ${!!(gridData && gridData.api)}`,
+    );
 
     if (gridData && gridData.api) {
       const rowData = [];
@@ -178,7 +188,10 @@ function collectAdvancedGridData(section) {
       gridData.api.forEachNode((node) => {
         rowCount++;
         const isValid = isNonDefaultRow(node.data, gridName);
-        debugLog(`Grid ${gridKey}: Row ${rowCount} validation: ${isValid}`, node.data);
+        debugLog(
+          `Grid ${gridKey}: Row ${rowCount} validation: ${isValid}`,
+          node.data,
+        );
 
         if (isValid) {
           const data = { ...node.data };
@@ -199,7 +212,9 @@ function collectAdvancedGridData(section) {
       entryKey += "_entries";
 
       sectionData[entryKey] = rowData;
-      debugLog(`Added ${rowData.length} rows to ${section}.${entryKey} out of ${rowCount} total rows`);
+      debugLog(
+        `Added ${rowData.length} rows to ${section}.${entryKey} out of ${rowCount} total rows`,
+      );
     } else {
       console.error(`Grid or API not found for ${gridKey}`);
     }
@@ -209,7 +224,7 @@ function collectAdvancedGridData(section) {
   if (section === "reality") {
     sectionData["time_entries"] = [];
   }
- 
+
   debugLog(`collectAdvancedGridData completed for ${section}:`, sectionData);
   return sectionData;
 }
@@ -222,7 +237,9 @@ export function collectSimpleGridData(section) {
   {
     const timeKey = `simple${capitalize(section)}TimeTable`;
     const timeGrid = window.grids[timeKey];
-    debugLog(`Processing simple time grid ${timeKey}, exists: ${!!timeGrid}, has API: ${!!(timeGrid && timeGrid.api)}`);
+    debugLog(
+      `Processing simple time grid ${timeKey}, exists: ${!!timeGrid}, has API: ${!!(timeGrid && timeGrid.api)}`,
+    );
 
     let timeEntries = [];
     const seenTimeEntries = new Set();
@@ -243,7 +260,9 @@ export function collectSimpleGridData(section) {
 
         // Create unique key for time entry
         const entryKey = `${description}-${hours}-${wage}-${charge}`;
-        debugLog(`Time row ${rowCount}: "${description}", hours=${hours}, empty=${isEmptyRow}, duplicate=${seenTimeEntries.has(entryKey)}`);
+        debugLog(
+          `Time row ${rowCount}: "${description}", hours=${hours}, empty=${isEmptyRow}, duplicate=${seenTimeEntries.has(entryKey)}`,
+        );
 
         if (!isEmptyRow && !seenTimeEntries.has(entryKey)) {
           const totalMinutes = hours * 60;
@@ -266,7 +285,9 @@ export function collectSimpleGridData(section) {
           debugLog(`Skipping duplicate time entry: ${entryKey}`);
         }
       });
-      debugLog(`Processed ${rowCount} rows in time grid, added ${timeEntries.length} entries`);
+      debugLog(
+        `Processed ${rowCount} rows in time grid, added ${timeEntries.length} entries`,
+      );
     } else {
       debugLog(`Time grid ${timeKey} not found or missing API`);
     }
@@ -277,7 +298,9 @@ export function collectSimpleGridData(section) {
   {
     const matKey = `simple${capitalize(section)}MaterialsTable`;
     const matGrid = window.grids[matKey];
-    debugLog(`Processing simple materials grid ${matKey}, exists: ${!!matGrid}, has API: ${!!(matGrid && matGrid.api)}`);
+    debugLog(
+      `Processing simple materials grid ${matKey}, exists: ${!!matGrid}, has API: ${!!(matGrid && matGrid.api)}`,
+    );
 
     let materialEntries = [];
     const seenMaterialEntries = new Set();
@@ -295,7 +318,9 @@ export function collectSimpleGridData(section) {
 
         // Create unique key for material entry
         const entryKey = `${description}-${materialCost}-${retailPrice}`;
-        debugLog(`Material row ${rowCount}: "${description}", cost=${materialCost}, retail=${retailPrice}, empty=${isEmptyRow}, duplicate=${seenMaterialEntries.has(entryKey)}`);
+        debugLog(
+          `Material row ${rowCount}: "${description}", cost=${materialCost}, retail=${retailPrice}, empty=${isEmptyRow}, duplicate=${seenMaterialEntries.has(entryKey)}`,
+        );
 
         if (!isEmptyRow && !seenMaterialEntries.has(entryKey)) {
           const entry = {
@@ -314,7 +339,9 @@ export function collectSimpleGridData(section) {
           debugLog(`Skipping duplicate material entry: ${entryKey}`);
         }
       });
-      debugLog(`Processed ${rowCount} rows in materials grid, added ${materialEntries.length} entries`);
+      debugLog(
+        `Processed ${rowCount} rows in materials grid, added ${materialEntries.length} entries`,
+      );
     } else {
       debugLog(`Materials grid ${matKey} not found or missing API`);
     }
@@ -325,7 +352,9 @@ export function collectSimpleGridData(section) {
   {
     const adjKey = `simple${capitalize(section)}AdjustmentsTable`;
     const adjGrid = window.grids[adjKey];
-    debugLog(`Processing simple adjustments grid ${adjKey}, exists: ${!!adjGrid}, has API: ${!!(adjGrid && adjGrid.api)}`);
+    debugLog(
+      `Processing simple adjustments grid ${adjKey}, exists: ${!!adjGrid}, has API: ${!!(adjGrid && adjGrid.api)}`,
+    );
 
     let adjustmentEntries = [];
     const seenAdjustmentEntries = new Set();
@@ -344,7 +373,9 @@ export function collectSimpleGridData(section) {
 
         // Create unique key for adjustment entry
         const entryKey = `${description}-${costAdj}-${priceAdj}-${comments}`;
-        debugLog(`Adjustment row ${rowCount}: "${description}", cost adj=${costAdj}, price adj=${priceAdj}, empty=${isEmptyRow}, duplicate=${seenAdjustmentEntries.has(entryKey)}`);
+        debugLog(
+          `Adjustment row ${rowCount}: "${description}", cost adj=${costAdj}, price adj=${priceAdj}, empty=${isEmptyRow}, duplicate=${seenAdjustmentEntries.has(entryKey)}`,
+        );
 
         if (!isEmptyRow && !seenAdjustmentEntries.has(entryKey)) {
           const entry = {
@@ -357,7 +388,9 @@ export function collectSimpleGridData(section) {
           seenAdjustmentEntries.add(entryKey);
         }
       });
-      debugLog(`Processed ${rowCount} rows in adjustments grid, added ${adjustmentEntries.length} entries`);
+      debugLog(
+        `Processed ${rowCount} rows in adjustments grid, added ${adjustmentEntries.length} entries`,
+      );
     }
     sectionData.adjustment_entries = adjustmentEntries;
   }
@@ -420,7 +453,7 @@ async function fetchImageAsBase64(url) {
 function processNotesHtml(html) {
   if (!html) return "N/A";
 
-  const tempDiv = document.createElement('div');
+  const tempDiv = document.createElement("div");
   tempDiv.innerHTML = html;
 
   function processNode(node) {
@@ -429,12 +462,17 @@ function processNotesHtml(html) {
     }
 
     if (node.nodeType === Node.ELEMENT_NODE) {
-      const children = Array.from(node.childNodes).map(processNode).filter(Boolean);
+      const children = Array.from(node.childNodes)
+        .map(processNode)
+        .filter(Boolean);
 
       if (children.length === 0) return null;
 
       const result = {
-        text: children.length === 1 && typeof children[0] === 'string' ? children[0] : children
+        text:
+          children.length === 1 && typeof children[0] === "string"
+            ? children[0]
+            : children,
       };
 
       // Process style attributes if they exist
@@ -452,117 +490,134 @@ function processNotesHtml(html) {
 
       switch (node.nodeName.toLowerCase()) {
         // Basic formatting
-        case 'strong':
-        case 'b':
+        case "strong":
+        case "b":
           result.bold = true;
           break;
-        case 'em':
-        case 'i':
+        case "em":
+        case "i":
           result.italics = true;
           break;
-        case 'u':
-          result.decoration = 'underline';
+        case "u":
+          result.decoration = "underline";
           break;
-        case 'strike':
-        case 's':
-          result.decoration = 'lineThrough';
+        case "strike":
+        case "s":
+          result.decoration = "lineThrough";
           break;
-          
+
         // Headers
-        case 'h1':
+        case "h1":
           result.fontSize = 24;
           result.bold = true;
           result.margin = [0, 10, 0, 5];
           break;
-        case 'h2':
+        case "h2":
           result.fontSize = 20;
           result.bold = true;
           result.margin = [0, 8, 0, 4];
           break;
-        case 'h3':
+        case "h3":
           result.fontSize = 18;
           result.bold = true;
           result.margin = [0, 6, 0, 3];
           break;
-        case 'h4':
+        case "h4":
           result.fontSize = 16;
           result.bold = true;
           result.margin = [0, 5, 0, 2];
           break;
-        case 'h5':
+        case "h5":
           result.fontSize = 14;
           result.bold = true;
           result.margin = [0, 4, 0, 2];
           break;
-        case 'h6':
+        case "h6":
           result.fontSize = 12;
           result.bold = true;
           result.margin = [0, 4, 0, 2];
           break;
-        
-        // Special blocks  
-        case 'blockquote':
-          return { 
+
+        // Special blocks
+        case "blockquote":
+          return {
             text: children,
             italics: true,
             margin: [20, 5, 20, 5],
-            color: '#666666',
-            alignment: 'left'
+            color: "#666666",
+            alignment: "left",
           };
-        case 'pre':
-        case 'code-block':
-        case 'code':
+        case "pre":
+        case "code-block":
+        case "code":
           return {
             text: children,
-            font: 'Courier',
-            background: '#f4f4f4',
+            font: "Courier",
+            background: "#f4f4f4",
             fontSize: 10,
             margin: [5, 5, 5, 5],
-            padding: [5, 5, 5, 5]
+            padding: [5, 5, 5, 5],
           };
-          
-        // Structure  
-        case 'p':
+
+        // Structure
+        case "p":
           // Check for alignment defined via Quill classes
-          if (node.classList.contains('ql-align-center')) {
-            return { text: children, margin: [0, 0, 0, 5], alignment: 'center' };
-          } else if (node.classList.contains('ql-align-right')) {
-            return { text: children, margin: [0, 0, 0, 5], alignment: 'right' };
-          } else if (node.classList.contains('ql-align-justify')) {
-            return { text: children, margin: [0, 0, 0, 5], alignment: 'justify' };
+          if (node.classList.contains("ql-align-center")) {
+            return {
+              text: children,
+              margin: [0, 0, 0, 5],
+              alignment: "center",
+            };
+          } else if (node.classList.contains("ql-align-right")) {
+            return { text: children, margin: [0, 0, 0, 5], alignment: "right" };
+          } else if (node.classList.contains("ql-align-justify")) {
+            return {
+              text: children,
+              margin: [0, 0, 0, 5],
+              alignment: "justify",
+            };
           }
           return { text: children, margin: [0, 0, 0, 5] };
-          
-        case 'ul':
+
+        case "ul":
           return {
-            ul: children.map(item => typeof item === 'string' ? { text: item } : item)
+            ul: children.map((item) =>
+              typeof item === "string" ? { text: item } : item,
+            ),
           };
-        case 'ol':
+        case "ol":
           return {
-            ol: children.map(item => typeof item === 'string' ? { text: item } : item)
+            ol: children.map((item) =>
+              typeof item === "string" ? { text: item } : item,
+            ),
           };
-        case 'li':
+        case "li":
           return result;
-          
+
         // Indentation - handled via Quill classes
         default:
           // Check if it's a span or div with special Quill classes
           if (node.classList) {
-            if (node.classList.contains('ql-indent-1')) result.margin = [20, 0, 0, 0];
-            else if (node.classList.contains('ql-indent-2')) result.margin = [40, 0, 0, 0];
-            else if (node.classList.contains('ql-indent-3')) result.margin = [60, 0, 0, 0];
-            else if (node.classList.contains('ql-indent-4')) result.margin = [80, 0, 0, 0];
-            
+            if (node.classList.contains("ql-indent-1"))
+              result.margin = [20, 0, 0, 0];
+            else if (node.classList.contains("ql-indent-2"))
+              result.margin = [40, 0, 0, 0];
+            else if (node.classList.contains("ql-indent-3"))
+              result.margin = [60, 0, 0, 0];
+            else if (node.classList.contains("ql-indent-4"))
+              result.margin = [80, 0, 0, 0];
+
             // Check colors through Quill classes
-            const colorClasses = Array.from(node.classList)
-              .filter(cls => cls.startsWith('ql-color-') || cls.startsWith('ql-bg-'));
-            
-            colorClasses.forEach(cls => {
-              if (cls.startsWith('ql-color-')) {
-                const color = cls.replace('ql-color-', '#');
+            const colorClasses = Array.from(node.classList).filter(
+              (cls) => cls.startsWith("ql-color-") || cls.startsWith("ql-bg-"),
+            );
+
+            colorClasses.forEach((cls) => {
+              if (cls.startsWith("ql-color-")) {
+                const color = cls.replace("ql-color-", "#");
                 result.color = color;
-              } else if (cls.startsWith('ql-bg-')) {
-                const bgColor = cls.replace('ql-bg-', '#');
+              } else if (cls.startsWith("ql-bg-")) {
+                const bgColor = cls.replace("ql-bg-", "#");
                 result.background = bgColor;
               }
             });
@@ -576,7 +631,9 @@ function processNotesHtml(html) {
   }
 
   try {
-    const processedContent = Array.from(tempDiv.childNodes).map(processNode).filter(Boolean);
+    const processedContent = Array.from(tempDiv.childNodes)
+      .map(processNode)
+      .filter(Boolean);
     return processedContent.length > 0 ? processedContent : "N/A";
   } catch (error) {
     console.error("Error processing HTML notes for PDF:", error);
@@ -802,10 +859,7 @@ async function exportJobToPDF(jobData) {
                 ["Client", jobData.client_name || "N/A"],
                 ["Contact Person", jobData.contact_person || "N/A"],
                 ["Description", jobData.description || "N/A"],
-                [
-                  "Notes",
-                  processNotesHtml(jobData.notes)
-                ],
+                ["Notes", processNotesHtml(jobData.notes)],
                 [
                   "Job Created On",
                   new Date(jobData.created_at).toLocaleDateString("en-US", {
@@ -1098,7 +1152,7 @@ export function autosaveData() {
     console.log("Autosave disabled while viewing historical data");
     return;
   }
-  
+
   const collectedData = collectAllData();
 
   // Skip autosave if the job is not yet ready for saving
@@ -1165,8 +1219,8 @@ function saveDataToServer(collectedData) {
         calculateSimpleTotals();
 
         renderMessages(
-          [{ level: 'success', message: 'Job updated successfully.' }],
-          'job-details'
+          [{ level: "success", message: "Job updated successfully." }],
+          "job-details",
         );
       });
     })
@@ -1181,30 +1235,30 @@ function saveDataToServer(collectedData) {
 // Function to extract error messages from a nested error structure
 function extractErrorMessages(errors) {
   // Handle simple string error case
-  if (typeof errors === 'string') return errors;
-  
+  if (typeof errors === "string") return errors;
+
   // Array case - use flatMap to avoid nesting
   if (Array.isArray(errors)) {
     return errors
-      .flatMap(error => {
+      .flatMap((error) => {
         if (!error) return [];
-        if (typeof error !== 'object') return String(error);
-        
+        if (typeof error !== "object") return String(error);
+
         // Extract message or delegate to recursive call
         return error.message || error.string || extractErrorMessages(error);
       })
       .filter(Boolean)
       .join(". ");
   }
-  
+
   // Object case - collect all nested errors
-  if (errors && typeof errors === 'object') {
+  if (errors && typeof errors === "object") {
     return Object.values(errors)
-      .flatMap(value => extractErrorMessages(value))
+      .flatMap((value) => extractErrorMessages(value))
       .filter(Boolean)
       .join(". ");
   }
-  
+
   return "";
 }
 
@@ -1224,7 +1278,7 @@ function handleValidationErrors(errors) {
       element.classList.add("is-invalid");
       const errorDiv = document.createElement("div");
       errorDiv.className = "invalid-feedback";
-      
+
       element.parentElement.appendChild(errorDiv);
 
       // Attach listener to remove the error once the user modifies the field
@@ -1382,26 +1436,40 @@ function copyGridData(sourceGridApi, targetGridApi) {
 export function copyEstimateToQuote() {
   try {
     // Determine if we're in simple or complex mode
-    const isComplex = document.getElementById("complex-job").textContent.toLowerCase() === "true";
-    console.log(`Copy estimate to quote - Mode: ${isComplex ? 'Complex' : 'Simple'}`);
+    const isComplex =
+      document.getElementById("complex-job").textContent.toLowerCase() ===
+      "true";
+    console.log(
+      `Copy estimate to quote - Mode: ${isComplex ? "Complex" : "Simple"}`,
+    );
 
     const grids = ["TimeTable", "MaterialsTable", "AdjustmentsTable"];
 
     grids.forEach((gridName) => {
       // Select the correct grid keys based on the mode
-      const estimateGridKey = isComplex ? `estimate${gridName}` : `simpleEstimate${gridName}`;
-      const quoteGridKey = isComplex ? `quote${gridName}` : `simpleQuote${gridName}`;
-      
+      const estimateGridKey = isComplex
+        ? `estimate${gridName}`
+        : `simpleEstimate${gridName}`;
+      const quoteGridKey = isComplex
+        ? `quote${gridName}`
+        : `simpleQuote${gridName}`;
+
       const estimateGridApi = window.grids[estimateGridKey]?.api;
       const quoteGridApi = window.grids[quoteGridKey]?.api;
 
-      console.log(`Attempting to copy from ${estimateGridKey} to ${quoteGridKey}`);
-      
+      console.log(
+        `Attempting to copy from ${estimateGridKey} to ${quoteGridKey}`,
+      );
+
       if (estimateGridApi && quoteGridApi) {
         copyGridData(estimateGridApi, quoteGridApi);
-        console.log(`Successfully copied data from ${estimateGridKey} to ${quoteGridKey}`);
+        console.log(
+          `Successfully copied data from ${estimateGridKey} to ${quoteGridKey}`,
+        );
       } else {
-        console.error(`Grid API not found for keys: ${estimateGridKey}, ${quoteGridKey}`);
+        console.error(
+          `Grid API not found for keys: ${estimateGridKey}, ${quoteGridKey}`,
+        );
       }
     });
 
@@ -1412,20 +1480,24 @@ export function copyEstimateToQuote() {
     debouncedAutosave();
 
     renderMessages(
-      [{
-        level: "success",
-        message: "Estimates successfully copied to quotes."
-      }],
-      "estimate"
+      [
+        {
+          level: "success",
+          message: "Estimates successfully copied to quotes.",
+        },
+      ],
+      "estimate",
     );
   } catch (error) {
     console.error("Error copying from estimates to quotes:", error);
     renderMessages(
-      [{
-        level: "error",
-        message: `Failed copying from estimates to quotes: ${error.message}`
-      }],
-      "estimate"
+      [
+        {
+          level: "error",
+          message: `Failed copying from estimates to quotes: ${error.message}`,
+        },
+      ],
+      "estimate",
     );
   }
 }

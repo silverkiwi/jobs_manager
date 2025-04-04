@@ -60,14 +60,19 @@ import {
 } from "./grid/grid_initialization.js";
 
 // Grid calculations
-import { calculateTotalRevenue, calculateTotalCost, checkRealityValues, checkJobAccepted, updateGridOverflowClasses } from "./grid/grid_utils.js";
+import {
+  calculateTotalRevenue,
+  calculateTotalCost,
+  checkRealityValues,
+  checkJobAccepted,
+  updateGridOverflowClasses,
+} from "./grid/grid_utils.js";
 
 // Button Handler
 import { handleButtonClick } from "./job_buttons/button_handlers.js";
 
 import { loadJobDetails } from "./job_details_loader.js";
 import { toggleGrid, togglePricingType } from "./job_buttons/button_utils.js";
-
 
 document.addEventListener("DOMContentLoaded", function () {
   loadJobDetails();
@@ -130,11 +135,16 @@ document.addEventListener("DOMContentLoaded", function () {
   setTimeout(checkJobAccepted, 2000);
   setTimeout(updateGridOverflowClasses, 2500);
 
-  const isComplexJob = document.getElementById("complex-job").textContent.toLowerCase() === 'true';
+  const isComplexJob =
+    document.getElementById("complex-job").textContent.toLowerCase() === "true";
   toggleGrid(isComplexJob ? "complex" : "simple");
-  
+
   document.body.addEventListener("click", handleButtonClick);
-  document.getElementById('pricingTypeDropdown').addEventListener('change', (event) => togglePricingType(event));
-  document.getElementById("job_status").addEventListener('change', checkJobAccepted);
-  console.log("Checking grids before checking job accepted",window.grids);
+  document
+    .getElementById("pricingTypeDropdown")
+    .addEventListener("change", (event) => togglePricingType(event));
+  document
+    .getElementById("job_status")
+    .addEventListener("change", checkJobAccepted);
+  console.log("Checking grids before checking job accepted", window.grids);
 });

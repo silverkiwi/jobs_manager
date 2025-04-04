@@ -59,7 +59,9 @@ export function getGridData(section, gridType) {
     // Converting simple to complex when reality section is detected
     effectiveGridType = gridType.replace("Simple", "");
     if (Environment.isDebugMode()) {
-      console.log(`Reality section detected. Converting grid type from ${gridType} to ${effectiveGridType}`);
+      console.log(
+        `Reality section detected. Converting grid type from ${gridType} to ${effectiveGridType}`,
+      );
     }
   }
 
@@ -98,7 +100,10 @@ export function getGridData(section, gridType) {
     return [createNewRow(gridType)];
   }
 
-  if (Environment.isDebugMode()) console.log(`Loading existing ${entryType} for ${sectionKey} | ${effectiveGridType}`);
+  if (Environment.isDebugMode())
+    console.log(
+      `Loading existing ${entryType} for ${sectionKey} | ${effectiveGridType}`,
+    );
   return loadExistingJobEntries(sectionData[entryType], effectiveGridType);
 }
 
@@ -179,7 +184,7 @@ function loadSimpleJobTime(entries) {
     const charge = parseFloat(entry.charge_out_rate) || 105;
 
     return {
-      description: '',
+      description: "",
       hours: hours,
       cost_of_time: hours * wage,
       value_of_time: hours * charge,
@@ -191,7 +196,7 @@ function loadSimpleJobTime(entries) {
 
 function loadSimpleJobMaterial(entries) {
   return entries.map((entry) => ({
-    description: '',
+    description: "",
     material_cost: entry.unit_cost * entry.quantity,
     retail_price: entry.unit_revenue * entry.quantity,
   }));
@@ -199,7 +204,7 @@ function loadSimpleJobMaterial(entries) {
 
 function loadSimpleJobAdjustment(entries) {
   return entries.map((entry) => ({
-    description: '',
+    description: "",
     cost_adjustment: entry.cost_adjustment,
     price_adjustment: entry.price_adjustment,
   }));
