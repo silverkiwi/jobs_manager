@@ -64,9 +64,12 @@ class DeliveryReceiptCreateView(LoginRequiredMixin, TemplateView):
     
     def post(self, request, *args, **kwargs):
         try:
+            logger.info(f"Received POST data keys: {request.POST.keys()}")
+            logger.info(f"Looking for 'received_quantities', found: {request.POST.get('received_quantities', 'NOT FOUND')}")
             received_quantities = json.loads(request.POST.get('received_quantities', '{}'))
             process_delivery_receipt(kwargs['pk'], received_quantities)
             return JsonResponse({'success': True})
         except Exception as e:
             logger.error(f"Error processing delivery receipt: {str(e)}")
             return JsonResponse({'error': str(e)}, status=400) 
+        

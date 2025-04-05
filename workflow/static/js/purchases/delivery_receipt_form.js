@@ -494,7 +494,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Ensure the hidden input exists before modifying
       if (hiddenInput) {
-        hiddenInput.name = "line_allocations"; // Rename input
         hiddenInput.value = JSON.stringify(lineAllocationsData);
       } else {
         console.error("Hidden input field '#receivedQuantities' not found!");
@@ -510,6 +509,10 @@ document.addEventListener("DOMContentLoaded", function () {
       try {
         // Use the current URL as the action if form.action is not set
         const formAction = form.action || window.location.href;
+        console.log("Sending data:", {
+          fieldName: hiddenInput.name,
+          value: hiddenInput.value
+        });
         const response = await fetch(formAction, {
           method: "POST",
           body: new FormData(form),

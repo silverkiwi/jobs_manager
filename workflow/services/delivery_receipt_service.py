@@ -73,8 +73,8 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
             all_job_ids = set()
             for line_data in line_allocations.values():
                 for alloc in line_data.get("allocations", []):
-                    if alloc.get("job_id"):
-                        all_job_ids.add(alloc["job_id"])
+                    if alloc.get("jobId"):
+                        all_job_ids.add(alloc["jobId"])
 
             jobs = { str(job.id): job for job in Job.objects.filter(id__in=all_job_ids) }
             if len(jobs) != len(all_job_ids):
@@ -102,7 +102,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                 for alloc in allocations:
                     try:
                         alloc_qty = Decimal(str(alloc.get("quantity", 0)))
-                        job_id = alloc.get("job_id")
+                        job_id = alloc.get("jobId")
                         if alloc_qty < 0:
                              raise DeliveryReceiptValidationError(f"Negative allocation quantity not allowed for line {line.id}.")
                         if alloc_qty > 0: # Only process non-zero allocations
