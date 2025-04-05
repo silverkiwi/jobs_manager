@@ -1,11 +1,11 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.utils import timezone
 import logging
 
 from workflow.models.purchase import PurchaseOrder, PurchaseOrderLine
 from workflow.models.stock import Stock
-from workflow.models.job import JobPricing
+from workflow.models.job import Job, JobPricing
 from workflow.models.material_entry import MaterialEntry
 from workflow.models.company_defaults import CompanyDefaults
 from workflow.enums import JobPricingStage

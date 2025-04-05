@@ -14,7 +14,6 @@
      id="deliveryReceiptContainer"
      data-stock-holding-job-id="{{ stock_holding_job_id|default:'' }}"
      data-stock-holding-job-name="{{ stock_holding_job_name|default:'Stock Holding Job' }}"
-     data-job-list="{{ job_list_json|escapejs }}"> {# Add job list data #}
     {% csrf_token %}
     <div class="row mb-4">
         <div class="col">
@@ -73,7 +72,14 @@
                     <tbody id="pendingItems">
                         {% for line in purchase_order.po_lines.all %}
                             {% if line.received_quantity < line.quantity %}
-                            <tr data-line-id="{{ line.id }}">
+                            <tr 
+                                data-line-id="{{ line.id }}" 
+                                data-line-job-id="{{ line.job_id }}"
+                                data-line-job-name="{{ line.job }}"
+                                data-unit-cost="{{ line.unit_cost }}"
+                                data-line-description="{{ line.description }}"
+                                data-line-quantity="{{ line.quantity }}"
+                            >
                                 <td>
                                     <input type="checkbox" class="form-check-input line-checkbox" 
                                            data-line-id="{{ line.id }}">
@@ -188,4 +194,7 @@
 
 {% block extra_js %}
 <script src="{% static 'js/purchases/delivery_receipt_form.js' %}"></script>
+<script id="job-list-data" type="application/json">
+    {{ job_list_json|safe }}
+</script>
 {% endblock %} 

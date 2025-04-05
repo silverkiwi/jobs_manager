@@ -1,12 +1,13 @@
 document.addEventListener("DOMContentLoaded", function () {
-  // Get container and stock holding job info (assumed to be provided by template)
   const container = document.getElementById("deliveryReceiptContainer");
   const STOCK_HOLDING_JOB_ID = container.dataset.stockHoldingJobId;
   const STOCK_HOLDING_JOB_NAME = container.dataset.stockHoldingJobName;
+  const JOB_LIST = document.getElementById("job-list-data").textContent;
+
   // Parse the job list from the data attribute
   let ALLOCATABLE_JOBS = [];
   try {
-    ALLOCATABLE_JOBS = JSON.parse(container.dataset.jobList || "[]");
+    ALLOCATABLE_JOBS = JSON.parse(JOB_LIST);
   } catch (e) {
     console.error("Failed to parse job list data:", e);
     // Handle error - maybe disable allocation?
@@ -43,7 +44,6 @@ document.addEventListener("DOMContentLoaded", function () {
       document
         .querySelectorAll("#pendingItems .line-checkbox:checked")
         .forEach((checkbox) => {
-          const lineId = checkbox.dataset.lineId;
           const row = checkbox.closest("tr"); // More reliable way to get the row
           if (row) {
             // Check if row was found
@@ -145,10 +145,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // --- Rebuild cells according to the new structure ---
 
     // Get data from original row and global stock job constants
-    const originalPoLineJobId = row.dataset.lineJobId || ""; // Use data attributes added in HTML
-    const originalPoLineJobName = row.dataset.lineJobName || ""; // Use data attributes added in HTML
-    const description = row.cells[2].textContent; // Assuming description is 3rd cell in pending
-    const unitCost = row.dataset.unitCost || "0.00"; // Use data attribute
+    const originalPoLineJobId = row.dataset.lineJobId || "";
+    const originalPoLineJobName = row.dataset.lineJobName || "";
+    const description = row.dataset.lineDescription;
+    const unitCost = row.dataset.unitCost || "0.00";
 
     // Determine the default allocation target
     const defaultTargetJobId = originalPoLineJobId || STOCK_HOLDING_JOB_ID;
@@ -519,8 +519,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         if (response.ok) {
-          // TODO: This URL should ideally be passed from the template, not hardcoded.
-          window.location.href = "/delivery-receipts/";
+          window.location.href = "/purchases/delivery-receipts/";
         } else {
           const data = await response.json();
           alert(
