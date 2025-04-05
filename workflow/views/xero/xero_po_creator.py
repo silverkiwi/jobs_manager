@@ -227,15 +227,19 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
                      logger.error(f"Xero response missing purchase_order_id for PO {self.purchase_order.id}")
                      # Return JsonResponse directly for the view
                      return JsonResponse({"success": False, "error": "Xero response missing purchase order ID"}, status=500)
+                
+                online_url = f"https://go.xero.com/Accounts/Payable/PurchaseOrders/Edit/{xero_id}/"
 
                 # Update local purchase order with Xero ID and mark as submitted
                 self.purchase_order.xero_id = xero_id
                 self.purchase_order.status = 'submitted' # Mark as submitted locally
                 self.purchase_order.xero_last_synced = timezone.now()
+                self.purchase_order.online_url = online_url
                 # Consider also updating xero_last_modified based on response.updated_date_utc
-                self.purchase_order.save(update_fields=['xero_id', 'status', 'xero_last_synced'])
+                self.purchase_order.save(update_fields=['xero_id', 'status', 'xero_last_synced', 'online_url'])
 
                 logger.info(f"Successfully {action_type}d purchase order {self.purchase_order.id} in Xero (Xero ID: {xero_id}).")
+                logger.info(f"Debug: online url is {self.purchase_order.online_url} and var is {online_url}")
 
                 # Return success response data for the view
                 return JsonResponse({
@@ -354,5 +358,3 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
         except Exception as e:
             logger.error(f"Unexpected error deleting PO {self.purchase_order.id} from Xero: {str(e)}", exc_info=True)
             return JsonResponse({"success": False, "error": f"An unexpected error occurred during deletion: {str(e)}"}, status=500)
-
-# Note: The misplaced Quote methods that were here previously have been removed.

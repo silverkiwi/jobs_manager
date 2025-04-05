@@ -188,18 +188,4 @@
 
 {% block extra_js %}
 <script src="{% static 'js/purchases/delivery_receipt_form.js' %}"></script>
-
-            if (response.ok) {
-                window.location.href = "{% url 'delivery_receipts' %}";
-            } else {
-                const data = await response.json();
-                alert(data.error || 'An error occurred while saving the delivery receipt.');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('An error occurred while saving the delivery receipt.');
-        }
-    });
-});
-</script>
 {% endblock %} 

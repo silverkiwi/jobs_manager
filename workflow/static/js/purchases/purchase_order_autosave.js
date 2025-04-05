@@ -229,9 +229,6 @@ export async function saveDataToServer(collectedData) {
         return true;
       }
 
-      renderMessages([
-        { level: "success", message: "Autosaved completed successfully" },
-      ]);
       return true;
     })
     .catch((error) => {
