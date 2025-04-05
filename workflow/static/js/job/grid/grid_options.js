@@ -8,7 +8,7 @@ import {
   calculateTotalCost,
   calculateTotalRevenue,
   adjustGridHeight,
-  fetchMaterialsMarkup
+  fetchMaterialsMarkup,
 } from "./grid_utils.js";
 
 import { debouncedAutosave } from "../edit_job_form_autosave.js";
@@ -39,11 +39,11 @@ export function createCommonGridOptions() {
 
       const rowCount = params.api.getDisplayedRowCount() || 1;
       if (rowCount < 13) {
-        gridElement.classList.add('ag-rows-few');
-        gridElement.classList.remove('ag-rows-many');
+        gridElement.classList.add("ag-rows-few");
+        gridElement.classList.remove("ag-rows-many");
       } else {
-        gridElement.classList.add('ag-rows-many');
-        gridElement.classList.remove('ag-rows-few');
+        gridElement.classList.add("ag-rows-many");
+        gridElement.classList.remove("ag-rows-few");
       }
 
       // This avoids warning in case the grid is hidden (d-none)
@@ -56,16 +56,16 @@ export function createCommonGridOptions() {
     onGridSizeChanged: (params) => {
       const gridKey = params.context.gridKey;
       const gridElement = document.querySelector(`#${gridKey}`);
-      
+
       const rowCount = params.api.getDisplayedRowCount();
       if (rowCount < 13) {
-        gridElement.classList.add('ag-rows-few');
-        gridElement.classList.remove('ag-rows-many');
+        gridElement.classList.add("ag-rows-few");
+        gridElement.classList.remove("ag-rows-many");
       } else {
-        gridElement.classList.add('ag-rows-many');
-        gridElement.classList.remove('ag-rows-few');
+        gridElement.classList.add("ag-rows-many");
+        gridElement.classList.remove("ag-rows-few");
       }
-      
+
       if (gridElement && gridElement.offsetWidth > 0) {
         params.api.sizeColumnsToFit();
       }
@@ -159,13 +159,13 @@ export function createCommonGridOptions() {
       const rowCount = params.api.getDisplayedRowCount();
 
       if (rowCount < 13) {
-        gridElement.classList.add('ag-rows-few');
-        gridElement.classList.remove('ag-rows-many');
+        gridElement.classList.add("ag-rows-few");
+        gridElement.classList.remove("ag-rows-many");
       } else {
-        gridElement.classList.add('ag-rows-many');
-        gridElement.classList.remove('ag-rows-few');
+        gridElement.classList.add("ag-rows-many");
+        gridElement.classList.remove("ag-rows-few");
       }
-      
+
       const newHeight = calculateGridHeight(params.api, rowCount);
       gridElement.style.height = `${newHeight}px`;
       adjustGridHeight(params.api, `${gridKey}`);
@@ -174,16 +174,16 @@ export function createCommonGridOptions() {
       const gridKey = event.context.gridKey;
       const gridType = event.context.gridType;
       const data = event.data;
-      
+
       // Check row count and add helper classes to avoid overflow
       const gridElement = document.querySelector(`#${gridKey}`);
       const rowCount = event.api.getDisplayedRowCount();
       if (rowCount < 13) {
-        gridElement.classList.add('ag-rows-few');
-        gridElement.classList.remove('ag-rows-many');
+        gridElement.classList.add("ag-rows-few");
+        gridElement.classList.remove("ag-rows-many");
       } else {
-        gridElement.classList.add('ag-rows-many');
-        gridElement.classList.remove('ag-rows-few');
+        gridElement.classList.add("ag-rows-many");
+        gridElement.classList.remove("ag-rows-few");
       }
 
       switch (gridType) {
@@ -234,7 +234,10 @@ export function createCommonGridOptions() {
           break;
 
         case "SimpleMaterialsTable":
-          if (event.column.colId === "material_cost" && !data.isManualOverride) {
+          if (
+            event.column.colId === "material_cost" &&
+            !data.isManualOverride
+          ) {
             fetchMaterialsMarkup(data).then((markupRate) => {
               const cost = parseFloat(data.material_cost) || 0;
               data.retail_price = calculateRetailRate(cost, markupRate);
@@ -264,7 +267,10 @@ export function createCommonGridOptions() {
           break;
 
         case "SimpleAdjustmentsTable":
-          if (event.column.colId === "cost_adjustment" && !data.isManualOverride) {
+          if (
+            event.column.colId === "cost_adjustment" &&
+            !data.isManualOverride
+          ) {
             fetchMaterialsMarkup(data).then((markupRate) => {
               const cost = parseFloat(data.cost_adjustment) || 0;
               data.price_adjustment = calculateRetailRate(cost, markupRate);
@@ -433,7 +439,7 @@ export function createAdvancedTimeGridOptions(
       {
         ...enhancedTrashColumn,
         minWidth: 120,
-        flex: 1
+        flex: 1,
       },
     ],
     rowData: [],
@@ -468,7 +474,16 @@ export function createAdvancedMaterialsGridOptions(
         field: "description",
         editable: true,
         flex: 2,
-        maxWidth: 335
+        maxWidth: 335,
+        cellRenderer: (params) => {
+          const description = params.value || "No Description";
+          if (params.data && params.data.po_url) {
+            // If po_url exists, render as a link opening in a new tab
+            return `<a href="${params.data.po_url}" target="_blank" class="action-link">${description}</a>`;
+          }
+          // Otherwise, just render the text
+          return description;
+        },
       },
       {
         headerName: "Qtd.",
@@ -485,7 +500,7 @@ export function createAdvancedMaterialsGridOptions(
         valueFormatter: currencyFormatter,
         minWidth: 80,
         width: 350,
-        flex: 1
+        flex: 1,
       },
       {
         headerName: "Retail Rate",
@@ -496,7 +511,7 @@ export function createAdvancedMaterialsGridOptions(
         valueFormatter: currencyFormatter,
         minWidth: 80,
         width: 190,
-        flex: 1
+        flex: 1,
       },
       {
         headerName: "Revenue",
@@ -510,7 +525,7 @@ export function createAdvancedMaterialsGridOptions(
         field: "comments",
         editable: true,
         flex: 2,
-        width: 150
+        width: 150,
       },
       enhancedTrashColumn,
     ],
@@ -540,7 +555,7 @@ export function createAdvancedAdjustmentsGridOptions(
         field: "description",
         editable: true,
         flex: 2,
-        minWidth: 395
+        minWidth: 395,
       },
       {
         headerName: "Cost Adjustment",
@@ -560,14 +575,14 @@ export function createAdvancedAdjustmentsGridOptions(
         valueFormatter: currencyFormatter,
         minWidth: 80,
         width: 230,
-        flex: 1
+        flex: 1,
       },
       {
         headerName: "Comments",
         field: "comments",
         editable: true,
         flex: 2,
-        width: 175
+        width: 175,
       },
       enhancedTrashColumn,
     ],
@@ -585,7 +600,7 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
     maxWidth: 80,
     flex: 0,
     suppressSizeToFit: true,
-    hide: true
+    hide: true,
   };
 
   return {
@@ -597,7 +612,7 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
         editable: false,
         flex: 2,
         maxWidth: 155,
-        width: 155
+        width: 155,
       },
       {
         headerName: "Hours",
@@ -622,7 +637,7 @@ export function createSimpleTimeGridOptions(commonGridOptions, trashCanColumn) {
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
-        width: 230
+        width: 230,
       },
       // This is needed to send data in a proper way to be saved in back-end
       {
@@ -654,7 +669,7 @@ export function createSimpleMaterialsGridOptions(
     maxWidth: 80,
     flex: 0,
     suppressSizeToFit: true,
-    hide: true
+    hide: true,
   };
 
   return {
@@ -663,9 +678,18 @@ export function createSimpleMaterialsGridOptions(
       {
         headerName: "Materials",
         field: "description",
-        editable: false,
+        editable: false, // Keep editable as false for simple view
         flex: 2,
-        maxWidth: 390
+        maxWidth: 390,
+        cellRenderer: (params) => {
+          const description = params.value || "No Description";
+          if (params.data && params.data.po_url) {
+            // If po_url exists, render as a link opening in a new tab
+            return `<a href="${params.data.po_url}" target="_blank" class="action-link">${description}</a>`;
+          }
+          // Otherwise, just render the text
+          return description;
+        },
       },
       {
         headerName: "Cost ($)",
@@ -682,7 +706,7 @@ export function createSimpleMaterialsGridOptions(
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
-        width: 230
+        width: 230,
       },
       enhancedTrashColumn,
     ],
@@ -701,7 +725,7 @@ export function createSimpleAdjustmentsGridOptions(
     maxWidth: 80,
     flex: 0,
     suppressSizeToFit: true,
-    hide: true
+    hide: true,
   };
 
   return {
@@ -712,7 +736,7 @@ export function createSimpleAdjustmentsGridOptions(
         field: "description",
         editable: false,
         flex: 2,
-        maxWidth: 390
+        maxWidth: 390,
       },
       {
         headerName: "Cost ($)",
@@ -729,7 +753,7 @@ export function createSimpleAdjustmentsGridOptions(
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
-        width: 230
+        width: 230,
       },
       enhancedTrashColumn,
     ],
@@ -764,7 +788,7 @@ export function createSimpleTotalsGridOptions(gridKey) {
         valueParser: numberParser,
         valueFormatter: currencyFormatter,
         minWidth: 80,
-        cellStyle: { "text-align": "start" }
+        cellStyle: { "text-align": "start" },
       },
     ],
     rowData: [{ cost: 0, retail: 0 }],

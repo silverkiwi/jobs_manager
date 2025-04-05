@@ -1,5 +1,10 @@
 // Button handlers
-import { getJobIdFromUrl, toggleGrid, lockQuoteGrids, updateJobStatus } from "./button_utils.js";
+import {
+  getJobIdFromUrl,
+  toggleGrid,
+  lockQuoteGrids,
+  updateJobStatus,
+} from "./button_utils.js";
 import { showQuoteModal } from "./modal_handlers.js";
 import { handleSaveEventButtonClick } from "./job_events.js";
 import { createXeroDocument, deleteXeroDocument } from "./xero_handlers.js";
@@ -70,7 +75,7 @@ export function handleButtonClick(event) {
 
     case "toggleGridButton":
       toggleGrid("manual");
-    
+
     default:
       break;
   }

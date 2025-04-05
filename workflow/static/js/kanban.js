@@ -2,7 +2,7 @@ import { setupAdvancedSearch } from "./job/advanced_search.js";
 
 console.log("kanban.js load started");
 
-let currentSearchTerm = '';
+let currentSearchTerm = "";
 
 document.addEventListener("DOMContentLoaded", function () {
   console.log("Script loaded and DOM fully loaded");
@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
   setupToggleArchived();
   setupAdvancedSearch();
 
-  document.getElementById("search").addEventListener("input", function() {
+  document.getElementById("search").addEventListener("input", function () {
     filterJobs();
     updateColumnCounts();
   });
@@ -19,9 +19,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function initializeColumns() {
   const columns = document.querySelectorAll(".kanban-column");
-  const columnIds = Array.from(columns).map(col => col.id);
+  const columnIds = Array.from(columns).map((col) => col.id);
 
-  columnIds.forEach(status => {
+  columnIds.forEach((status) => {
     loadJobs(status);
   });
 
@@ -43,15 +43,17 @@ function loadJobs(status) {
   }
 
   fetch(url)
-    .then(response => response.json())
-    .then(data => {
+    .then((response) => response.json())
+    .then((data) => {
       if (data.success) {
         renderJobs(status, data.jobs);
         updateCounters(status, data.filtered_count, data.total);
-        const loadMoreContainer = document.querySelector(`#${status}-load-more-container`);
+        const loadMoreContainer = document.querySelector(
+          `#${status}-load-more-container`,
+        );
         if (loadMoreContainer) {
-          loadMoreContainer.remove()
-        } 
+          loadMoreContainer.remove();
+        }
       } else {
         console.error(`Error loading ${status} jobs:`, data.error);
         container.innerHTML = `
@@ -59,24 +61,25 @@ function loadJobs(status) {
         `;
       }
     })
-    .catch(error => {
+    .catch((error) => {
       console.error(`Error loading ${status} jobs:`, error);
-      container.innerHTML = '<div class="error-message"> Error loading jobs. Please try againg.</div>';
+      container.innerHTML =
+        '<div class="error-message"> Error loading jobs. Please try againg.</div>';
     });
 }
 
 function refreshAllColumns() {
-  const columns = document.querySelectorAll('.kanban-column');
-  const columnIds = Array.from(columns).map(col => col.id);
+  const columns = document.querySelectorAll(".kanban-column");
+  const columnIds = Array.from(columns).map((col) => col.id);
 
-  columnIds.forEach(status => {
+  columnIds.forEach((status) => {
     loadJobs(status);
-  })
+  });
 }
 
 function renderJobs(status, jobs) {
   const container = document.querySelector(`#${status} .job-list`);
-  container.innerHTML = '';
+  container.innerHTML = "";
 
   if (jobs.length === 0) {
     container.innerHTML = `
@@ -85,7 +88,7 @@ function renderJobs(status, jobs) {
     return;
   }
 
-  jobs.forEach(job => {
+  jobs.forEach((job) => {
     const jobCard = createJobCard(job);
     container.appendChild(jobCard);
   });
@@ -121,7 +124,7 @@ function createJobCard(job) {
   card.setAttribute("data-client-name", job.client ? job.client.name : "");
   card.setAttribute("data-job-description", job.description || "");
   card.setAttribute("data-job-number", job.job_number);
-  
+
   card.innerHTML = `
     <a href="/job/${job.id}/">
       <div class="job-card-title">${job.job_number}</div>
@@ -130,7 +133,7 @@ function createJobCard(job) {
       </div>
     </a>
   `;
-  
+
   // Tooltip container (Hidden initially)
   let tooltip = document.createElement("div");
   tooltip.className = "job-tooltip";
@@ -172,9 +175,9 @@ function initializeDragAndDrop() {
       ghostClass: "sortable-ghost",
       chosenClass: "sortable-drag",
       dragClass: "sortable-drag",
-      onStart: function() {
-        document.querySelectorAll('.kanban-column').forEach(col => {
-          col.classList.add('drop-target-potential');
+      onStart: function () {
+        document.querySelectorAll(".kanban-column").forEach((col) => {
+          col.classList.add("drop-target-potential");
         });
       },
       onEnd: function (evt) {
@@ -184,8 +187,8 @@ function initializeDragAndDrop() {
         const jobId = itemEl.getAttribute("data-id");
 
         // Remove potential destiny class
-        document.querySelectorAll('.kanban-column').forEach(col => {
-          col.classList.remove('drop-target-potential');
+        document.querySelectorAll(".kanban-column").forEach((col) => {
+          col.classList.remove("drop-target-potential");
         });
 
         if (!oldStatus || !newStatus || oldStatus === newStatus) {
@@ -199,7 +202,7 @@ function initializeDragAndDrop() {
         // Update affected column counters
         updateColumnHeader(oldStatus);
         updateColumnHeader(newStatus);
-        
+
         updateColumnCounts();
       },
     });
@@ -223,14 +226,15 @@ function updateColumnHeader(status) {
 
 function updateColumnCounts() {
   // Update count for each column
-  document.querySelectorAll('.kanban-column').forEach(column => {
+  document.querySelectorAll(".kanban-column").forEach((column) => {
     const columnId = column.id;
-    const jobList = column.querySelector('.job-list');
+    const jobList = column.querySelector(".job-list");
     const countDisplay = document.querySelector(`#${columnId}-count`);
-    
+
     if (countDisplay && jobList) {
-      const visibleCount = Array.from(jobList.children)
-        .filter(child => child.style.display !== 'none').length;
+      const visibleCount = Array.from(jobList.children).filter(
+        (child) => child.style.display !== "none",
+      ).length;
       countDisplay.textContent = visibleCount;
     }
   });
@@ -273,40 +277,40 @@ function filterJobs() {
 
 function updateJobStatus(jobId, newStatus) {
   fetch(`/jobs/${jobId}/update_status/`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCookie('csrftoken')
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken"),
     },
     body: JSON.stringify({
-      status: newStatus
+      status: newStatus,
+    }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        // Atualizar contadores
+        refreshAllColumns();
+      } else {
+        alert("Failed to update job status: " + data.error);
+        // Recarregar para restaurar o estado
+        refreshAllColumns();
+      }
     })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      // Atualizar contadores
+    .catch((error) => {
+      console.error("Error updating job status:", error);
+      alert("Failed to update job status. Please try again.");
       refreshAllColumns();
-    } else {
-      alert('Failed to update job status: ' + data.error);
-      // Recarregar para restaurar o estado
-      refreshAllColumns();
-    }
-  })
-  .catch(error => {
-    console.error('Error updating job status:', error);
-    alert('Failed to update job status. Please try again.');
-    refreshAllColumns();
-  });
+    });
 }
 
 function getCookie(name) {
   let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+      if (cookie.substring(0, name.length + 1) === name + "=") {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
         break;
       }

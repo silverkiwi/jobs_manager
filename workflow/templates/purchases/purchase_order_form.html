@@ -132,9 +132,7 @@
         </div>
     </div>
 
-    <hr>
-
-    <div class="container-fluid d-flex flex-row gap-2">
+    <div class="container-fluid d-flex flex-row gap-2 d-none">
         <!-- Current Jobs Section -->
         <div class="flex-grow-1" style="flex-basis: 65%">
             <h4 class="text-center mb-3">Current Jobs</h4>
@@ -164,12 +162,24 @@
         </div>
     </div>
 
-    <hr>
-
-    <div class="d-flex justify-content-end gap-2">
+    <div class="d-flex justify-content-center gap-2">
+        {# Show Submit button only if PO is not yet in Xero #}
+        {% if not xero_id %}
         <button id="submit-purchase-order" class="btn btn-primary">
             <i class="bi bi-send me-2"></i>Submit to Xero
         </button>
+        {% endif %}
+
+        {# Show Xero buttons only if PO is in Xero #}
+        {% if xero_id %}
+        <a href="{{ xero_purchase_order_url|default:'#' }}" target="_blank" class="btn btn-info" id="goToXeroPO">
+            <i class="bi bi-box-arrow-up-right me-2"></i>Go to PO in Xero
+        </a>
+        <button type="button" class="btn btn-danger" id="deleteXeroPOButton">
+            <i class="bi bi-trash me-2"></i>Delete PO in Xero
+        </button>
+        {% endif %}
+
         <a href="{% url 'purchase_orders' %}" class="btn btn-secondary">
             <i class="bi bi-x-circle me-2"></i>Cancel
         </a>

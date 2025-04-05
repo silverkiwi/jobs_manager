@@ -16,7 +16,7 @@ const csrftoken = getCookie("csrftoken");
 const gridDiv = document.querySelector("#timesheet-grid");
 initializeGrid(gridDiv, {
   ...gridOptions,
-  domLayout: 'autoHeight',
+  domLayout: "autoHeight",
 });
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (window.timesheet_data.time_entries?.length > 0) {
     window.grid.applyTransaction({ add: window.timesheet_data.time_entries });
     triggerAutoCalculationForAllRows();
-    
+
     // Check existing jobs to mark Shop Jobs
     checkExistingShopJobs();
   } else {

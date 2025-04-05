@@ -1,12 +1,12 @@
 /**
  * Client/Supplier lookup component for Purchase Orders module
- * 
+ *
  * This JS module provides client (supplier) search functionality with suggestions.
  * It is used for purchase order forms.
- * 
+ *
  * Note: A similar version of this component exists at:
  * workflow/static/js/job/client_lookup.js
- * 
+ *
  * Make sure you update both files if you make any changes.
  *
  * Shared component for consistency across the application.
@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Clear Xero contact ID when client name is manually edited
-  clientInput.addEventListener("input", function() {
+  clientInput.addEventListener("input", function () {
     const clientXeroIdField = document.getElementById("client_xero_id");
     const clientIdField = document.getElementById("client_id");
     if (clientXeroIdField) {
@@ -36,28 +36,37 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // Add message event listener to handle client selection from child window
-  window.addEventListener("message", function(event) {
+  window.addEventListener("message", function (event) {
     console.log("Received message:", event.data);
-    
+
     // Handle messages from client selection window
-    if (event.data && event.data.type === 'CLIENT_SELECTED') {
+    if (event.data && event.data.type === "CLIENT_SELECTED") {
       console.log("Client selected, updating form fields:", event.data);
-      
+
       // Get form fields
       const clientIdField = document.getElementById("client_id");
       const clientNameField = document.getElementById("client_name");
       const clientXeroIdField = document.getElementById("client_xero_id");
-      
+
       // Update form fields with received data
       if (clientIdField) clientIdField.value = event.data.clientId;
       if (clientNameField) clientNameField.value = event.data.clientName;
       if (clientXeroIdField) clientXeroIdField.value = event.data.xeroContactId;
-      
+
       console.log("Updated form fields:");
-      console.log("- clientId:", clientIdField ? clientIdField.value : "field not found");
-      console.log("- clientName:", clientNameField ? clientNameField.value : "field not found");
-      console.log("- clientXeroId:", clientXeroIdField ? clientXeroIdField.value : "field not found");
-      
+      console.log(
+        "- clientId:",
+        clientIdField ? clientIdField.value : "field not found",
+      );
+      console.log(
+        "- clientName:",
+        clientNameField ? clientNameField.value : "field not found",
+      );
+      console.log(
+        "- clientXeroId:",
+        clientXeroIdField ? clientXeroIdField.value : "field not found",
+      );
+
       // Trigger autosave
       debouncedAutosave();
     }
@@ -144,16 +153,17 @@ document.addEventListener("DOMContentLoaded", function () {
           clientNameField.value = client.name;
           clientXeroIdField.value = client.xero_contact_id;
 
-          if (!clientIdField.value || !clientNameField.value || !clientXeroIdField.value) {
-            console.error(
-              "Failed to update client fields in the form.",
-            );
+          if (
+            !clientIdField.value ||
+            !clientNameField.value ||
+            !clientXeroIdField.value
+          ) {
+            console.error("Failed to update client fields in the form.");
             renderMessages(
               [
                 {
                   level: "error",
-                  message:
-                    "Failed to update client fields in the form.",
+                  message: "Failed to update client fields in the form.",
                 },
               ],
               "job-details",
@@ -203,4 +213,4 @@ document.addEventListener("DOMContentLoaded", function () {
     const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
     return csrfToken ? csrfToken.value : "";
   }
-}); 
+});

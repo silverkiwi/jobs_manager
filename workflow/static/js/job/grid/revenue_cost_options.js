@@ -144,14 +144,14 @@ export function calculateSimpleTotals() {
     }
 
     // Reality is always complex
-    const isRealitySection = section === 'reality';
+    const isRealitySection = section === "reality";
 
     // 1) Time
     processTimeGrid(section, isRealitySection, simpleTotals);
-    
+
     // 2) Materials
     processMaterialsGrid(section, isRealitySection, simpleTotals);
-    
+
     // 3) Adjustments
     processAdjustmentsGrid(section, isRealitySection, simpleTotals);
   });
@@ -165,21 +165,21 @@ export function calculateSimpleTotals() {
 
 // Added some aux functions
 function processTimeGrid(section, isRealitySection, simpleTotals) {
-  const timeGridKey = isRealitySection 
-    ? `${section}TimeTable` 
+  const timeGridKey = isRealitySection
+    ? `${section}TimeTable`
     : `simple${capitalize(section)}TimeTable`;
 
   const timeApi = window.grids[timeGridKey]?.api;
   if (!timeApi) return;
 
   const updatedTimeRows = [];
-  
+
   timeApi.forEachNode((node) => {
     if (isRealitySection) {
       processComplexTimeRow(node.data, section, simpleTotals);
       return;
     }
-    
+
     // Simple grid handling
     processSimpleTimeRow(node.data, section, simpleTotals, updatedTimeRows);
   });
@@ -202,7 +202,7 @@ function processComplexTimeRow(data, section, simpleTotals) {
   const wage = parseFloat(data.wage_rate) || 0;
   const charge = parseFloat(data.charge_out_rate) || 0;
   const hours = totalMinutes / 60;
-  
+
   const cost = hours * wage;
   const retail = parseFloat(data.revenue) || 0;
   simpleTotals[section].cost += cost;
@@ -220,30 +220,32 @@ function processSimpleTimeRow(data, section, simpleTotals, updatedTimeRows) {
 }
 
 function processMaterialsGrid(section, isRealitySection, simpleTotals) {
-  const matGridKey = isRealitySection 
-    ? `${section}MaterialsTable` 
+  const matGridKey = isRealitySection
+    ? `${section}MaterialsTable`
     : `simple${capitalize(section)}MaterialsTable`;
-    
+
   const matApi = window.grids[matGridKey]?.api;
   if (!matApi) return;
 
   matApi.forEachNode((node) => {
     if (isRealitySection) {
       // Complex grid
-      const cost = (parseFloat(node.data.unit_cost) || 0) * (parseFloat(node.data.quantity) || 0);
+      const cost =
+        (parseFloat(node.data.unit_cost) || 0) *
+        (parseFloat(node.data.quantity) || 0);
       const retail = parseFloat(node.data.revenue) || 0;
       simpleTotals[section].cost += cost;
       simpleTotals[section].retail += retail;
       return;
     }
-    
+
     // Simple grid
     const cost = parseFloat(node.data.material_cost) || 0;
     const retail = parseFloat(node.data.retail_price) || 0;
     simpleTotals[section].cost += cost;
     simpleTotals[section].retail += retail;
   });
-  
+
   if (Environment.isDebugMode()) {
     console.log(`Materials totals for ${section}:`, {
       cost: simpleTotals[section].cost,
@@ -253,8 +255,8 @@ function processMaterialsGrid(section, isRealitySection, simpleTotals) {
 }
 
 function processAdjustmentsGrid(section, isRealitySection, simpleTotals) {
-  const adjGridKey = isRealitySection 
-    ? `${section}AdjustmentsTable` 
+  const adjGridKey = isRealitySection
+    ? `${section}AdjustmentsTable`
     : `simple${capitalize(section)}AdjustmentsTable`;
 
   const adjApi = window.grids[adjGridKey]?.api;
@@ -263,11 +265,11 @@ function processAdjustmentsGrid(section, isRealitySection, simpleTotals) {
   adjApi.forEachNode((node) => {
     const costAdj = parseFloat(node.data.cost_adjustment) || 0;
     const priceAdj = parseFloat(node.data.price_adjustment) || 0;
-    
+
     simpleTotals[section].cost += costAdj;
     simpleTotals[section].retail += priceAdj;
   });
-  
+
   if (Environment.isDebugMode()) {
     console.log(`Adjustments totals for ${section}:`, {
       cost: simpleTotals[section].cost,

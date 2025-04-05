@@ -4,17 +4,17 @@
  */
 
 function getStatusIcon(status) {
-    const icons = {
-        quoting: "📝",
-        approved: "✅",
-        rejected: "❌",
-        in_progress: "🚧",
-        on_hold: "⏸️",
-        special: "⭐",
-        completed: "✔️",
-        archived: "📦",
-    };
-    return icons[status] || "";
+  const icons = {
+    quoting: "📝",
+    approved: "✅",
+    rejected: "❌",
+    in_progress: "🚧",
+    on_hold: "⏸️",
+    special: "⭐",
+    completed: "✔️",
+    archived: "📦",
+  };
+  return icons[status] || "";
 }
 
 /**
@@ -22,7 +22,7 @@ function getStatusIcon(status) {
  * @param {Array<Object>} jobs - Jobs to be displayed.
  */
 export function updateJobsList(jobs) {
-    renderJobsSection(jobs);
+  renderJobsSection(jobs);
 }
 
 /**
@@ -30,44 +30,44 @@ export function updateJobsList(jobs) {
  * @param {Array<Object>} currentJobs - Current list of jobs to render.
  */
 function renderJobsSection(currentJobs) {
-    const jobsList = document.getElementById("jobs-list");
-    if (!jobsList) {
-        console.error("Element #jobs-list not found in the DOM.");
-        return;
-    }
+  const jobsList = document.getElementById("jobs-list");
+  if (!jobsList) {
+    console.error("Element #jobs-list not found in the DOM.");
+    return;
+  }
 
-    jobsList.innerHTML = "";
+  jobsList.innerHTML = "";
 
-    const jobsSection = document.getElementById("current-jobs");
+  const jobsSection = document.getElementById("current-jobs");
 
-    if (currentJobs.length === 0) {
-        jobsList.innerHTML = `
+  if (currentJobs.length === 0) {
+    jobsList.innerHTML = `
             <div id="no-jobs-alert" class="alert alert-info text-center align-self-center w-100" role="alert">
                 No jobs are currently loaded.
             </div>
         `;
-        return;
-    }
+    return;
+  }
 
-    // Remove any existing no-jobs alert
-    const existingAlert = jobsSection.querySelector("#no-jobs-alert");
-    if (existingAlert) {
-        existingAlert.remove();
-    }
+  // Remove any existing no-jobs alert
+  const existingAlert = jobsSection.querySelector("#no-jobs-alert");
+  if (existingAlert) {
+    existingAlert.remove();
+  }
 
-    // Update the jobs list class based on the number of jobs
-    jobsList.className =
-        currentJobs.length === 1
-            ? "row row-cols-1 g-3 w-100"
-            : "row row-cols-1 row-cols-md-2 g-3";
+  // Update the jobs list class based on the number of jobs
+  jobsList.className =
+    currentJobs.length === 1
+      ? "row row-cols-1 g-3 w-100"
+      : "row row-cols-1 row-cols-md-2 g-3";
 
-    // Render cards for each job
-    currentJobs.forEach((job) => {
-        const jobCard = createJobItem(job, currentJobs.length === 1);
-        jobsList.insertAdjacentHTML("beforeend", jobCard);
-    });
+  // Render cards for each job
+  currentJobs.forEach((job) => {
+    const jobCard = createJobItem(job, currentJobs.length === 1);
+    jobsList.insertAdjacentHTML("beforeend", jobCard);
+  });
 
-    adjustJobContainerHeight();
+  adjustJobContainerHeight();
 }
 
 /**
@@ -77,21 +77,21 @@ function renderJobsSection(currentJobs) {
  * @returns {HTMLElement} - The DOM element for the job item.
  */
 function createJobItem(job, isSingleJob = false) {
-    const statusIcon = getStatusIcon('special'); // All jobs are 'special' as per requirements
-    const materialsExceeded = job.materials_purchased > job.estimated_materials;
-    const warningMessage = materialsExceeded
-        ? `<small class="text-danger">⚠ Exceeds estimated materials</small>`
-        : "";
+  const statusIcon = getStatusIcon("special"); // All jobs are 'special' as per requirements
+  const materialsExceeded = job.materials_purchased > job.estimated_materials;
+  const warningMessage = materialsExceeded
+    ? `<small class="text-danger">⚠ Exceeds estimated materials</small>`
+    : "";
 
-    // Add w-100 class if it's a single job
-    const colClass = isSingleJob ? "col w-100" : "col";
-    
-    // Make sure job_number and name are defined
-    const jobNumber = job.job_number || '';
-    const jobName = job.name || '';
-    const jobDisplayName = `${jobNumber} - ${jobName}`;
+  // Add w-100 class if it's a single job
+  const colClass = isSingleJob ? "col w-100" : "col";
 
-    return `
+  // Make sure job_number and name are defined
+  const jobNumber = job.job_number || "";
+  const jobName = job.name || "";
+  const jobDisplayName = `${jobNumber} - ${jobName}`;
+
+  return `
         <div class="${colClass}">
             <div class="card h-100">
                 <div class="card-body">
@@ -119,21 +119,21 @@ function createJobItem(job, isSingleJob = false) {
  * @returns {string} - The capitalized string.
  */
 function capitalizeFirstLetter(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function adjustJobContainerHeight() {
-    const jobsContainer = document.getElementById("current-jobs");
-    const jobsList = document.getElementById("jobs-list");
-    const summarySection = document.getElementById("summary-section");
+  const jobsContainer = document.getElementById("current-jobs");
+  const jobsList = document.getElementById("jobs-list");
+  const summarySection = document.getElementById("summary-section");
 
-    if (!jobsContainer || !jobsList || !summarySection) return;
+  if (!jobsContainer || !jobsList || !summarySection) return;
 
-    const jobsContentHeight = jobsList.scrollHeight;
+  const jobsContentHeight = jobsList.scrollHeight;
 
-    if (jobsContentHeight > summarySection.offsetHeight) {
-        jobsContainer.style.height = `${jobsContentHeight}px`;
-    } else {
-        jobsContainer.style.height = `${summarySection.offsetHeight}px`;
-    }
+  if (jobsContentHeight > summarySection.offsetHeight) {
+    jobsContainer.style.height = `${jobsContentHeight}px`;
+  } else {
+    jobsContainer.style.height = `${summarySection.offsetHeight}px`;
+  }
 }
