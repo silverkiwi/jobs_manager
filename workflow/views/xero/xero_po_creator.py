@@ -83,10 +83,6 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
              return [] # Or raise error
 
         for line in self.purchase_order.po_lines.all(): # Correct related name
-            # Skip lines marked as 'Price to be confirmed'
-            if line.price_tbc or line.unit_cost is None: # Check both just in case
-                logger.debug(f"Skipping PO line {line.id} due to TBC price.")
-                continue
 
             description = line.description
             # Prepend Job Number if available
@@ -94,9 +90,9 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
                 description = f"{line.job.job_number} - {description}"
 
             line_item_data = {
-                "description": description,
+                "description": f"Price to be confirmed - {description}" if line.price_tbc else description,
                 "quantity": float(line.quantity),
-                "unit_amount": float(line.unit_cost)
+                "unit_amount": float(line.unit_cost) or 0.0
             }
 
             # Add account code only if found
