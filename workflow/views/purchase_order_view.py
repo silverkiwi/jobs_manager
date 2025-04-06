@@ -345,7 +345,7 @@ def autosave_purchase_order_view(request):
 @require_http_methods(["POST"])
 @transaction.atomic
 def delete_purchase_order_view(request, pk):
-    if not id:
+    if not pk:
         return JsonResponse({
             "success": False,
             "error": "Missing PO id in the request."
