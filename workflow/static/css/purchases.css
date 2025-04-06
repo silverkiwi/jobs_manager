@@ -135,3 +135,31 @@
     height: auto !important;
     overflow: visible;
 } 
+
+/* Deleted PO styles */
+body.deleted-purchase-order .card {
+    border-color: #dc3545;
+  }
+  
+  body.deleted-purchase-order .card-header {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-bottom-color: #dc3545;
+  }
+
+  .form-select-plaintext {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    background-color: transparent;
+    border: solid transparent;
+    border-width: 1px 0;
+    color: #6c757d !important;
+  }
+  
+  body.deleted-purchase-order .ag-theme-alpine {
+    --ag-border-color: #dc3545;
+    --ag-odd-row-background-color: rgba(220, 53, 69, 0.05);
+  }

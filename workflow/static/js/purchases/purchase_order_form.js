@@ -26,42 +26,246 @@ function getStatusDisplay(status) {
     submitted: "Submitted to Supplier",
     partially_received: "Partially Received",
     fully_received: "Fully Received",
-    void: "Voided",
+    deleted: "Deleted",
   };
   return statusMap[status] || status;
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("DOM Content Loaded");
-
-  // Parse JSON data from HTML elements
-  const jobsDataElement = document.getElementById("jobs-data");
-  const lineItemsDataElement = document.getElementById("line-items-data");
-  const purchaseOrderDataElement = document.getElementById(
-    "purchase-order-data",
-  );
-
-  // Store data globally
-  window.purchaseData = {
-    jobs: jobsDataElement ? JSON.parse(jobsDataElement.textContent) : [],
-    lineItems: lineItemsDataElement
-      ? JSON.parse(lineItemsDataElement.textContent)
-      : [],
-    purchaseOrder: purchaseOrderDataElement
-      ? JSON.parse(purchaseOrderDataElement.textContent)
-      : {},
-  };
-
-  console.log("Purchase order data loaded:", window.purchaseData);
-
-  // Update submit button state after data is loaded
-  updateSubmitButtonState();
-
+// Function to initialize the AG Grid component
+function initializeGrid() {
   // Initialize grid only if we have the container
   const gridDiv = document.querySelector("#purchase-order-lines-grid");
   if (!gridDiv) {
     console.error("Grid container not found");
-    return;
+    return false;
+  }
+
+  // Cell value change handler
+  function onCellValueChanged(params) {
+    // If this is the last row and contains data, add a new empty row
+    const isLastRow =
+      params.node.rowIndex === params.api.getDisplayedRowCount() - 1;
+    const hasData =
+      params.data.job ||
+      params.data.description ||
+      params.data.quantity !== "" ||
+      params.data.unit_cost !== "";
+
+    // Only add a new row if the purchase order is in draft status
+    const isDraft =
+      !window.purchaseData.purchaseOrder ||
+      !window.purchaseData.purchaseOrder.status ||
+      window.purchaseData.purchaseOrder.status === "draft";
+
+    if (isLastRow && hasData && isDraft) {
+      createNewRowShortcut(params.api);
+    }
+
+    // Determine which cells to refresh based on what changed
+    const jobId = params.data.job;
+    const changedField = params.colDef.field;
+    const isCostRelatedChange = [
+      "job",
+      "quantity",
+      "unit_cost",
+      "price_tbc",
+    ].includes(changedField);
+
+    if (jobId && isCostRelatedChange) {
+      // Find all nodes with this job
+      const nodesToRefresh = [];
+      params.api.forEachNode((node) => {
+        if (node.data.job === jobId) {
+          nodesToRefresh.push(node);
+        }
+      });
+
+      // Assert we found at least this row
+      console.assert(
+        nodesToRefresh.length > 0,
+        "No rows found for job refresh",
+      );
+
+      // Refresh total cells for all related job rows
+      params.api.refreshCells({
+        rowNodes: nodesToRefresh,
+        columns: ["total"],
+        force: true,
+      });
+
+      // Check if materials cost exceeds estimated cost
+      const job = window.purchaseData.jobs.find((j) => j.id === jobId);
+      if (job) {
+        // Calculate total cost for this job from all rows
+        let jobTotal = 0;
+        params.api.forEachNode((node) => {
+          if (
+            node.data.job === jobId &&
+            !node.data.price_tbc &&
+            node.data.unit_cost !== null
+          ) {
+            jobTotal += node.data.quantity * node.data.unit_cost;
+          }
+        });
+
+        // Show warning if cost exceeds estimate
+        if (jobTotal > job.estimated_materials) {
+          renderMessages(
+            [
+              {
+                level: "warning",
+                message: `Materials cost $${jobTotal.toFixed(2)} exceeds estimated $${job.estimated_materials.toFixed(2)}.`,
+              },
+            ],
+            "purchase-order",
+          );
+        }
+      }
+    } else {
+      // Update only this row's total
+      params.api.refreshCells({
+        rowNodes: [params.node],
+        columns: ["total"],
+        force: true,
+      });
+    }
+
+    // Update job summary section
+    updateJobSummary();
+
+    adjustGridHeight();
+    debouncedAutosave().then((success) => {
+      lastAutosaveSuccess = success;
+      updateSubmitButtonState();
+    });
+  }
+
+  // Function to create a new empty row
+  function createNewRow() {
+    return {
+      job: "",
+      description: "",
+      quantity: 1,
+      unit_cost: null,
+      price_tbc: false,
+    };
+  }
+
+  // Function to render delete icon
+  function deleteIconCellRenderer() {
+    return `<span class="delete-icon">🗑️</span>`;
+  }
+
+  // Function to create new row with shortcut
+  function createNewRowShortcut(api) {
+    // Check if purchase order is in draft status
+    if (
+      window.purchaseData.purchaseOrder &&
+      window.purchaseData.purchaseOrder.status &&
+      window.purchaseData.purchaseOrder.status !== "draft"
+    ) {
+      // Show message that rows cannot be added
+      renderMessages(
+        [
+          {
+            level: "error",
+            message: `Cannot add new items. This purchase order is in ${getStatusDisplay(window.purchaseData.purchaseOrder.status)} status.`,
+          },
+        ],
+        "purchase-order",
+      );
+      return;
+    }
+
+    // Add the new row
+    const result = api.applyTransaction({
+      add: [createNewRow()],
+    });
+
+    // Assert the row was added successfully
+    console.assert(
+      result && result.add && result.add.length === 1,
+      "Failed to add new row",
+    );
+
+    // Focus the first cell of the new row
+    setTimeout(() => {
+      const lastRowIndex = api.getDisplayedRowCount() - 1;
+      api.setFocusedCell(lastRowIndex, "job");
+      adjustGridHeight();
+    }, 100);
+  }
+
+  // Function to delete a row
+  function deleteRow(api, node) {
+    // Assert that api and node exist
+    console.assert(api && node, "API or node is undefined in deleteRow");
+
+    // Check if purchase order is in draft status
+    if (
+      window.purchaseData.purchaseOrder &&
+      window.purchaseData.purchaseOrder.status &&
+      window.purchaseData.purchaseOrder.status !== "draft"
+    ) {
+      // Show message that rows cannot be deleted
+      renderMessages(
+        [
+          {
+            level: "error",
+            message: `Cannot delete items. This purchase order is in ${getStatusDisplay(window.purchaseData.purchaseOrder.status)} status.`,
+          },
+        ],
+        "purchase-order",
+      );
+      return;
+    }
+
+    // Only delete if there's more than one row
+    if (api.getDisplayedRowCount() > 1) {
+      // If the row has an ID, mark it for deletion on the server
+      if (node.data.id && node.data.id !== "tempId") {
+        markLineItemAsDeleted(node.data.id);
+      }
+
+      // Delete the row and verify success
+      const result = api.applyTransaction({ remove: [node.data] });
+      console.assert(
+        result && result.remove && result.remove.length === 1,
+        "Failed to remove row",
+      );
+
+      adjustGridHeight();
+      updateJobSummary();
+      debouncedAutosave().then((success) => {
+        lastAutosaveSuccess = success;
+        updateSubmitButtonState();
+      });
+    }
+  }
+
+  // Function to adjust grid height based on number of rows
+  function adjustGridHeight() {
+    const gridElement = document.getElementById("purchase-order-lines-grid");
+
+    // Assert grid element exists
+    console.assert(gridElement, "Grid container not found");
+    if (!gridElement) return;
+
+    // Count rows and calculate appropriate height
+    let rowCount = 0;
+    window.grid.api.forEachNode(() => rowCount++);
+
+    const rowHeight = 40;
+    const headerHeight = 50;
+    const padding = 5;
+    const minHeight = 150; // Minimum height for the grid
+
+    // Set grid height
+    const height = Math.max(
+      rowCount * rowHeight + headerHeight + padding,
+      minHeight,
+    );
+    gridElement.style.height = `${height}px`;
   }
 
   // Create grid options
@@ -306,11 +510,97 @@ document.addEventListener("DOMContentLoaded", function () {
     : [createNewRow()];
 
   // Create the grid
-  window.grid = agGrid.createGrid(gridDiv, gridOptions);
+  window.grid = { api: agGrid.createGrid(gridDiv, gridOptions) };
   console.log("Grid initialized with data:", gridOptions.rowData);
 
   // Initial adjustment
   adjustGridHeight();
+  
+  return true;
+}
+
+// Helper function to block PO interaction if status is DELETED
+function blockPurchaseOrderEdition() {
+  const formElement = document.getElementById("purchase-order-details-form");
+  if (formElement) {
+    const noticeDiv = document.createElement("div");
+    noticeDiv.className = "alert alert-danger mb-3";
+    noticeDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>This purchase order has been <strong>DELETED</strong>. No editing is allowed.`;
+    formElement.prepend(noticeDiv);
+  }
+
+  const formInputs = [document.getElementById("status"), document.getElementById("expected_delivery"), document.getElementById("reference")]
+  formInputs.forEach(input => {
+    input.setAttribute("disabled", true);
+    if (input.classList.contains("form-control")) {
+      input.classList.add("form-control-plaintext");
+      input.classList.remove("form-control");
+    } else if (input.classList.contains("form-select")) {
+      input.classList.add("form-select-plaintext");
+      input.classList.remove("form-select");
+    }
+  });
+
+  const submitButton = document.getElementById("submit-purchase-order");
+  if (submitButton) submitButton.style.display = "none";
+
+  const gridDiv = document.querySelector("#purchase-order-lines-grid");
+  if (gridDiv) {
+    gridDiv.style.border = "2px solid #dc3545";
+    gridDiv.style.backgroundColor = "rgba(220, 53, 69, 0.05)";
+  }
+
+  window.setTimeout(() => {
+    if (window.grid && window.grid.api) {
+      window.grid.api.setGridOption("readOnly", true);
+      window.grid.api.setGridOption("editable", false);
+
+      const columnDefs = window.grid.api.getColumnDefs();
+      columnDefs.forEach((col) => {
+        col.editable = false
+      });
+      window.grid.api.setGridOption("columnDefs", columnDefs);
+
+      window.grid.api.refreshCells({ force: true });
+    }
+  }, 500);
+  
+  document.body.classList.add("deleted-purchase-order");
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  console.log("DOM Content Loaded");
+
+  // Parse JSON data from HTML elements
+  const jobsDataElement = document.getElementById("jobs-data");
+  const lineItemsDataElement = document.getElementById("line-items-data");
+  const purchaseOrderDataElement = document.getElementById(
+    "purchase-order-data",
+  );
+
+  // Store data globally
+  window.purchaseData = {
+    jobs: jobsDataElement ? JSON.parse(jobsDataElement.textContent) : [],
+    lineItems: lineItemsDataElement
+      ? JSON.parse(lineItemsDataElement.textContent)
+      : [],
+    purchaseOrder: purchaseOrderDataElement
+      ? JSON.parse(purchaseOrderDataElement.textContent)
+      : {},
+  };
+
+  console.log("Purchase order data loaded:", window.purchaseData);
+
+  // Initialize the grid first
+  const gridInitialized = initializeGrid();
+
+  // Then check the status and block if necessary
+  if (gridInitialized && window.purchaseData.purchaseOrder.status === "deleted") {
+    blockPurchaseOrderEdition();
+  }
+
+  // Update submit button state after data is loaded
+  updateSubmitButtonState();
 
   // Initialize job summary section
   updateJobSummary();
@@ -357,7 +647,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // If the status is not draft, make specific fields read-only
     if (
       window.purchaseData.purchaseOrder.status &&
-      window.purchaseData.purchaseOrder.status !== "draft"
+      window.purchaseData.purchaseOrder.status !== "draft" &&
+      window.purchaseData.purchaseOrder.status !== "deleted"
     ) {
       // Add a notice at the top of the form
       const formElement = document.getElementById(
@@ -386,8 +677,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Make the grid read-only
       window.setTimeout(() => {
-        if (gridOptions && gridOptions.api) {
-          gridOptions.api.setGridOption("readOnly", true);
+        if (window.grid && window.grid.api) {
+          window.grid.api.setGridOption("readOnly", true);
         }
       }, 500);
     }
@@ -430,238 +721,6 @@ document.addEventListener("DOMContentLoaded", function () {
       "Delete Xero PO button not found (likely PO not submitted yet).",
     );
   }
-
-  // Using autosave - no save button needed
-
-  // Cell value change handler
-  function onCellValueChanged(params) {
-    // If this is the last row and contains data, add a new empty row
-    const isLastRow =
-      params.node.rowIndex === params.api.getDisplayedRowCount() - 1;
-    const hasData =
-      params.data.job ||
-      params.data.description ||
-      params.data.quantity !== "" ||
-      params.data.unit_cost !== "";
-
-    // Only add a new row if the purchase order is in draft status
-    const isDraft =
-      !window.purchaseData.purchaseOrder ||
-      !window.purchaseData.purchaseOrder.status ||
-      window.purchaseData.purchaseOrder.status === "draft";
-
-    if (isLastRow && hasData && isDraft) {
-      createNewRowShortcut(params.api);
-    }
-
-    // Determine which cells to refresh based on what changed
-    const jobId = params.data.job;
-    const changedField = params.colDef.field;
-    const isCostRelatedChange = [
-      "job",
-      "quantity",
-      "unit_cost",
-      "price_tbc",
-    ].includes(changedField);
-
-    if (jobId && isCostRelatedChange) {
-      // Find all nodes with this job
-      const nodesToRefresh = [];
-      params.api.forEachNode((node) => {
-        if (node.data.job === jobId) {
-          nodesToRefresh.push(node);
-        }
-      });
-
-      // Assert we found at least this row
-      console.assert(
-        nodesToRefresh.length > 0,
-        "No rows found for job refresh",
-      );
-
-      // Refresh total cells for all related job rows
-      params.api.refreshCells({
-        rowNodes: nodesToRefresh,
-        columns: ["total"],
-        force: true,
-      });
-
-      // Check if materials cost exceeds estimated cost
-      const job = window.purchaseData.jobs.find((j) => j.id === jobId);
-      if (job) {
-        // Calculate total cost for this job from all rows
-        let jobTotal = 0;
-        params.api.forEachNode((node) => {
-          if (
-            node.data.job === jobId &&
-            !node.data.price_tbc &&
-            node.data.unit_cost !== null
-          ) {
-            jobTotal += node.data.quantity * node.data.unit_cost;
-          }
-        });
-
-        // Show warning if cost exceeds estimate
-        if (jobTotal > job.estimated_materials) {
-          renderMessages(
-            [
-              {
-                level: "warning",
-                message: `Materials cost $${jobTotal.toFixed(2)} exceeds estimated $${job.estimated_materials.toFixed(2)}.`,
-              },
-            ],
-            "purchase-order",
-          );
-        }
-      }
-    } else {
-      // Update only this row's total
-      params.api.refreshCells({
-        rowNodes: [params.node],
-        columns: ["total"],
-        force: true,
-      });
-    }
-
-    // Update job summary section
-    updateJobSummary();
-
-    adjustGridHeight();
-    debouncedAutosave().then((success) => {
-      lastAutosaveSuccess = success;
-      updateSubmitButtonState();
-    });
-  }
-
-  // Function to create a new empty row
-  function createNewRow() {
-    return {
-      job: "",
-      description: "",
-      quantity: 1,
-      unit_cost: null,
-      price_tbc: false,
-    };
-  }
-
-  // Function to render delete icon
-  function deleteIconCellRenderer() {
-    return `<span class="delete-icon">🗑️</span>`;
-  }
-
-  // Function to create new row with shortcut
-  function createNewRowShortcut(api) {
-    // Check if purchase order is in draft status
-    if (
-      window.purchaseData.purchaseOrder &&
-      window.purchaseData.purchaseOrder.status &&
-      window.purchaseData.purchaseOrder.status !== "draft"
-    ) {
-      // Show message that rows cannot be added
-      renderMessages(
-        [
-          {
-            level: "error",
-            message: `Cannot add new items. This purchase order is in ${getStatusDisplay(window.purchaseData.purchaseOrder.status)} status.`,
-          },
-        ],
-        "purchase-order",
-      );
-      return;
-    }
-
-    // Add the new row
-    const result = api.applyTransaction({
-      add: [createNewRow()],
-    });
-
-    // Assert the row was added successfully
-    console.assert(
-      result && result.add && result.add.length === 1,
-      "Failed to add new row",
-    );
-
-    // Focus the first cell of the new row
-    setTimeout(() => {
-      const lastRowIndex = api.getDisplayedRowCount() - 1;
-      api.setFocusedCell(lastRowIndex, "job");
-      adjustGridHeight();
-    }, 100);
-  }
-
-  // Function to delete a row
-  function deleteRow(api, node) {
-    // Assert that api and node exist
-    console.assert(api && node, "API or node is undefined in deleteRow");
-
-    // Check if purchase order is in draft status
-    if (
-      window.purchaseData.purchaseOrder &&
-      window.purchaseData.purchaseOrder.status &&
-      window.purchaseData.purchaseOrder.status !== "draft"
-    ) {
-      // Show message that rows cannot be deleted
-      renderMessages(
-        [
-          {
-            level: "error",
-            message: `Cannot delete items. This purchase order is in ${getStatusDisplay(window.purchaseData.purchaseOrder.status)} status.`,
-          },
-        ],
-        "purchase-order",
-      );
-      return;
-    }
-
-    // Only delete if there's more than one row
-    if (api.getDisplayedRowCount() > 1) {
-      // If the row has an ID, mark it for deletion on the server
-      if (node.data.id && node.data.id !== "tempId") {
-        markLineItemAsDeleted(node.data.id);
-      }
-
-      // Delete the row and verify success
-      const result = api.applyTransaction({ remove: [node.data] });
-      console.assert(
-        result && result.remove && result.remove.length === 1,
-        "Failed to remove row",
-      );
-
-      adjustGridHeight();
-      updateJobSummary();
-      debouncedAutosave().then((success) => {
-        lastAutosaveSuccess = success;
-        updateSubmitButtonState();
-      });
-    }
-  }
-
-  // Function to adjust grid height based on number of rows
-  function adjustGridHeight() {
-    const gridElement = document.getElementById("purchase-order-lines-grid");
-
-    // Assert grid element exists
-    console.assert(gridElement, "Grid container not found");
-    if (!gridElement) return;
-
-    // Count rows and calculate appropriate height
-    let rowCount = 0;
-    window.grid.forEachNode(() => rowCount++);
-
-    const rowHeight = 40;
-    const headerHeight = 50;
-    const padding = 5;
-    const minHeight = 150; // Minimum height for the grid
-
-    // Set grid height
-    const height = Math.max(
-      rowCount * rowHeight + headerHeight + padding,
-      minHeight,
-    );
-    gridElement.style.height = `${height}px`;
-  }
-
-  // Removed saveOrder function as we're using autosave instead
 
   // Add event listeners for all form fields with the autosave-input class
   const autosaveInputs = document.querySelectorAll(".autosave-input");
@@ -895,7 +954,7 @@ function getCsrfToken() {
  * Follows the pattern from timesheet's updateSummarySection function
  */
 function updateJobSummary() {
-  const grid = window.grid;
+  const grid = window.grid.api;
   if (!grid) {
     console.error("Grid instance not found.");
     return;

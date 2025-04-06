@@ -5,7 +5,7 @@ import { renderMessages } from "./messages.js";
  * where materials cost exceeds the estimated cost.
  */
 export function updateSummarySection() {
-  const grid = window.grid;
+  const grid = window.grid.api;
   if (!grid) {
     console.error("Grid instance not found.");
     return;

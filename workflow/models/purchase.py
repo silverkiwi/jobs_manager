@@ -36,7 +36,7 @@ class PurchaseOrder(models.Model):
             ("submitted", "Submitted to Supplier"),
             ("partially_received", "Partially Received"),
             ("fully_received", "Fully Received"),
-            ("void", "Voided"),
+            ("deleted", "Deleted"),
         ],
         default="draft",
     )

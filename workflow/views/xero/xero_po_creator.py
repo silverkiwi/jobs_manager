@@ -328,9 +328,9 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
                 if getattr(xero_po_data, 'status', None) == 'DELETED' or http_status < 300:
                     # Clear local Xero ID and update status (optional, could just clear ID)
                     self.purchase_order.xero_id = None
-                    # self.purchase_order.status = 'void' # Or keep local status? Discuss implications.
                     self.purchase_order.xero_last_synced = timezone.now()
-                    self.purchase_order.save(update_fields=['xero_id', 'xero_last_synced']) # Add 'status' if changing it
+                    self.purchase_order.status = "deleted"
+                    self.purchase_order.save(update_fields=['xero_id', 'xero_last_synced', 'status'])
 
                     logger.info(f"Successfully deleted purchase order {self.purchase_order.id} in Xero (Xero ID: {xero_id}).")
                     return JsonResponse({"success": True, "action": "delete"})

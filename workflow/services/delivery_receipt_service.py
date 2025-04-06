@@ -160,7 +160,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
             logger.debug(f"Updating PO status - Current Total Received: {current_total_received}, Current Total Ordered: {current_total_ordered}")
             new_status = purchase_order.status # Default to current
             if current_total_received <= 0:
-                 if purchase_order.status != 'void': # Avoid changing voided status
+                 if purchase_order.status != 'deleted': # Avoid changing deleted status
                      new_status = 'submitted'
             elif current_total_received < current_total_ordered:
                 new_status = 'partially_received'
