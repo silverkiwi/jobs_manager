@@ -134,7 +134,7 @@ class PurchaseOrderLine(models.Model):
         max_length=255,
         blank=True,
         null=True,
-        help_text="Specific detals (e.g., m8 countersunk socket screw)"
+        help_text="Specific details (e.g., m8 countersunk socket screw)"
     )
     location = models.CharField(
         max_length=255,
