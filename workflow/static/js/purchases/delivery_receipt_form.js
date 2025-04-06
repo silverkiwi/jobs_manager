@@ -149,6 +149,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const originalPoLineJobName = row.dataset.lineJobName || "";
     const description = row.dataset.lineDescription;
     const unitCost = row.dataset.unitCost || "0.00";
+    
+    const metalType = row.dataset.metalType || "unspecified";
+    const alloy = row.dataset.alloy || "";
+    const specifics = row.dataset.specifics || "";
+    const location = row.dataset.location || "";
+    
+    newRow.dataset.metalType = metalType;
+    newRow.dataset.alloy = alloy;
+    newRow.dataset.specifics = specifics;
+    newRow.dataset.location = location;
+    newRow.dataset.lineDescription = description;
 
     // Determine the default allocation target
     const defaultTargetJobId = originalPoLineJobId || STOCK_HOLDING_JOB_ID;
@@ -173,32 +184,26 @@ document.addEventListener("DOMContentLoaded", function () {
                                               value="${orderedQty}" min="0"
                                               data-line-id="${lineId}" step="any" required>`; // Default to ordered qty
 
-    // 6. Allocation Details Cell
-    const allocationCell = newRow.insertCell();
-    allocationCell.classList.add("allocation-details-cell");
-    // Set initial data attribute to store the default allocation
-    const defaultAllocation = [
-      { jobId: defaultTargetJobId, quantity: orderedQty },
-    ];
-    allocationCell.dataset.currentAllocation =
-      JSON.stringify(defaultAllocation);
-
-    allocationCell.innerHTML = `
-            <div class="default-allocation-display">
-                <span class="allocation-summary">
-                    Allocated: ${orderedQty} to ${defaultTargetJobName}
-                </span>
-                <button type="button" class="btn btn-sm btn-outline-secondary split-allocation-btn ms-2">Split</button>
-            </div>
-            <div class="allocation-editor" style="display: none;">
-                 <!-- JS will populate this -->
-                 <div class="allocation-rows-container mb-1"></div> <!-- Container for rows -->
-                 <button type="button" class="btn btn-sm btn-success add-allocation-row-btn">Add Allocation</button>
-            </div>`;
+    // 6. Job Portion Cell (simplified)
+    const jobPortioncell = newRow.insertCell();
+    jobPortioncell.innerHTML = `
+      <input type="number" class="form-control form-control-sm job-allocation-qty"
+        value="${orderedQty}" min="0" max="${orderedQty}"
+        data-line-id="${lineId}" step="any" required>
+      <small class="text-muted">The rest will go to stock</small>
+      `;
 
     // 7. Unit Cost Cell
     const costCell = newRow.insertCell();
     costCell.textContent = `$${unitCost}`;
+
+    // 8. Retail Rate Cell (New)
+    const retailRateCell = newRow.insertCell();
+    retailRateCell.innerHTML = `
+      <input type="number" class="form-control form-control-sm retail-rate"
+        value="20" min="0" max="100" step="1"
+        data-line-id="${lineId}">
+    `;
 
     // Append the fully constructed row
     tbody.appendChild(newRow);
@@ -231,197 +236,57 @@ document.addEventListener("DOMContentLoaded", function () {
     row.remove();
   }
 
-  // --- Event Listener for Split Button ---
-  const receivedItemsBody = document.getElementById("receivedItems");
+  function collectDeliveryData() {
+    const lineAllocationsData = {};
 
-  receivedItemsBody.addEventListener("click", function (event) {
-    if (event.target.classList.contains("split-allocation-btn")) {
-      const button = event.target;
-      const allocationCell = button.closest(".allocation-details-cell");
-      if (!allocationCell) return;
+    allLineIds.forEach((lineId) => {
+      const receivedRow = document.querySelector(`#receivedItems tr[data-line-id="${lineId}"]`);
 
-      const defaultDisplay = allocationCell.querySelector(
-        ".default-allocation-display",
-      );
-      const editor = allocationCell.querySelector(".allocation-editor");
-      const rowsContainer = editor.querySelector(".allocation-rows-container");
-      const currentAllocationData = JSON.parse(
-        allocationCell.dataset.currentAllocation || "[]",
-      );
+      if (receivedRow) {
+        const totalReceivedInput = receivedRow.querySelector(".total-received-qty");
+        const jobAllocationInput = receivedRow.querySelector(".job-allocation-qty");
+        const retailRateInput = receivedRow.querySelector(".retail-rate");
+        const totalReceived = parseFloat(totalReceivedInput.value || 0);
+        const jobAllocation = parseFloat(jobAllocationInput.value || 0);
+        const retailRate = parseFloat(retailRateInput.value || 20);
 
-      // Hide default, show editor
-      defaultDisplay.style.display = "none";
-      editor.style.display = "block";
+        const stockAllocation = totalReceived - jobAllocation;
 
-      // Populate editor
-      renderAllocationEditor(rowsContainer, currentAllocationData);
-    }
+        const jobId = receivedRow.dataset.lineJobId;
+        const jobName = receivedRow.dataset.lineJobName;
 
-    if (event.target.classList.contains("add-allocation-row-btn")) {
-      const button = event.target;
-      const editor = button.closest(".allocation-editor");
-      const rowsContainer = editor.querySelector(".allocation-rows-container");
-      // Add a new blank row (or based on some logic)
-      addAllocationRow(rowsContainer); // We'll define this next
-    }
+        const description = receivedRow.dataset.lineDescription;
+        const unitCost = receivedRow.dataset.unitCost;
+        const metalType = receivedRow.dataset.metalType || "unspecified";
+        const alloy = receivedRow.dataset.alloy || "";
+        const specifics = receivedRow.dataset.specifics || "";
+        const location = receivedRow.dataset.location || "";
 
-    // Add listener for removing allocation rows later if needed
-    if (event.target.classList.contains("remove-allocation-row-btn")) {
-      event.target.closest(".allocation-row").remove();
-      // Add logic to update total validation if needed
-      addValidationListeners(event.target.closest(".allocation-editor")); // Revalidate on remove
-    }
-  });
-
-  // --- Helper Functions for Allocation Editor ---
-
-  function renderAllocationEditor(container, allocationData) {
-    container.innerHTML = ""; // Clear existing rows
-    if (allocationData.length === 0) {
-      // If no data (shouldn't happen with default), add one blank row
-      addAllocationRow(container);
-    } else {
-      allocationData.forEach((alloc) =>
-        addAllocationRow(container, alloc.jobId, alloc.quantity),
-      );
-    }
-    // Add validation listeners after rendering
-    addValidationListeners(container.closest(".allocation-editor"));
-  }
-
-  function addAllocationRow(container, targetJobId = "", quantity = "") {
-    // TODO: Need a way to get the list of available jobs (including Worker Admin)
-    // This might require passing job list data from the template similar to STOCK_HOLDING_JOB info
-    // Or making an AJAX call. For now, using a placeholder select.
-
-    // Build job options dynamically from the ALLOCATABLE_JOBS array
-    let jobOptionsHtml = '<option value="">Select Job...</option>';
-    ALLOCATABLE_JOBS.forEach((job) => {
-      // Check if this job is the stock holding job to add '(Stock)'
-      const isStockJob = job.id === STOCK_HOLDING_JOB_ID;
-      const displayName = isStockJob ? `${job.name} (Stock)` : job.name;
-      const selectedAttr = job.id === targetJobId ? "selected" : "";
-      jobOptionsHtml += `<option value="${job.id}" ${selectedAttr}>${displayName}</option>`;
-    });
-    // --- End Dynamic Options ---
-
-    const rowDiv = document.createElement("div");
-    rowDiv.innerHTML = `
-            <div class="col">
-                <select class="form-select form-select-sm allocation-job" required>
-                    ${jobOptionsHtml}
-                </select>
-            </div>
-            <div class="col-auto" style="width: 100px;">
-                <input type="number" class="form-control form-control-sm allocation-qty"
-                       value="${quantity}" min="0" step="any" required>
-            </div>
-            <div class="col-auto">
-                <button type="button" class="btn btn-sm btn-danger remove-allocation-row-btn">&times;</button>
-            </div>
-        `;
-    // Pre-select the job if targetJobId is provided and matches an option
-    const selectElement = rowDiv.querySelector(".allocation-job");
-    if (targetJobId) {
-      // Find the option with the matching value and select it
-      const optionToSelect = Array.from(selectElement.options).find(
-        (opt) => opt.value === targetJobId,
-      );
-      if (optionToSelect) {
-        optionToSelect.selected = true;
+        lineAllocationsData[lineId] = {
+          total_received: totalReceived,
+          job_allocation: jobAllocation,
+          stock_allocation: stockAllocation,
+          retail_rate: retailRate,
+          job_id: jobId,
+          metal_type: metalType,
+          alloy: alloy,
+          specifics: specifics,
+          location: location,
+          description: description,
+          unit_cost: unitCost
+        };
       } else {
-        console.warn(
-          `Job ID ${targetJobId} not found in options for allocation row.`,
-        );
-        // Optionally add it dynamically if job list is comprehensive?
-      }
-    } else if (!targetJobId && quantity === "") {
-      // If it's a truly new blank row, maybe default to stock? Or leave blank?
-      // selectElement.value = STOCK_HOLDING_JOB_ID; // Example: Default new rows to stock
-    }
-
-    container.appendChild(rowDiv);
-    // Add listener to the new quantity input
-    const newQtyInput = rowDiv.querySelector(".allocation-qty");
-    if (newQtyInput) {
-      newQtyInput.addEventListener("input", () =>
-        addValidationListeners(container.closest(".allocation-editor")),
-      );
-    }
-  }
-
-  function addValidationListeners(editorElement) {
-    const row = editorElement.closest("tr");
-    if (!row) return; // Exit if row not found
-    const totalReceivedInput = row.querySelector(".total-received-qty");
-    if (!totalReceivedInput) return; // Exit if total input not found
-
-    const validateAllocations = () => {
-      let allocatedSum = 0;
-      editorElement.querySelectorAll(".allocation-qty").forEach((input) => {
-        allocatedSum += parseFloat(input.value || 0);
-      });
-
-      const totalReceived = parseFloat(totalReceivedInput.value || 0);
-      const saveButton = document.getElementById("saveChanges"); // Get save button
-
-      // Simple visual feedback - could be enhanced
-      if (Math.abs(allocatedSum - totalReceived) > 0.001) {
-        // Allow for floating point issues
-        editorElement.classList.add("is-invalid"); // Style the container
-        if (saveButton) saveButton.disabled = true; // Disable save if invalid
-      } else {
-        editorElement.classList.remove("is-invalid");
-        if (saveButton) saveButton.disabled = false; // Enable save if valid
-      }
-      // Update the dataset on the parent cell
-      updateAllocationData(editorElement.closest(".allocation-details-cell"));
-    };
-
-    // Remove previous listeners to avoid duplicates if re-rendering
-    totalReceivedInput.removeEventListener("input", validateAllocations);
-    totalReceivedInput.addEventListener("input", validateAllocations);
-
-    editorElement.querySelectorAll(".allocation-qty").forEach((input) => {
-      input.removeEventListener("input", validateAllocations);
-      input.addEventListener("input", validateAllocations);
-    });
-    // Initial validation run
-    validateAllocations();
-  }
-
-  function updateAllocationData(allocationCell) {
-    if (!allocationCell) return;
-    const editor = allocationCell.querySelector(".allocation-editor");
-    if (!editor || editor.style.display === "none") {
-      // If editor isn't visible, data comes from default (already set)
-      // Or maybe clear it if we want to force re-split? For now, do nothing.
-      return;
-    }
-
-    const allocationData = [];
-    editor.querySelectorAll(".allocation-row").forEach((row) => {
-      const jobSelect = row.querySelector(".allocation-job");
-      const qtyInput = row.querySelector(".allocation-qty");
-      if (
-        jobSelect &&
-        qtyInput &&
-        jobSelect.value &&
-        parseFloat(qtyInput.value || 0) > 0
-      ) {
-        allocationData.push({
-          jobId: jobSelect.value,
-          quantity: parseFloat(qtyInput.value),
-        });
+        lineAllocationsData[lineId] = {
+          total_received: 0,
+          job_allocation: 0,
+          stock_allocation: 0,
+          retail_rate: 20 
+        };
       }
     });
-    allocationCell.dataset.currentAllocation = JSON.stringify(allocationData);
-    // Update the summary span as well?
-    // const summarySpan = allocationCell.querySelector('.allocation-summary');
-    // if(summarySpan) summarySpan.textContent = `Split (${allocationData.length} allocations)`;
-  }
 
-  // --- End Helper Functions ---
+    return lineAllocationsData;
+  }
 
   // Store all line IDs initially present
   const allLineIds = new Set();
@@ -438,50 +303,18 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("saveChanges")
     .addEventListener("click", async function (event) {
       event.preventDefault(); // Prevent default form submission
-      const lineAllocationsData = {};
 
-      // Clear previous validation states potentially set by backend errors later
+      // Clear previous validation states potentially set by backend errors
       document
         .querySelectorAll(".is-invalid")
         .forEach((el) => el.classList.remove("is-invalid"));
 
-      allLineIds.forEach((lineId) => {
-        const receivedRow = document.querySelector(
-          `#receivedItems tr[data-line-id="${lineId}"]`,
-        );
+      // Usar a nova função para coletar dados simplificados
+      const lineAllocationsData = collectDeliveryData();
 
-        if (receivedRow) {
-          const totalReceivedInput = receivedRow.querySelector(
-            ".total-received-qty",
-          );
-          const totalReceived = parseFloat(totalReceivedInput.value || 0);
-          const allocationCell = receivedRow.querySelector(
-            ".allocation-details-cell",
-          );
-
-          // Ensure latest allocation data is stored in the dataset before reading
-          updateAllocationData(allocationCell);
-          const currentAllocations = JSON.parse(
-            allocationCell.dataset.currentAllocation || "[]",
-          );
-
-          lineAllocationsData[lineId] = {
-            total_received: totalReceived,
-            allocations: currentAllocations,
-          };
-        } else {
-          // Line is still in pending
-          lineAllocationsData[lineId] = {
-            total_received: 0,
-            allocations: [],
-          };
-        }
-      });
-
-      // Basic check if any allocation data was generated (optional)
+      // Basic check if any allocation data was generated
       if (Object.keys(lineAllocationsData).length === 0) {
         console.warn("No allocation data found to submit.");
-        // Maybe alert the user?
         return;
       }
 
@@ -527,7 +360,7 @@ document.addEventListener("DOMContentLoaded", function () {
           const data = await response.json();
           alert(
             data.error ||
-              "An error occurred while saving the delivery receipt.",
+            "An error occurred while saving the delivery receipt.",
           );
         }
       } catch (error) {

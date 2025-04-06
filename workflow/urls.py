@@ -58,7 +58,7 @@ from workflow.views.xero import xero_view
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views, stock_view, use_stock_view
-from workflow.views.purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, autosave_purchase_order_view
+from workflow.views.purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, autosave_purchase_order_view, delete_purchase_order_view
 from workflow.views.delivery_receipt_view import DeliveryReceiptListView, DeliveryReceiptCreateView
 
 urlpatterns = [
@@ -366,6 +366,7 @@ urlpatterns = [
     path('purchases/purchase-orders/', PurchaseOrderListView.as_view(), name='purchase_orders'),
     path('purchases/purchase-orders/new/', PurchaseOrderCreateView.as_view(), name='new_purchase_order'),
     path('purchases/purchase-orders/<uuid:pk>/', PurchaseOrderCreateView.as_view(), name='edit_purchase_order'),
+    path('purchases/purchase-orders/delete/<uuid:pk>/', delete_purchase_order_view, name='delete_purchase_order'),
 
     # Delivery Receipt URLs with purchases prefix
     path('purchases/delivery-receipts/', DeliveryReceiptListView.as_view(), name='delivery_receipts'),

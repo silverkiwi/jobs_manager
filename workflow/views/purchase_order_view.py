@@ -88,7 +88,11 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
                     'quantity': float(line.quantity),
                     'unit_cost': float(line.unit_cost) if line.unit_cost is not None else None,
                     'price_tbc': line.price_tbc,
-                    'total': float(line.quantity * (line.unit_cost or 0))
+                    'total': float(line.quantity * (line.unit_cost or 0)),
+                    "metal_type": line.metal_type or "unspecified",
+                    "alloy": line.alloy or "",
+                    "specifics": line.specifics or "",
+                    "location": line.location or "",
                 } for line in line_items
             ])
         else:
@@ -292,7 +296,11 @@ def autosave_purchase_order_view(request):
                             'description': item_data.get("description"),
                             'quantity': item_data.get("quantity"),
                             'unit_cost': item_data.get("unit_cost"),
-                            'price_tbc': item_data.get("price_tbc", False)
+                            'price_tbc': item_data.get("price_tbc", False),
+                            'metal_type': item_data.get("metal_type", "unspecified"),
+                            'alloy': item_data.get("alloy", ""),
+                            'specifics': item_data.get("specifics", ""),
+                            'location': item_data.get("location", "")
                         }
                     )
                     processed_line_ids.add(str(line.id))
@@ -332,3 +340,29 @@ def autosave_purchase_order_view(request):
         return JsonResponse(
             {"error": f"Unexpected server error: {str(e)}", "messages": extract_messages(request)}, status=500
         )
+    
+
+@require_http_methods(["POST"])
+@transaction.atomic
+def delete_purchase_order_view(request, pk):
+    if not pk:
+        return JsonResponse({
+            "success": False,
+            "error": "Missing PO id in the request."
+        }, status=400)
+    
+    try:
+        po: PurchaseOrder = PurchaseOrder.objects.get(id=pk)
+
+        if po.status != "draft": raise Exception("Invalid PO status - cannot delete a PO that was already sent to supplier.")
+
+        po.delete()
+
+        return JsonResponse({
+            "success": True,
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"There was an error while trying to delete Purchase Order {pk}: {e}"
+        })

@@ -83,10 +83,6 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
              return [] # Or raise error
 
         for line in self.purchase_order.po_lines.all(): # Correct related name
-            # Skip lines marked as 'Price to be confirmed'
-            if line.price_tbc or line.unit_cost is None: # Check both just in case
-                logger.debug(f"Skipping PO line {line.id} due to TBC price.")
-                continue
 
             description = line.description
             # Prepend Job Number if available
@@ -94,9 +90,9 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
                 description = f"{line.job.job_number} - {description}"
 
             line_item_data = {
-                "description": description,
+                "description": f"Price to be confirmed - {description}" if line.price_tbc else description,
                 "quantity": float(line.quantity),
-                "unit_amount": float(line.unit_cost)
+                "unit_amount": float(line.unit_cost) if line.unit_cost else 0.0
             }
 
             # Add account code only if found
@@ -328,9 +324,9 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
                 if getattr(xero_po_data, 'status', None) == 'DELETED' or http_status < 300:
                     # Clear local Xero ID and update status (optional, could just clear ID)
                     self.purchase_order.xero_id = None
-                    # self.purchase_order.status = 'void' # Or keep local status? Discuss implications.
                     self.purchase_order.xero_last_synced = timezone.now()
-                    self.purchase_order.save(update_fields=['xero_id', 'xero_last_synced']) # Add 'status' if changing it
+                    self.purchase_order.status = "deleted"
+                    self.purchase_order.save(update_fields=['xero_id', 'xero_last_synced', 'status'])
 
                     logger.info(f"Successfully deleted purchase order {self.purchase_order.id} in Xero (Xero ID: {xero_id}).")
                     return JsonResponse({"success": True, "action": "delete"})

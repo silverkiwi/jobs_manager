@@ -242,22 +242,6 @@ function updateColumnCounts() {
 
 function filterJobs() {
   const searchTerm = document.getElementById("search").value.toLowerCase();
-  const alertContainer = document.getElementById("search-alert");
-
-  if (!alertContainer) {
-    const alert = document.createElement("div");
-    alert.id = "search-alert";
-    alert.classList.add(
-      "alert",
-      "alert-warning",
-      "small",
-      "text-muted",
-      "py-1",
-    );
-    alert.style.opacity = "0.7";
-    alert.textContent = "⚠️ Showing results from currently loaded jobs only.";
-    document.querySelector(".search-container").after(alert);
-  }
 
   document.querySelectorAll(".kanban-column").forEach((column) => {
     const jobCards = column.querySelectorAll(".job-card");

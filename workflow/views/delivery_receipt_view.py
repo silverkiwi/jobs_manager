@@ -67,9 +67,48 @@ class DeliveryReceiptCreateView(LoginRequiredMixin, TemplateView):
             logger.info(f"Received POST data keys: {request.POST.keys()}")
             logger.info(f"Looking for 'received_quantities', found: {request.POST.get('received_quantities', 'NOT FOUND')}")
             received_quantities = json.loads(request.POST.get('received_quantities', '{}'))
-            process_delivery_receipt(kwargs['pk'], received_quantities)
+            
+            logger.info(f"Received quantities data: {received_quantities}")
+
+            transformed_data = {}
+            for line_id, line_data in received_quantities.items():
+                total_received = line_data.get('total_received', 0)
+                job_allocation = line_data.get('job_allocation', 0)
+                stock_allocation = line_data.get('stock_allocation', 0)
+                job_id = line_data.get('job_id')
+                retail_rate = line_data.get('retail_rate', 20)
+
+                allocations = []
+
+                if job_allocation > 0:
+                    allocations.append({
+                        "jobId": job_id,
+                        "quantity": job_allocation,
+                        "retailRate": retail_rate
+                    })
+                
+                if stock_allocation > 0:
+                    stock_holding_job = Job.objects.get(name="Worker Admin")
+                    allocations.append({
+                        "jobId": str(stock_holding_job.id),
+                        "quantity": stock_allocation,
+                        "retailRate": retail_rate,
+                        "metadata": {
+                            "metal_type": line_data.get("metal_type", "unspecified"),
+                            "alloy": line_data.get("alloy", ""),
+                            "specifics": line_data.get("specifics", ""),
+                            "location": line_data.get("location", "")
+                        }
+                    })
+                
+                transformed_data[line_id] = {
+                    "total_received": total_received,
+                    "allocations": allocations
+                }
+
+            logger.info(f"Transformed data: {transformed_data}")
+            process_delivery_receipt(kwargs['pk'], transformed_data)
             return JsonResponse({'success': True})
         except Exception as e:
             logger.error(f"Error processing delivery receipt: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=400) 
-        
+            return JsonResponse({'error': str(e)}, status=400)

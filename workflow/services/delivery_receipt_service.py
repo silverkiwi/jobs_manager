@@ -7,10 +7,9 @@ from workflow.models.purchase import PurchaseOrder, PurchaseOrderLine
 from workflow.models.stock import Stock
 from workflow.models.job import Job, JobPricing
 from workflow.models.material_entry import MaterialEntry
-from workflow.models.company_defaults import CompanyDefaults
-from workflow.enums import JobPricingStage
 
 logger = logging.getLogger(__name__)
+
 
 # Define a custom exception for validation errors during processing
 class DeliveryReceiptValidationError(ValueError):
@@ -51,6 +50,8 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
     """
     logger.info(f"Starting delivery receipt processing for PO ID: {purchase_order_id}")
     logger.debug(f"Received line_allocations data: {line_allocations}")
+
+    STOCK_HOLDING_JOB_ID = Job.objects.get(name="Worker Admin").id
 
     try:
         with transaction.atomic():
@@ -111,7 +112,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                              if job_id not in jobs:
                                  raise DeliveryReceiptValidationError(f"Invalid job ID '{job_id}' in allocation for line {line.id}.")
                              calculated_allocation_sum += alloc_qty
-                             valid_allocations.append({'job': jobs[job_id], 'quantity': alloc_qty})
+                             valid_allocations.append({'jobId': job_id, 'quantity': alloc_qty, "metadata": alloc.get("metadata", {}), "retailRate": alloc.get("retailRate", 20)})
                     except (InvalidOperation, TypeError):
                         raise DeliveryReceiptValidationError(f"Invalid allocation quantity format for line {line.id}.")
 
@@ -138,19 +139,41 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
 
                 # Create new Stock entries
                 for alloc_data in valid_allocations:
-                    target_job = alloc_data['job']
+                    job_id = alloc_data["jobId"]
+                    target_job = Job.objects.get(id=job_id)
                     alloc_qty = alloc_data['quantity']
-                    stock_item = Stock.objects.create(
-                        job=target_job,
-                        description=line.description,
-                        quantity=alloc_qty,
-                        unit_cost=line.unit_cost or Decimal('0.00'),
-                        date=timezone.now(),
-                        source='purchase_order',
-                        source_purchase_order_line=line,
-                        notes=f"Received from PO {purchase_order.po_number}"
-                    )
-                    logger.debug(f"Created Stock entry {stock_item.id} for line {line.id}, allocated to Job {target_job.id}, qty {alloc_qty}.")
+                    retail_rate = alloc_data.get('retailRate', 20) / 100.0
+                    logger.info(f"Metadata: {alloc_data['metadata']}")
+
+                    if str(job_id) == str(STOCK_HOLDING_JOB_ID):
+                        metadata = alloc_data.get("metadata", {})
+                        stock_item = Stock.objects.create(
+                            job=target_job,
+                            description=line.description,
+                            quantity=alloc_qty,
+                            unit_cost=line.unit_cost or Decimal('0.00'),
+                            metal_type=metadata.get("metal_type", line.metal_type or "unspecified"),
+                            alloy=metadata.get("alloy", line.alloy or ""),
+                            specifics=metadata.get("specifics", line.specifics or ""),
+                            location=metadata.get("location", line.location or ""),
+                            date=timezone.now(),
+                            source='purchase_order',
+                            source_purchase_order_line=line,
+                            notes=f"Received from PO {purchase_order.po_number}"
+                        )
+                        logger.info(f"Created Stock entry {stock_item.id} for line {line.id}, allocated to Job {target_job.id}, qty {alloc_qty}.")
+                    else:
+                        unit_revenue = line.unit_cost * Decimal(1.0 + retail_rate)
+                        
+                        material_entry = MaterialEntry.objects.create(
+                            job_pricing=target_job.latest_reality_pricing,
+                            description=line.description,
+                            quantity=alloc_qty,
+                            unit_cost=line.unit_cost,
+                            unit_revenue=unit_revenue,
+                            purchase_order_line=line
+                        )
+                        logger.info(f"Created Material entry {material_entry.id} for line {line.id}, allocated to Job {target_job.id}, qty {alloc_qty}, retail rate {retail_rate:.2%}.")
 
             # --- Update Overall PO Status ---
             all_po_lines = purchase_order.po_lines.all() # Re-fetch needed? Or can we trust the loop? Re-fetch is safer.
@@ -160,7 +183,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
             logger.debug(f"Updating PO status - Current Total Received: {current_total_received}, Current Total Ordered: {current_total_ordered}")
             new_status = purchase_order.status # Default to current
             if current_total_received <= 0:
-                 if purchase_order.status != 'void': # Avoid changing voided status
+                 if purchase_order.status != 'deleted': # Avoid changing deleted status
                      new_status = 'submitted'
             elif current_total_received < current_total_ordered:
                 new_status = 'partially_received'

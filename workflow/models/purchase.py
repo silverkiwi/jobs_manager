@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import Max
 from django.utils import timezone
 
+from workflow.enums import MetalType
 from workflow.helpers import get_company_defaults
 from workflow.models import CompanyDefaults
 
@@ -36,7 +37,7 @@ class PurchaseOrder(models.Model):
             ("submitted", "Submitted to Supplier"),
             ("partially_received", "Partially Received"),
             ("fully_received", "Fully Received"),
-            ("void", "Voided"),
+            ("deleted", "Deleted"),
         ],
         default="draft",
     )
@@ -115,4 +116,29 @@ class PurchaseOrderLine(models.Model):
         decimal_places=2,
         default=0,
         help_text="Total quantity received against this line",
+    )
+    metal_type = models.CharField(
+        max_length=100,
+        choices=MetalType.choices,
+        default=MetalType.UNSPECIFIED,
+        blank=True,
+        null=True,
+    )
+    alloy = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Alloy specification (e.g., 304, 6061)"
+    )
+    specifics = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Specific details (e.g., m8 countersunk socket screw)"
+    )
+    location = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Where this item will be stored"
     )

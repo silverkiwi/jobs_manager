@@ -67,7 +67,7 @@ export function collectPurchaseOrderData() {
   // Collect line items from the grid
   const lineItems = [];
   if (window.grid) {
-    window.grid.forEachNode((node) => {
+    window.grid.api.forEachNode((node) => {
       // Only include rows that have some data
       if (
         node.data.job ||
@@ -89,7 +89,7 @@ export function collectPurchaseOrderData() {
 }
 
 /**
- * Validates if the purchase order data is complete, and filter nodes that are empty
+ * Validates if the purchase order data is complete, filtering empty nodes and removing duplicated ones
  * @param {Object} data The data to validate
  * @returns {Object} The inputted data, filtered with the valid nodes
  */
@@ -98,6 +98,16 @@ function validatePurchaseOrderData(data) {
     (item) =>
       item.job && item.description && (item.price_tbc || item.unit_cost),
   );
+
+  const seen = new Map();
+  data.line_items = data.line_items.filter(item => {
+    const key = `${item.job}-${item.description}-${item.quantity}-${item.unit_cost}-${item.price_tbc}`;
+
+    if (seen.has(key)) return false;
+
+    seen.set(key, true);
+    return true;
+  });
 
   return data;
 }

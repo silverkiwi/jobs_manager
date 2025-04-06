@@ -61,7 +61,7 @@
                             <option value="submitted">Submitted to Supplier</option>
                             <option value="partially_received">Partially Received</option>
                             <option value="fully_received">Fully Received</option>
-                            <option value="void">Voided</option>
+                            <option value="deleted">Deleted</option>
                         </select>
                     </div>
                 </div>
@@ -180,6 +180,10 @@
         </button>
         {% endif %}
 
+        <button type="button" id="deletePOButton" class="d-none btn btn-danger">
+            <i class="bi bi-trash me-2"></i>Delete PO
+        </button>
+
         <a href="{% url 'purchase_orders' %}" class="btn btn-secondary">
             <i class="bi bi-x-circle me-2"></i>Cancel
         </a>
@@ -218,4 +222,4 @@
 <script type="module" src="{% static 'js/purchases/job_section.js' %}"></script>
 <script type="module" src="{% static 'js/purchases/summary.js' %}"></script>
 <script type="module" src="{% static 'js/purchases/purchase_order_form.js' %}"></script>
-{% endblock %} 
+{% endblock %}

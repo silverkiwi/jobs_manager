@@ -79,6 +79,11 @@
                                 data-unit-cost="{{ line.unit_cost }}"
                                 data-line-description="{{ line.description }}"
                                 data-line-quantity="{{ line.quantity }}"
+                                data-metal-type="{{ line.metal_type|default:'unspecified' }}"
+                                data-alloy="{{ line.alloy|default:'' }}"
+                                data-specifics="{{ line.specifics|default:'' }}"
+                                data-location="{{ line.location|default:'' }}"
+                                data-line-description="{{ line.description }}">
                             >
                                 <td>
                                     <input type="checkbox" class="form-check-input line-checkbox" 
@@ -134,14 +139,24 @@
                             <th>Description</th>
                             <th>Ordered</th>
                             <th>Total Received</th> <!-- Renamed -->
-                            <th>Allocation Details</th> <!-- New Column -->
+                            <th>Job Portion</th> <!-- New Column -->
                             <th>Unit Cost</th>
+                            <th>Retail Rate %</th>
                         </tr>
                     </thead>
                     <tbody id="receivedItems">
                         {% for line in purchase_order.po_lines.all %}
                             {% if line.received_quantity > 0 %}
-                            <tr data-line-id="{{ line.id }}" data-ordered-qty="{{ line.quantity }}" data-unit-cost="{{ line.unit_cost }}" data-line-job-id="{{ line.job.id|default:'' }}" data-line-job-name="{{ line.job|default:'None' }}">
+                            <tr data-line-id="{{ line.id }}" 
+                                data-ordered-qty="{{ line.quantity }}" 
+                                data-unit-cost="{{ line.unit_cost }}" 
+                                data-line-job-id="{{ line.job.id|default:'' }}"
+                                data-line-job-name="{{ line.job|default:'None' }}"
+                                data-metal-type="{{ line.metal_type|default:'unspecified' }}"
+                                data-alloy="{{ line.alloy|default:'' }}"
+                                data-specifics="{{ line.specifics|default:'' }}"
+                                data-location="{{ line.location|default:'' }}"
+                                data-line-description="{{ line.description }}">
                                 <td>
                                     <input type="checkbox" class="form-check-input line-checkbox"
                                            data-line-id="{{ line.id }}">
@@ -152,24 +167,21 @@
                                 <td>
                                     <!-- Input for TOTAL received quantity -->
                                     <input type="number" class="form-control form-control-sm total-received-qty"
-                                           value="{{ line.received_quantity }}" min="0"
+                                           value="{{ line.received_quantity }}" min="0" max="{{ line.quantity }}"
                                            data-line-id="{{ line.id }}" step="any" required>
                                 </td>
-                                <td class="allocation-details-cell">
-                                    <!-- Default display (will be replaced by JS on split) -->
-                                    <div class="default-allocation-display">
-                                        <span class="allocation-summary">
-                                            Allocated: {{ line.received_quantity }} to {{ line.job|default:"Worker Admin" }}
-                                        </span>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary split-allocation-btn ms-2">Split</button>
-                                    </div>
-                                    <!-- Container for dynamic allocation rows (hidden initially) -->
-                                    <div class="allocation-editor" style="display: none;">
-                                        <!-- JS will populate this -->
-                                        <button type="button" class="btn btn-sm btn-success add-allocation-row-btn mb-1">Add Allocation</button>
-                                    </div>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm job-allocation-qty"
+                                    value="{{ line.received_quantity }}" min="0" max="{{ line.quantity }}"
+                                    data-line-id="{{ line.id }}" step="any" required>
+                                    <small class="text-muted">The rest will go to stock</small>
                                 </td>
                                 <td>${{ line.unit_cost }}</td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm retail-rate"
+                                           value="20" min="0" max="100" step="1"
+                                           data-line-id="{{ line.id }}">
+                                </td>
                             </tr>
                             {% endif %}
                         {% endfor %}

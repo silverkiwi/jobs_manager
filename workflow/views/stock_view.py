@@ -66,7 +66,6 @@ def consume_stock_api_view(request):
             unit_cost=unit_cost,
             unit_revenue=unit_revenue,
             purchase_order_line=stock_item.source_purchase_order_line,
-            comments=f"Consumed from stock item {stock_item.id}"
         )
         logger.info(f"Created MaterialEntry {material_entry.id} for Job {job_id} from Stock {stock_item_id}")
 
