@@ -88,7 +88,11 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
                     'quantity': float(line.quantity),
                     'unit_cost': float(line.unit_cost) if line.unit_cost is not None else None,
                     'price_tbc': line.price_tbc,
-                    'total': float(line.quantity * (line.unit_cost or 0))
+                    'total': float(line.quantity * (line.unit_cost or 0)),
+                    "metal_type": line.metal_type or "unspecified",
+                    "alloy": line.alloy or "",
+                    "specifics": line.specifics or "",
+                    "location": line.location or "",
                 } for line in line_items
             ])
         else:
@@ -292,7 +296,11 @@ def autosave_purchase_order_view(request):
                             'description': item_data.get("description"),
                             'quantity': item_data.get("quantity"),
                             'unit_cost': item_data.get("unit_cost"),
-                            'price_tbc': item_data.get("price_tbc", False)
+                            'price_tbc': item_data.get("price_tbc", False),
+                            'metal_type': item_data.get("metal_type", "unspecified"),
+                            'alloy': item_data.get("alloy", ""),
+                            'specifics': item_data.get("specifics", ""),
+                            'location': item_data.get("location", "")
                         }
                     )
                     processed_line_ids.add(str(line.id))

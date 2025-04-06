@@ -92,7 +92,7 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
             line_item_data = {
                 "description": f"Price to be confirmed - {description}" if line.price_tbc else description,
                 "quantity": float(line.quantity),
-                "unit_amount": float(line.unit_cost) or 0.0
+                "unit_amount": float(line.unit_cost) if line.unit_cost else 0.0
             }
 
             # Add account code only if found

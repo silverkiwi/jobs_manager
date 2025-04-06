@@ -190,6 +190,10 @@ function initializeGrid() {
       quantity: 1,
       unit_cost: null,
       price_tbc: false,
+      metal_type: "unspecified",
+      alloy: "",
+      specifics: "",
+      location: "",
     };
   }
 
@@ -330,6 +334,34 @@ function initializeGrid() {
         headerName: "Description",
         field: "description",
         editable: true,
+      },
+      {
+        headerName: "Metal Type",
+        field: "metal_type",
+        editable: true,
+        cellEditor: "agSelectCellEditor",
+        cellEditorParams: {
+          values: ["unspecified", "steel", "aluminum", "brass", "copper", "other"],
+        },
+        width: 120,
+      },
+      {
+        headerName: "Alloy",
+        field: "alloy",
+        editable: true,
+        width: 100,
+      },
+      {
+        headerName: "Specifics",
+        field: "specifics",
+        editable: true,
+        width: 130,
+      },
+      {
+        headerName: "Location",
+        field: "location",
+        editable: true,
+        width: 120,
       },
       {
         headerName: "Quantity",
