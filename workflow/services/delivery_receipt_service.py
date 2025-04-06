@@ -163,7 +163,10 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                         )
                         logger.info(f"Created Stock entry {stock_item.id} for line {line.id}, allocated to Job {target_job.id}, qty {alloc_qty}.")
                     else:
-                        unit_revenue = line.unit_cost * Decimal(1.0 + retail_rate)
+                        try:
+                            unit_revenue = line.unit_cost * Decimal(1.0 + retail_rate)
+                        except TypeError:
+                            raise DeliveryReceiptValidationError("Price not confirmed for line, can't save the material to a job.")
                         
                         material_entry = MaterialEntry.objects.create(
                             job_pricing=target_job.latest_reality_pricing,

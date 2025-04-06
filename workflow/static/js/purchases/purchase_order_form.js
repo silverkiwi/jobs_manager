@@ -603,13 +603,16 @@ function blockPurchaseOrderEdition() {
     formElement.prepend(noticeDiv);
   }
 
-  const formInputs = [document.getElementById("status"), document.getElementById("expected_delivery"), document.getElementById("reference")]
+  const formInputs = [document.getElementById("client_name"), document.getElementById("status"), document.getElementById("expected_delivery"), document.getElementById("reference")]
   formInputs.forEach(input => {
     input.setAttribute("disabled", true);
+    
     if (input.classList.contains("form-control")) {
       input.classList.add("form-control-plaintext");
       input.classList.remove("form-control");
-    } else if (input.classList.contains("form-select")) {
+    } 
+    
+    if (input.classList.contains("form-select")) {
       input.classList.add("form-select-plaintext");
       input.classList.remove("form-select");
     }
@@ -720,6 +723,11 @@ document.addEventListener("DOMContentLoaded", function () {
     if (window.purchaseData.purchaseOrder.status) {
       document.getElementById("status").value =
         window.purchaseData.purchaseOrder.status;
+    }
+
+    if (window.purchaseData.purchaseOrder.reference) {
+      document.getElementById("reference").value = 
+        window.purchaseData.purchaseOrder.reference;
     }
 
     // If the status is not draft, make specific fields read-only
