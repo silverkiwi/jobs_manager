@@ -58,7 +58,7 @@ class Migration(migrations.Migration):
             name="specifics",
             field=models.CharField(
                 blank=True,
-                help_text="Specific detals (e.g., m8 countersunk socket screw)",
+                help_text="Specific details (e.g., m8 countersunk socket screw)",
                 max_length=255,
                 null=True,
             ),
