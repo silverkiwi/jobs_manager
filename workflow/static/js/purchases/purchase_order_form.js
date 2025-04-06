@@ -31,6 +31,48 @@ function getStatusDisplay(status) {
   return statusMap[status] || status;
 }
 
+function addLocalDeleteButton(id) {
+  const button = document.getElementById("deletePOButton");
+
+  button.classList.remove("d-none");
+
+  button.addEventListener("click", () => {
+    fetch(`/purchases/purchase-orders/delete/${id}/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCsrfToken()
+      },
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(response.error);
+        }
+
+        return response.json();
+      })
+      .then(data => {
+        if (!data.success) {
+          throw new Error(data.error);
+        }
+
+        setTimeout(() => {
+          window.location.href = "/purchases/purchase-orders/";
+        }, 1000);
+      })
+      .catch(error => {
+        renderMessages(
+          [
+            {
+              "level": "danger",
+              "message": error
+            }
+          ],
+          "purchase-order")
+      });
+  });
+}
+
 // Function to initialize the AG Grid component
 function initializeGrid() {
   // Initialize grid only if we have the container
@@ -515,7 +557,7 @@ function initializeGrid() {
 
   // Initial adjustment
   adjustGridHeight();
-  
+
   return true;
 }
 
@@ -564,7 +606,7 @@ function blockPurchaseOrderEdition() {
       window.grid.api.refreshCells({ force: true });
     }
   }, 500);
-  
+
   document.body.classList.add("deleted-purchase-order");
 }
 
@@ -597,6 +639,10 @@ document.addEventListener("DOMContentLoaded", function () {
   // Then check the status and block if necessary
   if (gridInitialized && window.purchaseData.purchaseOrder.status === "deleted") {
     blockPurchaseOrderEdition();
+  }
+
+  if (window.purchaseData.purchaseOrder.status === "draft") {
+    addLocalDeleteButton(window.purchaseData.purchaseOrder.id);
   }
 
   // Update submit button state after data is loaded

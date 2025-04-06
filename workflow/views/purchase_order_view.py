@@ -332,3 +332,29 @@ def autosave_purchase_order_view(request):
         return JsonResponse(
             {"error": f"Unexpected server error: {str(e)}", "messages": extract_messages(request)}, status=500
         )
+    
+
+@require_http_methods(["POST"])
+@transaction.atomic
+def delete_purchase_order_view(request, pk):
+    if not id:
+        return JsonResponse({
+            "success": False,
+            "error": "Missing PO id in the request."
+        }, status=400)
+    
+    try:
+        po: PurchaseOrder = PurchaseOrder.objects.get(id=pk)
+
+        if po.status != "draft": raise Exception("Invalid PO status - cannot delete a PO that was already sent to supplier.")
+
+        po.delete()
+
+        return JsonResponse({
+            "success": True,
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"There was an error while trying to delete Purchase Order {pk}: {e}"
+        })

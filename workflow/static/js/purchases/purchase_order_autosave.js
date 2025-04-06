@@ -67,7 +67,7 @@ export function collectPurchaseOrderData() {
   // Collect line items from the grid
   const lineItems = [];
   if (window.grid) {
-    window.grid.forEachNode((node) => {
+    window.grid.api.forEachNode((node) => {
       // Only include rows that have some data
       if (
         node.data.job ||
