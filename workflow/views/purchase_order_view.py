@@ -73,7 +73,8 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
                 'expected_delivery': purchase_order.expected_delivery.isoformat() if purchase_order.expected_delivery else None,
                 'status': purchase_order_status, # Use the fetched status
                 'xero_id': str(xero_id) if xero_id else None, # Include Xero ID if exists
-                'xero_online_url': xero_online_url # Include Xero URL if exists
+                'xero_online_url': xero_online_url, # Include Xero URL if exists,
+                'reference': purchase_order.reference if purchase_order.reference else None
             })
 
             # Get line items for this purchase order
@@ -219,7 +220,7 @@ def autosave_purchase_order_view(request):
         # --- Determine Create or Update Path ---
         if purchase_order_id:
             # --- UPDATE PATH ---
-            logger.debug(f"Attempting to update Purchase Order with ID: {purchase_order_id}")
+            logger.info(f"Attempting to update Purchase Order with ID: {purchase_order_id} with data {purchase_order_data}")
             try:
                 # Lock the row for update
                 purchase_order = PurchaseOrder.objects.select_for_update().get(id=purchase_order_id)
@@ -231,10 +232,10 @@ def autosave_purchase_order_view(request):
                 # Handle expected_delivery carefully - allow setting to None
                 if "expected_delivery" in purchase_order_data:
                      purchase_order.expected_delivery = purchase_order_data.get("expected_delivery") or None
-                # Add reference if needed: purchase_order.reference = purchase_order_data.get("reference", purchase_order.reference)
+                purchase_order.reference = purchase_order_data.get("reference")
 
                 purchase_order.save()
-                logger.debug(f"Updated purchase order {purchase_order.po_number}")
+                logger.info(f"Updated purchase order {purchase_order.po_number} | {purchase_order.reference}")
                 created = False
             except PurchaseOrder.DoesNotExist:
                 logger.error(f"Purchase Order with ID {purchase_order_id} not found for update.")
@@ -261,11 +262,11 @@ def autosave_purchase_order_view(request):
                     supplier_id=supplier_id,
                     status=purchase_order_data.get("status", 'draft'),
                     order_date=order_date,
-                    expected_delivery=purchase_order_data.get("expected_delivery") or None
-                    # Add reference if needed: reference=purchase_order_data.get("reference")
+                    expected_delivery=purchase_order_data.get("expected_delivery") or None,
+                    reference=purchase_order_data.get("reference") or None
                 )
                 purchase_order.save() # Generates ID and po_number
-                logger.debug(f"Created purchase order {purchase_order.po_number} with ID {purchase_order.id}")
+                logger.info(f"Created purchase order {purchase_order.po_number} with ID {purchase_order.id}")
                 created = True
             except IntegrityError as e:
                  logger.exception(f"Integrity error during PO creation: {e}")

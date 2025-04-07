@@ -55,6 +55,7 @@ export function collectPurchaseOrderData() {
   const expectedDeliveryEl = document.getElementById("expected_delivery");
   const orderDateEl = document.getElementById("order_date");
   const statusEl = document.getElementById("status");
+  const referenceEl = document.getElementById("reference");
 
   const purchaseOrderData = {
     id: purchaseOrderIdEl ? purchaseOrderIdEl.value : null,
@@ -62,7 +63,10 @@ export function collectPurchaseOrderData() {
     expected_delivery: expectedDeliveryEl ? expectedDeliveryEl.value : null,
     order_date: orderDateEl ? orderDateEl.value : null,
     status: statusEl ? statusEl.value : "draft",
+    reference: referenceEl ? referenceEl.value : null,
   };
+
+  console.log(`Data being saved:`, purchaseOrderData);
 
   // Collect line items from the grid
   const lineItems = [];
