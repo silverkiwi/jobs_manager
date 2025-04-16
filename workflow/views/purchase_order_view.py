@@ -1,6 +1,10 @@
 import json
 import logging
+import os
+import tempfile
+import uuid
 from datetime import datetime
+from django.urls import reverse
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,11 +15,13 @@ from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.db import transaction, IntegrityError # Import transaction and IntegrityError
+from django.utils import timezone
 
 
-from workflow.models import PurchaseOrder, PurchaseOrderLine, Client, Job
+from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote, Client, Job
 from workflow.forms import PurchaseOrderForm, PurchaseOrderLineForm
 from workflow.utils import extract_messages
+from workflow.services.quote_to_po_service import save_quote_file, create_po_from_quote, extract_data_from_supplier_quote
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +106,18 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
             # Creating a new purchase order
             context['title'] = 'New Purchase Order'
             context['purchase_order_id'] = '' # Ensure it's empty for new POs
+            
+            # Check if there's a supplier quote ID in the URL
+            supplier_quote_id = self.request.GET.get('supplier_quote_id')
+            if supplier_quote_id:
+                # Get the supplier quote
+                supplier_quote = get_object_or_404(PurchaseOrderSupplierQuote, id=supplier_quote_id)
+                
+                # Use the extracted data directly
+                context['supplier_quote_data'] = json.dumps(supplier_quote.extracted_data)
+            else:
+                context['supplier_quote_data'] = json.dumps({})
+                
             context['purchase_order_json'] = json.dumps({})
             context['line_items_json'] = json.dumps([])
         
@@ -367,3 +385,75 @@ def delete_purchase_order_view(request, pk):
             "success": False,
             "error": f"There was an error while trying to delete Purchase Order {pk}: {e}"
         })
+
+
+@require_http_methods(["POST"])
+def extract_supplier_quote_data_view(request):
+    """
+    Extract data from a supplier quote to pre-fill a PO form.
+    
+    Args:
+        request: The HTTP request
+        
+    Returns:
+        JsonResponse with the extracted data
+    """
+    try:
+        # Check if a file was uploaded
+        if 'quote_file' not in request.FILES:
+            return JsonResponse({
+                "success": False,
+                "error": "No quote file uploaded."
+            }, status=400)
+        
+        quote_file = request.FILES['quote_file']
+        
+        # Save the file to a temporary location
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            for chunk in quote_file.chunks():
+                temp_file.write(chunk)
+            temp_path = temp_file.name
+        
+        try:
+            # Extract data from the quote
+            quote_data, error = extract_data_from_supplier_quote(temp_path)
+            
+            # Delete the temporary file
+            os.unlink(temp_path)
+            
+            if error:
+                return JsonResponse({
+                    "success": False,
+                    "error": f"Error extracting data from quote: {error}"
+                }, status=400)
+            
+            # Create a PurchaseOrderSupplierQuote to store the extracted data
+            supplier_quote_id = uuid.uuid4()
+            supplier_quote = PurchaseOrderSupplierQuote(
+                id=supplier_quote_id,
+                purchase_order=None,  # Will be linked to a PO later
+                filename=quote_file.name,
+                file_path=f"temp/{supplier_quote_id}_{quote_file.name}",
+                mime_type=quote_file.content_type,
+                extracted_data=quote_data
+            )
+            supplier_quote.save()
+            
+            # Redirect to the new PO form with the supplier quote ID
+            redirect_url = reverse('new_purchase_order') + f'?supplier_quote_id={supplier_quote_id}'
+            return redirect(redirect_url)
+            
+        except Exception as e:
+            # Make sure to delete the temporary file in case of error
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
+            raise e
+        
+    except Exception as e:
+        logger.exception(f"Error extracting data from quote: {e}")
+        return JsonResponse({
+            "success": False,
+            "error": f"Error extracting data from quote: {str(e)}"
+        }, status=500)

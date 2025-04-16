@@ -58,7 +58,13 @@ from workflow.views.xero import xero_view
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views, stock_view, use_stock_view
-from workflow.views.purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, autosave_purchase_order_view, delete_purchase_order_view
+from workflow.views.purchase_order_view import (
+    PurchaseOrderListView,
+    PurchaseOrderCreateView,
+    autosave_purchase_order_view,
+    delete_purchase_order_view,
+    extract_supplier_quote_data_view
+)
 from workflow.views.delivery_receipt_view import DeliveryReceiptListView, DeliveryReceiptCreateView
 
 urlpatterns = [
@@ -84,6 +90,7 @@ urlpatterns = [
     path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
     path("api/client-detail/", client_view.client_detail, name="client_detail"),
+    path("api/extract-supplier-quote/", extract_supplier_quote_data_view, name="extract_supplier_quote_data"),
     path("api/staff/all/", staff_view.StaffListAPIView.as_view(), name="all_staff_api"),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",

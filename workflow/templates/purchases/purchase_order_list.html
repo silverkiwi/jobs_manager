@@ -9,10 +9,17 @@
         <div class="col">
             <h1>{{ title }}</h1>
         </div>
-        <div class="col-auto">
+        <div class="col-auto d-flex gap-2">
             <a href="{% url 'new_purchase_order' %}" class="btn btn-primary">
                 <i class="bi bi-plus-circle me-2"></i>New Purchase Order
             </a>
+            <form action="{% url 'extract_supplier_quote_data' %}" method="post" enctype="multipart/form-data" class="d-inline">
+                {% csrf_token %}
+                <label for="quoteFile" class="btn btn-success mb-0">
+                    <i class="bi bi-file-earmark-text me-2"></i>Create PO from Supplier Quote
+                    <input type="file" id="quoteFile" name="quote_file" accept=".pdf,.jpg,.jpeg,.png" class="d-none" onchange="this.form.submit()">
+                </label>
+            </form>
         </div>
     </div>
 
@@ -53,4 +60,9 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+
+{% block extra_js %}
+<script src="{% static 'js/purchases/supplier_quote_to_po.js' %}"></script>
+{% endblock %}
+
+{% endblock %}
