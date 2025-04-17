@@ -814,7 +814,14 @@ document.addEventListener("DOMContentLoaded", function () {
     input.addEventListener("change", function () {
       // Update our data model if this is the status field
       if (this.id === "status" && window.purchaseData.purchaseOrder) {
-        window.purchaseData.purchaseOrder.status = this.value;
+        const oldStatus = window.purchaseData.purchaseOrder.status;
+        const newStatus = this.value;
+        window.purchaseData.purchaseOrder.status = newStatus;
+        
+        // Update grid editability immediately when status changes
+        if (oldStatus !== newStatus) {
+          updateGridEditability(newStatus);
+        }
       }
       debouncedAutosave().then((success) => {
         lastAutosaveSuccess = success;
@@ -1093,4 +1100,71 @@ function updateJobSummary() {
 
   // Update the summary section
   updateSummarySection();
+}
+
+/**
+ * Updates the grid's editability based on the purchase order status
+ * @param {string} status - The current status of the purchase order
+ */
+function updateGridEditability(status) {
+  if (!window.grid || !window.grid.api) {
+    console.error("Grid not initialized");
+    return;
+  }
+
+  const isDraft = status === "draft";
+  
+  // Update grid editability
+  if (isDraft) {
+    // Make grid editable
+    window.grid.api.setGridOption("readOnly", false);
+    
+    // Update column definitions to make them editable
+    const columnDefs = window.grid.api.getColumnDefs();
+    columnDefs.forEach((col) => {
+      if (col.field !== "total") { // Total is calculated, not editable
+        col.editable = true;
+      }
+      // Special case for unit_cost which depends on price_tbc
+      if (col.field === "unit_cost") {
+        col.editable = (params) => !params.data.price_tbc;
+      }
+    });
+    window.grid.api.setGridOption("columnDefs", columnDefs);
+    
+    // Show a message that the grid is now editable
+    renderMessages(
+      [
+        {
+          level: "success",
+          message: "Purchase order is now in draft status. You can edit the line items.",
+        },
+      ],
+      "purchase-order"
+    );
+  } else {
+    // Make grid read-only
+    window.grid.api.setGridOption("readOnly", true);
+    
+    // Update column definitions to make them non-editable
+    const columnDefs = window.grid.api.getColumnDefs();
+    columnDefs.forEach((col) => {
+      col.editable = false;
+    });
+    window.grid.api.setGridOption("columnDefs", columnDefs);
+    
+    // Show a message that the grid is now read-only
+    renderMessages(
+      [
+        {
+          level: "info",
+          message: `Purchase order is now in ${getStatusDisplay(status)} status. Line items cannot be edited.`,
+        },
+      ],
+      "purchase-order"
+    );
+  }
+  
+  // Refresh all cells to apply the changes
+  window.grid.api.refreshCells({ force: true });
 }

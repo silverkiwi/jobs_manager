@@ -107,9 +107,9 @@ def store_token(token: Dict[str, Any]) -> None:
     # Get tenant ID if available
     try:
         tenant_id = get_tenant_id_from_connections()
-    except Exception:
+    except Exception as e:
         tenant_id = None
-        logger.warning("Could not fetch tenant ID when storing token")
+        logger.warning(f"Could not fetch tenant ID when storing token: {str(e)}")
 
     # Store in database
     try:

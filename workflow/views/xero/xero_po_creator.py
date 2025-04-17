@@ -52,10 +52,15 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
 
     def state_valid_for_xero(self) -> bool:
         """
-        Checks if the purchase order is in 'draft' status for initial sending.
-        Updates might be possible in other statuses depending on Xero rules.
+        Checks if the purchase order is in a valid state for Xero operations.
+        For initial creation, we require 'draft' status.
+        For updates, we allow any status as long as the PO has a Xero ID.
         """
-        # For initial creation/sending, we often require 'draft'
+        # If we're updating an existing PO in Xero, allow any status
+        if self.get_xero_id():
+            return True
+        
+        # For initial creation/sending, we require 'draft'
         return self.purchase_order.status == 'draft'
 
     def get_line_items(self) -> list[LineItem]:

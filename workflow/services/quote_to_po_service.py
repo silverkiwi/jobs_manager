@@ -3,14 +3,75 @@ import os
 import json
 import base64
 import requests
+import mimetypes
+import pdfplumber
+from rapidfuzz import process, fuzz
 
 from django.conf import settings
+from django.db.models import Q
 
-from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote
+from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote, Client
 from workflow.helpers import get_company_defaults
 from workflow.enums import MetalType
-
 logger = logging.getLogger(__name__)
+
+# Global flag to control PDF parser usage
+USE_PDF_PARSER = True
+
+
+
+def normalize(s):
+    """Normalize a string for comparison."""
+    if not s:
+        return ""
+    return ' '.join(s.lower().split())  # lower, remove extra whitespace, preserve everything else
+
+
+def fuzzy_find_supplier(supplier_name):
+    """
+    Find a supplier in the database using fuzzy matching.
+    
+    Args:
+        supplier_name (str): The supplier name to match
+        
+    Returns:
+        tuple: (matched_supplier, original_name) - The matched supplier object and the original name
+    """
+    if not supplier_name:
+        return None, supplier_name
+    
+    # Get all suppliers
+    suppliers = Client.objects.all()
+    
+    # Extract supplier names and create a mapping from name to supplier object
+    supplier_names = [s.name for s in suppliers]
+    supplier_map = {s.name: s for s in suppliers}
+    
+    # Build a map from normalized -> original so we can return the true supplier name
+    norm_map = {normalize(name): name for name in supplier_names}
+    norm_names = list(norm_map.keys())
+    
+    # Normalize the input supplier name
+    norm_supplier = normalize(supplier_name)
+    
+    # Find the best match
+    if norm_names:
+        match, score, _ = process.extractOne(
+            norm_supplier,
+            norm_names,
+            scorer=fuzz.token_set_ratio
+        )
+        
+        # Use a threshold to ensure the match is good enough
+        if score >= 85:
+            original_name = norm_map[match]
+            matched_supplier = supplier_map[original_name]
+            logger.info(f"Found fuzzy supplier match: '{supplier_name}' -> '{original_name}' (score: {score})")
+            return matched_supplier, supplier_name
+    
+    # No match found
+    logger.warning(f"No supplier match found for: {supplier_name}")
+    return None, supplier_name
 
 def save_quote_file(purchase_order, file_obj):
     """Save a supplier quote file and create a PurchaseOrderSupplierQuote record."""
@@ -38,7 +99,7 @@ def save_quote_file(purchase_order, file_obj):
     
     return quote
 
-def extract_data_from_supplier_quote(quote_path):
+def extract_data_from_supplier_quote(quote_path, content_type=None, use_pdf_parser=USE_PDF_PARSER):
     """Extract data from a supplier quote file using Claude."""
     try:
         # Get the API key
@@ -53,12 +114,40 @@ def extract_data_from_supplier_quote(quote_path):
             file_content = file.read()
         file_b64 = base64.b64encode(file_content).decode('utf-8')
         
-        # Determine media type
-        media_type = "application/pdf"
-        if quote_path.lower().endswith(('.jpg', '.jpeg')):
-            media_type = "image/jpeg"
-        elif quote_path.lower().endswith('.png'):
-            media_type = "image/png"
+        # Determine if this is a PDF
+        is_pdf = content_type == 'application/pdf' or quote_path.lower().endswith('.pdf')
+        
+        # Extract text from PDF if requested
+        extracted_text = None
+        logger.info(f"PDF extraction: is_pdf={is_pdf}, use_pdf_parser={use_pdf_parser}")
+        
+        if is_pdf and use_pdf_parser:
+            try:
+                text = []
+                with pdfplumber.open(quote_path) as pdf:
+                    for page in pdf.pages:
+                        text.append(page.extract_text())
+                extracted_text = "\n\n".join(text)
+                logger.info(f"Extracted {len(extracted_text)} characters from PDF")
+            except Exception as e:
+                logger.error(f"Failed to extract text from PDF: {e}")
+                # Continue with the original PDF if text extraction fails
+        
+        # Determine media type and content type
+        if is_pdf and not use_pdf_parser:
+            # Send PDF directly
+            api_content_type = "document"
+            media_type = "application/pdf"
+        elif content_type and content_type.startswith('image/'):
+            # Send image directly
+            api_content_type = "image"
+            media_type = content_type
+        else:
+            # Send as text (either extracted from PDF or other text format)
+            api_content_type = "text"
+            media_type = "text/plain"
+            
+        logger.info(f"File type detection: path={quote_path}, content_type={content_type}, is_pdf={is_pdf}, use_pdf_parser={use_pdf_parser}")
         
         # Get valid metal types for the prompt
         valid_metal_types = [choice[0] for choice in MetalType.choices]
@@ -119,29 +208,42 @@ def extract_data_from_supplier_quote(quote_path):
                 "content-type": "application/json"
             },
             json={
-                "model": "claude-3-opus-20240229",
+                "model": "claude-3-7-sonnet-20250219",
                 "max_tokens": 4000,
                 "messages": [
                     {
                         "role": "user", 
                         "content": [
                             {"type": "text", "text": prompt},
-                            {
-                                "type": "image",
+                        ] + (
+                            # If we have extracted text, send it as text
+                            [{"type": "text", "text": extracted_text}] if extracted_text else
+                            # Otherwise send the file
+                            [{
+                                "type": api_content_type,
                                 "source": {
                                     "type": "base64",
                                     "media_type": media_type,
                                     "data": file_b64
                                 }
-                            }
-                        ]
+                            }]
+                        )
                     }
                 ]
             }
         )
         
         if response.status_code != 200:
-            return None, f"Error from Anthropic API: {response.status_code}"
+            try:
+                error_details = response.json()
+                error_message = error_details.get('error', {}).get('message', 'Unknown error')
+                logger.error(f"Anthropic API error: {response.status_code} - {error_message}")
+                logger.error(f"Full error response: {error_details}")
+                return None, f"Error from Anthropic API: {response.status_code} - {error_message}"
+            except Exception as e:
+                logger.error(f"Failed to parse Anthropic API error response: {e}")
+                logger.error(f"Raw response: {response.text}")
+                return None, f"Error from Anthropic API: {response.status_code}"
         
         # Extract JSON from response
         response_data = response.json()
@@ -175,6 +277,25 @@ def extract_data_from_supplier_quote(quote_path):
         # Parse JSON
         quote_data = json.loads(json_text)
         
+        # Process supplier data if it exists in the expected format
+        try:
+            supplier_name_from_quote = quote_data["supplier"]["name"]
+            matched_supplier, original_name = fuzzy_find_supplier(supplier_name_from_quote)
+            
+            # Add original and matched supplier info
+            quote_data["supplier"]["original_name"] = original_name
+            quote_data["matched_supplier"] = None
+            
+            if matched_supplier:
+                quote_data["matched_supplier"] = {
+                    "id": str(matched_supplier.id),
+                    "name": matched_supplier.name,
+                    "xero_id": getattr(matched_supplier, 'xero_id', None)
+                }
+        except (KeyError, TypeError):
+            logging.warning("Supplier name not found in quote JSON")
+            pass
+        
         # Return the extracted data
         return quote_data, None
     
@@ -190,7 +311,10 @@ def create_po_from_quote(purchase_order, quote):
         quote_path = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, quote.file_path)
         
         # Extract data from the quote
-        quote_data, error = extract_data_from_supplier_quote(quote_path)
+        quote_data, error = extract_data_from_supplier_quote(
+            quote_path,
+            quote.mime_type
+        )
         
         if error:
             return None, error

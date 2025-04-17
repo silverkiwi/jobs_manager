@@ -22,6 +22,7 @@ from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSuppl
 from workflow.forms import PurchaseOrderForm, PurchaseOrderLineForm
 from workflow.utils import extract_messages
 from workflow.services.quote_to_po_service import save_quote_file, create_po_from_quote, extract_data_from_supplier_quote
+from workflow.views.xero.xero_po_creator import XeroPurchaseOrderCreator
 
 logger = logging.getLogger(__name__)
 
@@ -253,6 +254,21 @@ def autosave_purchase_order_view(request):
                 purchase_order.reference = purchase_order_data.get("reference")
 
                 purchase_order.save()
+                
+                # If the PO has a Xero ID, sync it to Xero
+                if purchase_order.xero_id:
+                    try:
+                        logger.info(f"Syncing purchase order {purchase_order.id} to Xero")
+                        # Create a XeroPurchaseOrderCreator instance and update the document in Xero
+                        creator = XeroPurchaseOrderCreator(purchase_order=purchase_order)
+                        creator.create_document()
+                        logger.info(f"Successfully synced purchase order {purchase_order.id} to Xero")
+                    except Exception as e:
+                        logger.exception(f"Error syncing purchase order to Xero: {e}")
+                        # Don't return an error response here, just log it and continue
+                        # The local update was successful, and that's what matters most
+                else:
+                    logger.info("Not updating PO in Xero as no Xero ID is present.")
                 logger.info(f"Updated purchase order {purchase_order.po_number} | {purchase_order.reference}")
                 created = False
             except PurchaseOrder.DoesNotExist:
@@ -416,7 +432,11 @@ def extract_supplier_quote_data_view(request):
         
         try:
             # Extract data from the quote
-            quote_data, error = extract_data_from_supplier_quote(temp_path)
+            # Set use_pdf_parser to True to use pdfplumber
+            quote_data, error = extract_data_from_supplier_quote(
+                temp_path,
+                quote_file.content_type
+            )
             
             # Delete the temporary file
             os.unlink(temp_path)

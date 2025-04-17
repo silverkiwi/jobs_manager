@@ -33,7 +33,7 @@ from django.db import transaction
 # from xero_python.api_client.configuration import Configuration
 # from xero_python.api_client.oauth2 import OAuth2Token
 from xero_python.exceptions import AccountingBadRequestException # Keep if handled in views
-# from xero_python.identity import IdentityApi
+from xero_python.identity import IdentityApi
 
 from django.conf import settings
 from workflow.templatetags.xero_tags import XERO_ENTITIES
@@ -83,6 +83,20 @@ def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
         return render(
             request, "xero/error_xero_auth.html", {"error_message": result["error"]}
         )
+    
+    # Log available tenant IDs after successful authentication
+    try:
+        identity_api = IdentityApi(api_client)
+        connections = identity_api.get_connections()
+        if connections:
+            logger.info("Available Xero Organizations after authentication:")
+            for conn in connections:
+                logger.info(f"Tenant ID: {conn.tenant_id}, Name: {conn.tenant_name}")
+        else:
+            logger.info("No Xero organizations found after authentication")
+    except Exception as e:
+        logger.warning(f"Failed to log available tenant IDs after authentication: {str(e)}")
+    
     redirect_url = request.session.pop("post_login_redirect", "/")
     return redirect(redirect_url)
 

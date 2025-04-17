@@ -2,11 +2,27 @@
  * Supplier Quote Data Handler
  *
  * This module handles pre-filling the purchase order form with data extracted from a supplier quote.
- *
- * ⚠️ MUST WRITE THIS CODE ⚠️
- * ⚠️ PLACEHOLDER ONLY ⚠️
- * ⚠️ NOT IMPLEMENTED YET ⚠️
  */
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if supplier quote data is present
+    const supplierQuoteDataElement = document.getElementById('supplier-quote-data');
+    if (!supplierQuoteDataElement) {
+        return; // No supplier quote data, nothing to do
+    }
+    
+    try {
+        // Parse the supplier quote data
+        const supplierQuoteData = JSON.parse(supplierQuoteDataElement.textContent);
+        console.log('Supplier quote data:', supplierQuoteData);
+        
+        // TODO: Implement form pre-filling using the supplier quote data
+        // This will be implemented in a future update
+        
+    } catch (error) {
+        console.error('Error processing supplier quote data:', error);
+    }
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if supplier quote data is present
