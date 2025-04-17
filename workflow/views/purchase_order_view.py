@@ -107,17 +107,7 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
             # Creating a new purchase order
             context['title'] = 'New Purchase Order'
             context['purchase_order_id'] = '' # Ensure it's empty for new POs
-            
-            # Check if there's a supplier quote ID in the URL
-            supplier_quote_id = self.request.GET.get('supplier_quote_id')
-            if supplier_quote_id:
-                # Get the supplier quote
-                supplier_quote = get_object_or_404(PurchaseOrderSupplierQuote, id=supplier_quote_id)
-                
-                # Use the extracted data directly
-                context['supplier_quote_data'] = json.dumps(supplier_quote.extracted_data)
-            else:
-                context['supplier_quote_data'] = json.dumps({})
+            context['supplier_quote_data'] = json.dumps({})
                 
             context['purchase_order_json'] = json.dumps({})
             context['line_items_json'] = json.dumps([])
@@ -447,11 +437,24 @@ def extract_supplier_quote_data_view(request):
                     "error": f"Error extracting data from quote: {error}"
                 }, status=400)
             
-            # Create a PurchaseOrderSupplierQuote to store the extracted data
+            # Extract supplier information if available
+            supplier_id = None
+            if quote_data.get("matched_supplier") and quote_data["matched_supplier"].get("id"):
+                supplier_id = quote_data["matched_supplier"]["id"]
+            
+            # Create a draft PO with pre-filled data
+            purchase_order = PurchaseOrder.objects.create(
+                status="draft",
+                order_date=timezone.now().date(),
+                supplier_id=supplier_id,
+                reference=quote_data.get("quote_reference")
+            )
+            
+            # Create a PurchaseOrderSupplierQuote linked to the PO
             supplier_quote_id = uuid.uuid4()
             supplier_quote = PurchaseOrderSupplierQuote(
                 id=supplier_quote_id,
-                purchase_order=None,  # Will be linked to a PO later
+                purchase_order=purchase_order,
                 filename=quote_file.name,
                 file_path=f"temp/{supplier_quote_id}_{quote_file.name}",
                 mime_type=quote_file.content_type,
@@ -459,8 +462,22 @@ def extract_supplier_quote_data_view(request):
             )
             supplier_quote.save()
             
-            # Redirect to the new PO form with the supplier quote ID
-            redirect_url = reverse('new_purchase_order') + f'?supplier_quote_id={supplier_quote_id}'
+            # Create PO line items from the extracted data
+            if quote_data.get("items"):
+                for item in quote_data["items"]:
+                    PurchaseOrderLine.objects.create(
+                        purchase_order=purchase_order,
+                        description=item.get("description", ""),
+                        quantity=item.get("quantity", 1),
+                        unit_cost=item.get("unit_price"),
+                        price_tbc=item.get("unit_price") is None,
+                        metal_type=item.get("metal_type", "unspecified"),
+                        alloy=item.get("alloy", ""),
+                        specifics=item.get("specifics", "")
+                    )
+            
+            # Redirect to the PO form with the PO ID
+            redirect_url = reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
             return redirect(redirect_url)
             
         except Exception as e:

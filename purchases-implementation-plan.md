@@ -20,6 +20,7 @@ The system already has:
    - PO has supplier, PO number, date raised
    - Line items with job ID, material description, quoted price
    - Xero integration (optional)
+   - Supplier document upload and data extraction (see `supplier_document_to_po_design.md`)
 
 2. **Delivery Confirmation**
    - Mark PO as delivered

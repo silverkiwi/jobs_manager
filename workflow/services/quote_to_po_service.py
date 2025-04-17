@@ -158,45 +158,52 @@ def extract_data_from_supplier_quote(quote_path, content_type=None, use_pdf_pars
         Based on this quote document, please create a complete purchase order in JSON format with the following structure:
 
         {{
-          "supplier": {{
+        "supplier": {{
             "name": "Supplier Name",
             "address": "Supplier Address (if available)"
-          }},
-          "quote_reference": "Quote reference number (if available)",
-          "items": [
+        }},
+        "quote_reference": "Quote reference number (if available)",
+        "items": [
             {{
-              "description": "EXACT raw text description from the quote",
-              "quantity": "Quantity as shown in the quote",
-              "unit_price": "Unit price as shown in the quote",
-              "line_total": "Total cost for this line item",
-              "metal_type": "Type of metal (one of: {metal_types_str})",
-              "alloy": "Alloy specification (if available)",
-              "specifics": "Any specific details about dimensions, grade, etc."
+            "description": "EXACT raw text description from the quote",
+            "quantity": "Quantity as shown in the quote",
+            "unit_price": "Unit price as shown in the quote",
+            "line_total": "Total cost for this line item",
+            "metal_type": "Type of metal (one of: {metal_types_str})",
+            "alloy": "Alloy specification (if available)",
+            "specifics": "Any specific details about dimensions, grade, etc."
             }}
-          ]
+        ]
         }}
 
-        IMPORTANT NOTES:
-        1. Extract values EXACTLY as they appear in the quote, including any units (e.g., "per meter", "each", etc.)
-        2. Make your best effort to extract all fields, but focus on getting the line item description and line_total correct
-        3. For metal_type, ONLY use one of these valid values: {metal_types_str}
-        4. Return ONLY the JSON object, no additional text
-        
-        Example JSON structure:
-        [
-          {{
+        IMPORTANT INSTRUCTIONS:
+        1. Extract all values EXACTLY as they appear in the quote, including any units (e.g., "per meter", "each", etc.)
+        2. Focus on accurate extraction of "description" and "line_total"
+        3. For "metal_type", ONLY use one of the following: {metal_types_str}
+        4. Do not guess values—leave them null or omit the field if unknown
+        5. Return ONLY a single valid JSON object in the format above
+
+        DO NOT return a JSON array of line items on their own—embed them in the full structure.
+
+        Example output:
+        {{
+        "supplier": {{
+            "name": "Abel Metal Products (2020) Ltd",
+            "address": "12 Industrial Way, Penrose, Auckland"
+        }},
+        "quote_reference": "Q-12345",
+        "items": [
+            {{
             "description": "2m length of 50mm x 50mm x 3mm SHS Grade 350",
-            "quantity": 6,
-            "unit_cost": 90.40,
-            "total_cost": 542.40,
-            "price_tbc": false,
+            "quantity": "6",
+            "unit_price": "90.40 each",
+            "line_total": "542.40",
             "metal_type": "mild_steel",
             "alloy": "350",
             "specifics": "50mm x 50mm x 3mm SHS"
-          }}
+            }}
         ]
-        
-        Return ONLY a valid JSON array of line items.
+        }}
         """
         
         # Call Claude API

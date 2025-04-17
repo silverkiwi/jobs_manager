@@ -19,6 +19,8 @@ class PurchaseOrder(models.Model):
         "Client",
         on_delete=models.PROTECT,
         related_name="purchase_orders",
+        null=True,
+        blank=True,
     )
     job = models.ForeignKey(
         "Job",
@@ -29,7 +31,7 @@ class PurchaseOrder(models.Model):
     )
     po_number = models.CharField(max_length=50, unique=True)
     reference = models.CharField(max_length=100, blank=True, null=True, help_text="Optional reference for the purchase order")
-    order_date = models.DateField()
+    order_date = models.DateField(null=True, blank=True, default=timezone.now)
     expected_delivery = models.DateField(null=True, blank=True)
     xero_id = models.UUIDField(unique=True, null=True, blank=True)
     status = models.CharField(
@@ -150,7 +152,7 @@ class PurchaseOrderSupplierQuote(models.Model):
     """A quote file attached to a purchase order."""
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    purchase_order = models.ForeignKey(PurchaseOrder, related_name="quotes", on_delete=models.CASCADE)
+    purchase_order = models.OneToOneField(PurchaseOrder, related_name="supplier_quote", on_delete=models.CASCADE)
     filename = models.CharField(max_length=255)
     file_path = models.CharField(max_length=500)
     mime_type = models.CharField(max_length=100, blank=True)

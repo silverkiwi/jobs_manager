@@ -216,11 +216,6 @@
 <script id="purchase-order-data" type="application/json">
     {{ purchase_order_json|safe }}
 </script>
-{% if supplier_quote_data %}
-<script id="supplier-quote-data" type="application/json">
-    {{ supplier_quote_data|safe }}
-</script>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -232,5 +227,4 @@
 <script type="module" src="{% static 'js/purchases/job_section.js' %}"></script>
 <script type="module" src="{% static 'js/purchases/summary.js' %}"></script>
 <script type="module" src="{% static 'js/purchases/purchase_order_form.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/supplier_quote_data_handler.js' %}"></script>
 {% endblock %}
