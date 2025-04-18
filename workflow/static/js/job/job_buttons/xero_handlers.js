@@ -8,8 +8,11 @@ import { renderMessages } from "../../timesheet/timesheet_entry/messages.js";
  * @param {('invoice'|'quote')} type - The type of document to create
  * @returns {void}
  */
-export function createXeroDocument(jobId, type) {
+export function createXeroDocument(jobId, type, buttonEl) {
   console.log(`Creating Xero ${type} for job ID: ${jobId}`);
+
+  const originalText = buttonEl.innerHTML;
+  buttonEl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...`;
 
   if (!jobId) {
     console.error("Job ID is missing");
@@ -86,6 +89,9 @@ export function createXeroDocument(jobId, type) {
       renderMessages([
         { level: "error", message: `An error occurred: ${error.message}` },
       ]);
+    })
+    .finally(() => {
+      buttonEl.innerHTML = originalText;
     });
 }
 
@@ -141,12 +147,15 @@ export function handleDocumentButtons(type, online_url, method) {
  * @param {('invoice'|'quote')} type - The type of document to delete
  * @returns {void}
  */
-export function deleteXeroDocument(jobId, type) {
+export function deleteXeroDocument(jobId, type, buttonEl) {
   console.log(`Deleting Xero ${type} for job ID: ${jobId}`);
 
   if (!confirm(`Are you sure you want to delete this ${type}?`)) {
     return;
   }
+
+  const originalText = buttonEl.innerHTML;
+  buttonEl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...`;
 
   const endpoint =
     type === "invoice"
@@ -188,5 +197,8 @@ export function deleteXeroDocument(jobId, type) {
       renderMessages([
         { level: "error", message: `An error occurred: ${error.message}` },
       ], "toast-container");
-    });
+    })
+    .finally(() => {
+      buttonEl.innerHTML = originalText;
+    });;
 }

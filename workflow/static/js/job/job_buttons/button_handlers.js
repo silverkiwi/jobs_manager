@@ -32,6 +32,7 @@ export function handleButtonClick(event) {
   console.log("Button clicked:", event.target.id);
   const buttonId = event.target.id;
   const jobId = getJobIdFromUrl();
+  const button = document.getElementById(buttonId);
 
   switch (buttonId) {
     case "copyEstimateToQuote":
@@ -41,19 +42,19 @@ export function handleButtonClick(event) {
       break;
 
     case "quoteJobButton":
-      createXeroDocument(jobId, "quote");
+      createXeroDocument(jobId, "quote", button);
       break;
 
     case "deleteQuoteButton":
-      deleteXeroDocument(jobId, "quote");
+      deleteXeroDocument(jobId, "quote", button);
       break;
 
     case "invoiceJobButton":
-      createXeroDocument(jobId, "invoice");
+      createXeroDocument(jobId, "invoice", button);
       break;
 
     case "deleteInvoiceButton":
-      deleteXeroDocument(jobId, "invoice");
+      deleteXeroDocument(jobId, "invoice", button);
       break;
 
     case "printWorkshopButton":

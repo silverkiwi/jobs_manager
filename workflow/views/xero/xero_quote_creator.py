@@ -208,3 +208,4 @@ class XeroQuoteCreator(XeroDocumentCreator):
             error_msg = "No quotes found in the Xero response or failed to delete quote."
             logger.error(error_msg)
             return JsonResponse({"success": False, "error": error_msg}, status=400)
+            
