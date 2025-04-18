@@ -46,7 +46,7 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
         Return the Purchases account code for PO line creation, or None if it's not found.
         """
         try:
-            return XeroAccount.objects.get(account_name__iexact="Purchases")
+            return XeroAccount.objects.get(account_name__iexact="Purchases").account_code
         except XeroAccount.DoesNotExist:
             logger.warning("Could not find 'Purchases' account in Xero accounts, omitting account code for PO lines.")
             return None
@@ -197,7 +197,7 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
 
         try:
             # Use the appropriate update/create method from the Xero API client
-            update_method = self.get_xero_update_method()
+            update_method = self._get_xero_update_method()
             logger.info(f"Calling Xero API method: {update_method.__name__}")
             response, http_status, http_headers = update_method(
                 self.xero_tenant_id,
@@ -300,7 +300,7 @@ class XeroPurchaseOrderCreator(XeroDocumentCreator):
 
         try:
             # Use the update method to set the status to DELETED
-            update_method = self.get_xero_update_method()
+            update_method = self._get_xero_update_method()
             logger.info(f"Calling Xero API method for deletion: {update_method.__name__}")
             response, http_status, http_headers = update_method(
                 self.xero_tenant_id,
