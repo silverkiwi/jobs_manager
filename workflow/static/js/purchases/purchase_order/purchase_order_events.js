@@ -76,8 +76,13 @@ export function setupEventListeners() {
           }
         });
         
-        // Update grid editability immediately when status changes
+        // Update readonly state and grid editability when status changes
         if (oldStatus !== newStatus) {
+          if (newStatus === "draft") {
+            updateState({ isReadOnly: false })
+          } else {
+            updateState({ isReadOnly: true })
+          }
           updateGridEditability(newStatus);
         }
       }

@@ -370,6 +370,7 @@ export function initializeGrid() {
         if (newValue) {
           params.node.setDataValue("unit_cost", null);
         }
+        
 
         // Refresh the unit_cost cell to update editability
         params.api.refreshCells({
@@ -558,63 +559,68 @@ export function initializeGrid() {
 }
 
 /**
- * Updates the grid's editability based on the purchase order status
- * @param {string} status - The current status of the purchase order
+ * Updates grid editability based on global readonly state or purchase order status
  */
-export function updateGridEditability(status) {
+export function updateGridEditability() {
   const state = getState();
   if (!state.grid || !state.grid.api) {
     console.error("Grid not initialized");
     return;
   }
-
-  const isDraft = status === "draft";
   
-  // Update grid editability
-  if (isDraft) {
-    // Make grid editable
-    state.grid.api.setGridOption("readOnly", false);
-    
-    // Update column definitions to make them editable
-    const columnDefs = state.grid.api.getColumnDefs();
-    columnDefs.forEach((col) => {
-      if (col.field !== "total") { // Total is calculated, not editable
-        col.editable = true;
-      }
-      // Special case for unit_cost which depends on price_tbc
+  // Determine if grid should be readonly based on global state or purchase order status
+  const isReadOnly = state.isReadOnly ||
+    (state.purchaseData.purchaseOrder &&
+     state.purchaseData.purchaseOrder.status &&
+     state.purchaseData.purchaseOrder.status !== "draft");
+  
+  // Update column definitions to respect editable state
+  const columnDefs = state.grid.api.getColumnDefs();
+  columnDefs.forEach((col) => {
+    if (col.field !== "total") { // Total is calculated, not editable
       if (col.field === "unit_cost") {
-        col.editable = (params) => !params.data.price_tbc;
+        // Special case for unit_cost which depends on price_tbc
+        col.editable = params => !isReadOnly && !params.data.price_tbc;
+      } else {
+        col.editable = !isReadOnly;
       }
-    });
-    state.grid.api.setGridOption("columnDefs", columnDefs);
-    
-    // Show a message that the grid is now editable
+    }
+  });
+  
+  // Set suppressClickEdit for the entire grid
+  state.grid.api.setGridOption("suppressClickEdit", isReadOnly);
+  
+  // Apply updated column definitions
+  state.grid.api.setGridOption("columnDefs", columnDefs);
+  
+  // Update visual appearance
+  const gridContainer = document.querySelector('.ag-theme-alpine');
+  if (gridContainer) {
+    gridContainer.style.opacity = isReadOnly ? '0.8' : '1';
+    gridContainer.style.pointerEvents = isReadOnly ? 'none' : 'auto';
+  }
+  
+  // Display appropriate message
+  if (isReadOnly) {
+    const statusMessage = state.purchaseData.purchaseOrder && state.purchaseData.purchaseOrder.status 
+      ? `Purchase order is in ${getStatusDisplay(state.purchaseData.purchaseOrder.status)} status.`
+      : "Purchase order is in read-only mode.";
+      
     renderMessages(
       [
         {
-          level: "success",
-          message: "Purchase order is now in draft status. You can edit the line items.",
+          level: "info",
+          message: `${statusMessage} Line items cannot be edited.`,
         },
       ],
       "purchase-order"
     );
   } else {
-    // Make grid read-only
-    state.grid.api.setGridOption("readOnly", true);
-    
-    // Update column definitions to make them non-editable
-    const columnDefs = state.grid.api.getColumnDefs();
-    columnDefs.forEach((col) => {
-      col.editable = false;
-    });
-    state.grid.api.setGridOption("columnDefs", columnDefs);
-    
-    // Show a message that the grid is now read-only
     renderMessages(
       [
         {
-          level: "info",
-          message: `Purchase order is now in ${getStatusDisplay(status)} status. Line items cannot be edited.`,
+          level: "success",
+          message: "Purchase order is editable. You can modify the line items.",
         },
       ],
       "purchase-order"

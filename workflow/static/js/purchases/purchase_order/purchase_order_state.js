@@ -14,6 +14,7 @@ const initialState = {
   },
   lastAutosaveSuccess: true, // Default to true since data is already saved when loading
   metalTypeValues: ["unspecified"], // Default value
+  isReadOnly: false, // Default to not read-only, since all new POs are editable
 };
 
 // Current state (private)
