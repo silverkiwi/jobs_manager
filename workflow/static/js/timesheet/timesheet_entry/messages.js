@@ -59,7 +59,7 @@ function createToastContainer() {
  * @param {Array} messages - List of messages in the format [{level: "success|error|info", message: "Message"}]
  * @param {string} [containerId] - If provided, shows toast notifications instead of modal
  */
-export function renderMessages(messages, containerId) {
+export function renderMessages(messages, containerId = null) {
   let alertContainer;
   let alertContainerModal = false;
   let modal;

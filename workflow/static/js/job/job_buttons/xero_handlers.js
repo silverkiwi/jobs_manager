@@ -29,7 +29,7 @@ export function createXeroDocument(jobId, type) {
       "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
     },
   })
-    .then((response) => {
+    .then(async (response) => {
       if (!response.ok) {
         return response.json().then((data) => {
           if (data.redirect_to_auth) {
@@ -62,7 +62,6 @@ export function createXeroDocument(jobId, type) {
       console.log(`${type} created successfully with Xero ID: ${data.xero_id}`);
       handleDocumentButtons(type, data.invoice_url || data.quote_url, "POST");
 
-      // UI update example (could be extracted to another function)
       const documentSummary = `
             <div class='card'>
                 <div class='card-header bg-success text-white'>
@@ -182,12 +181,12 @@ export function deleteXeroDocument(jobId, type) {
         return;
       }
       handleDocumentButtons(type, null, "DELETE");
-      renderMessages(data.messages);
+      renderMessages(data.messages || [ { "level": "success", "message": "Invoice deleted successfully!" } ], "toast-container");
     })
     .catch((error) => {
       console.error("Error deleting Xero document:", error);
       renderMessages([
         { level: "error", message: `An error occurred: ${error.message}` },
-      ]);
+      ], "toast-container");
     });
 }

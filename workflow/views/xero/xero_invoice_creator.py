@@ -131,7 +131,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                     "contact": contact,
                     "line_items": line_items,
                     "date": format_date(timezone.now()),
-                    "due_date": format_date(timezone.now() + timedelta(days=30)), # Assuming 30 day terms
+                    "due_date": format_date((timezone.now() + timedelta(days=30)).replace(day=20)),
                     "line_amount_types": "Exclusive", # Assuming Exclusive
                     "currency_code": "NZD", # Assuming NZD
                     "status": "DRAFT", # Create as Draft initially
