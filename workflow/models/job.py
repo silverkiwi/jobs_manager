@@ -199,6 +199,15 @@ class Job(models.Model):
 
     def get_display_name(self) -> str:
         return f"Job: {self.job_number}"  # type: ignore
+        
+    @property
+    def job_display_name(self) -> str:
+        """
+        Returns a formatted display name for the job including client name.
+        Format: job_number - (first 12 chars of client name), job_name
+        """
+        client_name = self.client.name[:12] if self.client else "No Client"
+        return f"{self.job_number} - {client_name}, {self.name}"
     
     def generate_job_number(self) -> int:
         company_defaults: CompanyDefaults = get_company_defaults()

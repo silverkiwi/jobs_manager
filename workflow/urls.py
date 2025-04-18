@@ -43,6 +43,7 @@ from django.views.generic import RedirectView
 
 from workflow.api import server
 from workflow.api.reports.pnl import CompanyProfitAndLossReport
+from workflow.api.enums import get_enum_choices
 from workflow.views import (
     client_view,
     edit_job_view_ajax,
@@ -103,6 +104,7 @@ urlpatterns = [
         name="send_quote_email",
     ),
     path("api/get-env-variable/", server.get_env_variable, name="get_env_variable"),
+    path("api/enums/<str:enum_name>/", get_enum_choices, name="get_enum_choices"),
     # path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
     path("api/create-job/", edit_job_view_ajax.create_job_api, name="create_job_api"),
     path(

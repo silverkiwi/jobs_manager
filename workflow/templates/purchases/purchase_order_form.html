@@ -32,9 +32,12 @@
                         <div class="d-flex gap-2">
                             <input type="text" id="client_name" class="form-control" placeholder="Search for supplier...">
                             <input type="hidden" id="client_id" name="client_id" class="autosave-input">
-                            <input type="hidden" id="client_xero_id" name="client_xero_id" class="autosave-input">
                         </div>
                         <div id="clientSuggestionsContainer" class="suggestions-container"></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="client_xero_id" class="form-label text-muted small">Supplier Xero ID</label>
+                        <input type="text" id="client_xero_id" name="client_xero_id" class="form-control-plaintext text-muted small autosave-input" readonly>
                     </div>
                     <div id="supplierFromQuoteContainer" class="mb-3 d-none">
                         <label class="form-label">Supplier from Quote</label>
@@ -43,7 +46,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="po_number" class="form-label">PO Number</label>
-                        <input type="text" id="po_number" name="po_number" class="form-control" readonly placeholder="Will be auto-generated">
+                        <input type="text" id="po_number" name="po_number" class="form-control-plaintext border-bottom" readonly placeholder="Will be auto-generated">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="reference" class="form-label">Reference</label>
@@ -134,6 +137,11 @@
             <div id="purchase-order-lines-grid" class="ag-theme-alpine" style="width: 100%;">
                 <!-- Grid will be rendered here -->
             </div>
+            <div class="ag-grid-footer" style="border-top: 1px solid #dee2e6; padding: 8px; background-color: #f8f9fa;">
+                <button id="add-line-item" class="btn btn-primary btn-sm" style="font-size: 0.875rem; padding: 0.25rem 0.5rem;">
+                    <i class="bi bi-plus-circle me-1"></i>Add Item
+                </button>
+            </div>
         </div>
     </div>
 
@@ -221,10 +229,7 @@
 {% block extra_js %}
 <!-- AG Grid Script -->
 <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/client_lookup.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/messages.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/purchase_order_autosave.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/job_section.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/summary.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/purchase_order_form.js' %}"></script>
+
+<!-- Main Purchase Order Module -->
+<script type="module" src="{% static 'js/purchases/purchase_order/purchase_order.js' %}"></script>
 {% endblock %}
