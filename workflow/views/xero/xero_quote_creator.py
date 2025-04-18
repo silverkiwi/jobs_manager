@@ -71,7 +71,8 @@ class XeroQuoteCreator(XeroDocumentCreator):
 
         line_items = [
             LineItem(
-                description=f"{f"Quote for job: {self.job.job_number}{(" - " + self.job.description)}" if self.job.description else ''}",
+                # Xero requires a description for quote line items, so we'll have to keep the placeholder in case there's no job description
+                description=f"Quote for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
                 account_code=self._get_account_code(),
