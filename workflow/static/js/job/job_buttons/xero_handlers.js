@@ -8,8 +8,11 @@ import { renderMessages } from "../../timesheet/timesheet_entry/messages.js";
  * @param {('invoice'|'quote')} type - The type of document to create
  * @returns {void}
  */
-export function createXeroDocument(jobId, type) {
+export function createXeroDocument(jobId, type, buttonEl) {
   console.log(`Creating Xero ${type} for job ID: ${jobId}`);
+
+  const originalText = buttonEl.innerHTML;
+  buttonEl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...`;
 
   if (!jobId) {
     console.error("Job ID is missing");
@@ -29,7 +32,7 @@ export function createXeroDocument(jobId, type) {
       "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
     },
   })
-    .then((response) => {
+    .then(async (response) => {
       if (!response.ok) {
         return response.json().then((data) => {
           if (data.redirect_to_auth) {
@@ -62,7 +65,6 @@ export function createXeroDocument(jobId, type) {
       console.log(`${type} created successfully with Xero ID: ${data.xero_id}`);
       handleDocumentButtons(type, data.invoice_url || data.quote_url, "POST");
 
-      // UI update example (could be extracted to another function)
       const documentSummary = `
             <div class='card'>
                 <div class='card-header bg-success text-white'>
@@ -87,6 +89,9 @@ export function createXeroDocument(jobId, type) {
       renderMessages([
         { level: "error", message: `An error occurred: ${error.message}` },
       ]);
+    })
+    .finally(() => {
+      buttonEl.innerHTML = originalText;
     });
 }
 
@@ -142,12 +147,15 @@ export function handleDocumentButtons(type, online_url, method) {
  * @param {('invoice'|'quote')} type - The type of document to delete
  * @returns {void}
  */
-export function deleteXeroDocument(jobId, type) {
+export function deleteXeroDocument(jobId, type, buttonEl) {
   console.log(`Deleting Xero ${type} for job ID: ${jobId}`);
 
   if (!confirm(`Are you sure you want to delete this ${type}?`)) {
     return;
   }
+
+  const originalText = buttonEl.innerHTML;
+  buttonEl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...`;
 
   const endpoint =
     type === "invoice"
@@ -182,12 +190,15 @@ export function deleteXeroDocument(jobId, type) {
         return;
       }
       handleDocumentButtons(type, null, "DELETE");
-      renderMessages(data.messages);
+      renderMessages(data.messages || [ { "level": "success", "message": "Invoice deleted successfully!" } ], "toast-container");
     })
     .catch((error) => {
       console.error("Error deleting Xero document:", error);
       renderMessages([
         { level: "error", message: `An error occurred: ${error.message}` },
-      ]);
-    });
+      ], "toast-container");
+    })
+    .finally(() => {
+      buttonEl.innerHTML = originalText;
+    });;
 }

@@ -74,19 +74,28 @@ class XeroDocumentCreator(ABC):
         pass
 
     @abstractmethod
-    def get_local_model(self) -> Any:
+    def _get_local_model(self) -> Any:
         """
         Returns the local Django model class for the document (e.g., Invoice, Quote).
         """
         pass
 
     @abstractmethod
-    def get_xero_update_method(self) -> Any:
+    def _get_xero_update_method(self) -> Any:
         """
         Returns the appropriate Xero API method for updating/creating the document
         (e.g., self.xero_api.update_or_create_invoices).
         """
         pass
+
+    def _get_account_code(self) -> str:
+        """
+        Returns the Sales account code for document creation
+        """
+        from workflow.models import XeroAccount
+
+        # Although the Sales account exists by default in both Real Xero and Demo Company, we might want to handle a DoesNotExist exception in the future
+        return XeroAccount.objects.get(account_name="Sales").account_code
 
     def validate_client(self):
         """
@@ -203,15 +212,15 @@ class XeroDocumentCreator(ABC):
             if isinstance(self, XeroInvoiceCreator):
                 api_payload = {"Invoices": [payload]}
                 # Deletion is often handled by POST/PUT with status=DELETED
-                api_method = self.get_xero_update_method()
+                api_method = self._get_xero_update_method()
                 kwargs = {'invoices': api_payload}
             elif isinstance(self, XeroQuoteCreator):
                 api_payload = {"Quotes": [payload]}
-                api_method = self.get_xero_update_method()
+                api_method = self._get_xero_update_method()
                 kwargs = {'quotes': api_payload}
             elif isinstance(self, XeroPurchaseOrderCreator):
                 api_payload = {"PurchaseOrders": [payload]}
-                api_method = self.get_xero_update_method()
+                api_method = self._get_xero_update_method()
                 kwargs = {'purchase_orders': api_payload}
             else:
                 raise ValueError("Unknown Xero document type for delete payload structure.")

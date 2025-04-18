@@ -37,12 +37,12 @@ class XeroQuoteCreator(XeroDocumentCreator):
         # self.job is guaranteed to exist here due to the __init__ check
         return str(self.job.quote.xero_id) if hasattr(self.job, "quote") and self.job.quote else None
 
-    def get_xero_update_method(self):
+    def _get_xero_update_method(self):
         # For quotes, update/create might be the same endpoint or specific ones
         # Assuming update_or_create_quotes exists and handles setting status to DELETED
         return self.xero_api.update_or_create_quotes
 
-    def get_local_model(self):
+    def _get_local_model(self):
         return Quote
 
     def state_valid_for_xero(self):
@@ -52,8 +52,6 @@ class XeroQuoteCreator(XeroDocumentCreator):
         """
         # self.job is guaranteed to exist here due to the __init__ check
         return not self.job.quoted
-
-    # --- Methods moved from the misplaced block ---
 
     def validate_job(self):
         """
@@ -73,11 +71,10 @@ class XeroQuoteCreator(XeroDocumentCreator):
 
         line_items = [
             LineItem(
-                description=f"Quote for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
+                description=f"{f"Quote for job: {self.job.job_number}{(" - " + self.job.description)}" if self.job.description else ''}",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
-                # Assuming account code 200 is correct for quotes
-                account_code="200",
+                account_code=self._get_account_code(),
             )
         ]
         return line_items
@@ -211,3 +208,4 @@ class XeroQuoteCreator(XeroDocumentCreator):
             error_msg = "No quotes found in the Xero response or failed to delete quote."
             logger.error(error_msg)
             return JsonResponse({"success": False, "error": error_msg}, status=400)
+            

@@ -89,6 +89,7 @@ function renderJobs(status, jobs) {
   }
 
   jobs.forEach((job) => {
+    console.log("Job:", job);
     const jobCard = createJobCard(job);
     container.appendChild(jobCard);
   });
@@ -121,7 +122,7 @@ function createJobCard(job) {
   card.className = "job-card";
   card.setAttribute("data-id", job.id);
   card.setAttribute("data-job-name", job.name || "");
-  card.setAttribute("data-client-name", job.client ? job.client.name : "");
+  card.setAttribute("data-client-name", job.client_name ? job.client_name : "");
   card.setAttribute("data-job-description", job.description || "");
   card.setAttribute("data-job-number", job.job_number);
 
@@ -129,6 +130,7 @@ function createJobCard(job) {
     <a href="/job/${job.id}/">
       <div class="job-card-title">${job.job_number}</div>
       <div class="job-card-body small">
+        ${job.client_name ? `<span class="fw-semibold">${job.client_name}</span><br>` : ""}
         ${job.name}
       </div>
     </a>
