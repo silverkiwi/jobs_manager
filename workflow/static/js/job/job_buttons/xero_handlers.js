@@ -1,4 +1,5 @@
 import { renderMessages } from "../../timesheet/timesheet_entry/messages.js";
+import { capitalize } from "../grid/grid_utils.js";
 
 /**
  * Creates, deletes and manages documents linked to Xero (invoices, quotes, etc.).
@@ -12,7 +13,7 @@ export function createXeroDocument(jobId, type, buttonEl) {
   console.log(`Creating Xero ${type} for job ID: ${jobId}`);
 
   const originalText = buttonEl.innerHTML;
-  buttonEl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...`;
+  buttonEl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${type === 'invoice' ? 'Invoicing' : 'Quoting'}...`;
 
   if (!jobId) {
     console.error("Job ID is missing");
@@ -190,7 +191,7 @@ export function deleteXeroDocument(jobId, type, buttonEl) {
         return;
       }
       handleDocumentButtons(type, null, "DELETE");
-      renderMessages(data.messages || [ { "level": "success", "message": "Invoice deleted successfully!" } ], "toast-container");
+      renderMessages(data.messages || [ { "level": "success", "message":  `${capitalize(type)} deleted successfully!` } ], "toast-container");
     })
     .catch((error) => {
       console.error("Error deleting Xero document:", error);
