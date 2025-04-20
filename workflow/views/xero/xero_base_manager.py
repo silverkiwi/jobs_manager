@@ -198,7 +198,7 @@ class XeroDocumentManager(ABC):
     def delete_document(self):
         """
         Handles document deletion and API communication with Xero.
-        Requires subclasses to implement get_xero_update_method appropriately
+        Requires subclasses to implement _get_xero_update_method appropriately
         (e.g., returning self.xero_api.update_or_create_invoices for setting status to DELETED).
         """
         self.validate_client()
@@ -270,7 +270,7 @@ class XeroDocumentManager(ABC):
 
         try:
             # Document exists - get latest from Xero
-            api_method = self.get_xero_update_method()
+            api_method = self._get_xero_update_method()
             response = api_method(
                 self.xero_tenant_id,
                 xero_id,

@@ -7,11 +7,10 @@
 import { initState, getState, updateState } from './purchase_order_state.js';
 import { initializeGrid } from './purchase_order_grid.js';
 import { fetchMetalTypes, updateMetalTypeValues } from './purchase_order_metal_types.js';
-import { 
-  updateSubmitButtonState, 
+import {
   populateFormWithPurchaseOrderData,
   blockPurchaseOrderEdition,
-  addLocalDeleteButton 
+  addLocalDeleteButton
 } from './purchase_order_ui.js';
 import { setupEventListeners } from './purchase_order_events.js';
 import { updateJobSummary } from './purchase_order_summary.js';
@@ -59,9 +58,6 @@ function initializeApp() {
   
   // Populate form with purchase order data
   populateFormWithPurchaseOrderData();
-  
-  // Update submit button state
-  updateSubmitButtonState();
   
   // Initialize job summary section
   updateJobSummary();

@@ -152,6 +152,18 @@ export async function saveDataToServer(collectedData) {
     },
   );
 
+  console.log("Full data being sent to backend:", {
+    purchase_order: collectedData.purchase_order,
+    line_items: collectedData.line_items.map(item => ({
+      id: item.id,
+      description: item.description,
+      unit_cost: item.unit_cost,
+      price_tbc: item.price_tbc,
+      valid: item.description && (item.price_tbc || item.unit_cost !== null)
+    })),
+    deleted_line_items: collectedData.deleted_line_items
+  });
+
   return fetch("/api/autosave-purchase-order/", {
     method: "POST",
     headers: {
@@ -168,6 +180,12 @@ export async function saveDataToServer(collectedData) {
     })
     .then((data) => {
       if (!data.success) {
+        // Handle validation failures differently from actual sync errors
+        if (data.is_incomplete_po) {
+          console.warn("Xero sync validation failed - not yet ready:", data.error);
+          return true; // Don't show error to user for validation cases
+        }
+
         // Log the more detailed error from the backend if available
         console.error(
           "Autosave failed:",

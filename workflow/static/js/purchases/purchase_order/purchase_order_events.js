@@ -7,7 +7,6 @@
 import { getState, updateState } from "./purchase_order_state.js";
 import { createNewRowShortcut, updateGridEditability } from "./purchase_order_grid.js";
 import { debouncedAutosave } from "./purchase_order_autosave.js";
-import { submitPurchaseOrderToXero } from "./purchase_order_xero.js";
 import { deleteXeroPurchaseOrder } from "./purchase_order_xero_actions.js";
 import { renderMessages } from "./messages.js";
 

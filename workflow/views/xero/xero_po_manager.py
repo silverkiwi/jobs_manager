@@ -37,8 +37,20 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
                         self.purchase_order.id, self.purchase_order.supplier.id)
             return False
             
+        # First check if we have any lines at all
         if not self.purchase_order.po_lines.exists():
             logger.debug("PO %s cannot sync to Xero - Xero requires at least one line item", self.purchase_order.id)
+            return False
+        
+        # Then check if at least one line has required fields
+        has_valid_line = any(
+            line.description and line.unit_cost is not None
+            for line in self.purchase_order.po_lines.all()
+        )
+        
+        if not has_valid_line:
+            logger.debug("PO %s cannot sync to Xero - no valid lines found (need at least one with description and unit_cost)",
+                       self.purchase_order.id)
             return False
             
         return True
@@ -129,6 +141,14 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
         if not self.purchase_order:
              raise ValueError("PurchaseOrder object is missing.")
 
+        status_map = {
+            "draft": "DRAFT",
+            "submitted": "SUBMITTED",
+            "partially_received": "AUTHORISED",
+            "fully_received": "AUTHORISED",
+            "deleted": "DELETED"
+        }
+
         if type == "delete":
             xero_id = self.get_xero_id()
             if not xero_id:
@@ -145,7 +165,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
                 "contact": self.get_xero_contact(), # Uses base class method
                 "date": format_date(date.fromisoformat(self.purchase_order.order_date)),
                 "line_items": self.get_line_items(),
-                "status": "SUBMITTED" # TODO: Review if this should always be SUBMITTED or based on local status/action
+                "status": status_map.get(self.purchase_order.status, "DRAFT")
             }
 
             # Add optional fields if they exist
@@ -171,91 +191,92 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
         else:
             raise ValueError(f"Unknown document type for Purchase Order: {type}")
 
-    def sync_to_xero(self):
-        """Sync current PO state to Xero and update local model with Xero data"""
-        if not self.can_sync_to_xero():
-            logger.error("Cannot sync PO %s to Xero - validation failed", self.purchase_order.id)
-            return False
-            
+    def sync_to_xero(self) -> JsonResponse:
+        """Sync current PO state to Xero and update local model with Xero data.
+
+        Returns:
+            JsonResponse: Always returns a JsonResponse with:
+                - success (bool): Whether the operation succeeded
+                - On success: xero_id and online_url fields
+                - On failure: error and exception_type fields
+        """
+        has_data = self.can_sync_to_xero()
+        if not has_data:
+            logger.warning("Cannot sync PO %s to Xero - not yet ready - validation failed", self.purchase_order.id)
+            return JsonResponse({
+                "success": True,
+                "error": "Purchase order is not ready for sync. Please complete all required fields.",
+                "exception_type": "ValidationError",
+                "is_incomplete_po": True
+            })
+
         try:
             # Determine if creating or updating
             action = "update" if self.get_xero_id() else "create"
             xero_doc = self.get_xero_document(type=action)
-            
-            # Single strategic log to identify None values
-            logger.debug("Xero document data (including None values): %s", {
-                k: v for k, v in xero_doc.to_dict().items()
-            })
-            
-            payload = {"PurchaseOrders": [xero_doc.to_dict()]}
-            
-            # Call Xero API and get full response
-            response = self.get_xero_update_method()(
-                xero_tenant_id=self.xero_tenant_id,
-                purchase_orders=payload,
-                _return_http_data_only=False
-            # Get the xero-python model object representation
-            xero_document = self.get_xero_document(type=action_type)
+
+            raw_payload = xero_doc.to_dict()
+            logger.debug("Xero document data (including None values): %s", raw_payload)
+
+            cleaned_payload = clean_payload(raw_payload)
+            payload = {"PurchaseOrders": [convert_to_pascal_case(cleaned_payload)]}
+            logger.debug(f"Serialized payload for {action}: {json.dumps(payload, indent=4)}")
         except Exception as e:
-             logger.error(f"Error preparing Xero document data for PO {self.purchase_order.id}: {e}", exc_info=True)
-             # Return JsonResponse directly for the view
-             return JsonResponse({"success": False, "error": f"Failed to prepare data: {str(e)}"}, status=500)
+            logger.error(f"Error preparing or serializing Xero document for PO {self.purchase_order.id}: {str(e)}", exc_info=True)
+            return JsonResponse({
+                "success": False,
+                "error": f"Failed to prepare Xero document: {str(e)}",
+                "exception_type": type(e).__name__
+            }, status=500)
 
         try:
-            # Convert to PascalCase, clean payload, and wrap for the API
-            payload = convert_to_pascal_case(clean_payload(xero_document.to_dict()))
-            # The API expects a list under the "PurchaseOrders" key
-            payload_list = {"PurchaseOrders": [payload]}
-            logger.debug(f"Serialized payload for {action_type}: {json.dumps(payload_list, indent=4)}")
-        except Exception as e:
-            logger.error(f"Error serializing XeroDocument for {action_type}: {str(e)}", exc_info=True)
-            # Return JsonResponse directly for the view
-            return JsonResponse({"success": False, "error": f"Failed to serialize data for Xero: {str(e)}"}, status=500)
-
-        try:
-            # Use the appropriate update/create method from the Xero API client
             update_method = self._get_xero_update_method()
             logger.info(f"Calling Xero API method: {update_method.__name__}")
+
             response, http_status, http_headers = update_method(
                 self.xero_tenant_id,
-                purchase_orders=payload_list,
-                summarize_errors=False, # Get detailed errors if any
-                _return_http_data_only=False # Get full response object
+                purchase_orders=payload,
+                summarize_errors=False,
+                _return_http_data_only=False
             )
-            
-            # Check for invalid response structure
-            if not response or not hasattr(response[0], 'purchase_orders') or not response[0].purchase_orders:
-                logger.error(f"Invalid Xero API response format for PO {self.purchase_order.id}")
-                return False
 
-            # Check for empty purchase orders array
-            if not response[0].purchase_orders:
-                logger.error(f"Empty purchase_orders array in Xero response for PO {self.purchase_order.id}")
-                return False
+            if not hasattr(response, "purchase_orders") or not response.purchase_orders:
+                msg = f"Xero API response missing or empty 'purchase_orders' for PO {self.purchase_order.id}"
+                logger.error(msg)
+                return JsonResponse({
+                    "success": False,
+                    "error": msg,
+                    "details": "Missing or empty 'purchase_orders' attribute"
+                }, status=502)
 
-            xero_po = response[0].purchase_orders[0]    # THIS LOOKS LIKE A BUG
-            
-            # Update local model with Xero data
+            xero_po = response.purchase_orders[0]
+            xero_po_url = f"https://go.xero.com/Accounts/Payable/PurchaseOrders/Edit/{xero_po.purchase_order_id}/"
+
             self.purchase_order.xero_id = xero_po.purchase_order_id
-            self.purchase_order.online_url = xero_po.url
-            self.purchase_order.xero_last_synced = timezone.now()
+            self.purchase_order.online_url = xero_po_url
+            self.purchase_order.xero_last_synced = xero_po.updated_date_utc
             self.purchase_order.save(update_fields=[
-                'xero_id',
-                'online_url',
-                'xero_last_synced'
+                "xero_id",
+                "online_url",
+                "xero_last_synced"
             ])
-            
-            logger.info(f"Successfully synced PO {self.purchase_order.id} to Xero. Xero ID: {xero_po.purchase_order_id}")
-            return True
-                
-        except Exception as e:
-            logger.error(f"Xero sync failed for PO {self.purchase_order.id}: {e}", exc_info=True)
-            return False
 
-    def create_document(self):
-        """Legacy method - delegates to sync_to_xero"""
-        success = self.sync_to_xero()
-        return JsonResponse({"success": success})
+            logger.info(f"Successfully synced PO {self.purchase_order.id} to Xero. Xero ID: {xero_po.purchase_order_id}")
+            return JsonResponse({
+                "success": True,
+                "xero_id": str(xero_po.purchase_order_id),
+                "online_url": xero_po_url,
+            })
+
+        except Exception as e:
+            # has_data already checked at the top of sync_to_xero()
+            logger.error(f"Failed to sync PO {self.purchase_order.id} to Xero: {str(e)}", exc_info=True)
+            return JsonResponse({
+                "success": False,
+                "error": str(e),
+                "exception_type": type(e).__name__
+            }, status=500)
+
 
     def delete_document(self):
         """
@@ -324,18 +345,6 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
                 logger.error(f"{error_msg} for PO {self.purchase_order.id}. Response: {response}")
                 return JsonResponse({"success": False, "error": error_msg}, status=500)
 
-        except AccountingBadRequestException as e:
-            error_body = {}
-            error_message = str(e)
-            try:
-                 if hasattr(e, 'body') and e.body:
-                      error_body = json.loads(e.body)
-                      error_message = error_body.get('Detail', error_body.get('Message', str(e)))
-            except json.JSONDecodeError:
-                 logger.warning("Could not decode Xero error body JSON during delete.")
-
-            logger.error(f"Xero API Bad Request during delete for PO {self.purchase_order.id}: {error_message} Body: {error_body}")
-            return JsonResponse({"success": False, "error": f"Xero Error during delete: {error_message}"}, status=e.status)
         except Exception as e:
             logger.error(f"Unexpected error deleting PO {self.purchase_order.id} from Xero: {str(e)}", exc_info=True)
             return JsonResponse({"success": False, "error": f"An unexpected error occurred during deletion: {str(e)}"}, status=500)

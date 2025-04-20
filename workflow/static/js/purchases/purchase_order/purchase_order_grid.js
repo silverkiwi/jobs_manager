@@ -8,7 +8,6 @@ import { ActiveJobCellEditor } from "./job_cell_editor.js";
 import { renderMessages } from "./messages.js";
 import { getState, updateState, getStatusDisplay } from "./purchase_order_state.js";
 import { debouncedAutosave, markLineItemAsDeleted } from "./purchase_order_autosave.js";
-import { updateSubmitButtonState } from "./purchase_order_ui.js";
 import { updateJobSummary } from "./purchase_order_summary.js";
 
 /**
@@ -145,7 +144,6 @@ export function deleteRow(api, node) {
     updateJobSummary();
     debouncedAutosave().then((success) => {
       updateState({ lastAutosaveSuccess: success });
-      updateSubmitButtonState();
     });
   }
 }
@@ -245,7 +243,6 @@ function onCellValueChanged(params) {
   adjustGridHeight();
   debouncedAutosave().then((success) => {
     updateState({ lastAutosaveSuccess: success });
-    updateSubmitButtonState();
   });
 }
 

@@ -184,174 +184,117 @@ PurchaseOrderLineFormSet = inlineformset_factory(
 
 
 @require_http_methods(["POST"])
-@transaction.atomic # Ensure atomicity for PO and lines processing
+@transaction.atomic
 def autosave_purchase_order_view(request):
-    """
-    Handles autosave requests for purchase order data. Separates create and update logic.
-    """
     request_timestamp = datetime.now().isoformat()
+
     try:
-        data = json.loads(request.body.decode('utf-8', errors='ignore'))
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            logger.warning("Malformed JSON body")
+            return JsonResponse({"error": "Malformed JSON input"}, status=400)
+
         purchase_order_data = data.get("purchase_order", {})
         line_items = data.get("line_items", [])
         purchase_order_id = purchase_order_data.get("id")
 
-        logger.info(
-            f"[{request_timestamp}] autosave_purchase_order_view called. Incoming PO ID: {purchase_order_id}"
-        )
+        logger.info(f"[{request_timestamp}] autosave_purchase_order_view called. Incoming PO ID: {purchase_order_id}")
         logger.debug("Request data: %s", json.dumps(data, indent=2))
         logger.debug(f"Number of line items: {len(line_items)}")
 
-        # Get IDs of all line items being saved
+        if not purchase_order_id:
+            logger.error("CRITICAL: Missing PO ID")
+            return JsonResponse({"error": "Missing Purchase Order ID"}, status=400)
+
         saved_line_ids = [item.get("id") for item in line_items if item.get("id")]
+        PurchaseOrderLine.objects.filter(purchase_order_id=purchase_order_id).exclude(id__in=saved_line_ids).delete()
 
-        # Delete any existing line items not in current dataset
-        if not purchase_order_id:
-            logger.error("CRITICAL: Attempted line item operation without PO ID")
-            raise ValueError("Purchase Order ID is required for line item operations")
-            
-        PurchaseOrderLine.objects.filter(
-            purchase_order_id=purchase_order_id
-        ).exclude(
-            id__in=saved_line_ids
-        ).delete()
-
-
-        purchase_order = None
-        created = False
-
-        # Validate PO ID exists (this endpoint only handles updates)
-        if not purchase_order_id:
-            logger.error("CRITICAL: Attempted PO operation without ID")
-            raise ValueError("Purchase Order ID is required")
-            
-        # --- UPDATE PATH ---
-        logger.info(f"Attempting to update Purchase Order with ID: {purchase_order_id} with data {purchase_order_data}")
         try:
-            # Lock the row for update
             purchase_order = PurchaseOrder.objects.select_for_update().get(id=purchase_order_id)
-
-            # Update fields from payload
-            purchase_order.supplier_id = purchase_order_data.get("client_id", purchase_order.supplier_id)
-            purchase_order.status = purchase_order_data.get("status", purchase_order.status)
-            purchase_order.order_date = purchase_order_data.get("order_date", purchase_order.order_date)
-            # Handle expected_delivery carefully - allow setting to None
-            if "expected_delivery" in purchase_order_data:
-                    purchase_order.expected_delivery = purchase_order_data.get("expected_delivery") or None
-            purchase_order.reference = purchase_order_data.get("reference")
-
-            purchase_order.save()
-            
-            # Always attempt to sync with Xero (will create if no xero_id exists)
-            try:
-                logger.info(f"Syncing purchase order {purchase_order.id} to Xero")
-                manager = XeroPurchaseOrderManager(purchase_order=purchase_order)
-                success = manager.sync_to_xero()
-                
-                if success:
-                    # Update sync timestamp and get any new Xero fields
-                    purchase_order.refresh_from_db()
-                    logger.info(f"Successfully synced purchase order {purchase_order.id} to Xero")
-                    
-                    return JsonResponse({
-                        "success": True,
-                        "xero_url": purchase_order.online_url,
-                        "xero_id": str(purchase_order.xero_id) if purchase_order.xero_id else None,
-                        "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
-                    })
-                else:
-                    logger.error(f"Failed to sync PO {purchase_order.id} to Xero")
-                    messages.error(request, "Failed to sync purchase order with Xero")
-                    return JsonResponse({
-                        "success": False,
-                        "error": "Failed to sync with Xero",
-                        "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
-                    })
-            except Exception as e:
-                logger.exception(f"Error syncing purchase order to Xero: {e}")
-                # Continue with local save even if Xero sync fails but make error more visible
-                messages.error(request, f"XERO SYNC FAILED: {str(e)}")
-                return JsonResponse({
-                    "success": False,
-                    "error": f"Xero sync failed: {str(e)}",
-                    "xero_sync_failed": True,
-                    "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
-                })
-            logger.info(f"Updated purchase order {purchase_order.po_number} | {purchase_order.reference}")
-            created = False
         except PurchaseOrder.DoesNotExist:
-            logger.error(f"Purchase Order with ID {purchase_order_id} not found for update.")
-            messages.error(request, f"Purchase Order with ID {purchase_order_id} not found.")
+            logger.error(f"Purchase Order with ID {purchase_order_id} not found.")
             return JsonResponse({"error": "Purchase Order not found", "messages": extract_messages(request)}, status=404)
-        except Exception as e:
-                logger.exception(f"Error updating PO {purchase_order_id}: {e}")
-                messages.error(request, f"Error updating purchase order: {e}")
-                return JsonResponse({"error": f"Error updating purchase order: {e}", "messages": extract_messages(request)}, status=500)
+
+        if "client_id" in purchase_order_data:
+            purchase_order.supplier_id = purchase_order_data["client_id"]
+        if "status" in purchase_order_data:
+            purchase_order.status = purchase_order_data["status"]
+        if "order_date" in purchase_order_data:
+            purchase_order.order_date = purchase_order_data["order_date"]
+        if "expected_delivery" in purchase_order_data:
+            purchase_order.expected_delivery = purchase_order_data["expected_delivery"] or None
+        if "reference" in purchase_order_data:
+            purchase_order.reference = purchase_order_data["reference"]
+
+        purchase_order.save()
+
+        for item_data in line_items:
+            line_id = item_data.get("id")
+            PurchaseOrderLine.objects.update_or_create(
+                id=line_id or None,
+                purchase_order=purchase_order,
+                defaults={
+                    'job_id': item_data.get("job"),
+                    'description': item_data.get("description"),
+                    'quantity': item_data.get("quantity"),
+                    'unit_cost': item_data.get("unit_cost"),
+                    'price_tbc': item_data.get("price_tbc", False),
+                    'metal_type': item_data.get("metal_type", "unspecified"),
+                    'alloy': item_data.get("alloy", ""),
+                    'specifics': item_data.get("specifics", ""),
+                    'location': item_data.get("location", "")
+                }
+            )
+
+        manager = XeroPurchaseOrderManager(purchase_order=purchase_order)
+
+        if not manager.can_sync_to_xero():
+            logger.warning(f"Cannot sync PO {purchase_order.id} to Xero - validation failed")
+            return JsonResponse({
+                "success": True,
+                "is_incomplete_po": True,
+                "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+            })
+
+        logger.info(f"Syncing purchase order {purchase_order.id} to Xero")
+        raw_response = manager.sync_to_xero()
+        response =  json.loads(raw_response.content)
 
 
-        # --- Process Line Items (Common to Create and Update) ---
-        if purchase_order: # Ensure PO exists before processing lines
-            processed_line_ids = set()
-            for item_data in line_items:
-                line_id = item_data.get("id")
-                try:
-                    # Use update_or_create for lines
-                    line, line_created = PurchaseOrderLine.objects.update_or_create(
-                        id=line_id or None,
-                        purchase_order=purchase_order, # Associate with the correct PO
-                        defaults={
-                            'job_id': item_data.get("job"),
-                            'description': item_data.get("description"),
-                            'quantity': item_data.get("quantity"),
-                            'unit_cost': item_data.get("unit_cost"),
-                            'price_tbc': item_data.get("price_tbc", False),
-                            'metal_type': item_data.get("metal_type", "unspecified"),
-                            'alloy': item_data.get("alloy", ""),
-                            'specifics': item_data.get("specifics", ""),
-                            'location': item_data.get("location", "")
-                        }
-                    )
-                    processed_line_ids.add(str(line.id))
-                    # logger.debug(f"{'Created' if line_created else 'Updated'} line item {line.id} for PO {purchase_order.po_number}")
-                except Exception as e:
-                    logger.exception(f"Error processing line item {item_data}: {e}")
-                    messages.error(request, f"Error processing line item: {e}")
-                    # Decide if this should be a fatal error for the whole request
-                    return JsonResponse({"error": f"Error processing line item: {e}", "messages": extract_messages(request)}, status=500)
+        if not response.get('success'):
+            if response.get('is_incomplete_po'):
+                logger.warning(f"Cannot sync PO {purchase_order.id} to Xero - validation failed")
+                return JsonResponse({"success": True, "is_incomplete_po": True})
 
-            logger.debug("Line items processed successfully")
-        else:
-             logger.error("Purchase order object is None after create/update logic. Cannot process lines.")
-             return JsonResponse({"error": "Internal error: Purchase order not available after processing.", "messages": extract_messages(request)}, status=500)
+            logger.error(f"Sync failure: {response.get('error')}")
+            messages.error(request, f"Failed to sync with Xero: {response.get('error')}")
+            return JsonResponse({
+                "success": False,
+                "error": response.get('error', "Failed to sync with Xero"),
+                "exception_type": response.get('exception_type'),
+                "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+            })
 
+        logger.info(f"Successfully synced PO {purchase_order.id} to Xero")
 
-        # --- Success Response ---
-        response_data = {
+        return JsonResponse({
             "success": True,
-            "messages": extract_messages(request),
-            "po_number": purchase_order.po_number,
-            "id": str(purchase_order.id), # Crucial: Always return the ID
-            "action": "created" if created else "updated",
-        }
-        logger.debug(f"Returning success response: {response_data}")
-        return JsonResponse(response_data)
+            "xero_url": purchase_order.online_url,
+            "xero_id": str(purchase_order.xero_id) if purchase_order.xero_id else None,
+            "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+        })
 
-    except json.JSONDecodeError:
-        logger.error("Failed to parse JSON in autosave request")
-        messages.error(request, "Invalid request format.")
-        return JsonResponse(
-            {"error": "Invalid JSON", "messages": extract_messages(request)}, status=400
-        )
     except Exception as e:
-        messages.error(request, f"An unexpected error occurred: {str(e)}")
-        logger.exception("Unexpected error during purchase order autosave")
+        logger.exception("Error during purchase order autosave")
+        messages.error(request, f"An error occurred: {str(e)}")
         return JsonResponse(
-            {"error": f"Unexpected server error: {str(e)}", "messages": extract_messages(request)}, status=500
+            {"error": f"Unexpected server error: {str(e)}", "messages": extract_messages(request)},
+            status=500
         )
     
 
 @require_http_methods(["POST"])
-@transaction.atomic
 def delete_purchase_order_view(request, pk):
     if not pk:
         return JsonResponse({
