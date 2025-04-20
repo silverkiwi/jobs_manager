@@ -172,9 +172,28 @@ export async function saveDataToServer(collectedData) {
     },
     body: JSON.stringify(collectedData),
   })
-    .then((response) => {
+    .then(async (response) => {
       if (!response.ok) {
-        throw new Error(`Server responded with status ${response.status}`);
+        // Try to extract error message from response
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          // Handle JSON error response
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || 
+            errorData.error || 
+            errorData.detail || 
+            `Server responded with status ${response.status}`
+          );
+        } else {
+          // Handle text error response (like Django's debug error page)
+          const text = await response.text();
+          // Look for common error patterns in text response
+          if (text.includes('Exception:')) {
+            throw new Error(text.split('Exception:')[1].split('\n')[0].trim());
+          }
+          throw new Error(`Server responded with status ${response.status}`);
+        }
       }
       return response.json();
     })

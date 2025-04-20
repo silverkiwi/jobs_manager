@@ -63,25 +63,33 @@ export function setupEventListeners() {
           }
         }
         
-        // Update the status in the state
-        updateState({
-          purchaseData: {
-            ...state.purchaseData,
-            purchaseOrder: {
-              ...state.purchaseData.purchaseOrder,
-              status: newStatus
-            }
-          }
-        });
-        
-        // Update readonly state and grid editability when status changes
+        // Only process if status actually changed
         if (oldStatus !== newStatus) {
-          if (newStatus === "draft") {
-            updateState({ isReadOnly: false })
-          } else {
-            updateState({ isReadOnly: true })
-          }
-          updateGridEditability(newStatus);
+          // Clean up any existing UI elements
+          document.querySelectorAll('.alert').forEach(notice => {
+            notice.style.display = 'none';
+          });
+          
+          // Reset all UI styles
+          document.querySelectorAll('.form-control-plaintext, .border-warning').forEach(el => {
+            el.classList.remove('form-control-plaintext', 'border-warning');
+            if (el.tagName === 'INPUT') el.classList.add('form-control');
+          });
+          
+          // Update state with new status
+          updateState({
+            purchaseData: {
+              ...state.purchaseData,
+              purchaseOrder: {
+                ...state.purchaseData.purchaseOrder,
+                status: newStatus
+              }
+            },
+            isReadOnly: newStatus !== "draft"
+          });
+          
+          // Just update grid editability - the form will be refreshed with the autosave
+          updateGridEditability();
         }
       }
       
