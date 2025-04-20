@@ -55,6 +55,15 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
                 "description": "To force a deep sync, clear the 'last_xero_deep_sync' field or set it to a date more than 30 days ago.",
             },
         ),
+        (
+            "LLM Integration",
+            {
+                "fields": (
+                    "anthropic_api_key",
+                ),
+                "description": "API keys for Large Language Model integrations.",
+            },
+        ),
     )
 
 

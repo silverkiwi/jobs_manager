@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 
 # Import base class and helpers
-from .xero_base_creator import XeroDocumentCreator
+from .xero_base_manager import XeroDocumentManager
 from .xero_helpers import format_date # Assuming format_date is needed
 
 # Import models
@@ -19,17 +19,18 @@ from xero_python.exceptions import AccountingBadRequestException # If specific e
 
 logger = logging.getLogger("xero")
 
-class XeroQuoteCreator(XeroDocumentCreator):
+class XeroQuoteManager(XeroDocumentManager):
     """
-    Handles Quote creation in Xero.
+    Handles Quote creation and syncing in Xero.
     """
+    _is_quote_manager = True
     def __init__(self, client, job):
         """
         Initializes the quote creator. Both client and job are required for quotes.
         Calls the base class __init__ ensuring consistent signature.
         """
         if not client or not job:
-             raise ValueError("Client and Job are required for XeroQuoteCreator")
+             raise ValueError("Client and Job are required for XeroQuoteManager")
         # Call the base class __init__ with the client and the job
         super().__init__(client=client, job=job)
 

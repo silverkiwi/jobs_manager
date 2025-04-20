@@ -97,20 +97,22 @@ export function collectPurchaseOrderData() {
  * @param {Object} data The data to validate
  * @returns {Object} The inputted data, filtered with the valid nodes
  */
+import { createNewRow } from "./purchase_order_grid.js";
+
 function validatePurchaseOrderData(data) {
-  data.line_items = data.line_items.filter(
-    (item) =>
-      item.job && item.description && (item.price_tbc || item.unit_cost),
-  );
+  // Get default empty row template
+  const defaultRow = createNewRow();
 
-  const seen = new Map();
+  // Filter out rows that exactly match the default empty row (excluding row_id)
   data.line_items = data.line_items.filter(item => {
-    const key = `${item.job}-${item.description}-${item.quantity}-${item.unit_cost}-${item.price_tbc}`;
-
-    if (seen.has(key)) return false;
-
-    seen.set(key, true);
-    return true;
+    // Check if any field differs from the default
+    for (const key in defaultRow) {
+      if (key === 'row_id') continue; // Skip row_id comparison
+      if (item[key] !== defaultRow[key]) {
+        return true; // Keep if any field differs
+      }
+    }
+    return false; // Remove if all fields match default
   });
 
   return data;
@@ -150,6 +152,18 @@ export async function saveDataToServer(collectedData) {
     },
   );
 
+  console.log("Full data being sent to backend:", {
+    purchase_order: collectedData.purchase_order,
+    line_items: collectedData.line_items.map(item => ({
+      id: item.id,
+      description: item.description,
+      unit_cost: item.unit_cost,
+      price_tbc: item.price_tbc,
+      valid: item.description && (item.price_tbc || item.unit_cost !== null)
+    })),
+    deleted_line_items: collectedData.deleted_line_items
+  });
+
   return fetch("/api/autosave-purchase-order/", {
     method: "POST",
     headers: {
@@ -166,6 +180,12 @@ export async function saveDataToServer(collectedData) {
     })
     .then((data) => {
       if (!data.success) {
+        // Handle validation failures differently from actual sync errors
+        if (data.is_incomplete_po) {
+          console.warn("Xero sync validation failed - not yet ready:", data.error);
+          return true; // Don't show error to user for validation cases
+        }
+
         // Log the more detailed error from the backend if available
         console.error(
           "Autosave failed:",

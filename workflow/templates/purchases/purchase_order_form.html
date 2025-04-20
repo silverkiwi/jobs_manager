@@ -30,15 +30,23 @@
                     <div class="col-md-6 mb-3 position-relative">
                         <label for="client_name" class="form-label">Supplier</label>
                         <div class="d-flex gap-2">
-                            <input type="text" id="client_name" class="form-control" placeholder="Search for supplier...">
+                            <input type="text" id="client_name" class="form-control" placeholder="Search for supplier..." data-readonly-toggle="true">
                             <input type="hidden" id="client_id" name="client_id" class="autosave-input">
-                            <input type="hidden" id="client_xero_id" name="client_xero_id" class="autosave-input">
                         </div>
                         <div id="clientSuggestionsContainer" class="suggestions-container"></div>
                     </div>
                     <div class="col-md-6 mb-3">
+                        <label for="client_xero_id" class="form-label text-muted small">Supplier Xero ID</label>
+                        <input type="text" id="client_xero_id" name="client_xero_id" class="form-control-plaintext text-muted small autosave-input" readonly>
+                    </div>
+                    <div id="supplierFromQuoteContainer" class="mb-3 d-none">
+                        <label class="form-label">Supplier from Quote</label>
+                        <input type="text" id="supplierFromQuote" class="form-control" readonly>
+                        <small class="text-muted">This is the exact supplier name extracted from the quote.</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
                         <label for="po_number" class="form-label">PO Number</label>
-                        <input type="text" id="po_number" name="po_number" class="form-control" readonly placeholder="Will be auto-generated">
+                        <input type="text" id="po_number" name="po_number" class="form-control-plaintext border-bottom" readonly placeholder="Will be auto-generated">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="reference" class="form-label">Reference</label>
@@ -129,6 +137,11 @@
             <div id="purchase-order-lines-grid" class="ag-theme-alpine" style="width: 100%;">
                 <!-- Grid will be rendered here -->
             </div>
+            <div class="ag-grid-footer" style="border-top: 1px solid #dee2e6; padding: 8px; background-color: #f8f9fa;">
+                <button id="add-line-item" class="btn btn-primary btn-sm" style="font-size: 0.875rem; padding: 0.25rem 0.5rem;">
+                    <i class="bi bi-plus-circle me-1"></i>Add Item
+                </button>
+            </div>
         </div>
     </div>
 
@@ -163,20 +176,14 @@
     </div>
 
     <div class="d-flex justify-content-center gap-2">
-        {# Show Submit button only if PO is not yet in Xero #}
-        {% if not xero_id %}
-        <button id="submit-purchase-order" class="btn btn-primary">
-            <i class="bi bi-send me-2"></i>Submit to Xero
-        </button>
-        {% endif %}
-
-        {# Show Xero buttons only if PO is in Xero #}
-        {% if xero_id %}
-        <a href="{{ xero_purchase_order_url|default:'#' }}" target="_blank" class="btn btn-info" id="goToXeroPO">
-            <i class="bi bi-box-arrow-up-right me-2"></i>Go to PO in Xero
+        {# View in Xero button - shows as link when URL exists, disabled button when no URL #}
+        {% if xero_purchase_order_url %}
+        <a href="{{ xero_purchase_order_url }}" target="_blank" class="btn btn-info" id="goToXeroPO">
+            <i class="bi bi-box-arrow-up-right me-2"></i>View PO in Xero
         </a>
-        <button type="button" class="btn btn-danger" id="deleteXeroPOButton">
-            <i class="bi bi-trash me-2"></i>Delete PO in Xero
+        {% else %}
+        <button class="btn btn-info disabled" id="goToXeroPO" disabled>
+            <i class="bi bi-box-arrow-up-right me-2"></i>View PO in Xero
         </button>
         {% endif %}
 
@@ -216,10 +223,7 @@
 {% block extra_js %}
 <!-- AG Grid Script -->
 <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/client_lookup.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/messages.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/purchase_order_autosave.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/job_section.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/summary.js' %}"></script>
-<script type="module" src="{% static 'js/purchases/purchase_order_form.js' %}"></script>
+
+<!-- Main Purchase Order Module -->
+<script type="module" src="{% static 'js/purchases/purchase_order/purchase_order.js' %}"></script>
 {% endblock %}

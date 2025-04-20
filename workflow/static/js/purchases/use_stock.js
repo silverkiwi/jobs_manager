@@ -1,4 +1,6 @@
-document.addEventListener("DOMContentLoaded", function () {
+import { populateSelectWithEnum } from '../enum-utils.js';
+
+document.addEventListener("DOMContentLoaded", async function () {
   // DOM elements
   const stockSearchInput = document.getElementById("stockSearchInput");
   const stockGrid = document.getElementById("stockGrid");
@@ -242,6 +244,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // Initialize the MetalType dropdown using the enum API
+  try {
+    await populateSelectWithEnum('newStockMetalType', 'MetalType', 'unspecified');
+  } catch (error) {
+    console.error('Failed to load MetalType enum:', error);
+  }
+
   // Add Stock button click handler
   addStockBtn.addEventListener("click", function () {
     // Reset form fields
@@ -250,7 +259,17 @@ document.addEventListener("DOMContentLoaded", function () {
     newStockUnitCostInput.value = "";
     newStockSourceSelect.value = "manual";
     newStockNotesInput.value = "";
-    document.getElementById("newStockMetalType").value = "unspecified";
+    // Set default value for MetalType dropdown
+    const metalTypeSelect = document.getElementById("newStockMetalType");
+    if (metalTypeSelect) {
+      // Find the 'unspecified' option and select it
+      for (let i = 0; i < metalTypeSelect.options.length; i++) {
+        if (metalTypeSelect.options[i].value === 'unspecified') {
+          metalTypeSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
     document.getElementById("newStockAlloy").value = "";
     document.getElementById("newStockSpecifics").value = "";
     document.getElementById("newStockLocation").value = "";
