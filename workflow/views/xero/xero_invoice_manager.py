@@ -7,6 +7,8 @@ from datetime import timedelta
 from django.http import JsonResponse
 from django.utils import timezone
 
+from workflow.models.xero_account import XeroAccount
+
 # Import base class and helpers
 from .xero_base_manager import XeroDocumentManager
 from .xero_helpers import format_date # Assuming format_date is needed
@@ -23,26 +25,32 @@ class XeroInvoiceManager(XeroDocumentManager):
     """
     Handles invoice management in Xero.
     """
-    _is_invoice_manager = True
-    def __init__(self, client, job):
+    def __init__(self, client: Client, job: Job):
         """
         Initializes the invoice manager. Both client and job are required for invoices.
         Calls the base class __init__ ensuring consistent signature.
         """
+        _is_invoice_manager = True
         if not client or not job:
              raise ValueError("Client and Job are required for XeroInvoiceManager")
         # Call the base class __init__ with the client and the job
         super().__init__(client=client, job=job)
 
     def get_xero_id(self):
-        # self.job is guaranteed to exist here due to the __init__ check
-        return str(self.job.invoice.xero_id) if hasattr(self.job, "invoice") and self.job.invoice else None
+        if not self.job:
+            return None
+        
+        try:
+            invoice = Invoice.objects.get(job=self.job)
+            return str(invoice.xero_id) if invoice and invoice.xero_id else None
+        except Invoice.DoesNotExist:
+            return None
 
-    def get_xero_update_method(self):
+    def _get_xero_update_method(self):
         # Returns the Xero API method for creating/updating invoices
         return self.xero_api.update_or_create_invoices
 
-    def get_local_model(self):
+    def _get_local_model(self):
         return Invoice
 
     def state_valid_for_xero(self):
@@ -64,13 +72,13 @@ class XeroInvoiceManager(XeroDocumentManager):
 
         match pricing_type:
             case JobPricingType.TIME_AND_MATERIALS:
-                return self.get_time_and_materials_line_items()
+                return self._get_time_and_materials_line_items()
             case JobPricingType.FIXED_PRICE:
-                return self.get_fixed_price_line_items()
+                return self._get_fixed_price_line_items()
             case _:
                 raise ValueError(f"Unknown pricing type for job {self.job.id}: {pricing_type}")
 
-    def get_time_and_materials_line_items(self):
+    def _get_time_and_materials_line_items(self):
         """
         Generates LineItems for time and materials pricing.
         """
@@ -80,15 +88,15 @@ class XeroInvoiceManager(XeroDocumentManager):
         xero_line_items = []
         xero_line_items.append(
             LineItem(
-                description=f"Job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
+                description=f"{f"Job: {self.job.job_number}{(" - " + self.job.description)}" if self.job.description else ''}",
                 quantity=1, # Typically T&M is invoiced as a single line item sum
                 unit_amount=float(self.job.latest_reality_pricing.total_revenue) or 0.00,
-                account_code="200", # Assuming account code 200 for revenue # FIXME: Get this from a lookup to XeroAccount, not hardcoded
+                account_code=self._get_account_code(),
             ),
         )
         return xero_line_items
 
-    def get_fixed_price_line_items(self):
+    def _get_fixed_price_line_items(self):
         """
         Generates LineItems for fixed price pricing based on the quote.
         """
@@ -100,10 +108,10 @@ class XeroInvoiceManager(XeroDocumentManager):
         # xero_line_items.append(LineItem(description="Price as quoted")) # Consider if this is needed
         xero_line_items.append(
             LineItem(
-                description=f"Job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''} (Fixed Price)",
+                description=f"{f"Job: {self.job.job_number}{(" - " + self.job.description)} (Fixed Price)" if self.job.description else ''}",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
-                account_code="200", # Assuming account code 200 for revenue # FIXME: Get this from a lookup to XeroAccount, not hardcoded
+                account_code=self._get_account_code(),
             )
         )
         return xero_line_items
@@ -124,7 +132,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                     "contact": contact,
                     "line_items": line_items,
                     "date": format_date(timezone.now()),
-                    "due_date": format_date(timezone.now() + timedelta(days=30)), # Assuming 30 day terms
+                    "due_date": format_date((timezone.now() + timedelta(days=30)).replace(day=20)),
                     "line_amount_types": "Exclusive", # Assuming Exclusive
                     "currency_code": "NZD", # Assuming NZD
                     "status": "DRAFT", # Create as Draft initially
@@ -163,7 +171,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                  logger.error("Xero response missing invoice_id.")
                  raise ValueError("Xero response missing invoice_id.")
 
-            invoice_url = f"https://go.xero.com/app/invoices/edit/{xero_invoice_id}"
+            invoice_url = f"https://go.xero.com/app/invoicing/edit/{xero_invoice_id}"
             invoice_number = getattr(xero_invoice_data, 'invoice_number', None)
 
             # Store raw response for debugging
@@ -245,3 +253,4 @@ class XeroInvoiceManager(XeroDocumentManager):
             error_msg = "No invoices found in the Xero response or failed to delete invoice."
             logger.error(error_msg)
             return JsonResponse({"success": False, "error": error_msg}, status=400)
+        

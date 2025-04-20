@@ -47,12 +47,26 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
         """Returns the Xero ID if the local PO has one."""
         return str(self.purchase_order.xero_id) if self.purchase_order and self.purchase_order.xero_id else None
 
-    def get_xero_update_method(self):
+    def _get_account_code(self) -> str | None:
+        """
+        Return the Purchases account code for PO line creation, or None if it's not found.
+        """
+        try:
+            return XeroAccount.objects.get(account_name__iexact="Purchases").account_code
+        except XeroAccount.DoesNotExist:
+            logger.warning("Could not find 'Purchases' account in Xero accounts, omitting account code for PO lines.")
+            return None
+        except XeroAccount.MultipleObjectsReturned:
+            accounts = XeroAccount.objects.filter(account_name__iexact="Purchases")
+            logger.warning(f"Found multiple 'Purchases' accounts: {[(a.account_name, a.account_code, a.xero_id) for a in accounts]}. Omitting account code.")
+            return None
+
+    def _get_xero_update_method(self):
         """Returns the Xero API method for creating/updating POs."""
         # This method handles both create and update (PUT/POST)
         return self.xero_api.update_or_create_purchase_orders
 
-    def get_local_model(self):
+    def _get_local_model(self):
         """Returns the local Django model class."""
         return PurchaseOrder
 
@@ -75,19 +89,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
         """
         logger.debug("Starting get_line_items for PO")
         xero_line_items = []
-        account_code = None
-
-        # Look up the Purchases account code
-        try:
-            # Consider making the account name/code configurable
-            purchases_account = XeroAccount.objects.get(account_name__iexact="Purchases")
-            account_code = purchases_account.account_code
-        except XeroAccount.DoesNotExist:
-            logger.warning("Could not find 'Purchases' account in Xero accounts, omitting account code for PO lines.")
-        except XeroAccount.MultipleObjectsReturned:
-            accounts = XeroAccount.objects.filter(account_name__iexact="Purchases")
-            logger.warning(f"Found multiple 'Purchases' accounts: {[(a.account_name, a.account_code, a.xero_id) for a in accounts]}. Omitting account code.")
-            # Decide if this should raise an error or just warn
+        account_code = self._get_account_code()
 
         if not self.purchase_order:
              logger.error("Purchase order object is missing in get_line_items.")
@@ -192,6 +194,33 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
                 xero_tenant_id=self.xero_tenant_id,
                 purchase_orders=payload,
                 _return_http_data_only=False
+            # Get the xero-python model object representation
+            xero_document = self.get_xero_document(type=action_type)
+        except Exception as e:
+             logger.error(f"Error preparing Xero document data for PO {self.purchase_order.id}: {e}", exc_info=True)
+             # Return JsonResponse directly for the view
+             return JsonResponse({"success": False, "error": f"Failed to prepare data: {str(e)}"}, status=500)
+
+        try:
+            # Convert to PascalCase, clean payload, and wrap for the API
+            payload = convert_to_pascal_case(clean_payload(xero_document.to_dict()))
+            # The API expects a list under the "PurchaseOrders" key
+            payload_list = {"PurchaseOrders": [payload]}
+            logger.debug(f"Serialized payload for {action_type}: {json.dumps(payload_list, indent=4)}")
+        except Exception as e:
+            logger.error(f"Error serializing XeroDocument for {action_type}: {str(e)}", exc_info=True)
+            # Return JsonResponse directly for the view
+            return JsonResponse({"success": False, "error": f"Failed to serialize data for Xero: {str(e)}"}, status=500)
+
+        try:
+            # Use the appropriate update/create method from the Xero API client
+            update_method = self._get_xero_update_method()
+            logger.info(f"Calling Xero API method: {update_method.__name__}")
+            response, http_status, http_headers = update_method(
+                self.xero_tenant_id,
+                purchase_orders=payload_list,
+                summarize_errors=False, # Get detailed errors if any
+                _return_http_data_only=False # Get full response object
             )
             
             # Check for invalid response structure
@@ -254,7 +283,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
 
         try:
             # Use the update method to set the status to DELETED
-            update_method = self.get_xero_update_method()
+            update_method = self._get_xero_update_method()
             logger.info(f"Calling Xero API method for deletion: {update_method.__name__}")
             response, http_status, http_headers = update_method(
                 self.xero_tenant_id,
