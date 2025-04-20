@@ -61,7 +61,7 @@
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsMenu">
                                 <li><a class="dropdown-item" href="{% url 'company-profit-loss-report' %}">Company Profit & Loss</a></li>
-                                <!-- Add more options here as needed -->
+                                <li><a class="dropdown-item" href="{% url 'kpi_calendar' %}">KPI Reports</a></li>
                             </ul>
                         </li>
                         {% if user.is_staff %}
