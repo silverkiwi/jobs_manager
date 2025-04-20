@@ -7,7 +7,6 @@
 import { getState, updateState } from "./purchase_order_state.js";
 import { createNewRowShortcut, updateGridEditability } from "./purchase_order_grid.js";
 import { debouncedAutosave } from "./purchase_order_autosave.js";
-import { updateSubmitButtonState } from "./purchase_order_ui.js";
 import { submitPurchaseOrderToXero } from "./purchase_order_xero.js";
 import { deleteXeroPurchaseOrder } from "./purchase_order_xero_actions.js";
 import { renderMessages } from "./messages.js";
@@ -89,18 +88,9 @@ export function setupEventListeners() {
       
       debouncedAutosave().then((success) => {
         updateState({ lastAutosaveSuccess: success });
-        updateSubmitButtonState();
       });
     });
   });
-  
-  // Add event listener for the "Submit to Xero" button
-  const submitButton = document.getElementById("submit-purchase-order");
-  if (submitButton) {
-    submitButton.addEventListener("click", function() {
-      submitPurchaseOrderToXero();
-    });
-  }
   
   // Add event listener for the delete Xero PO button
   const deleteButton = document.getElementById("deleteXeroPOButton");

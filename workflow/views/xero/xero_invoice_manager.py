@@ -1,4 +1,4 @@
-# workflow/views/xero_invoice_creator.py
+# workflow/views/xero_invoice_manager.py
 import logging
 import json
 from decimal import Decimal
@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 
 # Import base class and helpers
-from .xero_base_creator import XeroDocumentCreator
+from .xero_base_manager import XeroDocumentManager
 from .xero_helpers import format_date # Assuming format_date is needed
 
 # Import models
@@ -19,17 +19,18 @@ from xero_python.exceptions import AccountingBadRequestException # If specific e
 
 logger = logging.getLogger("xero")
 
-class XeroInvoiceCreator(XeroDocumentCreator):
+class XeroInvoiceManager(XeroDocumentManager):
     """
-    Handles invoice creation in Xero.
+    Handles invoice management in Xero.
     """
+    _is_invoice_manager = True
     def __init__(self, client, job):
         """
-        Initializes the invoice creator. Both client and job are required for invoices.
+        Initializes the invoice manager. Both client and job are required for invoices.
         Calls the base class __init__ ensuring consistent signature.
         """
         if not client or not job:
-             raise ValueError("Client and Job are required for XeroInvoiceCreator")
+             raise ValueError("Client and Job are required for XeroInvoiceManager")
         # Call the base class __init__ with the client and the job
         super().__init__(client=client, job=job)
 
@@ -109,7 +110,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
 
     def get_xero_document(self, type):
         """
-        Creates an invoice object for Xero creation or deletion.
+        Creates an invoice object for Xero management or deletion.
         """
         if not self.job:
              raise ValueError("Job is required to get Xero document for an invoice.")
@@ -174,7 +175,7 @@ class XeroInvoiceCreator(XeroDocumentCreator):
                 job=self.job,
                 client=self.client,
                 number=invoice_number,
-                date=timezone.now().date(), # Use current date for creation
+                date=timezone.now().date(), # Use current date for management
                 due_date=(timezone.now().date() + timedelta(days=30)), # Assuming 30 day terms
                 status=InvoiceStatus.SUBMITTED, # Set local status
                 # Use getattr with defaults for safety

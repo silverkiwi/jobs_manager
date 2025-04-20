@@ -53,9 +53,9 @@ from workflow.models import Invoice, Job, XeroToken, Client, Bill, CreditNote, X
 from workflow.utils import extract_messages
 
 # Import the new creator classes
-from .xero_po_creator import XeroPurchaseOrderCreator
-from .xero_quote_creator import XeroQuoteCreator
-from .xero_invoice_creator import XeroInvoiceCreator
+from .xero_po_manager import XeroPurchaseOrderManager
+from .xero_quote_manager import XeroQuoteManager
+from .xero_invoice_manager import XeroInvoiceManager
 # Import helpers if needed by remaining view functions
 # from .helpers import format_date, clean_payload, convert_to_pascal_case
 
@@ -201,8 +201,8 @@ def _handle_creator_response(request: HttpRequest, response_data: JsonResponse, 
                 messages.error(request, f"{failure_msg_prefix} (non-JSON/unexpected error response)")
         return response_data
     else:
-        # Should not happen if creators always return JsonResponse or raise Exception
-        logger.error("Creator did not return JsonResponse or raise Exception.")
+        # Should not happen if managers always return JsonResponse or raise Exception
+        logger.error("Manager did not return JsonResponse or raise Exception.")
         messages.error(request, "An unexpected internal error occurred.")
         return JsonResponse({"success": False, "error": "Internal processing error."}, status=500)
 
@@ -212,8 +212,8 @@ def create_xero_invoice(request, job_id):
     if isinstance(tenant_id, JsonResponse): return tenant_id
     try:
         job = Job.objects.get(id=job_id)
-        creator = XeroInvoiceCreator(client=job.client, job=job)
-        response_data = creator.create_document()
+        manager = XeroInvoiceManager(client=job.client, job=job)
+        response_data = manager.create_document()
         return _handle_creator_response(request, response_data, "Invoice created successfully", "Failed to create invoice")
     except Job.DoesNotExist:
          messages.error(request, f"Job with ID {job_id} not found.")
@@ -229,9 +229,9 @@ def create_xero_purchase_order(request, purchase_order_id):
     if isinstance(tenant_id, JsonResponse): return tenant_id
     try:
         purchase_order = PurchaseOrder.objects.get(id=purchase_order_id)
-        creator = XeroPurchaseOrderCreator(purchase_order=purchase_order)
-        # logger.info(f"Creator object type: {type(creator)}") # Keep for debugging if needed
-        response_data = creator.create_document()
+        manager = XeroPurchaseOrderManager(purchase_order=purchase_order)
+        # logger.info(f"Manager object type: {type(manager)}") # Keep for debugging if needed
+        response_data = manager.create_document()
         return _handle_creator_response(request, response_data, "Purchase order submitted to Xero successfully", "Failed to create purchase order")
     except PurchaseOrder.DoesNotExist:
          messages.error(request, f"Purchase Order with ID {purchase_order_id} not found.")
@@ -252,8 +252,8 @@ def create_xero_quote(request: HttpRequest, job_id) -> HttpResponse:
     if isinstance(tenant_id, JsonResponse): return tenant_id
     try:
         job = Job.objects.get(id=job_id)
-        creator = XeroQuoteCreator(client=job.client, job=job)
-        response_data = creator.create_document()
+        manager = XeroQuoteManager(client=job.client, job=job)
+        response_data = manager.create_document()
         return _handle_creator_response(request, response_data, "Quote created successfully", "Failed to create quote")
     except Job.DoesNotExist:
          messages.error(request, f"Job with ID {job_id} not found.")
@@ -269,8 +269,8 @@ def delete_xero_invoice(request: HttpRequest, job_id) -> HttpResponse:
     if isinstance(tenant_id, JsonResponse): return tenant_id
     try:
         job = Job.objects.get(id=job_id)
-        creator = XeroInvoiceCreator(client=job.client, job=job)
-        response_data = creator.delete_document()
+        manager = XeroInvoiceManager(client=job.client, job=job)
+        response_data = manager.delete_document()
         return _handle_creator_response(request, response_data, "Invoice deleted successfully", "Failed to delete invoice")
     except Job.DoesNotExist:
          messages.error(request, f"Job with ID {job_id} not found.")
@@ -286,8 +286,8 @@ def delete_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
     if isinstance(tenant_id, JsonResponse): return tenant_id
     try:
         job = Job.objects.get(id=job_id)
-        creator = XeroQuoteCreator(client=job.client, job=job)
-        response_data = creator.delete_document()
+        manager = XeroQuoteManager(client=job.client, job=job)
+        response_data = manager.delete_document()
         return _handle_creator_response(request, response_data, "Quote deleted successfully", "Failed to delete quote")
     except Job.DoesNotExist:
          messages.error(request, f"Job with ID {job_id} not found.")
@@ -304,9 +304,9 @@ def delete_xero_purchase_order(request: HttpRequest, purchase_order_id: uuid.UUI
     if isinstance(tenant_id, JsonResponse): return tenant_id
     try:
         purchase_order = PurchaseOrder.objects.get(id=purchase_order_id)
-        # Assuming XeroPurchaseOrderCreator has a delete_document method similar to others
-        creator = XeroPurchaseOrderCreator(purchase_order=purchase_order)
-        response_data = creator.delete_document()
+        # Assuming XeroPurchaseOrderManager has a delete_document method similar to others
+        manager = XeroPurchaseOrderManager(purchase_order=purchase_order)
+        response_data = manager.delete_document()
         return _handle_creator_response(request, response_data, "Purchase Order deleted successfully from Xero", "Failed to delete Purchase Order from Xero")
     except PurchaseOrder.DoesNotExist:
         messages.error(request, f"Purchase Order with ID {purchase_order_id} not found.")

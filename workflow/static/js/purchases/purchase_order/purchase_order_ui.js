@@ -17,30 +17,6 @@ function getCsrfToken() {
 }
 
 /**
- * Updates the submit button state based on autosave status and purchase order status
- */
-export function updateSubmitButtonState() {
-  const submitButton = document.getElementById("submit-purchase-order");
-  if (!submitButton) return;
-
-  const state = getState();
-  const isDraft =
-    !state.purchaseData.purchaseOrder ||
-    !state.purchaseData.purchaseOrder.status ||
-    state.purchaseData.purchaseOrder.status === "draft";
-
-  if (isDraft && state.lastAutosaveSuccess) {
-    submitButton.disabled = false;
-    submitButton.title = "Submit purchase order to Xero";
-  } else {
-    submitButton.disabled = true;
-    submitButton.title = isDraft
-      ? "Please wait for changes to save before submitting"
-      : "Only draft purchase orders can be submitted";
-  }
-}
-
-/**
  * Populate form with purchase order data
  */
 export function populateFormWithPurchaseOrderData() {
