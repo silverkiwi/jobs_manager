@@ -2,6 +2,7 @@
 import logging
 import json
 from decimal import Decimal
+from datetime import date
 
 from django.http import JsonResponse
 from django.utils import timezone
@@ -22,10 +23,25 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
     _is_po_manager = True
     
     def __init__(self, purchase_order: PurchaseOrder):
-        if not purchase_order.supplier:
-            raise ValueError("PO must have a supplier")
         super().__init__(client=purchase_order.supplier, job=None)
         self.purchase_order = purchase_order
+        
+    def can_sync_to_xero(self) -> bool:
+        """Check if PO is ready for Xero sync (has required fields)"""
+        if not self.purchase_order.supplier:
+            logger.debug("PO %s cannot sync to Xero - missing supplier", self.purchase_order.id)
+            return False
+        
+        if not self.purchase_order.supplier.xero_contact_id:
+            logger.debug("PO %s cannot sync to Xero - supplier %s missing xero_contact_id",
+                        self.purchase_order.id, self.purchase_order.supplier.id)
+            return False
+            
+        if not self.purchase_order.po_lines.exists():
+            logger.debug("PO %s cannot sync to Xero - Xero requires at least one line item", self.purchase_order.id)
+            return False
+            
+        return True
 
     def get_xero_id(self) -> str | None:
         """Returns the Xero ID if the local PO has one."""
@@ -125,7 +141,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
             document_data = {
                 "purchase_order_number": self.purchase_order.po_number,
                 "contact": self.get_xero_contact(), # Uses base class method
-                "date": format_date(self.purchase_order.order_date),
+                "date": format_date(date.fromisoformat(self.purchase_order.order_date)),
                 "line_items": self.get_line_items(),
                 "status": "SUBMITTED" # TODO: Review if this should always be SUBMITTED or based on local status/action
             }
@@ -154,23 +170,57 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
             raise ValueError(f"Unknown document type for Purchase Order: {type}")
 
     def sync_to_xero(self):
-        """Simplified method to sync current PO state to Xero"""
+        """Sync current PO state to Xero and update local model with Xero data"""
+        if not self.can_sync_to_xero():
+            logger.error("Cannot sync PO %s to Xero - validation failed", self.purchase_order.id)
+            return False
             
         try:
             # Determine if creating or updating
             action = "update" if self.get_xero_id() else "create"
             xero_doc = self.get_xero_document(type=action)
+            
+            # Single strategic log to identify None values
+            logger.debug("Xero document data (including None values): %s", {
+                k: v for k, v in xero_doc.to_dict().items()
+            })
+            
             payload = {"PurchaseOrders": [xero_doc.to_dict()]}
             
-            # Call Xero API
-            self.get_xero_update_method()(
+            # Call Xero API and get full response
+            response = self.get_xero_update_method()(
                 xero_tenant_id=self.xero_tenant_id,
-                purchase_orders=payload
+                purchase_orders=payload,
+                _return_http_data_only=False
             )
-            return True
             
+            # Check for invalid response structure
+            if not response or not hasattr(response[0], 'purchase_orders') or not response[0].purchase_orders:
+                logger.error(f"Invalid Xero API response format for PO {self.purchase_order.id}")
+                return False
+
+            # Check for empty purchase orders array
+            if not response[0].purchase_orders:
+                logger.error(f"Empty purchase_orders array in Xero response for PO {self.purchase_order.id}")
+                return False
+
+            xero_po = response[0].purchase_orders[0]    # THIS LOOKS LIKE A BUG
+            
+            # Update local model with Xero data
+            self.purchase_order.xero_id = xero_po.purchase_order_id
+            self.purchase_order.online_url = xero_po.url
+            self.purchase_order.xero_last_synced = timezone.now()
+            self.purchase_order.save(update_fields=[
+                'xero_id',
+                'online_url',
+                'xero_last_synced'
+            ])
+            
+            logger.info(f"Successfully synced PO {self.purchase_order.id} to Xero. Xero ID: {xero_po.purchase_order_id}")
+            return True
+                
         except Exception as e:
-            logger.error(f"Xero sync failed: {e}")
+            logger.error(f"Xero sync failed for PO {self.purchase_order.id}: {e}", exc_info=True)
             return False
 
     def create_document(self):

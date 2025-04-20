@@ -176,13 +176,14 @@
     </div>
 
     <div class="d-flex justify-content-center gap-2">
-        {# Show Xero buttons only if PO is in Xero #}
-        {% if xero_id and xero_purchase_order_url %}
+        {# View in Xero button - shows as link when URL exists, disabled button when no URL #}
+        {% if xero_purchase_order_url %}
         <a href="{{ xero_purchase_order_url }}" target="_blank" class="btn btn-info" id="goToXeroPO">
-            <i class="bi bi-box-arrow-up-right me-2"></i>Go to PO in Xero
+            <i class="bi bi-box-arrow-up-right me-2"></i>View PO in Xero
         </a>
-        <button type="button" class="btn btn-danger" id="deleteXeroPOButton">
-            <i class="bi bi-trash me-2"></i>Delete PO in Xero
+        {% else %}
+        <button class="btn btn-info disabled" id="goToXeroPO" disabled>
+            <i class="bi bi-box-arrow-up-right me-2"></i>View PO in Xero
         </button>
         {% endif %}
 

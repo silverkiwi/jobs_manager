@@ -22,7 +22,7 @@ from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSuppl
 from workflow.forms import PurchaseOrderForm, PurchaseOrderLineForm
 from workflow.utils import extract_messages
 from workflow.services.quote_to_po_service import save_quote_file, create_po_from_quote, extract_data_from_supplier_quote
-from workflow.views.xero.xero_po_manager import XeroPurchaseOrder
+from workflow.views.xero.xero_po_manager import XeroPurchaseOrder, XeroPurchaseOrderManager
 
 logger = logging.getLogger(__name__)
 
@@ -242,41 +242,41 @@ def autosave_purchase_order_view(request):
 
             purchase_order.save()
             
-            # If the PO has a Xero ID, sync it to Xero
-            if purchase_order.xero_id:
-                try:
-                    logger.info(f"Syncing purchase order {purchase_order.id} to Xero")
-                    creator = XeroPurchaseOrderCreator(purchase_order=purchase_order)
-                    success = creator.sync_to_xero()
+            # Always attempt to sync with Xero (will create if no xero_id exists)
+            try:
+                logger.info(f"Syncing purchase order {purchase_order.id} to Xero")
+                manager = XeroPurchaseOrderManager(purchase_order=purchase_order)
+                success = manager.sync_to_xero()
+                
+                if success:
+                    # Update sync timestamp and get any new Xero fields
+                    purchase_order.refresh_from_db()
+                    logger.info(f"Successfully synced purchase order {purchase_order.id} to Xero")
                     
-                    if success:
-                        # Update sync timestamp only
-                        purchase_order.xero_last_synced = timezone.now()
-                        purchase_order.save(update_fields=['xero_last_synced'])
-                        
-                        # Refresh to get updated fields including online_url
-                        purchase_order.refresh_from_db()
-                        logger.info(f"Successfully synced purchase order {purchase_order.id} to Xero")
-                        
-                        return JsonResponse({
-                            "success": True,
-                            "xero_url": purchase_order.online_url,
-                            "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
-                        })
-                    else:
-                        logger.error(f"Failed to sync PO {purchase_order.id} to Xero")
-                        messages.error(request, "Failed to sync purchase order with Xero")
-                        return JsonResponse({
-                            "success": False,
-                            "error": "Failed to sync with Xero",
-                            "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
-                        })
-                except Exception as e:
-                    logger.exception(f"Error syncing purchase order to Xero: {e}")
-                    # Don't return an error response here, just log it and continue
-                    # The local update was successful, and that's what matters most
-            else:
-                logger.info("Not updating PO in Xero as no Xero ID is present.")
+                    return JsonResponse({
+                        "success": True,
+                        "xero_url": purchase_order.online_url,
+                        "xero_id": str(purchase_order.xero_id) if purchase_order.xero_id else None,
+                        "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+                    })
+                else:
+                    logger.error(f"Failed to sync PO {purchase_order.id} to Xero")
+                    messages.error(request, "Failed to sync purchase order with Xero")
+                    return JsonResponse({
+                        "success": False,
+                        "error": "Failed to sync with Xero",
+                        "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+                    })
+            except Exception as e:
+                logger.exception(f"Error syncing purchase order to Xero: {e}")
+                # Continue with local save even if Xero sync fails but make error more visible
+                messages.error(request, f"XERO SYNC FAILED: {str(e)}")
+                return JsonResponse({
+                    "success": False,
+                    "error": f"Xero sync failed: {str(e)}",
+                    "xero_sync_failed": True,
+                    "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+                })
             logger.info(f"Updated purchase order {purchase_order.po_number} | {purchase_order.reference}")
             created = False
         except PurchaseOrder.DoesNotExist:

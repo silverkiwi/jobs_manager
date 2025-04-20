@@ -31,7 +31,7 @@ class PurchaseOrder(models.Model):
     )
     po_number = models.CharField(max_length=50, unique=True)
     reference = models.CharField(max_length=100, blank=True, null=True, help_text="Optional reference for the purchase order")
-    order_date = models.DateField(null=True, blank=True, default=timezone.now)
+    order_date = models.DateField(default=timezone.now)
     expected_delivery = models.DateField(null=True, blank=True)
     xero_id = models.UUIDField(unique=True, null=True, blank=True)
     status = models.CharField(
