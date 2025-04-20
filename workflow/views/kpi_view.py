@@ -1,0 +1,44 @@
+import traceback
+
+from logging import getLogger
+from datetime import datetime, date
+from django.views.generic import TemplateView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+from workflow.services.kpi_service import KPIService
+
+logger = getLogger(__name__)
+
+
+class KPICalendarViews:
+    """
+    Class that centralizes views related to KPI Calendar
+    Contains both TemplateView and APIView
+    """
+
+    class KPICalendarTemplateView(TemplateView):
+        """View to renderizing the KPI Calendar page"""
+        template_name = "reports/kpi_calendar.html"
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["page_title"] = "KPI Calendar"
+            return context
+        
+    class KPICalendarAPIView(APIView):
+        """API Endpoint to provide KPI data for calendar display"""
+        def get(self, request, *args, **kwargs):
+            try:
+                year = int(request.query_params.get("year", date.today().year))
+                month = int(request.query_params.get("month", date.today().month))
+
+                calendar_data = KPIService.get_calendar_data(year, month)
+
+                return Response(calendar_data, status=status.HTTP_200_OK)
+            except Exception as e:
+                logger.error("KPI Calendar API Error: %s\n%s", str(e), traceback.format_exc())
+                return Response({
+                    "error": f"Error obtaining calendar data: {str(e)}"
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

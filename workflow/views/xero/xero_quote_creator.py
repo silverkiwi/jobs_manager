@@ -37,12 +37,12 @@ class XeroQuoteCreator(XeroDocumentCreator):
         # self.job is guaranteed to exist here due to the __init__ check
         return str(self.job.quote.xero_id) if hasattr(self.job, "quote") and self.job.quote else None
 
-    def get_xero_update_method(self):
+    def _get_xero_update_method(self):
         # For quotes, update/create might be the same endpoint or specific ones
         # Assuming update_or_create_quotes exists and handles setting status to DELETED
         return self.xero_api.update_or_create_quotes
 
-    def get_local_model(self):
+    def _get_local_model(self):
         return Quote
 
     def state_valid_for_xero(self):
@@ -52,8 +52,6 @@ class XeroQuoteCreator(XeroDocumentCreator):
         """
         # self.job is guaranteed to exist here due to the __init__ check
         return not self.job.quoted
-
-    # --- Methods moved from the misplaced block ---
 
     def validate_job(self):
         """
@@ -73,11 +71,11 @@ class XeroQuoteCreator(XeroDocumentCreator):
 
         line_items = [
             LineItem(
+                # Xero requires a description for quote line items, so we'll have to keep the placeholder in case there's no job description
                 description=f"Quote for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
-                # Assuming account code 200 is correct for quotes
-                account_code="200",
+                account_code=self._get_account_code(),
             )
         ]
         return line_items
@@ -118,10 +116,8 @@ class XeroQuoteCreator(XeroDocumentCreator):
                 return XeroQuote(
                     quote_id=xero_id,
                     status="DELETED",
-                    # Other fields might be required by Xero API for update/delete status change
-                    # contact=self.get_xero_contact(), # Likely not needed for delete status change
-                    # line_items=self.get_line_items(), # Likely not needed for delete status
-                    # date=format_date(timezone.now()), # Likely not needed for delete status
+                    contact=self.get_xero_contact(), # Contact is needed.
+                    date=format_date(timezone.now()), # Date is needed.
                 )
             case _:
                  raise ValueError(f"Unknown document type for Quote: {type}")
@@ -190,24 +186,31 @@ class XeroQuoteCreator(XeroDocumentCreator):
         # Calls the base class delete_document which handles the API call
         response = super().delete_document()
 
-        if response and response.quotes:
-             # Check if the response indicates successful deletion (e.g., status is DELETED)
-             # Note: Xero API might just return the updated object with DELETED status
-             xero_quote_data = response.quotes[0]
-             if str(getattr(xero_quote_data, 'status', '')).upper() == 'DELETED':
-                 # Delete local record only after confirming Xero deletion/update
-                 if hasattr(self.job, 'quote') and self.job.quote:
-                     local_quote_id = self.job.quote.id
-                     self.job.quote.delete()
-                     logger.info(f"Quote {local_quote_id} deleted successfully for job {self.job.id}")
-                 else:
-                      logger.warning(f"No local quote found for job {self.job.id} to delete.")
-                 return JsonResponse({"success": True})
-             else:
-                  error_msg = "Xero response did not confirm quote deletion."
-                  logger.error(f"{error_msg} Status: {getattr(xero_quote_data, 'status', 'Unknown')}")
-                  return JsonResponse({"success": False, "error": error_msg}, status=400)
-        else:
+        if not response or not response.quotes:
             error_msg = "No quotes found in the Xero response or failed to delete quote."
             logger.error(error_msg)
             return JsonResponse({"success": False, "error": error_msg}, status=400)
+        
+        xero_quote_data = response.quotes[0]
+        status = getattr(xero_quote_data, 'status', None)
+
+        is_deleted = False
+        if hasattr(status, 'value'):
+            is_deleted = status.value == 'DELETED'
+        else:
+            is_deleted = str(status).upper() == 'DELETED'
+        
+        if not is_deleted:
+            error_msg = "Xero response did not confirm quote deletion."
+            logger.error(f"{error_msg} Status: {status}")
+            return JsonResponse({"success": False, "error": error_msg}, status=400)
+        
+        if not hasattr(self.job, 'quote') or not self.job.quote:
+            logger.warning(f"No local quote found for job {self.job.id} to delete.")
+            return JsonResponse({"success": True})
+            
+        local_quote_id = self.job.quote.id
+        self.job.quote.delete()
+        logger.info(f"Quote {local_quote_id} deleted successfully for job {self.job.id}")
+
+        return JsonResponse({"success": True})

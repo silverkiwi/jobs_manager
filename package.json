@@ -17,6 +17,11 @@
   "license": "ISC",
   "dependencies": {
     "@ag-grid-community/styles": "^33.0.2",
+    "@fullcalendar/core": "^6.1.17",
+    "@fullcalendar/daygrid": "^6.1.17",
+    "@fullcalendar/interaction": "^6.1.17",
+    "@fullcalendar/list": "^6.1.17",
+    "@fullcalendar/timegrid": "^6.1.17",
     "ag-grid-community": "^33.0.2",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",

@@ -54,6 +54,7 @@ from workflow.views import (
     workshop_view,
     job_management_view,
 )
+from workflow.views.kpi_view import KPICalendarViews
 from workflow.views.xero import xero_view
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
@@ -103,11 +104,15 @@ urlpatterns = [
         edit_job_view_ajax.fetch_job_pricing_api,
         name="fetch_job_pricing_api",
     ),
-    # API URLs
     path(
         "api/reports/company-profit-loss/",
         CompanyProfitAndLossReport.as_view(),
         name="api-company-profit-loss",
+    ),
+    path(
+        "api/reports/calendar/",
+        KPICalendarViews.KPICalendarAPIView.as_view(),
+        name="api_kpi_calendar"
     ),
     path(
         "api/fetch_status_values/",
@@ -275,6 +280,11 @@ urlpatterns = [
         "reports/company-profit-loss/",
         CompanyProfitAndLossView.as_view(),
         name="company-profit-loss-report",
+    ),
+    path(
+        "reports/calendar/",
+        KPICalendarViews.KPICalendarTemplateView.as_view(),
+        name="kpi_calendar"
     ),
     path(
         "api/company_defaults/",
