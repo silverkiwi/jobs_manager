@@ -49,7 +49,6 @@ class PurchaseOrder(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     xero_last_modified = models.DateTimeField(null=True, blank=True)
     xero_last_synced = models.DateTimeField(null=True, blank=True, default=timezone.now)
-    raw_json = models.JSONField(null=True, blank=True) 
     online_url = models.URLField(max_length=500, null=True, blank=True)
 
     def generate_po_number(self):
@@ -58,17 +57,17 @@ class PurchaseOrder(models.Model):
         starting_number = company_defaults.starting_po_number
 
         highest_po = PurchaseOrder.objects.all().aggregate(Max('po_number'))['po_number__max'] or 0
-        
+
         # If the highest PO is a string (like "PO-12345"), extract the number part
         if isinstance(highest_po, str) and '-' in highest_po:
             try:
                 highest_po = int(highest_po.split('-')[1])
             except (IndexError, ValueError):
                 highest_po = 0
-        
+
         # Generate the next number
         next_number = max(starting_number, int(highest_po) + 1)
-        
+
         # Return with PO prefix and zero-padding (e.g., PO-0013)
         return f"PO-{next_number:04d}"
 
@@ -76,7 +75,7 @@ class PurchaseOrder(models.Model):
         """Save the model and auto-generate PO number if none exists."""
         if not self.po_number:
             self.po_number = self.generate_po_number()
-        
+
         super().save(*args, **kwargs)
 
     def reconcile(self):
@@ -112,9 +111,10 @@ class PurchaseOrderLine(models.Model):
     )
     description = models.CharField(max_length=200)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    dimensions = models.CharField(max_length=255, blank=True, null=True, help_text="Dimensions such as length, width, height, etc.")
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     price_tbc = models.BooleanField(default=False, help_text="If true, the price is to be confirmed and unit cost will be None")
-    item_code = models.CharField(max_length=20, blank=True)
+    supplier_item_code = models.CharField(max_length=50, blank=True, null=True, help_text="Supplier's own item code/SKU")
     received_quantity = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -146,11 +146,17 @@ class PurchaseOrderLine(models.Model):
         null=True,
         help_text="Where this item will be stored"
     )
+    dimensions = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Dimensions such as length, width, height, etc."
+    )
 
 
 class PurchaseOrderSupplierQuote(models.Model):
     """A quote file attached to a purchase order."""
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     purchase_order = models.OneToOneField(PurchaseOrder, related_name="supplier_quote", on_delete=models.CASCADE)
     filename = models.CharField(max_length=255)
@@ -163,22 +169,22 @@ class PurchaseOrderSupplierQuote(models.Model):
         choices=[("active", "Active"), ("deleted", "Deleted")],
         default="active",
     )
-    
+
     @property
     def full_path(self):
         """Full system path to the file."""
         return os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, self.file_path)
-    
+
     @property
     def url(self):
         """URL to serve the file."""
         return f"/purchases/quotes/{self.file_path}"
-    
+
     @property
     def size(self):
         """Return size of file in bytes."""
         if self.status == "deleted":
             return None
-        
+
         file_path = self.full_path
         return os.path.getsize(file_path) if os.path.exists(file_path) else None

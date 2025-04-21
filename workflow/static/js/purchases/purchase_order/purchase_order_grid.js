@@ -26,6 +26,8 @@ export function createNewRow() {
     alloy: "",
     specifics: "",
     location: "",
+    dimensions: "",
+    supplier_item_code: "",
   };
 }
 
@@ -328,11 +330,25 @@ export function initializeGrid() {
       maxWidth: 90,
     },
     {
+      headerName: "Supplier Item Code",
+      field: "supplier_item_code",
+      editable: true,
+      width: 100,
+      maxWidth: 100,
+    },
+    {
       headerName: "Location",
       field: "location",
       editable: true,
       width: 80,
       maxWidth: 80,
+    },
+    {
+      headerName: "Dimensions",
+      field: "dimensions",
+      editable: true,
+      width: 90,
+      maxWidth: 90,
     },
     {
       headerName: "Qty",
