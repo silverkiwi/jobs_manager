@@ -54,7 +54,7 @@ class CompanyDefaults(models.Model):
     daily_gp_target = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=2500.0,
+        default=1250.0,
         verbose_name="Daily Goal of Gross Profit",
         help_text="Daily gross profit goal in dolars"
     )

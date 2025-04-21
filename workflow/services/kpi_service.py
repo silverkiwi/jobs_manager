@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import datetime
 
 import calendar
 
@@ -6,10 +7,11 @@ from decimal import Decimal
 
 from typing import Dict, Any, Tuple
 
-from django.db.models import Sum, Q
+from django.db.models import Sum, Case, When, F, DecimalField, Value, Q, Subquery, OuterRef
 from logging import getLogger
 
 from workflow.models import TimeEntry, CompanyDefaults, Job
+from workflow.models.material_entry import MaterialEntry
 from workflow.utils import get_excluded_staff
 
 logger = getLogger(__name__)
@@ -21,6 +23,8 @@ class KPIService:
     All business logic related to KPIs shall be implemented here.
     """
 
+    shop_job_id: str = "00000000-0000-0000-0000-000000000001"
+
     @staticmethod
     def get_company_thresholds() -> Dict[str, float]:
         """
@@ -31,7 +35,7 @@ class KPIService:
         """
         logger.info("Retrieving company thresholds for KPI calculations")
         try:
-            company_defaults = CompanyDefaults.objects.first()
+            company_defaults: CompanyDefaults = CompanyDefaults.objects.first()
             thresholds = {
                 "billable_threshold_green": float(company_defaults.billable_threshold_green),
                 "billable_threshold_amber": float(company_defaults.billable_threshold_amber),
@@ -46,7 +50,7 @@ class KPIService:
             return {
                 "billable_threshold_green": 45,
                 "billable_threshold_amber": 30,
-                "daily_gp_target": 2500,
+                "daily_gp_target": 1250,
                 "shop_hours_target": 20
             }
     
@@ -70,6 +74,14 @@ class KPIService:
         logger.debug(f"Date range: {start_date} to {end_date}, days in month: {num_days}")
         return start_date, end_date, num_days
     
+    @staticmethod
+    def _get_color(value: float | Decimal, green_threshold: float, amber_threshold: float) -> str:
+        if value >= green_threshold:
+            return "green"
+        if value >= amber_threshold:
+            return "amber"
+        return "red"
+
     @classmethod
     def get_calendar_data(cls, year: int, month: int) -> Dict[str, Any]:
         """
@@ -92,7 +104,7 @@ class KPIService:
         logger.debug(f"Excluded staff IDs: {excluded_staff_ids}")
 
         calendar_data = {}
-        monthly_totals = {
+        monthly_totals: Dict[str, float] = {
             "billable_hours": 0,
             "total_hours": 0,
             "shop_hours": 0,
@@ -100,59 +112,175 @@ class KPIService:
             "days_green": 0,
             "days_amber": 0,
             "days_red": 0,
-            "working_days": 0
+            "working_days": 0,
+            "elapsed_workdays": 0,
+            "remaining_workdays": 0,
+            # The following are internal
+            "billable_revenue": 0,
+            "material_revenue": 0,
+            "staff_cost": 0,
+            "material_cost": 0,
         }
+
+        decimal_field = DecimalField(max_digits=10, decimal_places=2)
+        # Process data of the day
+        time_entries_by_date = { 
+            entry["date"]: entry for entry in TimeEntry.objects.filter(
+                date__range=[start_date, end_date]
+            ).exclude(
+                staff_id__in=excluded_staff_ids
+            ).values("date").annotate(
+                total_hours=Sum(
+                    "hours", 
+                    output_field=decimal_field
+                ),
+                billable_hours=Sum(
+                    Case(
+                        When(is_billable=True, then="hours"), 
+                        default=Value(0, output_field=decimal_field)
+                    ),
+                    output_field=decimal_field
+                ),
+                billable_revenue=Sum(
+                    Case(
+                        When(is_billable=True, then=F("hours") * F("charge_out_rate")), 
+                        default=Value(0, output_field=decimal_field)
+                    ), 
+                    output_field=decimal_field
+                ),
+                shop_hours=Sum(
+                    Case(
+                        When(job_pricing__job__client_id=cls.shop_job_id, then="hours"), 
+                        default=Value(0, output_field=decimal_field)
+                    ), 
+                    output_field=decimal_field
+                ),
+                staff_cost=Sum(
+                    F("hours") * F("wage_rate"), 
+                    output_field=decimal_field
+                )
+            )
+        }
+
+        material_entries = MaterialEntry.objects.filter(
+            job_pricing__time_entries__date__range=[start_date, end_date]
+        ).values("job_pricing__time_entries__date").annotate(
+            revenue=Sum(F("unit_revenue") * F("quantity"), output_field=decimal_field),
+            cost=Sum(F("unit_cost") * F("quantity"), output_field=decimal_field)
+        )
+
+        material_by_date = {}
+        for entry in material_entries:
+            date_key = entry["job_pricing__time_entries__date"]
+            material_by_date[date_key] = {
+                "revenue": entry["revenue"] or 0,
+                "cost": entry["cost"] or 0
+            }
+
+        logger.debug(f"Retrieved data for {len(time_entries_by_date)} days")
 
         # For each day of the month
         current_date = start_date
+        current_date_system = datetime.date.today()
         while current_date <= end_date:
-            # For some reason week days in Python are 0 based, so 5 is Saturday and 6 is Sunday
+            # Skip weekends (5=Saturday, 6=Sunday)
             if current_date.weekday() >= 5: 
                 current_date += timedelta(days=1)
                 continue
 
             # Count commercial day
             monthly_totals["working_days"] += 1
+            if current_date <= current_date_system:
+                monthly_totals["elapsed_workdays"] += 1
+
             logger.debug(f"Processing data for day: {current_date}")
 
-            # Process data of the day
-            day_data = cls._process_day_data(
-                current_date,
-                excluded_staff_ids,
-                thresholds["billable_threshold_green"],
-                thresholds["billable_threshold_amber"],
-                thresholds["daily_gp_target"]
-            )
+            time_entry = time_entries_by_date.get(current_date, {
+                "total_hours": 0,
+                "billable_hours": 0,
+                "shop_hours": 0,
+                "billable_revenue": 0,
+                "staff_cost": 0,
+                "material_revenue": 0,
+                "material_cost": 0
+            })
 
-            # Add data to dict
-            calendar_data[current_date.isoformat()] = day_data
-            logger.debug(f"Day {current_date} status: {day_data['color']}, billable hours: {day_data['billable_hours']}")
+            material_entry = material_by_date.get(current_date, {
+                "revenue": 0,
+                "cost": 0
+            })
 
-            # Update monthly totals
-            monthly_totals["billable_hours"] += day_data["billable_hours"]
-            monthly_totals["total_hours"] += day_data["total_hours"]
-            monthly_totals["shop_hours"] += day_data["shop_hours"]
-            monthly_totals["gross_profit"] += day_data["gross_profit"]
+            billable_hours = time_entry.get("billable_hours") or 0
+            total_hours = time_entry.get("total_hours") or 0
+            shop_hours = time_entry.get("shop_hours") or 0
+            billable_revenue = time_entry.get("billable_revenue") or 0
+            staff_cost = time_entry.get("staff_cost") or 0
+
+            material_revenue = material_entry.get("revenue") or 0
+            material_cost = material_entry.get("cost") or 0
+
+            gross_profit = (billable_revenue + material_revenue) - (staff_cost + material_cost)
+            shop_percentage = (Decimal(shop_hours) / Decimal(total_hours) * 100) if total_hours > 0 else Decimal("0")
 
             # Increment status counters
-            if day_data["color"] == "green":
-                monthly_totals["days_green"] += 1
-            elif day_data["color"] == "amber":
-                monthly_totals["days_amber"] += 1
-            elif day_data["color"] == "red":
-                monthly_totals["days_red"] += 1
-            else:
-                logger.error(f"Unknown color status for day {current_date}: {day_data['color']}")
-                raise ValueError(f"Unknown color for day data: {day_data['color']}")
+            color = cls._get_color(
+                billable_hours,
+                thresholds["billable_threshold_green"],
+                thresholds["billable_threshold_amber"]
+            )
+
+            match color:
+                case "green":
+                    monthly_totals["days_green"] += 1
+                case "amber":
+                    monthly_totals["days_amber"] += 1
+                case _:
+                    monthly_totals["days_red"] += 1
+
+            date_key = current_date.isoformat()
+            calendar_data[date_key] = {
+                "date": date_key,
+                "day": current_date.day,
+                "billable_hours": billable_hours,
+                "total_hours": total_hours,
+                "shop_hours": shop_hours,
+                "shop_percentage": float(shop_percentage),
+                "gross_profit": float(gross_profit),
+                "color": color,
+                "gp_target_achievement": float((Decimal(gross_profit) / Decimal(thresholds["daily_gp_target"]) * 100) if thresholds["daily_gp_target"] > 0 else 0)
+            }
+
+            monthly_totals["billable_hours"] += billable_hours
+            monthly_totals["total_hours"] += total_hours
+            monthly_totals["shop_hours"] += shop_hours
+            monthly_totals["gross_profit"] += gross_profit
+            monthly_totals["material_revenue"] += material_revenue
+            monthly_totals["staff_cost"] += staff_cost
+            monthly_totals["material_cost"] += material_cost
 
             # Advance to next day
             current_date += timedelta(days=1)
-        
+
+        monthly_totals["remaining_workdays"] = monthly_totals["working_days"] - monthly_totals["elapsed_workdays"]
         # Calculate percentages after all days processed
         cls._calculate_monthly_percentages(monthly_totals)
+
+        billable_daily_avg = monthly_totals["avg_billable_hours_so_far"]
+        monthly_totals["color_hours"] = cls._get_color(
+            billable_daily_avg,
+            thresholds["billable_threshold_green"],
+            thresholds["billable_threshold_amber"]
+        )
+        
+        gp_daily_avg = monthly_totals["avg_daily_gp_so_far"]
+        monthly_totals["color_gp"] = cls._get_color(
+            gp_daily_avg,
+            thresholds["daily_gp_target"],
+            (thresholds["daily_gp_target"] / 2)
+        )
+        
         logger.info(f"Monthly totals: billable: {monthly_totals['billable_hours']:.1f}h, billable %: {monthly_totals['billable_percentage']:.1f}%")
         logger.info(f"Performance: green days: {monthly_totals['days_green']}, amber: {monthly_totals['days_amber']}, red: {monthly_totals['days_red']}")
-
         response_data = {
             "calendar_data": calendar_data,
             "monthly_totals": monthly_totals,
@@ -162,116 +290,6 @@ class KPIService:
         }
         logger.debug(f"Calendar data generated with {len(calendar_data)} days")
         return response_data
-    
-    @staticmethod
-    def _process_day_data(
-        day_date: date,
-        excluded_staff_ids: list,
-        threshold_green: float,
-        threshold_amber: float,
-        gp_target: float
-    ) -> Dict[str, Any]:
-        """
-        Process data of a specific day for the KPI Calendar
-
-        Args:
-            day_date: data of the day to be processed
-            excluded_staff_ids: IDs list of excluded staff
-            threshold_green: threshold for green status
-            threshold_amber: threshold for amber status
-            gp_target: gross profit daily target
-        
-        Returns:
-            Dict containing processed data of the day
-        """
-        try:
-            logger.debug(f"Processing day data for {day_date}")
-            
-            # Consult time entries for the day
-            day_entries: list[TimeEntry] = TimeEntry.objects.filter(
-                date=day_date
-            ).exclude(
-                staff_id__in=excluded_staff_ids
-            ).select_related("job_pricing", "job_pricing__job")
-            
-            logger.debug(f"Found {len(day_entries)} time entries for {day_date}")
-
-            # Calc hours
-            billable_hours = Decimal("0.0")
-            total_hours = Decimal("0.0")
-            shop_hours = Decimal("0.0")
-            billable_revenue = Decimal("0.0")
-            staff_wage_cost = Decimal("0.0")
-            gross_profit = Decimal("0.0")
-
-            for entry in day_entries:
-                total_hours += entry.hours
-                
-                if entry.is_billable:
-                    billable_hours += entry.hours
-                    billable_revenue += entry.hours * entry.charge_out_rate
-                    
-                staff_wage_cost += entry.hours * entry.wage_rate
-                gross_profit += billable_revenue - staff_wage_cost
-
-                # Verificar de forma segura se é um job de shop
-                is_shop_job = False
-                try:
-                    # Tente usar a propriedade shop_job se disponível
-                    is_shop_job = entry.job_pricing.job.shop_job
-                except (AttributeError, Exception):
-                    # Se não funcionar, verifique pelo client_id
-                    try:
-                        is_shop_job = (str(entry.job_pricing.job.client_id) == "00000000-0000-0000-0000-000000000001")
-                    except (AttributeError, Exception):
-                        logger.warning(f"Could not determine if job is shop job for entry ID: {entry.id}")
-                        pass
-                
-                if is_shop_job:
-                    shop_hours += entry.hours
-
-            # Calc shop hours percentage
-            shop_percentage = (Decimal(shop_hours) / Decimal(total_hours) * 100) if total_hours > 0 else Decimal("0")
-            
-            # Log the calculations
-            logger.debug(f"Day {day_date} - Total: {total_hours}h, Billable: {billable_hours}h, Shop: {shop_hours}h ({shop_percentage:.1f}%), GP: ${gross_profit}")
-
-            # Determine color based on threshold
-            if billable_hours >= threshold_green:
-                color = "green"
-            elif billable_hours >= threshold_amber:
-                color = "amber"
-            else:
-                color = "red"
-            
-            logger.debug(f"Day {day_date} status: {color} (thresholds: green>={threshold_green}, amber>={threshold_amber})")
-            
-            return {
-                "date": day_date.isoformat(),
-                "day": day_date.day,
-                "billable_hours": float(billable_hours),
-                "total_hours": float(total_hours),
-                "shop_hours": float(shop_hours),
-                "shop_percentage": float(shop_percentage),
-                "gross_profit": float(gross_profit),
-                "color": color,
-                "gp_target_achievement": float(Decimal(gross_profit) / Decimal(gp_target) * 100) if gp_target > 0 else 0
-            }
-        except Exception as e:
-            import traceback
-            logger.error(f"Error processing data for day {day_date}: {str(e)}")
-            logger.error(traceback.format_exc())
-            return {
-                "date": day_date.isoformat(),
-                "day": day_date.day,
-                "billable_hours": 0.0,
-                "total_hours": 0.0,
-                "shop_hours": 0.0,
-                "shop_percentage": 0.0,
-                "gross_profit": 0.0,
-                "color": "red",
-                "gp_target_achievement": 0.0,
-            }
         
     @staticmethod
     def _calculate_monthly_percentages(monthly_totals: Dict[str, float]) -> None:
@@ -287,6 +305,8 @@ class KPIService:
         monthly_totals["billable_percentage"] = 0
         monthly_totals["shop_percentage"] = 0
         monthly_totals["avg_daily_gp"] = 0
+        monthly_totals["avg_daily_gp_so_far"] = 0
+        monthly_totals["avg_billable_hours_so_far"] = 0
 
         # Calculate billable and shop percentages if we have hours
         if monthly_totals["total_hours"] > 0:
@@ -306,3 +326,12 @@ class KPIService:
             logger.debug(f"Calculated average daily gross profit: ${monthly_totals['avg_daily_gp']}")
         else:
             logger.warning("No working days found for month - average GP will be zero")
+        
+        # Calculate average daily gross profit and billable hours so far based on elapsed days
+        if monthly_totals["elapsed_workdays"] > 0:
+            monthly_totals["avg_daily_gp_so_far"] = round(
+                Decimal(monthly_totals["gross_profit"]) / Decimal(monthly_totals["elapsed_workdays"]), 2
+            )
+            monthly_totals["avg_billable_hours_so_far"] = round(
+                Decimal(monthly_totals["billable_hours"]) / Decimal(monthly_totals["elapsed_workdays"]), 1
+            )
