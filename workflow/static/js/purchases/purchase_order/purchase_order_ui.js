@@ -144,8 +144,8 @@ export function blockPurchaseOrderEdition() {
     const existingNotice = formElement.querySelector(".alert.alert-danger");
     if (!existingNotice) {
       const noticeDiv = document.createElement("div");
-      noticeDiv.className = "alert alert-danger mb-3";
-      noticeDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>This purchase order has been <strong>DELETED</strong>. No editing is allowed.`;
+      noticeDiv.className = "alert alert-danger mb-3 deleted-po-notice";
+      noticeDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>This purchase order has been <strong>DELETED</strong>. To restore it, change the status dropdown back to "Draft" and save.`;
       formElement.prepend(noticeDiv);
     }
   }
@@ -155,18 +155,19 @@ export function blockPurchaseOrderEdition() {
   const existingLineItemsNotice = lineItemsSection?.querySelector(".alert.alert-danger.line-items-notice");
   if (!existingLineItemsNotice && lineItemsSection) {
     const lineItemsNoticeDiv = document.createElement("div");
-    lineItemsNoticeDiv.className = "alert alert-danger mb-3 line-items-notice";
+    lineItemsNoticeDiv.className = "alert alert-danger mb-3 line-items-notice deleted-po-notice";
     lineItemsNoticeDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>Line items cannot be changed for deleted purchase orders.`;
     lineItemsSection.insertBefore(lineItemsNoticeDiv, lineItemsSection.firstChild);
   }
 
+  // Get all form inputs except status field
   const formInputs = [
     document.getElementById("client_name"), 
-    document.getElementById("status"), 
     document.getElementById("expected_delivery"), 
     document.getElementById("reference")
   ];
   
+  // Disable all inputs except status
   formInputs.forEach(input => {
     if (!input) return;
     
@@ -175,16 +176,29 @@ export function blockPurchaseOrderEdition() {
     if (input.classList.contains("form-control")) {
       input.classList.add("form-control-plaintext");
       input.classList.remove("form-control");
-    } 
-    
-    if (input.classList.contains("form-select")) {
-      input.classList.add("form-select-plaintext");
-      input.classList.remove("form-select");
     }
   });
+  
+  // Get the status dropdown specifically
+  const statusDropdown = document.getElementById("status");
+  if (statusDropdown) {
+    // Keep it enabled but add visual cue
+    statusDropdown.style.borderColor = "#ffc107";
+    statusDropdown.style.boxShadow = "0 0 0 0.25rem rgba(255, 193, 7, 0.25)";
+    statusDropdown.title = "You can change the status back to Draft to restore this purchase order";
+    
+    // Add a highlight to make it obvious this is actionable
+    statusDropdown.classList.add("border-warning");
+  }
 
+  // Make submit button visible for restoring via status change
   const submitButton = document.getElementById("submit-purchase-order");
-  if (submitButton) submitButton.style.display = "none";
+  if (submitButton) {
+    submitButton.textContent = "Update Status";
+    submitButton.classList.remove("btn-primary");
+    submitButton.classList.add("btn-warning");
+    submitButton.title = "Change status to restore this purchase order";
+  }
 
   const gridDiv = document.querySelector("#purchase-order-lines-grid");
   if (gridDiv) {

@@ -69,6 +69,12 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
         context['title'] = f'Purchase Order {purchase_order.po_number}'
         context['purchase_order_id'] = str(purchase_order.id) # Pass ID to template
 
+        # Add supplier quote to context (it's a OneToOneField, not a collection)
+        try:
+            context['supplier_quote'] = purchase_order.supplier_quote
+        except PurchaseOrder.supplier_quote.RelatedObjectDoesNotExist:
+            context['supplier_quote'] = None
+        
         # Fetch Xero details if available
         xero_online_url = purchase_order.online_url
         xero_id = purchase_order.xero_id
@@ -106,6 +112,7 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
                 "alloy": line.alloy or "",
                 "specifics": line.specifics or "",
                 "location": line.location or "",
+                "dimensions": line.dimensions or "",
             } for line in line_items
         ])
         
@@ -173,16 +180,6 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
             }, status=400)
 
 
-# Kept for reference but not used directly anymore
-PurchaseOrderLineFormSet = inlineformset_factory(
-    PurchaseOrder,
-    PurchaseOrderLine,
-    form=PurchaseOrderLineForm,
-    extra=1,
-    can_delete=True
-)
-
-
 @require_http_methods(["POST"])
 @transaction.atomic
 def autosave_purchase_order_view(request):
@@ -243,7 +240,8 @@ def autosave_purchase_order_view(request):
                     'metal_type': item_data.get("metal_type", "unspecified"),
                     'alloy': item_data.get("alloy", ""),
                     'specifics': item_data.get("specifics", ""),
-                    'location': item_data.get("location", "")
+                    'location': item_data.get("location", ""),
+                    'dimensions': item_data.get("dimensions", "")
                 }
             )
 
@@ -323,12 +321,6 @@ def delete_purchase_order_view(request, pk):
 def extract_supplier_quote_data_view(request):
     """
     Extract data from a supplier quote to pre-fill a PO form.
-    
-    Args:
-        request: The HTTP request
-        
-    Returns:
-        JsonResponse with the extracted data
     """
     try:
         # Check if a file was uploaded
@@ -337,83 +329,22 @@ def extract_supplier_quote_data_view(request):
                 "success": False,
                 "error": "No quote file uploaded."
             }, status=400)
-        
+
         quote_file = request.FILES['quote_file']
-        
-        # Save the file to a temporary location
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            for chunk in quote_file.chunks():
-                temp_file.write(chunk)
-            temp_path = temp_file.name
-        
-        try:
-            # Extract data from the quote
-            # Set use_pdf_parser to True to use pdfplumber
-            quote_data, error = extract_data_from_supplier_quote(
-                temp_path,
-                quote_file.content_type
-            )
-            
-            # Delete the temporary file
-            os.unlink(temp_path)
-            
-            if error:
-                return JsonResponse({
-                    "success": False,
-                    "error": f"Error extracting data from quote: {error}"
-                }, status=400)
-            
-            # Extract supplier information if available
-            supplier_id = None
-            if quote_data.get("matched_supplier") and quote_data["matched_supplier"].get("id"):
-                supplier_id = quote_data["matched_supplier"]["id"]
-            
-            # Create a draft PO with pre-filled data
-            purchase_order = PurchaseOrder.objects.create(
-                status="draft",
-                order_date=timezone.now().date(),
-                supplier_id=supplier_id,
-                reference=quote_data.get("quote_reference")
-            )
-            
-            # Create a PurchaseOrderSupplierQuote linked to the PO
-            supplier_quote_id = uuid.uuid4()
-            supplier_quote = PurchaseOrderSupplierQuote(
-                id=supplier_quote_id,
-                purchase_order=purchase_order,
-                filename=quote_file.name,
-                file_path=f"temp/{supplier_quote_id}_{quote_file.name}",
-                mime_type=quote_file.content_type,
-                extracted_data=quote_data
-            )
-            supplier_quote.save()
-            
-            # Create PO line items from the extracted data
-            if quote_data.get("items"):
-                for item in quote_data["items"]:
-                    PurchaseOrderLine.objects.create(
-                        purchase_order=purchase_order,
-                        description=item.get("description", ""),
-                        quantity=item.get("quantity", 1),
-                        unit_cost=item.get("unit_price"),
-                        price_tbc=item.get("unit_price") is None,
-                        metal_type=item.get("metal_type", "unspecified"),
-                        alloy=item.get("alloy", ""),
-                        specifics=item.get("specifics", "")
-                    )
-            
-            # Redirect to the PO form with the PO ID
-            redirect_url = reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
-            return redirect(redirect_url)
-            
-        except Exception as e:
-            # Make sure to delete the temporary file in case of error
-            try:
-                os.unlink(temp_path)
-            except:
-                pass
-            raise e
-        
+
+        # Create PO from quote
+        purchase_order, error = create_po_from_quote(quote_file=quote_file)
+
+        if error:
+            return JsonResponse({
+                "success": False,
+                "error": f"Error extracting data from quote: {error}"
+            }, status=400)
+
+        # Redirect to the PO form with the PO ID
+        redirect_url = reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+        return redirect(redirect_url)
+
     except Exception as e:
         logger.exception(f"Error extracting data from quote: {e}")
         return JsonResponse({

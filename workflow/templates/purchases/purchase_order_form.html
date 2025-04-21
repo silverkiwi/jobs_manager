@@ -155,6 +155,37 @@
                 </div>
             </div>
         </div>
+                        
+                        {% if supplier_quote %}
+                        <!-- Supplier Quote Section -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Supplier Quote</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Quote Details</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Filename:</strong> {{ supplier_quote.filename }}</p>
+                                        <p><strong>Date:</strong> {{ supplier_quote.uploaded_at|date:"d M Y" }}</p>
+                                        <a href="{{ supplier_quote.url }}" class="btn btn-primary btn-sm" target="_blank">
+                                            <i class="bi bi-file-earmark-text me-1"></i>View Quote
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                            </div>
+                        </div>
+                        {% endif %}
 
         <!-- Summary Section -->
         <div class="flex-grow-1" style="flex-basis: 35%">
@@ -187,12 +218,8 @@
         </button>
         {% endif %}
 
-        <button type="button" id="deletePOButton" class="d-none btn btn-danger">
-            <i class="bi bi-trash me-2"></i>Delete PO
-        </button>
-
         <a href="{% url 'purchase_orders' %}" class="btn btn-secondary">
-            <i class="bi bi-x-circle me-2"></i>Cancel
+            <i class="bi bi-x-circle me-2"></i>Close
         </a>
     </div>
     

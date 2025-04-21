@@ -45,6 +45,7 @@ function initializeApp() {
         // Apply status-specific behavior
         if (state.purchaseData.purchaseOrder.status === "deleted") {
           blockPurchaseOrderEdition();
+          // Note: addLocalRestoreButton is now called inside blockPurchaseOrderEdition
         }
         
         if (state.purchaseData.purchaseOrder.status === "draft") {
