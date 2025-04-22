@@ -5,7 +5,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("workflow", "0125_alter_purchaseorder_order_date"),
+        ("workflow", "0126_alter_purchaseorder_order_date"),
     ]
 
     operations = []

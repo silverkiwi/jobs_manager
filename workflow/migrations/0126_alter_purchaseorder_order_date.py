@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("workflow", "0124_normalize_po_numbers"),
+        ("workflow", "0125_normalize_po_numbers"),
     ]
 
     operations = [

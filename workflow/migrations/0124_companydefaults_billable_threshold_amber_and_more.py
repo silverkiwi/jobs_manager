@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     dependencies = [
         (
             "workflow",
-            "0121_purchaseorderline_alloy_purchaseorderline_location_and_more",
+            "0123_alter_purchaseorder_order_date_and_more",
         ),
     ]
 
