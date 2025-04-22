@@ -2,7 +2,7 @@
 
 import uuid
 from django.db import migrations, models
-
+import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
@@ -11,6 +11,18 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AddField(
+            model_name="stock",
+            name="source_parent_stock",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                help_text="The parent stock item this was split from (if source='split_from_stock')",
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="child_stock_splits",
+                to="workflow.stock",
+            ),
+        ),
         migrations.AddField(
             model_name="stock",
             name="alloy",
