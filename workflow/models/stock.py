@@ -42,6 +42,13 @@ class Stock(models.Model):
         decimal_places=2,
         help_text="Cost per unit of the stock item"
     )
+
+    retail_rate = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.2"),
+        help_text="Retail markup rate for this stock item (e.g., 0.2 for 20%)"
+    )
     
     date = models.DateTimeField(
         default=timezone.now,
