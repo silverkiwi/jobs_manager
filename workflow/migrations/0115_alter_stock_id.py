@@ -13,16 +13,18 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # 1. Delete all existing stock records
-        migrations.RunSQL(
-            "DELETE FROM workflow_stock;"
-        ),
+
         
-        # 2. Delete related MaterialEntry records
+        # 1. Delete related MaterialEntry records
         migrations.RunSQL(
             "UPDATE workflow_materialentry SET source_stock_id = NULL WHERE source_stock_id IS NOT NULL;"
         ),
-        
+
+        # 2. Delete all existing stock records
+        migrations.RunSQL(
+            "DELETE FROM workflow_stock;"
+        ),
+
         # 3. Drop the old table and create a new one with UUID primary key
         migrations.RunSQL(
             "DROP TABLE workflow_stock;"
