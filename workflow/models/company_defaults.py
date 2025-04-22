@@ -19,6 +19,9 @@ class CompanyDefaults(models.Model):
 
     # Xero integration
     xero_tenant_id = models.CharField(max_length=100, null=True, blank=True, help_text="The Xero tenant ID to use for this company")
+    
+    # LLM integration
+    anthropic_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="API key for Anthropic Claude LLM")
 
     # Default working hours (Mon-Fri, 7am - 3pm)
     mon_start = models.TimeField(default="07:00")
@@ -54,7 +57,7 @@ class CompanyDefaults(models.Model):
     daily_gp_target = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=2500.0,
+        default=1250.0,
         verbose_name="Daily Goal of Gross Profit",
         help_text="Daily gross profit goal in dolars"
     )

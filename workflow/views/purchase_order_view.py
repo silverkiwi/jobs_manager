@@ -1,6 +1,10 @@
 import json
 import logging
+import os
+import tempfile
+import uuid
 from datetime import datetime
+from django.urls import reverse
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,11 +15,14 @@ from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.db import transaction, IntegrityError # Import transaction and IntegrityError
+from django.utils import timezone
 
 
-from workflow.models import PurchaseOrder, PurchaseOrderLine, Client, Job
+from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote, Client, Job
 from workflow.forms import PurchaseOrderForm, PurchaseOrderLineForm
 from workflow.utils import extract_messages
+from workflow.services.quote_to_po_service import save_quote_file, create_po_from_quote, extract_data_from_supplier_quote
+from workflow.views.xero.xero_po_manager import XeroPurchaseOrder, XeroPurchaseOrderManager
 
 logger = logging.getLogger(__name__)
 
@@ -42,66 +49,72 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
     
     template_name = 'purchases/purchase_order_form.html'
     
+    def get(self, request, *args, **kwargs):
+        # Check if we're editing an existing purchase order
+        purchase_order_id = self.kwargs.get('pk')
+        if not purchase_order_id:
+            # Creating a new purchase order - reserve a PO number immediately
+            purchase_order = PurchaseOrder(status="draft", order_date=timezone.now().date())
+            purchase_order.save()  # This will generate a unique PO number
+            # Redirect to the URL with the new PO's ID
+            return redirect('edit_purchase_order', pk=purchase_order.id)
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Check if we're editing an existing purchase order
+        # Since we've redirected if no pk, we can assume pk exists
         purchase_order_id = self.kwargs.get('pk')
-        purchase_order: PurchaseOrder | None = None
-        xero_online_url = None
-        xero_id = None
-        purchase_order_status = None # Initialize status
+        purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)
+        context['title'] = f'Purchase Order {purchase_order.po_number}'
+        context['purchase_order_id'] = str(purchase_order.id) # Pass ID to template
+
+        # Add supplier quote to context (it's a OneToOneField, not a collection)
+        try:
+            context['supplier_quote'] = purchase_order.supplier_quote
+        except PurchaseOrder.supplier_quote.RelatedObjectDoesNotExist:
+            context['supplier_quote'] = None
         
-        if purchase_order_id:
-            # Editing an existing purchase order
-            purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)
-            context['title'] = f'Purchase Order {purchase_order.po_number}'
-            context['purchase_order_id'] = str(purchase_order.id) # Pass ID to template
+        # Fetch Xero details if available
+        xero_online_url = purchase_order.online_url
+        xero_id = purchase_order.xero_id
+        purchase_order_status = purchase_order.status # Fetch the status
 
-            # Fetch Xero details if available
-            xero_online_url = purchase_order.online_url
-            xero_id = purchase_order.xero_id
-            purchase_order_status = purchase_order.status # Fetch the status
+        # Add purchase order data
+        context['purchase_order_json'] = json.dumps({
+            'id': str(purchase_order.id),
+            'po_number': purchase_order.po_number,
+            'supplier': str(purchase_order.supplier.id) if purchase_order.supplier else None,
+            'supplier_name': purchase_order.supplier.name if purchase_order.supplier else None,
+            'client_xero_id': purchase_order.supplier.xero_contact_id if purchase_order.supplier and purchase_order.supplier.xero_contact_id else None,
+            'order_date': purchase_order.order_date.isoformat() if purchase_order.order_date else None,
+            'expected_delivery': purchase_order.expected_delivery.isoformat() if purchase_order.expected_delivery else None,
+            'status': purchase_order_status, # Use the fetched status
+            'xero_id': str(xero_id) if xero_id else None, # Include Xero ID if exists
+            'xero_online_url': xero_online_url, # Include Xero URL if exists,
+            'reference': purchase_order.reference if purchase_order.reference else None
+        })
 
-            # Add purchase order data
-            context['purchase_order_json'] = json.dumps({
-                'id': str(purchase_order.id),
-                'po_number': purchase_order.po_number,
-                'supplier': str(purchase_order.supplier.id),
-                'supplier_name': purchase_order.supplier.name,
-                'order_date': purchase_order.order_date.isoformat() if purchase_order.order_date else None,
-                'expected_delivery': purchase_order.expected_delivery.isoformat() if purchase_order.expected_delivery else None,
-                'status': purchase_order_status, # Use the fetched status
-                'xero_id': str(xero_id) if xero_id else None, # Include Xero ID if exists
-                'xero_online_url': xero_online_url, # Include Xero URL if exists,
-                'reference': purchase_order.reference if purchase_order.reference else None
-            })
-
-            # Get line items for this purchase order
-            assert isinstance(purchase_order, PurchaseOrder) # Ensure type for Pylance
-            line_items = purchase_order.po_lines.all() # Use correct related_name 'po_lines'
-            context['line_items_json'] = json.dumps([
-                {
-                    'id': str(line.id),
-                    'job': str(line.job.id) if line.job else None,
-                    'job_display_name': f"{line.job.job_number} - {line.job.name}" if line.job else None,
-                    'description': line.description,
-                    'quantity': float(line.quantity),
-                    'unit_cost': float(line.unit_cost) if line.unit_cost is not None else None,
-                    'price_tbc': line.price_tbc,
-                    'total': float(line.quantity * (line.unit_cost or 0)),
-                    "metal_type": line.metal_type or "unspecified",
-                    "alloy": line.alloy or "",
-                    "specifics": line.specifics or "",
-                    "location": line.location or "",
-                } for line in line_items
-            ])
-        else:
-            # Creating a new purchase order
-            context['title'] = 'New Purchase Order'
-            context['purchase_order_id'] = '' # Ensure it's empty for new POs
-            context['purchase_order_json'] = json.dumps({})
-            context['line_items_json'] = json.dumps([])
+        # Get line items for this purchase order
+        assert isinstance(purchase_order, PurchaseOrder) # Ensure type for Pylance
+        line_items = purchase_order.po_lines.all() # Use correct related_name 'po_lines'
+        context['line_items_json'] = json.dumps([
+            {
+                'id': str(line.id),
+                'job': str(line.job.id) if line.job else None,
+                'job_display_name': line.job.job_display_name if line.job else None,
+                'description': line.description,
+                'quantity': float(line.quantity),
+                'unit_cost': float(line.unit_cost) if line.unit_cost is not None else None,
+                'price_tbc': line.price_tbc,
+                'total': float(line.quantity * (line.unit_cost or 0)),
+                "metal_type": line.metal_type or "unspecified",
+                "alloy": line.alloy or "",
+                "specifics": line.specifics or "",
+                "location": line.location or "",
+                "dimensions": line.dimensions or "",
+            } for line in line_items
+        ])
         
         # Get active jobs for the line items - match exactly what timesheet view does
         jobs = Job.objects.filter(
@@ -115,7 +128,7 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
                 'name': job.name,
                 'client_name': job.client.name if job.client else 'No Client',
                 'client_id': str(job.client.id) if job.client else None,
-                'job_display_name': f"{job.job_number} - {job.name}",
+                'job_display_name': job.job_display_name,
                 'estimated_materials': float(job.latest_estimate_pricing.total_material_cost) if job.latest_estimate_pricing else 0 # Handle None case
             } for job in jobs
         ])
@@ -167,184 +180,119 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
             }, status=400)
 
 
-# Kept for reference but not used directly anymore
-PurchaseOrderLineFormSet = inlineformset_factory(
-    PurchaseOrder,
-    PurchaseOrderLine,
-    form=PurchaseOrderLineForm,
-    extra=1,
-    can_delete=True
-)
-
-
 @require_http_methods(["POST"])
-@transaction.atomic # Ensure atomicity for PO and lines processing
+@transaction.atomic
 def autosave_purchase_order_view(request):
-    """
-    Handles autosave requests for purchase order data. Separates create and update logic.
-    """
     request_timestamp = datetime.now().isoformat()
+
     try:
-        data = json.loads(request.body.decode('utf-8', errors='ignore'))
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            logger.warning("Malformed JSON body")
+            return JsonResponse({"error": "Malformed JSON input"}, status=400)
+
         purchase_order_data = data.get("purchase_order", {})
         line_items = data.get("line_items", [])
-        deleted_line_items = data.get("deleted_line_items", [])
         purchase_order_id = purchase_order_data.get("id")
 
-        logger.info(
-            f"[{request_timestamp}] autosave_purchase_order_view called. Incoming PO ID: {purchase_order_id}"
-        )
+        logger.info(f"[{request_timestamp}] autosave_purchase_order_view called. Incoming PO ID: {purchase_order_id}")
         logger.debug("Request data: %s", json.dumps(data, indent=2))
         logger.debug(f"Number of line items: {len(line_items)}")
-        logger.debug(f"Number of items to delete: {len(deleted_line_items)}")
 
-        # --- Handle Deletions First ---
-        if deleted_line_items:
-            try:
-                # Ensure deletions only happen if the PO exists (relevant for update path)
-                if purchase_order_id:
-                    PurchaseOrderLine.objects.filter(id__in=deleted_line_items, purchase_order_id=purchase_order_id).delete()
-                    logger.debug(f"Deleted line items with IDs: {deleted_line_items} for PO {purchase_order_id}")
-                else:
-                    # Should not happen if frontend logic is correct (can't delete lines from non-existent PO)
-                     logger.warning(f"Attempted to delete lines {deleted_line_items} for a non-existent PO.")
-            except Exception as e:
-                 logger.exception(f"Error deleting line items: {deleted_line_items}")
-                 messages.error(request, f"Error deleting line items: {e}")
-                 return JsonResponse({"error": f"Error deleting line items: {e}", "messages": extract_messages(request)}, status=500)
+        if not purchase_order_id:
+            logger.error("CRITICAL: Missing PO ID")
+            return JsonResponse({"error": "Missing Purchase Order ID"}, status=400)
 
+        saved_line_ids = [item.get("id") for item in line_items if item.get("id")]
+        PurchaseOrderLine.objects.filter(purchase_order_id=purchase_order_id).exclude(id__in=saved_line_ids).delete()
 
-        purchase_order = None
-        created = False
+        try:
+            purchase_order = PurchaseOrder.objects.select_for_update().get(id=purchase_order_id)
+        except PurchaseOrder.DoesNotExist:
+            logger.error(f"Purchase Order with ID {purchase_order_id} not found.")
+            return JsonResponse({"error": "Purchase Order not found", "messages": extract_messages(request)}, status=404)
 
-        # --- Determine Create or Update Path ---
-        if purchase_order_id:
-            # --- UPDATE PATH ---
-            logger.info(f"Attempting to update Purchase Order with ID: {purchase_order_id} with data {purchase_order_data}")
-            try:
-                # Lock the row for update
-                purchase_order = PurchaseOrder.objects.select_for_update().get(id=purchase_order_id)
+        if "client_id" in purchase_order_data:
+            purchase_order.supplier_id = purchase_order_data["client_id"]
+        if "status" in purchase_order_data:
+            purchase_order.status = purchase_order_data["status"]
+        if "order_date" in purchase_order_data:
+            purchase_order.order_date = purchase_order_data["order_date"]
+        if "expected_delivery" in purchase_order_data:
+            purchase_order.expected_delivery = purchase_order_data["expected_delivery"] or None
+        if "reference" in purchase_order_data:
+            purchase_order.reference = purchase_order_data["reference"]
 
-                # Update fields from payload
-                purchase_order.supplier_id = purchase_order_data.get("client_id", purchase_order.supplier_id)
-                purchase_order.status = purchase_order_data.get("status", purchase_order.status)
-                purchase_order.order_date = purchase_order_data.get("order_date", purchase_order.order_date)
-                # Handle expected_delivery carefully - allow setting to None
-                if "expected_delivery" in purchase_order_data:
-                     purchase_order.expected_delivery = purchase_order_data.get("expected_delivery") or None
-                purchase_order.reference = purchase_order_data.get("reference")
+        purchase_order.save()
 
-                purchase_order.save()
-                logger.info(f"Updated purchase order {purchase_order.po_number} | {purchase_order.reference}")
-                created = False
-            except PurchaseOrder.DoesNotExist:
-                logger.error(f"Purchase Order with ID {purchase_order_id} not found for update.")
-                messages.error(request, f"Purchase Order with ID {purchase_order_id} not found.")
-                return JsonResponse({"error": "Purchase Order not found", "messages": extract_messages(request)}, status=404)
-            except Exception as e:
-                 logger.exception(f"Error updating PO {purchase_order_id}: {e}")
-                 messages.error(request, f"Error updating purchase order: {e}")
-                 return JsonResponse({"error": f"Error updating purchase order: {e}", "messages": extract_messages(request)}, status=500)
+        for item_data in line_items:
+            line_id = item_data.get("id")
+            PurchaseOrderLine.objects.update_or_create(
+                id=line_id or None,
+                purchase_order=purchase_order,
+                defaults={
+                    'job_id': item_data.get("job"),
+                    'description': item_data.get("description"),
+                    'quantity': item_data.get("quantity"),
+                    'unit_cost': item_data.get("unit_cost"),
+                    'price_tbc': item_data.get("price_tbc", False),
+                    'metal_type': item_data.get("metal_type", "unspecified"),
+                    'alloy': item_data.get("alloy", ""),
+                    'specifics': item_data.get("specifics", ""),
+                    'location': item_data.get("location", ""),
+                    'dimensions': item_data.get("dimensions", "")
+                }
+            )
 
-        else:
-            # --- CREATE PATH ---
-            logger.debug("Attempting to create a new Purchase Order.")
-            supplier_id = purchase_order_data.get("client_id")
-            order_date = purchase_order_data.get("order_date")
+        manager = XeroPurchaseOrderManager(purchase_order=purchase_order)
 
-            if not supplier_id or not order_date:
-                 logger.error("Missing supplier_id or order_date for PO creation.")
-                 messages.error(request, "Supplier and Order Date are required to create a Purchase Order.")
-                 return JsonResponse({"error": "Missing required fields (Supplier, Order Date)", "messages": extract_messages(request)}, status=400)
+        if not manager.can_sync_to_xero():
+            logger.warning(f"Cannot sync PO {purchase_order.id} to Xero - validation failed")
+            return JsonResponse({
+                "success": True,
+                "is_incomplete_po": True,
+                "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+            })
 
-            try:
-                purchase_order = PurchaseOrder(
-                    supplier_id=supplier_id,
-                    status=purchase_order_data.get("status", 'draft'),
-                    order_date=order_date,
-                    expected_delivery=purchase_order_data.get("expected_delivery") or None,
-                    reference=purchase_order_data.get("reference") or None
-                )
-                purchase_order.save() # Generates ID and po_number
-                logger.info(f"Created purchase order {purchase_order.po_number} with ID {purchase_order.id}")
-                created = True
-            except IntegrityError as e:
-                 logger.exception(f"Integrity error during PO creation: {e}")
-                 messages.error(request, f"Failed to create purchase order due to a conflict: {e}")
-                 # Distinguish duplicate PO number error if possible
-                 error_msg = f"Database integrity error: {e}"
-                 if 'po_number' in str(e):
-                     error_msg = "Failed to create purchase order: A purchase order with this number might already exist or there was a generation conflict. Please try again."
-                 return JsonResponse({"error": error_msg, "messages": extract_messages(request)}, status=400)
-            except Exception as e:
-                 logger.exception(f"Unexpected error during PO creation: {e}")
-                 messages.error(request, f"Unexpected error creating purchase order: {e}")
-                 return JsonResponse({"error": f"Unexpected error creating purchase order: {e}", "messages": extract_messages(request)}, status=500)
+        logger.info(f"Syncing purchase order {purchase_order.id} to Xero")
+        raw_response = manager.sync_to_xero()
+        response =  json.loads(raw_response.content)
 
 
-        # --- Process Line Items (Common to Create and Update) ---
-        if purchase_order: # Ensure PO exists before processing lines
-            processed_line_ids = set()
-            for item_data in line_items:
-                line_id = item_data.get("id")
-                try:
-                    # Use update_or_create for lines
-                    line, line_created = PurchaseOrderLine.objects.update_or_create(
-                        id=line_id or None,
-                        purchase_order=purchase_order, # Associate with the correct PO
-                        defaults={
-                            'job_id': item_data.get("job"),
-                            'description': item_data.get("description"),
-                            'quantity': item_data.get("quantity"),
-                            'unit_cost': item_data.get("unit_cost"),
-                            'price_tbc': item_data.get("price_tbc", False),
-                            'metal_type': item_data.get("metal_type", "unspecified"),
-                            'alloy': item_data.get("alloy", ""),
-                            'specifics': item_data.get("specifics", ""),
-                            'location': item_data.get("location", "")
-                        }
-                    )
-                    processed_line_ids.add(str(line.id))
-                    # logger.debug(f"{'Created' if line_created else 'Updated'} line item {line.id} for PO {purchase_order.po_number}")
-                except Exception as e:
-                    logger.exception(f"Error processing line item {item_data}: {e}")
-                    messages.error(request, f"Error processing line item: {e}")
-                    # Decide if this should be a fatal error for the whole request
-                    return JsonResponse({"error": f"Error processing line item: {e}", "messages": extract_messages(request)}, status=500)
+        if not response.get('success'):
+            if response.get('is_incomplete_po'):
+                logger.warning(f"Cannot sync PO {purchase_order.id} to Xero - validation failed")
+                return JsonResponse({"success": True, "is_incomplete_po": True})
 
-            logger.debug("Line items processed successfully")
-        else:
-             logger.error("Purchase order object is None after create/update logic. Cannot process lines.")
-             return JsonResponse({"error": "Internal error: Purchase order not available after processing.", "messages": extract_messages(request)}, status=500)
+            logger.error(f"Sync failure: {response.get('error')}")
+            messages.error(request, f"Failed to sync with Xero: {response.get('error')}")
+            return JsonResponse({
+                "success": False,
+                "error": response.get('error', "Failed to sync with Xero"),
+                "exception_type": response.get('exception_type'),
+                "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+            })
 
+        logger.info(f"Successfully synced PO {purchase_order.id} to Xero")
 
-        # --- Success Response ---
-        response_data = {
+        return JsonResponse({
             "success": True,
-            "messages": extract_messages(request),
-            "po_number": purchase_order.po_number,
-            "id": str(purchase_order.id), # Crucial: Always return the ID
-            "action": "created" if created else "updated",
-        }
-        logger.debug(f"Returning success response: {response_data}")
-        return JsonResponse(response_data)
+            "xero_url": purchase_order.online_url,
+            "xero_id": str(purchase_order.xero_id) if purchase_order.xero_id else None,
+            "redirect_url": reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+        })
 
-    except json.JSONDecodeError:
-        logger.error("Failed to parse JSON in autosave request")
-        messages.error(request, "Invalid request format.")
-        return JsonResponse(
-            {"error": "Invalid JSON", "messages": extract_messages(request)}, status=400
-        )
     except Exception as e:
-        messages.error(request, f"An unexpected error occurred: {str(e)}")
-        logger.exception("Unexpected error during purchase order autosave")
+        logger.exception("Error during purchase order autosave")
+        messages.error(request, f"An error occurred: {str(e)}")
         return JsonResponse(
-            {"error": f"Unexpected server error: {str(e)}", "messages": extract_messages(request)}, status=500
+            {"error": f"Unexpected server error: {str(e)}", "messages": extract_messages(request)},
+            status=500
         )
     
 
 @require_http_methods(["POST"])
-@transaction.atomic
 def delete_purchase_order_view(request, pk):
     if not pk:
         return JsonResponse({
@@ -367,3 +315,39 @@ def delete_purchase_order_view(request, pk):
             "success": False,
             "error": f"There was an error while trying to delete Purchase Order {pk}: {e}"
         })
+
+
+@require_http_methods(["POST"])
+def extract_supplier_quote_data_view(request):
+    """
+    Extract data from a supplier quote to pre-fill a PO form.
+    """
+    try:
+        # Check if a file was uploaded
+        if 'quote_file' not in request.FILES:
+            return JsonResponse({
+                "success": False,
+                "error": "No quote file uploaded."
+            }, status=400)
+
+        quote_file = request.FILES['quote_file']
+
+        # Create PO from quote
+        purchase_order, error = create_po_from_quote(quote_file=quote_file)
+
+        if error:
+            return JsonResponse({
+                "success": False,
+                "error": f"Error extracting data from quote: {error}"
+            }, status=400)
+
+        # Redirect to the PO form with the PO ID
+        redirect_url = reverse('edit_purchase_order', kwargs={'pk': purchase_order.id})
+        return redirect(redirect_url)
+
+    except Exception as e:
+        logger.exception(f"Error extracting data from quote: {e}")
+        return JsonResponse({
+            "success": False,
+            "error": f"Error extracting data from quote: {str(e)}"
+        }, status=500)

@@ -1,4 +1,4 @@
-# workflow/views/xero_base_creator.py
+# workflow/views/xero/xero_base_manager.py
 import logging
 import json
 from abc import ABC, abstractmethod
@@ -10,15 +10,21 @@ from xero_python.accounting import AccountingApi
 from xero_python.accounting.models import Contact
 
 # Import models used in type hints or logic
+
+# Type hints will use string literals to avoid circular imports
+# from .xero_invoice_manager import XeroInvoiceManager
+# from .xero_quote_manager import XeroQuoteManager
+# from .xero_po_manager import XeroPurchaseOrderManager
+
 from workflow.models import Job, Client
 from workflow.api.xero.xero import api_client, get_tenant_id
 from .xero_helpers import clean_payload, convert_to_pascal_case # Import helpers
 
 logger = logging.getLogger("xero")
 
-class XeroDocumentCreator(ABC):
+class XeroDocumentManager(ABC):
     """
-    Base class for creating Xero Documents (Invoices, Quotes, Purchase Orders).
+    Base class for managing Xero Documents (Invoices, Quotes, Purchase Orders).
     Implements common logic and provides abstract methods for customization.
     """
 
@@ -38,7 +44,7 @@ class XeroDocumentCreator(ABC):
                                  Not directly used for PurchaseOrder at this level.
         """
         if client is None:
-             raise ValueError("Client cannot be None for XeroDocumentCreator")
+             raise ValueError("Client cannot be None for XeroDocumentManager")
         self.client = client
         self.job = job # Optional job association
         self.xero_api = AccountingApi(api_client)
@@ -145,19 +151,19 @@ class XeroDocumentCreator(ABC):
             # This depends on the specific endpoint (Invoices, Quotes, PurchaseOrders)
             # We need to import the specific creator types here eventually
             # Defer imports to avoid circular dependencies until files are created
-            from .xero_invoice_creator import XeroInvoiceCreator
-            from .xero_quote_creator import XeroQuoteCreator
-            from .xero_po_creator import XeroPurchaseOrderCreator
+            from .xero_invoice_manager import XeroInvoiceManager
+            from .xero_quote_manager import XeroQuoteManager
+            from .xero_po_manager import XeroPurchaseOrderManager
 
-            if isinstance(self, XeroInvoiceCreator):
+            if hasattr(self, '_is_invoice_manager'):
                 api_payload = {"Invoices": [payload]}
                 api_method = self.xero_api.create_invoices
                 kwargs = {'invoices': api_payload}
-            elif isinstance(self, XeroQuoteCreator):
+            elif hasattr(self, '_is_quote_manager'):
                 api_payload = {"Quotes": [payload]}
                 api_method = self.xero_api.create_quotes
                 kwargs = {'quotes': api_payload}
-            elif isinstance(self, XeroPurchaseOrderCreator):
+            elif hasattr(self, '_is_po_manager'):
                 api_payload = {"PurchaseOrders": [payload]}
                 api_method = self.xero_api.create_purchase_orders
                 kwargs = {'purchase_orders': api_payload}
@@ -192,7 +198,7 @@ class XeroDocumentCreator(ABC):
     def delete_document(self):
         """
         Handles document deletion and API communication with Xero.
-        Requires subclasses to implement get_xero_update_method appropriately
+        Requires subclasses to implement _get_xero_update_method appropriately
         (e.g., returning self.xero_api.update_or_create_invoices for setting status to DELETED).
         """
         self.validate_client()
@@ -205,20 +211,17 @@ class XeroDocumentCreator(ABC):
 
             # Determine the correct payload structure for the API call (similar to create)
             # Defer imports to avoid circular dependencies until files are created
-            from .xero_invoice_creator import XeroInvoiceCreator
-            from .xero_quote_creator import XeroQuoteCreator
-            from .xero_po_creator import XeroPurchaseOrderCreator
 
-            if isinstance(self, XeroInvoiceCreator):
+            if hasattr(self, '_is_invoice_manager'):
                 api_payload = {"Invoices": [payload]}
                 # Deletion is often handled by POST/PUT with status=DELETED
                 api_method = self._get_xero_update_method()
                 kwargs = {'invoices': api_payload}
-            elif isinstance(self, XeroQuoteCreator):
+            elif hasattr(self, '_is_quote_manager'):
                 api_payload = {"Quotes": [payload]}
                 api_method = self._get_xero_update_method()
                 kwargs = {'quotes': api_payload}
-            elif isinstance(self, XeroPurchaseOrderCreator):
+            elif hasattr(self, '_is_po_manager'):
                 api_payload = {"PurchaseOrders": [payload]}
                 api_method = self._get_xero_update_method()
                 kwargs = {'purchase_orders': api_payload}
@@ -245,4 +248,49 @@ class XeroDocumentCreator(ABC):
             raise
 
         return response
+
+    def sync_document(self):
+        """
+        Synchronizes the document between local system and Xero.
+        - If document exists in Xero, updates local record with latest data
+        - If document doesn't exist in Xero, creates it
+        - Returns tuple of (sync_success: bool, action_taken: str)
+        """
+        self.validate_client()
+        
+        xero_id = self.get_xero_id()
+        if not xero_id:
+            # Document doesn't exist in Xero yet - create it
+            try:
+                response = self.create_document()
+                return (True, "created")
+            except Exception as e:
+                logger.error(f"Failed to create document in Xero during sync: {str(e)}")
+                return (False, "create_failed")
+
+        try:
+            # Document exists - get latest from Xero
+            api_method = self._get_xero_update_method()
+            response = api_method(
+                self.xero_tenant_id,
+                xero_id,
+                _return_http_data_only=False
+            )
+            
+            # Update local record with Xero data
+            document_data = response[0]  # First element is the document data
+            local_model = self.get_local_model()
+            local_doc = local_model.objects.get(xero_id=xero_id)
+            
+            # Update fields from Xero response
+            local_doc.xero_last_synced = timezone.now()
+            local_doc.xero_last_modified = document_data.get('updated_date_utc')
+            local_doc.status = document_data.get('status')
+            local_doc.save()
+            
+            return (True, "synced")
+            
+        except Exception as e:
+            logger.error(f"Failed to sync document {xero_id}: {str(e)}")
+            return (False, "sync_failed")
     

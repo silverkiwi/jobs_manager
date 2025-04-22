@@ -174,9 +174,7 @@
                     <div class="mb-3">
                         <label for="newStockMetalType" class="form-label">Metal Type</label>
                         <select class="form-select" id="newStockMetalType">
-                            {% for value, display_name in metal_types %}
-                            <option value="{{ value }}" {% if value == 'unspecified' %}selected{% endif %}>{{ display_name }}</option>
-                            {% endfor %}
+                            <option value="" disabled selected>Loading metal types...</option>
                         </select>
                     </div>
                     

@@ -43,6 +43,7 @@ from django.views.generic import RedirectView
 
 from workflow.api import server
 from workflow.api.reports.pnl import CompanyProfitAndLossReport
+from workflow.api.enums import get_enum_choices
 from workflow.views import (
     client_view,
     edit_job_view_ajax,
@@ -59,7 +60,13 @@ from workflow.views.xero import xero_view
 from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views, stock_view, use_stock_view
-from workflow.views.purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, autosave_purchase_order_view, delete_purchase_order_view
+from workflow.views.purchase_order_view import (
+    PurchaseOrderListView,
+    PurchaseOrderCreateView,
+    autosave_purchase_order_view,
+    delete_purchase_order_view,
+    extract_supplier_quote_data_view
+)
 from workflow.views.delivery_receipt_view import DeliveryReceiptListView, DeliveryReceiptCreateView
 
 urlpatterns = [
@@ -85,6 +92,7 @@ urlpatterns = [
     path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
     path("api/client-detail/", client_view.client_detail, name="client_detail"),
+    path("api/extract-supplier-quote/", extract_supplier_quote_data_view, name="extract_supplier_quote_data"),
     path("api/staff/all/", staff_view.StaffListAPIView.as_view(), name="all_staff_api"),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
@@ -97,6 +105,7 @@ urlpatterns = [
         name="send_quote_email",
     ),
     path("api/get-env-variable/", server.get_env_variable, name="get_env_variable"),
+    path("api/enums/<str:enum_name>/", get_enum_choices, name="get_enum_choices"),
     # path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
     path("api/create-job/", edit_job_view_ajax.create_job_api, name="create_job_api"),
     path(

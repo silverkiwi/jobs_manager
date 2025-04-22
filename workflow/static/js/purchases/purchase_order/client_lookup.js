@@ -3,22 +3,26 @@
  *
  * This JS module provides client (supplier) search functionality with suggestions.
  * It is used for purchase order forms.
- *
- * Note: A similar version of this component exists at:
- * workflow/static/js/job/client_lookup.js
- *
- * Make sure you update both files if you make any changes.
- *
- * Shared component for consistency across the application.
  */
 
 import { debouncedAutosave } from "./purchase_order_autosave.js";
+import { renderMessages } from "./messages.js";
 
-document.addEventListener("DOMContentLoaded", function () {
+/**
+ * Get the CSRF token from the page
+ * @returns {string} CSRF token
+ */
+function getCsrfToken() {
+  const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
+  return csrfToken ? csrfToken.value : "";
+}
+
+/**
+ * Initialize the client lookup functionality
+ */
+export function initializeClientLookup() {
   const clientInput = document.getElementById("client_name");
-  const suggestionsContainer = document.getElementById(
-    "clientSuggestionsContainer",
-  );
+  const suggestionsContainer = document.getElementById("clientSuggestionsContainer");
 
   if (!clientInput || !suggestionsContainer) {
     console.error("Client input field or suggestions container not found.");
@@ -26,17 +30,24 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Clear Xero contact ID when client name is manually edited
-  clientInput.addEventListener("input", function () {
+  clientInput.addEventListener("input", function() {
     const clientXeroIdField = document.getElementById("client_xero_id");
     const clientIdField = document.getElementById("client_id");
-    if (clientXeroIdField) {
+    if (clientXeroIdField && clientIdField) {
       clientXeroIdField.value = "";
       clientIdField.value = "";
+    }
+    
+    const query = clientInput.value.trim();
+    if (query.length > 2) {
+      fetchClientSuggestions(query);
+    } else {
+      hideDropdown();
     }
   });
 
   // Add message event listener to handle client selection from child window
-  window.addEventListener("message", function (event) {
+  window.addEventListener("message", function(event) {
     console.log("Received message:", event.data);
 
     // Handle messages from client selection window
@@ -72,62 +83,56 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  /**
+   * Hide the suggestions dropdown
+   */
   function hideDropdown() {
     suggestionsContainer.innerHTML = "";
     suggestionsContainer.classList.add("d-none");
   }
 
+  /**
+   * Show the suggestions dropdown
+   */
   function showDropdown() {
     suggestionsContainer.classList.remove("d-none");
   }
 
-  clientInput.addEventListener("input", function () {
-    const query = clientInput.value.trim();
-
-    if (query.length > 2) {
-      fetch(`/api/client-search/?q=${encodeURIComponent(query)}`, {
-        method: "GET",
-        headers: {
-          "X-CSRFToken": getCsrfToken(),
-          "Content-Type": "application/json",
-        },
+  /**
+   * Fetch client suggestions from the server
+   * @param {string} query - Search query
+   */
+  function fetchClientSuggestions(query) {
+    fetch(`/api/client-search/?q=${encodeURIComponent(query)}`, {
+      method: "GET",
+      headers: {
+        "X-CSRFToken": getCsrfToken(),
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(
+            "Network response was not ok: " + response.statusText,
+          );
+        }
+        return response.json();
       })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(
-              "Network response was not ok: " + response.statusText,
-            );
-          }
-          return response.json();
-        })
-        .then((data) => {
-          displayClientSuggestions(data.results, query);
-          showDropdown();
-        })
-        .catch((error) => {
-          console.error("Error fetching client data:", error);
-          hideDropdown();
-        });
-    } else {
-      hideDropdown();
-    }
-  });
+      .then((data) => {
+        displayClientSuggestions(data.results, query);
+        showDropdown();
+      })
+      .catch((error) => {
+        console.error("Error fetching client data:", error);
+        hideDropdown();
+      });
+  }
 
-  // Global click event to close the dropdown
-  document.addEventListener("click", function (event) {
-    const isClickInsideInput = clientInput.contains(event.target);
-    const isClickInsideContainer = suggestionsContainer.contains(event.target);
-
-    if (!isClickInsideInput && !isClickInsideContainer) {
-      suggestionsContainer.innerHTML = ""; // Clear suggestions
-    }
-  });
-
-  // Prevent click inside the suggestions container from propagating
-  suggestionsContainer.addEventListener("click", function (event) {
-    event.stopPropagation(); // Prevents global listener from triggering
-  });
-
+  /**
+   * Display client suggestions in the dropdown
+   * @param {Array} clients - List of client objects
+   * @param {string} query - Search query
+   */
   function displayClientSuggestions(clients, query) {
     suggestionsContainer.innerHTML = "";
 
@@ -143,20 +148,19 @@ document.addEventListener("DOMContentLoaded", function () {
         suggestionItem.textContent = client.name;
         suggestionItem.dataset.clientId = client.id;
 
-        suggestionItem.addEventListener("click", function () {
+        suggestionItem.addEventListener("click", function() {
           clientInput.value = client.name;
           const clientIdField = document.getElementById("client_id");
           const clientNameField = document.getElementById("client_name");
           const clientXeroIdField = document.getElementById("client_xero_id");
 
-          clientIdField.value = client.id;
-          clientNameField.value = client.name;
-          clientXeroIdField.value = client.xero_contact_id;
+          if (clientIdField) clientIdField.value = client.id;
+          if (clientNameField) clientNameField.value = client.name;
+          if (clientXeroIdField) clientXeroIdField.value = client.xero_contact_id || "";
 
           if (
-            !clientIdField.value ||
-            !clientNameField.value ||
-            !clientXeroIdField.value
+            !clientIdField?.value ||
+            !clientNameField?.value
           ) {
             console.error("Failed to update client fields in the form.");
             renderMessages(
@@ -166,7 +170,7 @@ document.addEventListener("DOMContentLoaded", function () {
                   message: "Failed to update client fields in the form.",
                 },
               ],
-              "job-details",
+              "purchase-order",
             );
           }
 
@@ -178,10 +182,11 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
+    // Add the "Add new client" option
     const addNewOption = document.createElement("div");
     addNewOption.classList.add("suggestion-item", "add-new-client");
     addNewOption.textContent = `Add new client "${query}"`;
-    addNewOption.addEventListener("click", function () {
+    addNewOption.addEventListener("click", function() {
       const newWindow = window.open(
         `/client/add/?name=${encodeURIComponent(query)}`,
         "_blank",
@@ -196,21 +201,18 @@ document.addEventListener("DOMContentLoaded", function () {
     suggestionsContainer.appendChild(addNewOption);
   }
 
-  document.addEventListener("click", function (event) {
-    if (
-      !clientInput.contains(event.target) &&
-      !suggestionsContainer.contains(event.target)
-    ) {
+  // Global click event to close the dropdown
+  document.addEventListener("click", function(event) {
+    const isClickInsideInput = clientInput.contains(event.target);
+    const isClickInsideContainer = suggestionsContainer.contains(event.target);
+
+    if (!isClickInsideInput && !isClickInsideContainer) {
       hideDropdown();
     }
   });
 
-  suggestionsContainer.addEventListener("click", function (event) {
-    event.stopPropagation();
+  // Prevent click inside the suggestions container from propagating
+  suggestionsContainer.addEventListener("click", function(event) {
+    event.stopPropagation(); // Prevents global listener from triggering
   });
-
-  function getCsrfToken() {
-    const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
-    return csrfToken ? csrfToken.value : "";
-  }
-});
+}

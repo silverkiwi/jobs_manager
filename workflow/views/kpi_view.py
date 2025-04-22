@@ -34,6 +34,11 @@ class KPICalendarViews:
                 year = int(request.query_params.get("year", date.today().year))
                 month = int(request.query_params.get("month", date.today().month))
 
+                if (not 1 <= month <= 12 or not 2000 <= year <= 2100):
+                    return Response({
+                        "error": "Year or month out of valid range. Please check the query params."
+                    })
+
                 calendar_data = KPIService.get_calendar_data(year, month)
 
                 return Response(calendar_data, status=status.HTTP_200_OK)

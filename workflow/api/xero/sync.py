@@ -790,7 +790,7 @@ def sync_purchase_orders(purchase_orders):
                     # Create or update line item
                     po_line, line_created = PurchaseOrderLine.objects.update_or_create(
                         purchase_order=purchase_order,
-                        item_code=line_item.item_code or "",
+                        supplier_item_code=line_item.item_code or "",
                         description=line_item.description,
                         defaults={
                             "quantity": line_item.quantity,

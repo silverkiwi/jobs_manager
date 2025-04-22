@@ -1,4 +1,4 @@
-import { Environment } from "../env.js";
+import { Environment } from "../../env.js";
 
 const sentMessages = new Set();
 const MESSAGE_TIMEOUT = 15000;
