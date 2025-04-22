@@ -4,7 +4,6 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from workflow.models import Stock, CompanyDefaults
 from workflow.utils import get_active_jobs
-from workflow.enums import MetalType
 
 logger = logging.getLogger(__name__)
 def use_stock_view(request, job_id=None):
@@ -65,7 +64,6 @@ def use_stock_view(request, job_id=None):
         'stock_data_json': json.dumps(stock_data),
         'active_jobs': active_jobs,
         'stock_holding_job': stock_holding_job,
-        'metal_types': MetalType.choices,
         'default_job_id': str(job_id) if job_id else None,
     }
     
