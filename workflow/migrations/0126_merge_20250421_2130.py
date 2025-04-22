@@ -4,9 +4,7 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("workflow", "0122_companydefaults_billable_threshold_amber_and_more"),
         ("workflow", "0125_alter_purchaseorder_order_date"),
     ]
 
