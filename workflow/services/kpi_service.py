@@ -11,6 +11,7 @@ from django.db.models import Sum, Case, When, F, DecimalField, Value, Q, Subquer
 from logging import getLogger
 
 from workflow.models import TimeEntry, CompanyDefaults, Job
+from workflow.models.adjustment_entry import AdjustmentEntry
 from workflow.models.material_entry import MaterialEntry
 from workflow.utils import get_excluded_staff
 
@@ -46,13 +47,7 @@ class KPIService:
             return thresholds
         except Exception as e:
             logger.error(f"Error retrieving company defaults: {str(e)}")
-            logger.warning("Using fallback threshold values")
-            return {
-                "billable_threshold_green": 45,
-                "billable_threshold_amber": 30,
-                "daily_gp_target": 1250,
-                "shop_hours_target": 20
-            }
+            raise
     
     @classmethod
     def get_month_days_range(cls, year: int, month: int) -> Tuple[date, date, int]:
