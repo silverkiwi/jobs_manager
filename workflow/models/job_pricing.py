@@ -46,17 +46,17 @@ class JobPricing(models.Model):
     @property
     def material_entries(self):
         """Returns all MaterialEntries related to this JobPricing"""
-        return self.material_entries.all()
+        return self.materialentries_set.all()
 
     @property
     def time_entries(self):
         """Returns all TimeEntries related to this JobPricing"""
-        return self.time_entries.all()
+        return self.timeentries_set.all()
 
     @property
     def adjustment_entries(self):
         """Returns all AdjustmentEntries related to this JobPricing"""
-        return self.adjustment_entries.all()
+        return self.adjustmententries_set.all()
 
     @property
     def total_time_cost(self):
