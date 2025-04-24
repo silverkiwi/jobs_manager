@@ -508,7 +508,7 @@ class Command(BaseCommand):
             
             AdjustmentEntry.objects.create(
                 job_pricing=jp,
-                description=f"Adjustmenr for {jp.job.name}",
+                description=f"Adjustment for {jp.job.name}",
                 price_adjustment=price_adjustment.quantize(Decimal("0.01")),
                 cost_adjustment=cost_adjustment.quantize(Decimal("0.01")),
                 comments=f"Auto-generated KPI test data ({category} day)"
