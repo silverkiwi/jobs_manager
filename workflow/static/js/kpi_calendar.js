@@ -63,25 +63,34 @@ class CalendarView {
         return this.calendar;
     }
 
+    /**
+     * Displays the loader element while hides the calendar
+     */
     showLoader() {
         if (this.loaderEl) this.loaderEl.style.display = 'flex';
         if (this.calendarEl) this.calendarEl.style.display = 'none';
     }
 
+    /**
+     * Hides the loader element while displays the calendar
+     */
     hideLoader() {
         if (this.loaderEl) this.loaderEl.style.display = 'none';
         if (this.calendarEl) this.calendarEl.style.display = 'block';
         this.updateSize();
     }
 
+    /**
+     * Calls the FullCalendar instance function that updates its size
+     */
     updateSize() {
         if (this.calendar) this.calendar.updateSize();
     }
 
     /**
      * Updates the summary cards of the page based on the monthlyTotals and thresholds received from the API
-     * @param {any} monthlyTotals 
-     * @param {any} thresholds 
+     * @param {Object} monthlyTotals 
+     * @param {Object} thresholds 
      */
     updateSummaryCards(monthlyTotals, thresholds) {
         const billableHours = monthlyTotals.billable_hours != null 
@@ -115,11 +124,35 @@ class CalendarView {
         document.getElementById('amberDays').textContent = monthlyTotals.days_amber || 0;
         document.getElementById('redDays').textContent = monthlyTotals.days_red || 0;
         document.getElementById('workingDays').textContent = monthlyTotals.working_days || 0;
+
+        const billableColorClass = monthlyTotals.color_hours || 'neutral';
+        const gpColorClass = monthlyTotals.color_gp || 'neutral';
+
+        const billableHoursCard = document.getElementById('billableHoursCard');
+        billableHoursCard.className = 
+            billableHoursCard.className.replace(/card-status-\w+/g, '') + ` card-status-${billableColorClass}`;
+        
+        const gpCard = document.getElementById("grossProfitCard");
+        gpCard.className = 
+            gpCard.className.replace(/card-status-\w+/g, '') + ` card-status-${gpColorClass}`;
+        
+        const avgBillableHoursSoFar = monthlyTotals.avg_billable_hours_so_far != null
+            ? this.formatter.formatNumber(monthlyTotals.avg_billable_hours_so_far, 1)
+            : '0.0';
+        const avgDailyGpSoFar = monthlyTotals.avg_daily_gp_so_far != null
+            ? this.formatter.formatCurrency(monthlyTotals.avg_daily_gp_so_far)
+            : '$0.00';
+        
+        document.getElementById('elapsedWorkdays').textContent = monthlyTotals.elapsed_workdays || 0;
+        document.getElementById('remainingWorkdays').textContent = monthlyTotals.remaining_workdays || 0;
+
+        document.getElementById('avgBillableHoursSoFar').textContent = avgBillableHoursSoFar;
+        document.getElementById('avgDailyGPSoFar').textContent = avgDailyGpSoFar;
     }
 
     /**
      * Updates the captions based on the thresholds received from the API.
-     * @param {any} thresholds 
+     * @param {Array<Object>} thresholds 
      * @returns {void}
      */
     updateCaptions(thresholds) {
@@ -176,9 +209,12 @@ class CalendarView {
         // Determine class based on status
         const colorClass = props.color ? `event-card-${props.color}` : '';
 
+        const isFutureDate = arg.event.extendedProps.isFutureDate;
+        const futureClass = isFutureDate ? 'future-date' : '';
+
         // Create HTML with tooltip data directly in the card
         return {
-            html: `<div class="event-content ${colorClass}">
+            html: `<div class="event-content ${colorClass} ${futureClass}">
                     <div class="status-indicator status-indicator-${props.color || 'green'}"></div>
                     <div class="event-title">${billable}h</div>
                     <div class="event-gp">${gp}</div>
@@ -195,6 +231,7 @@ class CalendarView {
                             <span class="event-detail-value">${shopPercentage}%</span>
                             <span class="event-detail-label">Shop%</span>
                         </div>
+                        ${isFutureDate ? '<div class="future-indicator">Not elapsed yet</div>' : ''}
                     </div>
                   </div>`
         };
@@ -245,6 +282,11 @@ class CalendarView {
 }
 
 class CalendarDataService {
+
+    /**
+     * 
+     * @param {String} apiBaseUrl 
+     */
     constructor(apiBaseUrl = '/api/reports/calendar') {
         this.apiBaseUrl = apiBaseUrl;
     }
@@ -254,7 +296,7 @@ class CalendarDataService {
      * 
      * @param {Number} year Required query parameter for the API call
      * @param {Number} month Required query parameter for the API call
-     * @returns {any} The data validated after the API response
+     * @returns {Object} The data validated after the API response
      */
     async fetchCalendarData(year, month) {
         try {
@@ -279,8 +321,8 @@ class CalendarDataService {
      * Validates the data received from the back-end, falling back for fallback values or throwing an error if it's in an invalid format
      * 
      * @private
-     * @param {any} data The data received from the back-end before any validations
-     * @returns {any} The data after validations
+     * @param {Object} data The data received from the back-end before any validations
+     * @returns {Object} The data after validations
      */
     #validateData(data) {
         if (!data || typeof data !== 'object') {
@@ -337,6 +379,11 @@ class CalendarDataService {
 }
 
 class EventFormatter {
+
+    /**
+     * 
+     * @param {CalendarDataService} dataService 
+     */
     constructor(dataService) {
         this.currencyFormatter = new Intl.NumberFormat('en-NZ', {
             style: 'currency',
@@ -345,6 +392,13 @@ class EventFormatter {
         this.dataService = dataService;
     }
 
+    /**
+     * Creates a list of events on the calendar instance based on the data received from the back-end,
+     * after sanitizing it.
+     * 
+     * @param {Array<Object>} calendarData 
+     * @returns {Array<Object>} The events to be created on the calendar
+     */
     formatEvents(calendarData) {
         const events = [];
 
@@ -359,14 +413,37 @@ class EventFormatter {
         return events;
     }
 
+    /**
+     * Formats a currency value based on the currencyFormatter member of the class
+     * 
+     * @param {Number} value 
+     * @returns 
+     */
     formatCurrency(value) {
         return this.currencyFormatter.format(value || 0);
     }
 
+
+    /**
+     * Formats a given number to a given quantity of decimals, falling back to 1 decimal if not provided.
+     * 
+     * @param {Number} value 
+     * @param {Number} decimals 
+     * @returns 
+     */
     formatNumber(value, decimals = 1) {
         return (value || 0).toFixed(decimals);
     }
 
+    /**
+     * Sanitizes a key-value pair date-dayData received from the back-end for a given day.
+     * Formats it to the correct object format providing fallback values in case they're not found in dayData.
+     * Cleans the formatted object of any null, undefined or NaN value.
+     * 
+     * @param {Date | String} date 
+     * @param {Object} dayData 
+     * @returns {Object} The data after proper formatting and sanitizing.
+     */
     #sanitizeData(date, dayData) {
         const safeData = {
             date: date,
@@ -390,8 +467,18 @@ class EventFormatter {
         return safeData;
     }
 
+    /**
+     * Creates an event list to be created inside the calendar based on a given date and its related data.
+     * 
+     * @param {Date} date 
+     * @param {any} data 
+     * @returns {Array<Object>} The list of events for the given date
+     */
     #createEventsForDay(date, data) {
         const events = [];
+        const isFutureDate = new Date(date) > new Date().setHours(0,0,0,0);
+
+        const futureClass = isFutureDate ? 'future-date' : '';
 
         // Add background event to color the cell (with low z-index)
         events.push({
@@ -399,7 +486,7 @@ class EventFormatter {
             allDay: true,
             display: 'background',
             backgroundColor: this.dataService.getColorForStatus(data.color),
-            classNames: [data.color]
+            classNames: [data.color, futureClass]
         });
         
         // Add event with data to display (with high z-index)
@@ -407,8 +494,8 @@ class EventFormatter {
             title: `${this.formatNumber(data.billable_hours, 1)}h | ${this.formatCurrency(data.gross_profit)}`,
             start: date,
             allDay: true,
-            extendedProps: data,
-            classNames: ['calendar-day-event']
+            extendedProps: { ...data, isFutureDate },
+            classNames: ['calendar-day-event', futureClass]
         });
 
         return events;
@@ -434,6 +521,12 @@ class CalendarController {
         this.onResize = this.onResize.bind(this);
     }
 
+    /**
+     * Initializes the calendar object with the proper view funciton based on the onDatesSet method.
+     * Loads the data to the initialized calendar object.
+     * 
+     * @returns {Boolean} boolean indicating whether the initialization occurred successfully or not
+     */
     initialize() {
         try {
             this.calendar = this.view.initializeCalendar(this.onDatesSet);
@@ -450,6 +543,14 @@ class CalendarController {
         }
     } 
 
+    /**
+     * Loads the calendar data with the proper dataService function based on the current year and month.
+     * Displays the loader while doing it, and formats any events received from the back-end.
+     * Updates the summary cards and captions with the received data, too.
+     * Hides the loader when finished, in both success or error.
+     * 
+     * @param {Date} date 
+     */
     async loadCalendarData(date) {
         const year = date.getFullYear();
         const month = date.getMonth() + 1;
@@ -473,6 +574,12 @@ class CalendarController {
         }
     }
 
+    /**
+     * Updates the calendar by removing the existing events, loading the received ones and updating the calendar size.
+     * 
+     * @param {Array<Object>} events The events to be created within the calendar
+     * @returns {void}
+     */
     updateCalendar(events) {
         if (!this.calendar) return;
 
@@ -481,15 +588,26 @@ class CalendarController {
         this.view.updateSize();
     }
 
+    /**
+     * Based on the dateInfo, loads the calendar data.
+     * 
+     * @param {Object} dateInfo 
+     */
     onDatesSet(dateInfo) {
         const newDate = dateInfo.view.calendar.getDate();
         this.loadCalendarData(newDate);
     }
 
+    /**
+     * Updates the size of the calendar based on the proper view function.
+     */
     onResize() {
         this.view.updateSize();
     }
 
+    /**
+     * Destroys the instance by removing the event listener of the window and the members.
+     */
     destroy() {
         window.removeEventListener('resize', this.onResize);
         

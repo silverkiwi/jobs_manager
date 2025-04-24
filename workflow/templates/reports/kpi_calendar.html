@@ -315,6 +315,78 @@
         background-color: var(--danger-color);
         opacity: 0.7;
     }
+
+    .card-status-green {
+        border-left: 5px solid rgba(54, 177, 67, 1) !important;
+    }
+
+    .card-status-amber {
+        border-left: 5px solid rgba(249, 199, 79, 1);
+    }
+
+    .card-status-red {
+        border-left: 5px solid rgba(247, 37, 133, 1);
+    }
+
+    .card-status-neutral {
+        border-left: 5px solid #6c757d !important;
+    }
+
+    .future-date .event-content {
+        opacity: 0.7;
+        background-image: repeating-linear-gradient(
+            45deg,
+            rgba(255, 255, 255, 0.1),
+            rgba(255, 255, 255, 0.1) 10px,
+            rgba(255, 255, 255, 0.3) 10px,
+            rgba(255, 255, 255, 0.3) 20px
+        );
+    }
+
+    .future-indicator {
+        font-size: 9px;
+        text-transform: uppercase;
+        color: #666;
+        text-align: center;
+        margin-top: 2px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .status-thresholds {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        font-size: 0.7rem;
+        color: var(--muted-text);
+        border-top: 1px dashed rgba(0, 0, 0, 0.1);
+        padding-top: 5px;
+    }
+
+    .threshold-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .threshold-color {
+        width: 12px;
+        height: 12px;
+        display: inline-block;
+        margin-right: 4px;
+        border-radius: 2px;
+    }
+
+    .threshold-green { background-color: rgba(54, 177, 67, 0.8); }
+    .threshold-amber { background-color: rgba(249, 199, 79, 0.8); }
+    .threshold-red { background-color: rgba(247, 37, 133, 0.8); }
+
+    .workdays-info {
+        font-size: 0.8rem;
+        color: var(--muted-text);
+        border-top: 1px dashed rgba(0,0,0,0.1);
+        padding-top: 5px;
+        margin-top: 8px;
+    }
 </style>
 {% endblock %}
 
@@ -329,7 +401,7 @@
     <!-- KPI Summary Cards -->
     <div class="row mb-4" id="summaryCards">
         <div class="col-md-3 mb-3">
-            <div class="card card-enhanced h-100">
+            <div id="billableHoursCard" class="card card-enhanced h-100">
                 <div class="card-body">
                     <div class="kpi-stat">
                         <h3>Billable Hours</h3>
@@ -339,12 +411,19 @@
                             </div>
                         </div>
                         <div class="subvalue"><span id="billablePercentage">--</span>% of total</div>
+                        <div class="status-thresholds">
+                            <div class="threshold-current">Elapsed daily avg.: <span id="avgBillableHoursSoFar">0.0</span>h</div>
+                            <div class="threshold-item">
+                                <span class="threshold-color threshold-green"></span>
+                                <span id="captionGreenHours">≥ 45</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card card-enhanced h-100">
+            <div id="grossProfitCard" class="card card-enhanced h-100">
                 <div class="card-body">
                     <div class="kpi-stat">
                         <h3>Gross Profit</h3>
@@ -354,6 +433,13 @@
                             </div>
                         </div>
                         <div class="subvalue">Daily Average: $<span id="avgDailyGP">--</span></div>
+                        <div class="status-thresholds">
+                            <div class="threshold-current">Elapsed daily avg.: <span id="avgDailyGPSoFar">$0.00</span></div>
+                            <div class="threshold-item">
+                                <span class="threshold-color threshold-green"></span>
+                                <span id="captionGreenHours">≥ $1,250</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -395,6 +481,12 @@
                             </div>
                         </div>
                         <div class="subvalue">Working days: <span id="workingDays">--</span></div>
+                        <div class="workdays-info mt-2">
+                            <div class="d-flex justify-content-between">
+                                <div>Elapsed days: <span id="elapsedWorkdays">0</span></div>
+                                <div>Remaining: <span id="remainingWorkdays">0</span></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
