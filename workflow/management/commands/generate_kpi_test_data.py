@@ -108,7 +108,7 @@ class Command(BaseCommand):
                     f'Successfully deleted mock entries:\n'
                     f'- Time entries: {time_count}\n'
                     f'- Material entries: {material_count}\n'
-                    f'- Adjustment entries {adjustment_count}'
+                    f'- Adjustment entries: {adjustment_count}'
                 )
             )
         except Exception as e:
