@@ -13,6 +13,8 @@ from workflow.models import (
     JobPricing,
     Staff,
     TimeEntry,
+    MaterialEntry,
+    AdjustmentEntry,
     CompanyDefaults
 )
 from workflow.enums import JobPricingStage
@@ -83,15 +85,31 @@ class Command(BaseCommand):
         """Delete all mock time entries created by this script"""
         try:
             # Find entries with note containing our marker
-            mock_entries = TimeEntry.objects.filter(
+            mock_time_entries = TimeEntry.objects.filter(
                 note__contains="Auto-generated KPI test data"
             )
-            
-            count = mock_entries.count()
-            mock_entries.delete()
+            time_count = mock_time_entries.count()
+            mock_time_entries.delete()
+
+            mock_material_entries = MaterialEntry.objects.filter(
+                comments__contains="Auto-generated KPI test data"
+            )
+            material_count = mock_material_entries.count()
+            mock_material_entries.delete()
+
+            mock_adjustment_entries = AdjustmentEntry.objects.filter(
+                comments__contains="Auto-generated KPI test data"
+            )
+            adjustment_count = mock_adjustment_entries.count()
+            mock_adjustment_entries.delete()
             
             self.stdout.write(
-                self.style.SUCCESS(f'Successfully deleted {count} mock time entries')
+                self.style.SUCCESS(
+                    f'Successfully deleted mock entries:\n'
+                    f'- Time entries: {time_count}\n'
+                    f'- Material entries: {material_count}\n'
+                    f'- Adjustment entries: {adjustment_count}'
+                )
             )
         except Exception as e:
             self.stdout.write(
@@ -186,7 +204,7 @@ class Command(BaseCommand):
             
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'Successfully created {total_entries} mock time entries for {calendar.month_name[month]} {year}\n'
+                    f'Successfully created {total_entries} mock entries for {calendar.month_name[month]} {year}\n'
                     f'- Green days: {good_days}\n'
                     f'- Amber days: {medium_days}\n'
                     f'- Red days: {bad_days}\n'
@@ -404,10 +422,105 @@ class Command(BaseCommand):
         ).select_related('job')
         
         return list(job_pricings)
+
+    def _create_material_entries(self, day_date, job_pricings, category):
+        """Create material entries for a specific day"""
+        entries_created = 0
+
+        match category:
+            case "green":
+                material_probability = 0.4
+                material_count_range = (1, 4)
+            case "amber":
+                material_probability = 0.3
+                material_count_range = (1, 3)
+            case _:
+                material_probability = 0.2
+                material_count_range = (1, 2)
+        
+        for jp in job_pricings:
+            time_entries = TimeEntry.objects.filter(job_pricing=jp, date=day_date)
+            if not time_entries.exists():
+                continue
+
+            if random.random() >= material_probability:
+                continue
+
+            num_materials = random.randint(*material_count_range)
+
+            for i in range(num_materials):
+                match category:
+                    case "green":
+                        unit_cost = Decimal(str(random.uniform(20, 300)))
+                        markup = random.uniform(1.25, 1.45)
+                    case "amber":
+                        unit_cost = Decimal(str(random.uniform(15, 250)))
+                        markup = random.uniform(1.15, 1.30)
+                    case _:
+                        unit_cost = Decimal(str(random.uniform(10, 200)))
+                        markup = random.uniform(1.05, 1.20)
+                    
+                unit_revenue = unit_cost * Decimal(str(markup))
+                quantity = random.randint(1, 5)
+
+                MaterialEntry.objects.create(
+                    job_pricing=jp,
+                    description=f"Material {i+1} for {jp.job.name}",
+                    unit_cost=unit_cost.quantize(Decimal('0.01')),
+                    unit_revenue=unit_revenue.quantize(Decimal('0.01')),
+                    quantity=quantity,
+                    comments=f"Auto-generated KPI test data ({category} day)"
+                )
+                entries_created += 1
+        
+        return entries_created
+    
+    def _create_adjustment_entries(self, day_date, job_pricings, category):
+        """Create adjustment entries for a specific day"""
+        entries_created = 0
+
+        match category:
+            case "green":
+                adjustment_probability = 0.15
+                price_adj_range = (-200, 500)
+                cost_adj_range = (-300, 100)
+            case "amber":
+                adjustment_probability = 0.2
+                price_adj_range = (-300, 300)
+                cost_adj_range = (-200, 200)
+            case _:
+                adjustment_probability = 0.25
+                price_adj_range = (-400, 100)
+                cost_adj_range = (-100, 300)
+
+        for jp in job_pricings:
+            time_entries = TimeEntry.objects.filter(job_pricing=jp, date=day_date)
+            if not time_entries.exists():
+                continue
+
+            if random.random() > adjustment_probability:
+                continue
+
+            price_adjustment = Decimal(str(random.uniform(*price_adj_range)))
+            cost_adjustment = Decimal("0.00")
+            if random.random() <= 0.7:
+                cost_adjustment=Decimal(str(random.uniform(*cost_adj_range)))
+            
+            AdjustmentEntry.objects.create(
+                job_pricing=jp,
+                description=f"Adjustment for {jp.job.name}",
+                price_adjustment=price_adjustment.quantize(Decimal("0.01")),
+                cost_adjustment=cost_adjustment.quantize(Decimal("0.01")),
+                comments=f"Auto-generated KPI test data ({category} day)"
+            )
+            entries_created += 1
+        
+        return entries_created
+
     
     def _create_day_entries(self, day_date, staff_members, regular_job_pricings, 
                            shop_job_pricings, target_billable, category):
-        """Create time entries for a specific day"""
+        """Create time, material and adjustment entries for a specific day"""
         entries_created = 0
         staff_list = list(staff_members)
         random.shuffle(staff_list)
@@ -506,5 +619,11 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.WARNING(f"Error creating entries for {staff}: {e}"))
                 continue  # Skip to next staff member on error
+                
+        material_entries_created = self._create_material_entries(day_date, regular_job_pricings, category)
+        entries_created += material_entries_created
+        
+        adjustment_entries_created = self._create_adjustment_entries(day_date, regular_job_pricings, category)
+        entries_created += adjustment_entries_created
         
         return entries_created

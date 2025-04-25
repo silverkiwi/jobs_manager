@@ -11,6 +11,7 @@ from django.db.models import Sum, Case, When, F, DecimalField, Value, Q, Subquer
 from logging import getLogger
 
 from workflow.models import TimeEntry, CompanyDefaults, Job
+from workflow.models.adjustment_entry import AdjustmentEntry
 from workflow.models.material_entry import MaterialEntry
 from workflow.utils import get_excluded_staff
 
@@ -46,13 +47,7 @@ class KPIService:
             return thresholds
         except Exception as e:
             logger.error(f"Error retrieving company defaults: {str(e)}")
-            logger.warning("Using fallback threshold values")
-            return {
-                "billable_threshold_green": 45,
-                "billable_threshold_amber": 30,
-                "daily_gp_target": 1250,
-                "shop_hours_target": 20
-            }
+            raise
     
     @classmethod
     def get_month_days_range(cls, year: int, month: int) -> Tuple[date, date, int]:
@@ -169,12 +164,27 @@ class KPIService:
             cost=Sum(F("unit_cost") * F("quantity"), output_field=decimal_field)
         )
 
+        adjustment_entries = AdjustmentEntry.objects.filter(
+            job_pricing__time_entries__date__range=[start_date, end_date]
+        ).values("job_pricing__time_entries__date").annotate(
+            revenue_adj=Sum(F("price_adjustment")),
+            cost_adj=Sum(F("cost_adjustment"))
+        )
+
         material_by_date = {}
         for entry in material_entries:
             date_key = entry["job_pricing__time_entries__date"]
             material_by_date[date_key] = {
                 "revenue": entry["revenue"] or 0,
                 "cost": entry["cost"] or 0
+            }
+        
+        adjustment_by_date = {}
+        for entry in adjustment_entries:
+            date_key = entry["job_pricing__time_entries__date"]
+            adjustment_by_date[date_key] = {
+                "revenue": entry["revenue_adj"] or 0,
+                "cost": entry["cost_adj"] or 0
             }
 
         logger.debug(f"Retrieved data for {len(time_entries_by_date)} days")
@@ -210,6 +220,11 @@ class KPIService:
                 "cost": 0
             })
 
+            adjustment_entry = adjustment_by_date.get(current_date, {
+                "revenue": 0,
+                "cost": 0
+            })
+
             billable_hours = time_entry.get("billable_hours") or 0
             total_hours = time_entry.get("total_hours") or 0
             shop_hours = time_entry.get("shop_hours") or 0
@@ -219,7 +234,10 @@ class KPIService:
             material_revenue = material_entry.get("revenue") or 0
             material_cost = material_entry.get("cost") or 0
 
-            gross_profit = (billable_revenue + material_revenue) - (staff_cost + material_cost)
+            adjustment_revenue = adjustment_entry.get("revenue") or 0
+            adjustment_cost = adjustment_entry.get("cost") or 0
+
+            gross_profit = (billable_revenue + material_revenue + adjustment_revenue) - (staff_cost + material_cost + adjustment_cost)
             shop_percentage = (Decimal(shop_hours) / Decimal(total_hours) * 100) if total_hours > 0 else Decimal("0")
 
             # Increment status counters

@@ -126,11 +126,13 @@ function createJobCard(job) {
   card.setAttribute("data-job-description", job.description || "");
   card.setAttribute("data-job-number", job.job_number);
 
+  const clientName = job.client_name.length > 13 ? `${job.client_name.slice(0, 13)}...` : job.client_name
+
   card.innerHTML = `
     <a href="/job/${job.id}/">
       <div class="job-card-title">${job.job_number}</div>
       <div class="job-card-body small">
-        ${job.client_name ? `<span class="fw-semibold">${job.client_name}</span><br>` : ""}
+        ${job.client_name ? `<span class="fw-semibold">${clientName}</span><br>` : ""}
         ${job.name}
       </div>
     </a>
