@@ -70,14 +70,14 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": "INFO",
+            "level": "DEBUG",
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "verbose",
         },
         "xero_console": {
-            "level": "INFO",
+            "level": "DEBUG",
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "verbose",
         },
         "sql_file": {
             "level": "DEBUG",
@@ -106,12 +106,12 @@ LOGGING = {
     },
     "loggers": {
         "django.db.backends": {
-            "handlers": ["sql_file"],
+            "handlers": ["sql_file", "console"],
             "level": "DEBUG",
             "propagate": False,
         },
         "xero": {
-            "handlers": ["xero_file", "xero_console"],
+            "handlers": ["xero_file", "console"],
             "level": "DEBUG",
             "propagate": False,
         },
