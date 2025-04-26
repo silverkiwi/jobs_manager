@@ -98,6 +98,7 @@ dmypy.json
 # /workflow/fixtures/ # I am adding fixtures to git now I've anonymised them
 /.__debug_sql.lock
 /node_modules/
+.github/
 
 # For Docker
 .yaml

@@ -1,3 +1,7 @@
+import { renderMessages } from "./timesheet/timesheet_entry/messages.js";
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     try {
         const dataService = new CalendarDataService('/api/reports/calendar');
@@ -55,8 +59,8 @@ class CalendarView {
                 right: ''
             },
             datesSet: datesSetCallback,
-            eventContent: this.#createEventContent.bind(this),
-            eventDidMount: this.#setupEventTooltip.bind(this)
+            eventContent: (arg) => this.#createEventContent(arg),
+            eventDidMount: (info) => this.setupEventTooltip(info)
         });
 
         this.calendar.render();
@@ -93,19 +97,19 @@ class CalendarView {
      * @param {Object} thresholds 
      */
     updateSummaryCards(monthlyTotals, thresholds) {
-        const billableHours = monthlyTotals.billable_hours != null 
-            ? this.formatter.formatNumber(monthlyTotals.billable_hours, 1) 
+        const billableHours = monthlyTotals.billable_hours != null
+            ? this.formatter.formatNumber(monthlyTotals.billable_hours, 1)
             : '0.0';
-        const billablePercentage = monthlyTotals.billable_percentage != null 
+        const billablePercentage = monthlyTotals.billable_percentage != null
             ? this.formatter.formatNumber(monthlyTotals.billable_percentage, 1)
             : '0.0';
-        const grossProfit = monthlyTotals.gross_profit != null 
+        const grossProfit = monthlyTotals.gross_profit != null
             ? this.formatter.formatCurrency(monthlyTotals.gross_profit)
             : '$0.00';
-        const avgDailyGP = monthlyTotals.avg_daily_gp != null 
+        const avgDailyGP = monthlyTotals.avg_daily_gp != null
             ? this.formatter.formatNumber(monthlyTotals.avg_daily_gp, 2)
             : '0.00';
-        const shopPercentage = monthlyTotals.shop_percentage != null 
+        const shopPercentage = monthlyTotals.shop_percentage != null
             ? this.formatter.formatNumber(monthlyTotals.shop_percentage, 1)
             : '0.0';
 
@@ -115,7 +119,7 @@ class CalendarView {
         document.getElementById('avgDailyGP').textContent = avgDailyGP;
         document.getElementById('shopPercentage').textContent = shopPercentage;
 
-        const shopTarget = thresholds && thresholds.shop_hours_target != null 
+        const shopTarget = thresholds && thresholds.shop_hours_target != null
             ? this.formatter.formatNumber(thresholds.shop_hours_target, 1)
             : '0.0';
         document.getElementById('shopTarget').textContent = shopTarget;
@@ -129,20 +133,20 @@ class CalendarView {
         const gpColorClass = monthlyTotals.color_gp || 'neutral';
 
         const billableHoursCard = document.getElementById('billableHoursCard');
-        billableHoursCard.className = 
+        billableHoursCard.className =
             billableHoursCard.className.replace(/card-status-\w+/g, '') + ` card-status-${billableColorClass}`;
-        
+
         const gpCard = document.getElementById("grossProfitCard");
-        gpCard.className = 
+        gpCard.className =
             gpCard.className.replace(/card-status-\w+/g, '') + ` card-status-${gpColorClass}`;
-        
+
         const avgBillableHoursSoFar = monthlyTotals.avg_billable_hours_so_far != null
             ? this.formatter.formatNumber(monthlyTotals.avg_billable_hours_so_far, 1)
             : '0.0';
         const avgDailyGpSoFar = monthlyTotals.avg_daily_gp_so_far != null
             ? this.formatter.formatCurrency(monthlyTotals.avg_daily_gp_so_far)
             : '$0.00';
-        
+
         document.getElementById('elapsedWorkdays').textContent = monthlyTotals.elapsed_workdays || 0;
         document.getElementById('remainingWorkdays').textContent = monthlyTotals.remaining_workdays || 0;
 
@@ -190,22 +194,22 @@ class CalendarView {
         }
 
         // Round values for cleaner display
-        const billable = props.billable_hours != null 
-            ? parseFloat(props.billable_hours).toFixed(1) 
+        const billable = props.billable_hours != null
+            ? parseFloat(props.billable_hours).toFixed(1)
             : '0.0';
-        const totalHours = props.total_hours != null 
-            ? parseFloat(props.total_hours).toFixed(1) 
+        const totalHours = props.total_hours != null
+            ? parseFloat(props.total_hours).toFixed(1)
             : '0.0';
-        const shopHours = props.shop_hours != null 
-            ? parseFloat(props.shop_hours).toFixed(1) 
+        const shopHours = props.shop_hours != null
+            ? parseFloat(props.shop_hours).toFixed(1)
             : '0.0';
-        const shopPercentage = props.shop_percentage != null 
-            ? parseFloat(props.shop_percentage).toFixed(0) 
+        const shopPercentage = props.shop_percentage != null
+            ? parseFloat(props.shop_percentage).toFixed(0)
             : '0';
-        const gp = props.gross_profit != null 
-            ? this.formatter.formatCurrency(props.gross_profit) 
+        const gp = props.gross_profit != null
+            ? this.formatter.formatCurrency(props.gross_profit)
             : '$0.00';
-        
+
         // Determine class based on status
         const colorClass = props.color ? `event-card-${props.color}` : '';
 
@@ -237,14 +241,138 @@ class CalendarView {
         };
     }
 
+    #showDayDetailsModal(dayData) {
+        console.group(`KPI Details for ${dayData.date}`);
+        console.log('Full day data:', dayData);
+
+        if (dayData.details) {
+            console.log('Revenue breakdown:', {
+                'Billable Revenue': dayData.details.billable_revenue,
+                'Material Revenue': dayData.details.material_revenue,
+                'Adjustment Revenue': dayData.details.adjustment_revenue,
+                'Total Revenue': dayData.details.total_revenue
+            });
+            console.log('Cost breakdown:', {
+                'Staff Cost': dayData.details.staff_cost,
+                'Material Cost': dayData.details.material_cost,
+                'Adjustment Cost': dayData.details.adjustment_cost,
+                'Total Cost': dayData.details.total_cost
+            });
+            console.log('Profit breakdown:', dayData.details.profit_breakdown);
+        }
+        console.groupEnd();
+
+        if (!dayData.details) return;
+
+        const updateElement = (id, value, formatter = (val) => this.formatter.formatCurrency(val)) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = formatter(value);
+        };
+
+        const items = {
+            revenue: ['billable_revenue', 'material_revenue', 'adjustment_revenue', 'total_revenue'],
+            cost: ['staff_cost', 'material_cost', 'adjustment_cost', 'total_cost']
+        };
+
+        console.log('Populating modal with day details');
+
+        // Iterate through both categories
+        ['revenue', 'cost'].forEach(category => {
+            console.log(`Processing ${category} items`);
+            items[category].forEach(item => {
+                const elementId = `modal-${item.replace('_', '-')}`;
+                const value = dayData.details[item];
+                console.log(`Setting ${item} to ${this.formatter.formatCurrency(value)}`);
+                updateElement(elementId, value);
+            });
+        });
+
+        const breakdowns = ['labor', 'material', 'adjustment'];
+        console.log('Processing profit breakdowns');
+
+        let totalProfit = 0;
+        breakdowns.forEach(bk => {
+            const profit = dayData.details.profit_breakdown?.[`${bk}_profit`] ?? 0;
+            totalProfit += profit;
+            console.log(`${bk} profit: ${this.formatter.formatCurrency(profit)}`);
+            updateElement(`modal-${bk}-profit`, profit);
+        });
+
+        console.log(`Total gross profit: ${this.formatter.formatCurrency(totalProfit)}`);
+        updateElement('modal-gross-profit', totalProfit);
+
+        if (totalProfit === 0) {
+            console.log('Skipping profit percentage calculations - total profit is zero');
+            renderMessages([{ 
+                "level": "warning", 
+                "message": "No data found for that day. Unable to display modal" 
+            }], 'toast-container', false);
+            return;
+        }
+
+        const absoluteTotal = breakdowns.reduce((sum, bk) => {
+            return sum + Math.abs(dayData.details.profit_breakdown?.[`${bk}_profit`] ?? 0);
+        }, 0);
+
+        console.log('Calculating profit percentages for bars');
+        breakdowns.forEach(bk => {
+            const profit = dayData.details.profit_breakdown?.[`${bk}_profit`] ?? 0;
+            const bar = document.getElementById(`modal-${bk}-profit-bar`);
+
+            if (!bar) return;
+
+            bar.className = `progress-bar`;
+            bar.innerHTML = '';
+
+            const percentage = Math.abs(profit) / absoluteTotal * 100;
+            console.log(`${bk} profit percentage: ${percentage.toFixed(2)}%`);
+
+            bar.style.width = `${percentage}%`;
+
+            const baseColorMap = {
+                labor: 'bg-primary',
+                material: 'bg-success',
+                adjustment: 'bg-info'
+            };
+
+            bar.classList.add(baseColorMap[bk] || 'bg-secondary');
+
+            bar.classList.add('progress-bar-positive');
+            if (profit < 0) {
+                console.log(`${bk} has negative profit, adding danger class`);
+                bar.classList.add('bg-danger', 'progress-bar-negative');
+            } 
+
+            const label = document.createElement('span');
+            label.className = 'progress-bar-label';
+            label.textContent = this.formatter.formatCurrency(profit);
+            bar.appendChild(label);
+        });
+
+        const date = new Date(dayData.date);
+        const formattedDate = date.toLocaleDateString('en-NZ', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        console.log(`Setting modal title to: Details for ${formattedDate}`);
+        document.getElementById('dayDetailsModalLabel').textContent = `Details for ${formattedDate}`;
+
+        const modal = new bootstrap.Modal(document.getElementById('dayDetailsModal'));
+        console.log('Showing day details modal');
+        modal.show();
+    }
+
     /**
-     * Sets up tooltips for calendar events with detailed information about hours and profit
+     * Sets up tooltips for calendar events with detailed information about hours and profit.
      * 
      * @private
      * @param {Object} info - The event information object provided by FullCalendar
      * @returns {void}
      */
-    #setupEventTooltip(info) {
+    setupEventTooltip(info) {
         if (info.event.display === 'background') {
             return; // Do nothing for background events
         }
@@ -259,21 +387,27 @@ class CalendarView {
             info.el.classList.add(`event-${props.color}`);
         }
 
+        info.el.style.cursor = 'pointer';
+
+        info.el.addEventListener('click', () => {
+            this.#showDayDetailsModal(props);
+        });
+
         // Add detailed tooltip
-        const billableHours = props.billable_hours != null 
-            ? parseFloat(props.billable_hours).toFixed(1) 
+        const billableHours = props.billable_hours != null
+            ? parseFloat(props.billable_hours).toFixed(1)
             : '0.0';
-        const totalHours = props.total_hours != null 
-            ? parseFloat(props.total_hours).toFixed(1) 
+        const totalHours = props.total_hours != null
+            ? parseFloat(props.total_hours).toFixed(1)
             : '0.0';
-        const shopHours = props.shop_hours != null 
-            ? parseFloat(props.shop_hours).toFixed(1) 
+        const shopHours = props.shop_hours != null
+            ? parseFloat(props.shop_hours).toFixed(1)
             : '0.0';
-        const grossProfit = props.gross_profit != null 
-            ? this.formatter.formatCurrency(props.gross_profit) 
+        const grossProfit = props.gross_profit != null
+            ? this.formatter.formatCurrency(props.gross_profit)
             : '$0.00';
-        const shopPercentage = props.shop_percentage != null 
-            ? parseFloat(props.shop_percentage).toFixed(1) 
+        const shopPercentage = props.shop_percentage != null
+            ? parseFloat(props.shop_percentage).toFixed(1)
             : '0.0';
 
         // Detailed tooltip
@@ -476,7 +610,7 @@ class EventFormatter {
      */
     #createEventsForDay(date, data) {
         const events = [];
-        const isFutureDate = new Date(date) > new Date().setHours(0,0,0,0);
+        const isFutureDate = new Date(date) > new Date().setHours(0, 0, 0, 0);
 
         const futureClass = isFutureDate ? 'future-date' : '';
 
@@ -488,7 +622,7 @@ class EventFormatter {
             backgroundColor: this.dataService.getColorForStatus(data.color),
             classNames: [data.color, futureClass]
         });
-        
+
         // Add event with data to display (with high z-index)
         events.push({
             title: `${this.formatNumber(data.billable_hours, 1)}h | ${this.formatCurrency(data.gross_profit)}`,
@@ -530,18 +664,18 @@ class CalendarController {
     initialize() {
         try {
             this.calendar = this.view.initializeCalendar(this.onDatesSet);
-            
+
             this.loadCalendarData(new Date());
-            
+
             window.addEventListener('resize', this.onResize);
-            
+
             return true;
         } catch (error) {
             console.error("Error initializing calendar:", error);
             this.view.hideLoader();
             return false;
         }
-    } 
+    }
 
     /**
      * Loads the calendar data with the proper dataService function based on the current year and month.
@@ -610,7 +744,7 @@ class CalendarController {
      */
     destroy() {
         window.removeEventListener('resize', this.onResize);
-        
+
         if (this.calendar) {
             this.calendar.destroy();
             this.calendar = null;

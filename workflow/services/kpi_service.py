@@ -265,7 +265,22 @@ class KPIService:
                 "shop_percentage": float(shop_percentage),
                 "gross_profit": float(gross_profit),
                 "color": color,
-                "gp_target_achievement": float((Decimal(gross_profit) / Decimal(thresholds["daily_gp_target"]) * 100) if thresholds["daily_gp_target"] > 0 else 0)
+                "gp_target_achievement": float((Decimal(gross_profit) / Decimal(thresholds["daily_gp_target"]) * 100) if thresholds["daily_gp_target"] > 0 else 0),
+                "details": {
+                    "billable_revenue": float(billable_revenue),
+                    "material_revenue": float(material_revenue),
+                    "adjustment_revenue": float(adjustment_revenue),
+                    "total_revenue": float(billable_revenue + material_revenue + adjustment_revenue),
+                    "staff_cost": float(staff_cost),
+                    "material_cost": float(material_cost),
+                    "adjustment_cost": float(adjustment_cost),
+                    "total_cost": float(staff_cost + material_cost + adjustment_cost),
+                    "profit_breakdown": {
+                        "labor_profit": float(billable_revenue - staff_cost),
+                        "material_profit": float(material_revenue - material_cost),
+                        "adjustment_profit": float(adjustment_revenue - adjustment_cost)
+                    }
+                }
             }
 
             monthly_totals["billable_hours"] += billable_hours
