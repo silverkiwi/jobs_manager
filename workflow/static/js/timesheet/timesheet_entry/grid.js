@@ -48,7 +48,7 @@ export const gridOptions = {
       },
     },
     {
-      field: "client",
+      field: "client_name",
       headerName: "Client",
       flex: 1.5,
       minWidth: 120,

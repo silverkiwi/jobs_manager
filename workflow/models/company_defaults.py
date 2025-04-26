@@ -39,6 +39,36 @@ class CompanyDefaults(models.Model):
     last_xero_sync = models.DateTimeField(null=True, blank=True, help_text="The last time Xero data was synchronized")
     last_xero_deep_sync = models.DateTimeField(null=True, blank=True, help_text="The last time a deep Xero sync was performed (looking back 90 days)")
 
+    # KPI thresholds
+    billable_threshold_green = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=45.0,
+        verbose_name="Green Threshold of Billable Hours",
+        help_text="Daily billable hours above this threshold are marked in green"
+    )
+    billable_threshold_amber = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=30.0,
+        verbose_name="Amber Threshold of Billable Hours",
+        help_text="Daily billable hours between this threshold and the green threshold are marked in amber"
+    )
+    daily_gp_target = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=1250.0,
+        verbose_name="Daily Goal of Gross Profit",
+        help_text="Daily gross profit goal in dolars"
+    )
+    shop_hours_target_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=20.0,
+        verbose_name="Hours percentage goal in Shop Jobs",
+        help_text="Target percentage of hours worked in shop jobs"
+    )
+
     class Meta:
         verbose_name = "Company Defaults"
         verbose_name_plural = "Company Defaults"

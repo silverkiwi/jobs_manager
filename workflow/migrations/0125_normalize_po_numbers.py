@@ -43,7 +43,7 @@ def normalize_po_numbers(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('workflow', '0123_alter_purchaseorder_order_date_and_more'), 
+        ('workflow', '0124_companydefaults_billable_threshold_amber_and_more'),
     ]
 
     operations = [

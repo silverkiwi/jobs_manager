@@ -3,8 +3,6 @@
 import uuid
 import django.utils.timezone
 from django.db import migrations, models
-import django.db.models.deletion
-
 
 class Migration(migrations.Migration):
 
@@ -13,22 +11,23 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # 1. Delete all existing stock records
-        migrations.RunSQL(
-            "DELETE FROM workflow_stock;"
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                # Drop any lingering foreign-key constraints before dropping the table
+                migrations.RunSQL(
+                    "ALTER TABLE workflow_materialentry DROP FOREIGN KEY workflow_materialent_source_stock_id_016e8e14_fk_workflow_;"
+                ),
+                migrations.RunSQL(
+                    "ALTER TABLE workflow_stock DROP FOREIGN KEY workflow_stock_source_parent_stock__7633cf27_fk_workflow_;"
+                ),
+                # Finally drop the old table if it exists
+                migrations.RunSQL("DROP TABLE IF EXISTS workflow_stock;")
+            ],
+            state_operations=[
+                migrations.DeleteModel(name="Stock"),
+            ],
         ),
-        
-        # 2. Delete related MaterialEntry records
-        migrations.RunSQL(
-            "UPDATE workflow_materialentry SET source_stock_id = NULL WHERE source_stock_id IS NOT NULL;"
-        ),
-        
-        # 3. Drop the old table and create a new one with UUID primary key
-        migrations.RunSQL(
-            "DROP TABLE workflow_stock;"
-        ),
-        
-        # 4. Create a new Stock model with UUID primary key
+        # Recreate Stock with new UUID PK and no FKs
         migrations.CreateModel(
             name="Stock",
             fields=[
@@ -37,12 +36,15 @@ class Migration(migrations.Migration):
                 ("quantity", models.DecimalField(decimal_places=2, help_text="Current quantity of the stock item", max_digits=10)),
                 ("unit_cost", models.DecimalField(decimal_places=2, help_text="Cost per unit of the stock item", max_digits=10)),
                 ("date", models.DateTimeField(default=django.utils.timezone.now, help_text="Date the stock item was created")),
-                ("source", models.CharField(choices=[("purchase_order", "Purchase Order Receipt"), ("split_from_stock", "Split/Offcut from Stock"), ("manual", "Manual Adjustment/Stocktake")], help_text="Origin of this stock item", max_length=50)),
+                ("source", models.CharField(
+                    choices=[
+                        ("purchase_order", "Purchase Order Receipt"),
+                        ("split_from_stock", "Split/Offcut from Stock"),
+                        ("manual", "Manual Adjustment/Stocktake")
+                    ], help_text="Origin of this stock item", max_length=50
+                )),
                 ("notes", models.TextField(blank=True, help_text="Additional notes about the stock item")),
                 ("is_active", models.BooleanField(db_index=True, default=True, help_text="False when quantity reaches zero or item is fully consumed/transformed")),
-                ("job", models.ForeignKey(blank=True, help_text="The job this stock item is assigned to", null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="stock_items", to="workflow.job")),
-                ("source_parent_stock", models.ForeignKey(blank=True, help_text="The parent stock item this was split from (if source='split_from_stock')", null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="child_stock_splits", to="workflow.stock")),
-                ("source_purchase_order_line", models.ForeignKey(blank=True, help_text="The PO line this stock originated from (if source='purchase_order')", null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="stock_generated", to="workflow.purchaseorderline")),
             ],
         ),
     ]

@@ -36,7 +36,7 @@ export function triggerAutoCalculationForAllRows() {
       );
       if (job) {
         node.setDataValue("job_name", job.name);
-        node.setDataValue("client", job.client_name);
+        node.setDataValue("client_name", job.client_name);
         node.setDataValue("job_data", job);
       }
       calculateAmounts(node.data); // Reuse existing function
@@ -46,7 +46,7 @@ export function triggerAutoCalculationForAllRows() {
   // Refresh affected grid cells
   window.grid.refreshCells({
     rowNodes: allNodes,
-    columns: ["job_name", "client", "wage_amount", "bill_amount"],
+    columns: ["job_name", "client_name", "wage_amount", "bill_amount"],
   });
 }
 

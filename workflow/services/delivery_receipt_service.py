@@ -145,6 +145,11 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                     retail_rate = alloc_data.get('retailRate', 20) / 100.0
                     logger.info(f"Metadata: {alloc_data['metadata']}")
 
+                    try:
+                        unit_revenue = line.unit_cost * Decimal(1.0 + retail_rate)
+                    except TypeError:
+                        raise DeliveryReceiptValidationError("Price not confirmed for line, can't save the material to a job.")
+
                     if str(job_id) == str(STOCK_HOLDING_JOB_ID):
                         metadata = alloc_data.get("metadata", {})
                         stock_item = Stock.objects.create(
@@ -152,6 +157,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                             description=line.description,
                             quantity=alloc_qty,
                             unit_cost=line.unit_cost or Decimal('0.00'),
+                            retail_rate=retail_rate,
                             metal_type=metadata.get("metal_type", line.metal_type or "unspecified"),
                             alloy=metadata.get("alloy", line.alloy or ""),
                             specifics=metadata.get("specifics", line.specifics or ""),
@@ -163,11 +169,6 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                         )
                         logger.info(f"Created Stock entry {stock_item.id} for line {line.id}, allocated to Job {target_job.id}, qty {alloc_qty}.")
                     else:
-                        try:
-                            unit_revenue = line.unit_cost * Decimal(1.0 + retail_rate)
-                        except TypeError:
-                            raise DeliveryReceiptValidationError("Price not confirmed for line, can't save the material to a job.")
-                        
                         material_entry = MaterialEntry.objects.create(
                             job_pricing=target_job.latest_reality_pricing,
                             description=line.description,

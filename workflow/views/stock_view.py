@@ -55,7 +55,7 @@ def consume_stock_api_view(request):
         # --- Apply Business Logic / Pricing Rules ---
         # TODO: Implement specific pricing rules (e.g., half-sheet rule) here
         unit_cost = stock_item.unit_cost
-        unit_revenue = unit_cost # Placeholder - Replace with actual revenue calculation
+        unit_revenue = unit_cost * (1 + stock_item.retail_rate)
 
         # --- Perform Database Operations ---
         material_entry = MaterialEntry.objects.create(
