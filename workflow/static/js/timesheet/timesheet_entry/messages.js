@@ -58,8 +58,9 @@ function createToastContainer() {
  * Renders dynamic messages in a modal or as toast notifications
  * @param {Array} messages - List of messages in the format [{level: "success|error|info", message: "Message"}]
  * @param {string} [containerId] - If provided, shows toast notifications instead of modal
+ * @param {Boolean} [cooldown] - If provided, defines a cooldown for the message to be displayed. Defaults to true.
  */
-export function renderMessages(messages, containerId = null) {
+export function renderMessages(messages, containerId = null, cooldown = true) {
   let alertContainer;
   let alertContainerModal = false;
   let modal;
@@ -86,7 +87,7 @@ export function renderMessages(messages, containerId = null) {
   messages.forEach((msg) => {
     const messageKey = `${msg.level}:${msg.message}`;
 
-    if (!canShowMessage(messageKey)) return;
+    if (!canShowMessage(messageKey) && cooldown) return;
 
     msg.level = msg.level === "error" ? "danger" : msg.level;
 

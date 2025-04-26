@@ -111,7 +111,7 @@ class KPIService:
             "elapsed_workdays": 0,
             "remaining_workdays": 0,
             # The following are internal
-            "billable_revenue": 0,
+            "time_revenue": 0,
             "material_revenue": 0,
             "staff_cost": 0,
             "material_cost": 0,
@@ -136,7 +136,7 @@ class KPIService:
                     ),
                     output_field=decimal_field
                 ),
-                billable_revenue=Sum(
+                time_revenue=Sum(
                     Case(
                         When(is_billable=True, then=F("hours") * F("charge_out_rate")), 
                         default=Value(0, output_field=decimal_field)
@@ -209,7 +209,7 @@ class KPIService:
                 "total_hours": 0,
                 "billable_hours": 0,
                 "shop_hours": 0,
-                "billable_revenue": 0,
+                "time_revenue": 0,
                 "staff_cost": 0,
                 "material_revenue": 0,
                 "material_cost": 0
@@ -228,7 +228,7 @@ class KPIService:
             billable_hours = time_entry.get("billable_hours") or 0
             total_hours = time_entry.get("total_hours") or 0
             shop_hours = time_entry.get("shop_hours") or 0
-            billable_revenue = time_entry.get("billable_revenue") or 0
+            time_revenue = time_entry.get("time_revenue") or 0
             staff_cost = time_entry.get("staff_cost") or 0
 
             material_revenue = material_entry.get("revenue") or 0
@@ -237,7 +237,7 @@ class KPIService:
             adjustment_revenue = adjustment_entry.get("revenue") or 0
             adjustment_cost = adjustment_entry.get("cost") or 0
 
-            gross_profit = (billable_revenue + material_revenue + adjustment_revenue) - (staff_cost + material_cost + adjustment_cost)
+            gross_profit = (time_revenue + material_revenue + adjustment_revenue) - (staff_cost + material_cost + adjustment_cost)
             shop_percentage = (Decimal(shop_hours) / Decimal(total_hours) * 100) if total_hours > 0 else Decimal("0")
 
             # Increment status counters
@@ -265,7 +265,22 @@ class KPIService:
                 "shop_percentage": float(shop_percentage),
                 "gross_profit": float(gross_profit),
                 "color": color,
-                "gp_target_achievement": float((Decimal(gross_profit) / Decimal(thresholds["daily_gp_target"]) * 100) if thresholds["daily_gp_target"] > 0 else 0)
+                "gp_target_achievement": float((Decimal(gross_profit) / Decimal(thresholds["daily_gp_target"]) * 100) if thresholds["daily_gp_target"] > 0 else 0),
+                "details": {
+                    "time_revenue": float(time_revenue),
+                    "material_revenue": float(material_revenue),
+                    "adjustment_revenue": float(adjustment_revenue),
+                    "total_revenue": float(time_revenue + material_revenue + adjustment_revenue),
+                    "staff_cost": float(staff_cost),
+                    "material_cost": float(material_cost),
+                    "adjustment_cost": float(adjustment_cost),
+                    "total_cost": float(staff_cost + material_cost + adjustment_cost),
+                    "profit_breakdown": {
+                        "labor_profit": float(time_revenue - staff_cost),
+                        "material_profit": float(material_revenue - material_cost),
+                        "adjustment_profit": float(adjustment_revenue - adjustment_cost)
+                    }
+                }
             }
 
             monthly_totals["billable_hours"] += billable_hours
@@ -273,6 +288,7 @@ class KPIService:
             monthly_totals["shop_hours"] += shop_hours
             monthly_totals["gross_profit"] += gross_profit
             monthly_totals["material_revenue"] += material_revenue
+            monthly_totals["time_revenue"] += time_revenue
             monthly_totals["staff_cost"] += staff_cost
             monthly_totals["material_cost"] += material_cost
 
