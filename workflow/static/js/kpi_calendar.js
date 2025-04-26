@@ -247,7 +247,7 @@ class CalendarView {
 
         if (dayData.details) {
             console.log('Revenue breakdown:', {
-                'Billable Revenue': dayData.details.billable_revenue,
+                'Time Revenue': dayData.details.time_revenue,
                 'Material Revenue': dayData.details.material_revenue,
                 'Adjustment Revenue': dayData.details.adjustment_revenue,
                 'Total Revenue': dayData.details.total_revenue
@@ -270,39 +270,31 @@ class CalendarView {
         };
 
         const items = {
-            revenue: ['billable_revenue', 'material_revenue', 'adjustment_revenue', 'total_revenue'],
+            revenue: ['time_revenue', 'material_revenue', 'adjustment_revenue', 'total_revenue'],
             cost: ['staff_cost', 'material_cost', 'adjustment_cost', 'total_cost']
         };
 
-        console.log('Populating modal with day details');
-
         // Iterate through both categories
         ['revenue', 'cost'].forEach(category => {
-            console.log(`Processing ${category} items`);
             items[category].forEach(item => {
                 const elementId = `modal-${item.replace('_', '-')}`;
                 const value = dayData.details[item];
-                console.log(`Setting ${item} to ${this.formatter.formatCurrency(value)}`);
                 updateElement(elementId, value);
             });
         });
 
         const breakdowns = ['labor', 'material', 'adjustment'];
-        console.log('Processing profit breakdowns');
 
         let totalProfit = 0;
         breakdowns.forEach(bk => {
             const profit = dayData.details.profit_breakdown?.[`${bk}_profit`] ?? 0;
             totalProfit += profit;
-            console.log(`${bk} profit: ${this.formatter.formatCurrency(profit)}`);
             updateElement(`modal-${bk}-profit`, profit);
         });
 
-        console.log(`Total gross profit: ${this.formatter.formatCurrency(totalProfit)}`);
         updateElement('modal-gross-profit', totalProfit);
 
         if (totalProfit === 0) {
-            console.log('Skipping profit percentage calculations - total profit is zero');
             renderMessages([{ 
                 "level": "warning", 
                 "message": "No data found for that day. Unable to display modal" 
@@ -314,7 +306,6 @@ class CalendarView {
             return sum + Math.abs(dayData.details.profit_breakdown?.[`${bk}_profit`] ?? 0);
         }, 0);
 
-        console.log('Calculating profit percentages for bars');
         breakdowns.forEach(bk => {
             const profit = dayData.details.profit_breakdown?.[`${bk}_profit`] ?? 0;
             const bar = document.getElementById(`modal-${bk}-profit-bar`);
@@ -325,7 +316,6 @@ class CalendarView {
             bar.innerHTML = '';
 
             const percentage = Math.abs(profit) / absoluteTotal * 100;
-            console.log(`${bk} profit percentage: ${percentage.toFixed(2)}%`);
 
             bar.style.width = `${percentage}%`;
 
@@ -339,7 +329,6 @@ class CalendarView {
 
             bar.classList.add('progress-bar-positive');
             if (profit < 0) {
-                console.log(`${bk} has negative profit, adding danger class`);
                 bar.classList.add('bg-danger', 'progress-bar-negative');
             } 
 
@@ -357,11 +346,9 @@ class CalendarView {
             day: 'numeric'
         });
 
-        console.log(`Setting modal title to: Details for ${formattedDate}`);
         document.getElementById('dayDetailsModalLabel').textContent = `Details for ${formattedDate}`;
 
         const modal = new bootstrap.Modal(document.getElementById('dayDetailsModal'));
-        console.log('Showing day details modal');
         modal.show();
     }
 
