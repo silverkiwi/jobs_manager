@@ -159,21 +159,21 @@ class KPIService:
 
         material_entries = MaterialEntry.objects.filter(
             created_at__range=[start_date, end_date]
-        ).values("job_pricing__time_entries__date").annotate(
+        ).values("created_at__date").annotate(
             revenue=Sum(F("unit_revenue") * F("quantity"), output_field=decimal_field),
             cost=Sum(F("unit_cost") * F("quantity"), output_field=decimal_field)
         )
 
         adjustment_entries = AdjustmentEntry.objects.filter(
             created_at__range=[start_date, end_date]
-        ).values("job_pricing__time_entries__date").annotate(
+        ).values("created_at__date").annotate(
             revenue_adj=Sum(F("price_adjustment")),
             cost_adj=Sum(F("cost_adjustment"))
         )
 
         material_by_date = {}
         for entry in material_entries:
-            date_key = entry["job_pricing__time_entries__date"]
+            date_key = entry["created_at__date"]
             material_by_date[date_key] = {
                 "revenue": entry["revenue"] or 0,
                 "cost": entry["cost"] or 0
@@ -181,7 +181,7 @@ class KPIService:
         
         adjustment_by_date = {}
         for entry in adjustment_entries:
-            date_key = entry["job_pricing__time_entries__date"]
+            date_key = entry["created_at__date"]
             adjustment_by_date[date_key] = {
                 "revenue": entry["revenue_adj"] or 0,
                 "cost": entry["cost_adj"] or 0
