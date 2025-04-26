@@ -58,6 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Apply initial data to the grid
   if (window.timesheet_data.time_entries?.length > 0) {
+    console.log('Timesheet data: ', window.timesheet_data);
     window.grid.applyTransaction({ add: window.timesheet_data.time_entries });
     triggerAutoCalculationForAllRows();
 
