@@ -403,7 +403,11 @@ class CalendarView {
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: ctx => `${ctx.label}: ${this.formatter.formatCurrency(ctx.raw * (segments.find(s => s.label === ctx.label).value < 0 ? -1 : 1))}`
+                            label: ctx => {
+                                const segment = segments.find(s => s.label === ctx.label);
+                                const multiplier = segment && segment.value < 0 ? -1 : 1;
+                                return `${ctx.label}: ${this.formatter.formatCurrency(ctx.raw * multiplier)}`;
+                            }
                         }
                     },
                 },
