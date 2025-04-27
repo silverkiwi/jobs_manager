@@ -27,8 +27,8 @@ class AdjustmentEntry(models.Model):
     comments = models.CharField(
         max_length=200, null=False, blank=True, default=""
     )  # Freetext internal note
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["created_at"]

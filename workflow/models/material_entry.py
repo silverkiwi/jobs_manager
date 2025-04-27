@@ -53,8 +53,8 @@ class MaterialEntry(models.Model):
         help_text="Convenience link to original PO line (derived via source_stock)",
     )
 
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["created_at"]
