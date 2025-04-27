@@ -234,11 +234,13 @@ STATICFILES_DIRS = [
     ("sortablejs", "node_modules/sortablejs"),
     # Quill (CSS/JS)
     ("quill", "node_modules/quill/dist"),
-    # FullCalendar
+    # FullCalendar (JS)
     ("fullcalendar", "node_modules/@fullcalendar/core"),
     ("fullcalendar-daygrid", "node_modules/@fullcalendar/daygrid"),
     ("fullcalendar-interaction", "node_modules/@fullcalendar/interaction"),
     ("fullcalendar-timegrid", "node_modules/@fullcalendar/timegrid"),
+    # Chart.js (JS)
+    ("chart.js", "node_modules/chart.js/dist")
 ]
 
 # Default primary key field type

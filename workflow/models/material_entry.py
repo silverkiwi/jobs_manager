@@ -1,4 +1,5 @@
 # material_entry.py
+from django.utils import timezone
 import uuid
 from decimal import Decimal
 
@@ -52,8 +53,8 @@ class MaterialEntry(models.Model):
         help_text="Convenience link to original PO line (derived via source_stock)",
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         ordering = ["created_at"]
