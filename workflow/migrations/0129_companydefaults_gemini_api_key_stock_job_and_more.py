@@ -20,29 +20,5 @@ class Migration(migrations.Migration):
                 max_length=255,
                 null=True,
             ),
-        ),
-        migrations.AddField(
-            model_name="stock",
-            name="job",
-            field=models.ForeignKey(
-                blank=True,
-                help_text="The job this stock item is assigned to",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="stock_items",
-                to="workflow.job",
-            ),
-        ),
-        migrations.AddField(
-            model_name="stock",
-            name="source_purchase_order_line",
-            field=models.ForeignKey(
-                blank=True,
-                help_text="The PO line this stock originated from (if source='purchase_order')",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="stock_generated",
-                to="workflow.purchaseorderline",
-            ),
-        ),
+        )
     ]
