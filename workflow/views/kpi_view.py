@@ -31,13 +31,18 @@ class KPICalendarViews:
         """API Endpoint to provide KPI data for calendar display"""
         def get(self, request, *args, **kwargs):
             try:
-                year = int(request.query_params.get("year", date.today().year))
-                month = int(request.query_params.get("month", date.today().month))
+                year = str(request.query_params.get("year", date.today().year))
+                month = str(request.query_params.get("month", date.today().month))
+
+                if not year.isdigit() or not month.isdigit():
+                    return Response({
+                        "error": f"The provided query param 'year' or 'month' is not in the correct format (not a digit). Please try again."
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
                 if (not 1 <= month <= 12 or not 2000 <= year <= 2100):
                     return Response({
                         "error": "Year or month out of valid range. Please check the query params."
-                    })
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
                 calendar_data = KPIService.get_calendar_data(year, month)
 

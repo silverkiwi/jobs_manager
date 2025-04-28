@@ -332,8 +332,19 @@ def extract_supplier_quote_data_view(request):
 
         quote_file = request.FILES['quote_file']
 
+        ai_provider = request.POST.get("ai_provider", "Anthropic")
+
+        if ai_provider not in ["Anthropic", "Google"]:
+            logger.warning(f"Invalid AI provider: {ai_provider}, defaulting to Claude")
+            ai_provider = "Claude"
+        
+        logger.info(f"Processing quote with {ai_provider} AI provider")
+
         # Create PO from quote
-        purchase_order, error = create_po_from_quote(quote_file=quote_file)
+        purchase_order, error = create_po_from_quote(
+            quote_file=quote_file,
+            ai_provider=ai_provider
+        )
 
         if error:
             return JsonResponse({
@@ -351,3 +362,4 @@ def extract_supplier_quote_data_view(request):
             "success": False,
             "error": f"Error extracting data from quote: {str(e)}"
         }, status=500)
+    

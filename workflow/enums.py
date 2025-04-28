@@ -60,3 +60,4 @@ class MetalType(models.TextChoices):
     GALVANIZED = "galvanized", "Galvanized"
     UNSPECIFIED = "unspecified", "Unspecified"
     OTHER = "other", "Other"
+    

@@ -16,6 +16,16 @@
                 </a>
                 <form id="quoteUploadForm" action="{% url 'extract_supplier_quote_data' %}" method="post" enctype="multipart/form-data" style="display: contents;">
                     {% csrf_token %}
+                    <div class="dropdown d-inline-block me-2">
+                        <button class="btn btn-outline-primary dropdown-toggle" type="button" id="aiProviderDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-robot me-1"></i>AI Provider: <span id="selectedProvider">Anthropic (Claude)</span>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="aiProviderDropdown">
+                            <li><a href="#" data-provider="Calude" class="dropdown-items ai-provider-option">Anthropic (Claude)</a></li>
+                            <li><a href="#" data-provider="Google" class="dropdown-item ai-provider-option">Google (Gemini)</a></li>
+                        </ul>
+                        <input type="hidden" name="ai_provider" id="aiProviderInput" value="Anthropic">
+                    </div>
                     <label for="quoteFile" class="btn btn-success">
                         <i class="bi bi-file-earmark-text me-2"></i>Create PO from Supplier Quote
                         <input type="file" id="quoteFile" name="quote_file" accept=".pdf,.jpg,.jpeg,.png" class="d-none">
