@@ -2,6 +2,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('quoteUploadForm');
     const fileInput = document.getElementById('quoteFile');
     const uploadButton = document.querySelector('#quoteUploadForm label');
+    const aiProviderInput = document.getElementById("aiProviderInput");
+    const selectedProviderText = document.getElementById("selectedProvider");
+
+    document.querySelectorAll(".ai-provider-option").forEach(option => {
+        option.addEventListener("click", function(e) {
+            e.preventDefault();
+            const provider = this.getAttribute('data-provider');
+            aiProviderInput.value = provider;
+            selectedProviderText.textContent = provider;
+        });
+    });
     
     // Handle file selection
     fileInput.addEventListener('change', function(event) {
@@ -65,6 +76,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add CSRF token
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             formData.append('csrfmiddlewaretoken', csrfToken);
+
+            // Add AI provider selection
+            formData.append("ai_provider", aiProviderInput.value);
             
             processQuoteFile(formData);
         }
@@ -73,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to process the quote file
     function processQuoteFile(formData) {
         console.log('processQuoteFile called with FormData');
+        console.log('Using AI provider:', formData.get('ai_provider'));
         
         // Show loading indicator
         const loadingIndicator = document.createElement('div');

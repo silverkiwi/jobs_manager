@@ -1,6 +1,7 @@
 import random
 import calendar
-from datetime import datetime, date, timedelta
+import datetime
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
@@ -19,6 +20,7 @@ from workflow.models import (
 )
 from workflow.enums import JobPricingStage
 from workflow.models.client import Client
+from workflow.utils import get_nz_tz
 
 
 class Command(BaseCommand):
@@ -146,16 +148,16 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR('No staff members found'))
                 return
             
-            # Primeiro, vamos garantir que temos jobs de shop e regulares
+            # First, let's ensure we have shop and regular jobs
             self._ensure_job_data_exists()
                 
             # Get valid job pricings to assign time entries to
-            job_pricings = self._get_job_pricings()
+            job_pricings = self._get_job_pricings(relaxed=True)
             if not job_pricings:
                 self.stdout.write(self.style.ERROR('No job pricings found'))
                 return
                 
-            # Get shop job pricings for non-billable work (usando client_id em vez de shop_job)
+            # Get shop job pricings for non-billable work (using client_id instead of shop_job)
             shop_job_pricings = [jp for jp in job_pricings if str(jp.job.client_id) == "00000000-0000-0000-0000-000000000001"]
             
             # Regular job pricings for billable work
@@ -219,11 +221,11 @@ class Command(BaseCommand):
             )
     
     def _ensure_job_data_exists(self):
-        """Verifica e cria jobs padrão se necessário"""
-        # Verifica se existe um client para shop jobs
+        """Verifies and creates default jobs if necessary"""
+        # Check if a client for shop jobs exists
         shop_client_exists = False
         try:
-            # Verifica se existe o client shop pelo UUID hardcoded
+            # Check if shop client exists by hardcoded UUID
             shop_client_exists = Client.objects.filter(pk="00000000-0000-0000-0000-000000000001").exists()
         except:
             pass
@@ -414,109 +416,158 @@ class Command(BaseCommand):
             
         return categories
     
-    def _get_job_pricings(self):
+    def _get_job_pricings(self, relaxed=False):
         """Get active job pricings with reality stage"""
-        job_pricings = JobPricing.objects.filter(
-            pricing_stage=JobPricingStage.REALITY,
-            job__status__in=['approved', 'in_progress', 'special']
-        ).select_related('job')
-        
-        return list(job_pricings)
+        qs = JobPricing.objects.filter(pricing_stage=JobPricingStage.REALITY)
+        if relaxed:
+            qs = qs.filter(job__status__in=[
+                "approved", "in_progress", "special", "quoting", "on_hold"
+            ])
+        else:
+            qs = qs.filter(job__status__in=["approved", "in_progress", "special"])
+        return list(qs)
 
+    @staticmethod
+    def _nz_random_dt(day_date: date) -> datetime.datetime:
+        """
+        Returns a random time (09-17 h) of the day in NZ timezone
+        """
+        hh = random.randint(9, 16)
+        mm = random.randint(0, 59)
+        naive = datetime.datetime.combine(day_date, datetime.time(hh, mm))
+        return timezone.make_aware(naive, get_nz_tz())
+
+    @staticmethod
+    def _rand_decimal(low, high, ndigits=2):
+        """Returns a rounded Decimal between low and high (accepts float or Decimal)."""
+        # cast to float before uniform()
+        low_f, high_f = float(low), float(high)
+        value = random.uniform(low_f, high_f)
+        return Decimal(str(round(value, ndigits)))
+    
     def _create_material_entries(self, day_date, job_pricings, category):
-        """Create material entries for a specific day"""
-        entries_created = 0
+        """
+        Creates MaterialEntry(s) for the day. Guarantees at least 1.
+        Returns the number created.
+        """
+        cat_cfg = {
+            "green": dict(prob=0.9,  cnt=(2, 6), cost=(40, 350), mark=(1.25, 1.55)),
+            "amber": dict(prob=0.7,  cnt=(1, 4), cost=(25, 300), mark=(1.15, 1.40)),
+            "red"  : dict(prob=0.5,  cnt=(1, 3), cost=(15, 220), mark=(1.05, 1.25)),
+        }[category]
 
-        match category:
-            case "green":
-                material_probability = 0.4
-                material_count_range = (1, 4)
-            case "amber":
-                material_probability = 0.3
-                material_count_range = (1, 3)
-            case _:
-                material_probability = 0.2
-                material_count_range = (1, 2)
+        created = 0
         
+        # Determine how many materials to create based on category
+        num_materials = random.randint(*cat_cfg["cnt"])
+        
+        # Get job pricings that have time entries on this date, if any
+        jobs_with_time = []
         for jp in job_pricings:
-            time_entries = TimeEntry.objects.filter(job_pricing=jp, date=day_date)
-            if not time_entries.exists():
-                continue
-
-            if random.random() >= material_probability:
-                continue
-
-            num_materials = random.randint(*material_count_range)
-
-            for i in range(num_materials):
-                match category:
-                    case "green":
-                        unit_cost = Decimal(str(random.uniform(20, 300)))
-                        markup = random.uniform(1.25, 1.45)
-                    case "amber":
-                        unit_cost = Decimal(str(random.uniform(15, 250)))
-                        markup = random.uniform(1.15, 1.30)
-                    case _:
-                        unit_cost = Decimal(str(random.uniform(10, 200)))
-                        markup = random.uniform(1.05, 1.20)
-                    
-                unit_revenue = unit_cost * Decimal(str(markup))
-                quantity = random.randint(1, 5)
+            if TimeEntry.objects.filter(job_pricing=jp, date=day_date).exists():
+                jobs_with_time.append(jp)
+        
+        # Use jobs with time entries if available, otherwise use random selection
+        target_jobs = jobs_with_time if jobs_with_time else random.sample(
+            job_pricings, 
+            min(len(job_pricings), max(1, int(len(job_pricings) * 0.3)))
+        )
+        
+        if target_jobs:
+            # Create materials distributed among target jobs
+            for _ in range(num_materials):
+                jp = random.choice(target_jobs)
+                markup_lo, markup_hi = cat_cfg["mark"]
+                unit_cost = self._rand_decimal(*cat_cfg["cost"])
+                markup = random.uniform(markup_lo, markup_hi)
+                unit_rev = (unit_cost * Decimal(str(markup))).quantize(Decimal("1.00"))
 
                 MaterialEntry.objects.create(
-                    job_pricing=jp,
-                    description=f"Material {i+1} for {jp.job.name}",
-                    unit_cost=unit_cost.quantize(Decimal('0.01')),
-                    unit_revenue=unit_revenue.quantize(Decimal('0.01')),
-                    quantity=quantity,
-                    comments=f"Auto-generated KPI test data ({category} day)"
+                    job_pricing = jp,
+                    description = f"MAT {random.randint(1000, 9999)}",
+                    unit_cost   = unit_cost,
+                    unit_revenue= unit_rev,
+                    quantity    = random.randint(1, 7),
+                    comments    = f"Auto-generated KPI test data ({category})",
+                    created_at  = self._nz_random_dt(day_date)
                 )
-                entries_created += 1
+                created += 1
         
-        return entries_created
+        # Create a fallback entry if nothing was created
+        if created == 0 and job_pricings:
+            jp = random.choice(job_pricings)
+            MaterialEntry.objects.create(
+                job_pricing = jp,
+                description = "Fallback material",
+                unit_cost   = Decimal("50.00"),
+                unit_revenue= Decimal("75.00"),
+                quantity    = 1,
+                comments    = f"Auto-generated KPI test data ({category})",
+                created_at  = self._nz_random_dt(day_date)
+            )
+            created = 1
+        
+        return created
     
     def _create_adjustment_entries(self, day_date, job_pricings, category):
-        """Create adjustment entries for a specific day"""
-        entries_created = 0
+        """
+        Creates AdjustmentEntry(s) for the day. Guarantees at least 1.
+        Returns the number created.
+        """
+        cat_cfg = {
+            "green": dict(prob=0.5,  price=(-300, 700), cost=(-400, 150)),
+            "amber": dict(prob=0.4,  price=(-400, 500), cost=(-300, 200)),
+            "red"  : dict(prob=0.3,  price=(-500, 300), cost=(-250, 250)),
+        }[category]
 
-        match category:
-            case "green":
-                adjustment_probability = 0.15
-                price_adj_range = (-200, 500)
-                cost_adj_range = (-300, 100)
-            case "amber":
-                adjustment_probability = 0.2
-                price_adj_range = (-300, 300)
-                cost_adj_range = (-200, 200)
-            case _:
-                adjustment_probability = 0.25
-                price_adj_range = (-400, 100)
-                cost_adj_range = (-100, 300)
-
-        for jp in job_pricings:
-            time_entries = TimeEntry.objects.filter(job_pricing=jp, date=day_date)
-            if not time_entries.exists():
-                continue
-
-            if random.random() > adjustment_probability:
-                continue
-
-            price_adjustment = Decimal(str(random.uniform(*price_adj_range)))
-            cost_adjustment = Decimal("0.00")
-            if random.random() <= 0.7:
-                cost_adjustment=Decimal(str(random.uniform(*cost_adj_range)))
-            
-            AdjustmentEntry.objects.create(
-                job_pricing=jp,
-                description=f"Adjustment for {jp.job.name}",
-                price_adjustment=price_adjustment.quantize(Decimal("0.01")),
-                cost_adjustment=cost_adjustment.quantize(Decimal("0.01")),
-                comments=f"Auto-generated KPI test data ({category} day)"
-            )
-            entries_created += 1
+        created = 0
         
-        return entries_created
+        # Get job pricings that have time entries on this date, if any
+        jobs_with_time = []
+        for jp in job_pricings:
+            if TimeEntry.objects.filter(job_pricing=jp, date=day_date).exists():
+                jobs_with_time.append(jp)
+        
+        # Use jobs with time entries if available, otherwise use random selection
+        target_jobs = jobs_with_time if jobs_with_time else random.sample(
+            job_pricings, 
+            min(len(job_pricings), max(1, int(len(job_pricings) * 0.2)))
+        )
+        
+        # Create 1-2 adjustment entries based on category
+        num_adjustments = 1 if random.random() > cat_cfg["prob"] else 2
+        
+        if target_jobs:
+            # Create adjustments for the determined number
+            for _ in range(num_adjustments):
+                jp = random.choice(target_jobs)
+                price_adj = self._rand_decimal(*cat_cfg["price"])
+                cost_adj = self._rand_decimal(*cat_cfg["cost"]) if random.random() < 0.8 else Decimal("0.00")
 
+                AdjustmentEntry.objects.create(
+                    job_pricing     = jp,
+                    description     = f"ADJ {random.randint(1000, 9999)}",
+                    price_adjustment= price_adj,
+                    cost_adjustment = cost_adj,
+                    comments        = f"Auto-generated KPI test data ({category})",
+                    created_at      = self._nz_random_dt(day_date)
+                )
+                created += 1
+        
+        # Create a fallback entry if nothing was created
+        if created == 0 and job_pricings:
+            jp = random.choice(job_pricings)
+            AdjustmentEntry.objects.create(
+                job_pricing     = jp,
+                description     = "Fallback adjustment",
+                price_adjustment= self._rand_decimal(*cat_cfg["price"]),
+                cost_adjustment = self._rand_decimal(*cat_cfg["cost"]) if random.random() < 0.7 else Decimal("0.00"),
+                comments        = f"Auto-generated KPI test data ({category})",
+                created_at      = self._nz_random_dt(day_date)
+            )
+            created = 1
+        
+        return created
     
     def _create_day_entries(self, day_date, staff_members, regular_job_pricings, 
                            shop_job_pricings, target_billable, category):

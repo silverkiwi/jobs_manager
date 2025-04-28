@@ -1,19 +1,27 @@
-from datetime import date, timedelta
 import datetime
 
 import calendar
+
+import holidays
 
 from decimal import Decimal
 
 from typing import Dict, Any, Tuple
 
-from django.db.models import Sum, Case, When, F, DecimalField, Value, Q, Subquery, OuterRef
+from datetime import date, timedelta
+
+from django.db.models import Sum, Case, When, F, DecimalField, Value
+
+from django.db.models.functions import TruncDate
+
+from django.utils import timezone
+
 from logging import getLogger
 
 from workflow.models import TimeEntry, CompanyDefaults, Job
 from workflow.models.adjustment_entry import AdjustmentEntry
 from workflow.models.material_entry import MaterialEntry
-from workflow.utils import get_excluded_staff
+from workflow.utils import get_excluded_staff, get_nz_tz
 
 logger = getLogger(__name__)
 
@@ -24,7 +32,10 @@ class KPIService:
     All business logic related to KPIs shall be implemented here.
     """
 
+    nz_timezone = get_nz_tz()
+
     shop_job_id: str = "00000000-0000-0000-0000-000000000001"
+
 
     @staticmethod
     def get_company_thresholds() -> Dict[str, float]:
@@ -49,6 +60,38 @@ class KPIService:
             logger.error(f"Error retrieving company defaults: {str(e)}")
             raise
     
+    @staticmethod
+    def _process_entries(entries: Dict, revenue_key="revenue", cost_key="cost") -> Dict[datetime.date, Dict]:
+        """
+        Segregates entries by date based on the provided Dict
+        """
+        entries_by_date = {
+            entry["local_date"]: {
+                "revenue": entry.get(revenue_key) or 0,
+                "cost":    entry.get(cost_key) or 0
+            }
+            for entry in entries
+        }
+        return entries_by_date
+    
+    @classmethod
+    def _get_holidays(cls, year, month=None):
+        """
+        Gets New Zealand holidays for a specific year and month.
+
+        Args:
+            year: The year to get holidays for
+            month: Optional month (1-12) to filter holidays
+        
+        Returns:
+            Set of dates that are holidays
+        """
+        nz_holidays = holidays.country_holidays('NZ', years=year)
+
+        if month:
+            return {date: name for date, name in nz_holidays.items() if date.month == month}
+        return dict(nz_holidays)
+
     @classmethod
     def get_month_days_range(cls, year: int, month: int) -> Tuple[date, date, int]:
         """
@@ -157,37 +200,41 @@ class KPIService:
             )
         }
 
+        aware_start = timezone.make_aware(
+            datetime.datetime.combine(start_date, datetime.time.min),
+            cls.nz_timezone
+        )
+        aware_end = timezone.make_aware(
+            datetime.datetime.combine(end_date, datetime.time.max),
+            cls.nz_timezone
+        )
+
         material_entries = MaterialEntry.objects.filter(
-            created_at__range=[start_date, end_date]
-        ).values("job_pricing__time_entries__date").annotate(
+            created_at__range=[aware_start, aware_end]
+        ).annotate(
+            local_date=TruncDate('created_at', tzinfo=cls.nz_timezone)
+        ).values("local_date").annotate(
             revenue=Sum(F("unit_revenue") * F("quantity"), output_field=decimal_field),
             cost=Sum(F("unit_cost") * F("quantity"), output_field=decimal_field)
         )
 
         adjustment_entries = AdjustmentEntry.objects.filter(
-            created_at__range=[start_date, end_date]
-        ).values("job_pricing__time_entries__date").annotate(
-            revenue_adj=Sum(F("price_adjustment")),
-            cost_adj=Sum(F("cost_adjustment"))
+            created_at__range=[aware_start, aware_end]
+        ).annotate(
+            local_date=TruncDate('created_at', tzinfo=cls.nz_timezone)
+        ).values("local_date").annotate(
+            revenue=Sum(F("price_adjustment")),
+            cost=Sum(F("cost_adjustment"))
         )
 
-        material_by_date = {}
-        for entry in material_entries:
-            date_key = entry["job_pricing__time_entries__date"]
-            material_by_date[date_key] = {
-                "revenue": entry["revenue"] or 0,
-                "cost": entry["cost"] or 0
-            }
+        material_by_date = cls._process_entries(material_entries)
         
-        adjustment_by_date = {}
-        for entry in adjustment_entries:
-            date_key = entry["job_pricing__time_entries__date"]
-            adjustment_by_date[date_key] = {
-                "revenue": entry["revenue_adj"] or 0,
-                "cost": entry["cost_adj"] or 0
-            }
+        adjustment_by_date = cls._process_entries(adjustment_entries)
 
         logger.debug(f"Retrieved data for {len(time_entries_by_date)} days")
+
+        holiday_dates = cls._get_holidays(year, month)
+        logger.debug(f"Holidays in {year}-{month}: {holiday_dates}")
 
         # For each day of the month
         current_date = start_date
@@ -195,6 +242,21 @@ class KPIService:
         while current_date <= end_date:
             # Skip weekends (5=Saturday, 6=Sunday)
             if current_date.weekday() >= 5: 
+                current_date += timedelta(days=1)
+                continue
+
+            is_holiday = current_date in holiday_dates
+
+            date_key = current_date.isoformat()
+            base_data = {
+                "date": date_key,
+                "day": current_date.day,
+                "holiday": is_holiday
+            }
+
+            if is_holiday:
+                base_data["holiday_name"] = holiday_dates[current_date]
+                calendar_data[date_key] = base_data
                 current_date += timedelta(days=1)
                 continue
 
@@ -255,10 +317,8 @@ class KPIService:
                 case _:
                     monthly_totals["days_red"] += 1
 
-            date_key = current_date.isoformat()
-            calendar_data[date_key] = {
-                "date": date_key,
-                "day": current_date.day,
+            full_data = base_data.copy()
+            full_data.update({
                 "billable_hours": billable_hours,
                 "total_hours": total_hours,
                 "shop_hours": shop_hours,
@@ -281,7 +341,8 @@ class KPIService:
                         "adjustment_profit": float(adjustment_revenue - adjustment_cost)
                     }
                 }
-            }
+            })
+            calendar_data[date_key] = full_data
 
             monthly_totals["billable_hours"] += billable_hours
             monthly_totals["total_hours"] += total_hours
@@ -311,6 +372,13 @@ class KPIService:
             gp_daily_avg,
             thresholds["daily_gp_target"],
             (thresholds["daily_gp_target"] / 2)
+        )
+        
+        shop_percentage = monthly_totals["shop_percentage"]
+        monthly_totals["color_shop"] = cls._get_color(
+            20.0,  # Target threshold (reverse logic - lower is better)
+            shop_percentage,
+            25.0   # Warning threshold
         )
         
         logger.info(f"Monthly totals: billable: {monthly_totals['billable_hours']:.1f}h, billable %: {monthly_totals['billable_percentage']:.1f}%")

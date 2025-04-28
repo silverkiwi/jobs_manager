@@ -48,3 +48,4 @@ def get_enum_choices(request, enum_name):
     except Exception as e:
         logger.exception(f"Unexpected error getting enum choices: {e}")
         return JsonResponse({'error': 'An unexpected server error occurred.'}, status=500)
+    
