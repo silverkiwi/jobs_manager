@@ -336,7 +336,7 @@ def extract_supplier_quote_data_view(request):
 
         if ai_provider not in ["Anthropic", "Google"]:
             logger.warning(f"Invalid AI provider: {ai_provider}, defaulting to Claude")
-            ai_provider = "Claude"
+            ai_provider = "Anthropic"
         
         logger.info(f"Processing quote with {ai_provider} AI provider")
 

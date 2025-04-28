@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedProviderText = document.getElementById("selectedProvider");
 
     document.querySelectorAll(".ai-provider-option").forEach(option => {
-        option.addEventListener("click", (e) => {
+        option.addEventListener("click", function(e) {
             e.preventDefault();
             const provider = this.getAttribute('data-provider');
             aiProviderInput.value = provider;

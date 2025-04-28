@@ -577,7 +577,7 @@ def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optio
 def create_po_from_quote(
         purchase_order: PurchaseOrder, 
         quote: PurchaseOrderSupplierQuote, 
-        ai_provider: Literal["Google", "Antropic"] = "Anthropic"
+        ai_provider: Literal["Google", "Anthropic"] = "Anthropic"
     ) -> Tuple[Optional[PurchaseOrder]]:
     """
     Create purchase order lines from a supplier quote.
