@@ -22,6 +22,7 @@ class CompanyDefaults(models.Model):
     
     # LLM integration
     anthropic_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="API key for Anthropic Claude LLM")
+    gemini_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="API key for Google Gemini LLM")
 
     # Default working hours (Mon-Fri, 7am - 3pm)
     mon_start = models.TimeField(default="07:00")
