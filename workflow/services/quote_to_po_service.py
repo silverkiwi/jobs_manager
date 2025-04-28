@@ -467,7 +467,7 @@ def create_po_line_from_quote_item(purchase_order: PurchaseOrder, line_data: dic
         price_tbc=unit_cost is None,
         supplier_item_code=line_data.get("supplier_item_code", ""),
         metal_type=line_data.get("metal_type", "unspecified"),
-        alloy=line_data.get("alloy", "")
+        alloy=line_data.get("alloy", ""),
         specifics=line_data.get("specifics", ""),
         dimensions=line_data.get("dimensions", ""),
         raw_line_data=json.loads(json.dumps(line_data))
