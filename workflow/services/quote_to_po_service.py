@@ -484,7 +484,7 @@ def safe_float(value, default=None):
 
 def calculate_unit_cost(quantity: float, line_total: float, extracted_unit_price: Optional[float], description: str) -> Optional[float]:
     """Calculate unit cost from quantity and line total."""
-    if not line_total > 0 and quantity > 0:
+    if not (line_total > 0 and quantity > 0):
         logger.warning(
             f"Could not calculate unit cost for: '{description}, "
             f"Line total: {line_total}, Quantity: {quantity}"
@@ -578,7 +578,7 @@ def create_po_from_quote(
         purchase_order: PurchaseOrder, 
         quote: PurchaseOrderSupplierQuote, 
         ai_provider: Literal["Google", "Anthropic"] = "Anthropic"
-    ) -> Tuple[Optional[PurchaseOrder]]:
+    ) -> Tuple[Optional[PurchaseOrder], Optional[str]]:
     """
     Create purchase order lines from a supplier quote.
     
