@@ -1014,6 +1014,21 @@ files = [
 ]
 
 [[package]]
+name = "holidays"
+version = "0.71"
+description = "Open World Holidays Framework"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "holidays-0.71-py3-none-any.whl", hash = "sha256:15803b167b71d9ca3e45198db84ed7fce15912b81ab27ba916b088f4a8f704f3"},
+    {file = "holidays-0.71.tar.gz", hash = "sha256:3ebd9c9de0927bee90ea7bfb551c2a030ef139cf6381c7a23add94d061787466"},
+]
+
+[package.dependencies]
+python-dateutil = "*"
+
+[[package]]
 name = "httpcore"
 version = "1.0.9"
 description = "A minimal low-level HTTP client."
@@ -2820,4 +2835,4 @@ urllib3 = "*"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "c389028186738c841186f68643dc50b1271590c452eab72ca8556dff00388b13"
+content-hash = "33194be08e0ab5ceefdd21eef3556cf14166ae511c149741803b117664014f65"
