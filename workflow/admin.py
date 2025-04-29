@@ -33,6 +33,17 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
             },
         ),
         (
+            "Thresholds",
+            {
+                "fields": (
+                    "billable_threshold_green",
+                    "billable_threshold_amber",
+                    "daily_gp_target",
+                    "shop_hours_target_percentage",
+                )
+            }
+        ),
+        (
             "Working Hours",
             {
                 "fields": (
@@ -60,6 +71,7 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "anthropic_api_key",
+                    "gemini_api_key"
                 ),
                 "description": "API keys for Large Language Model integrations.",
             },
