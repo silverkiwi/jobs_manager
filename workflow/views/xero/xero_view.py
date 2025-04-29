@@ -5,6 +5,7 @@ import re # Keep re if used elsewhere, otherwise remove
 import traceback
 import threading
 import uuid
+import time
 # from abc import ABC, abstractmethod # No longer needed here
 from datetime import timedelta, timezone, datetime
 from decimal import Decimal
@@ -51,6 +52,7 @@ from workflow.api.xero.xero import (
 from workflow.enums import InvoiceStatus, JobPricingType, QuoteStatus # Keep if needed
 from workflow.models import Invoice, Job, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults, PurchaseOrder, Quote # Keep models used in views
 from workflow.utils import extract_messages
+from workflow.services.xero_sync_service import XeroSyncService
 
 # Import the new creator classes
 from .xero_po_manager import XeroPurchaseOrderManager
@@ -127,42 +129,121 @@ def refresh_xero_data(request):
             request, "general/generic_error.html", {"error_message": str(e)}
         )
 
+
+# workflow/views/xero_sync_events.py
+
+import json
+import logging
+import time
+
+from django.core.cache import cache
+from django.http import StreamingHttpResponse, HttpRequest
+from django.utils import timezone
+from django.views.decorators.http import require_GET
+
+from workflow.services.xero_sync_service import XeroSyncService
+from workflow.api.xero.xero import get_valid_token
+
+logger = logging.getLogger("xero.events")
+
+
 def generate_xero_sync_events():
-    """Generate SSE events for Xero sync progress."""
+    """
+    SSE generator yielding JSON-encoded sync progress messages.
+
+    Steps:
+    1) Authenticate: ensure a valid Xero OAuth token is available.
+    2) Emit an initial 'Starting Xero sync' event.
+    3) Poll the XeroSyncService cache for new messages, streaming each one.
+    4) Once no lock and no new messages, emit a final 'Sync stream ended' event.
+    5) Handle unexpected errors by logging and emitting a single error event,
+       then a final end-of-stream event without re-raising exceptions.
+    """
     try:
-        token = get_valid_token()
-        if not token:
-            yield f"data: {json.dumps({'datetime': timezone.now().isoformat(),'entity': 'sync','severity': 'error','message': 'No valid Xero token. Please authenticate.','progress': None})}\n\n"
+        # 1) Authentication check
+        if not get_valid_token():
+            payload = {
+                'datetime': timezone.now().isoformat(),
+                'entity': 'sync',
+                'severity': 'error',
+                'message': 'No valid Xero token. Please authenticate.',
+                'progress': None
+            }
+            yield f"data: {json.dumps(payload)}\n\n"
             return
-        last_heartbeat = timezone.now()
-        messages_gen = synchronise_xero_data()
-        for message in messages_gen:
-            now = timezone.now()
-            if (now - last_heartbeat).total_seconds() > 15:
-                heartbeat = {'datetime': now.isoformat(),'entity': 'sync','severity': 'info','message': 'Heartbeat','progress': message.get('progress')}
-                yield f"data: {json.dumps(heartbeat)}\n\n"
-                last_heartbeat = now
-            data = json.dumps(message)
-            yield f"data: {data}\n\n"
-    except Exception as e:
-        error_message = {"datetime": timezone.now().isoformat(),"entity": "sync","severity": "error","message": str(e),"progress": None}
-        yield f"data: {json.dumps(error_message)}\n\n"
-    finally:
-        final_message = {"datetime": timezone.now().isoformat(),"entity": "sync","severity": "info","message": "Sync stream ended","progress": 1.0}
-        yield f"data: {json.dumps(final_message)}\n\n"
 
-def stream_xero_sync(request):
-    """Stream Xero sync progress events."""
-    try:
-        response = StreamingHttpResponse(generate_xero_sync_events(), content_type='text/event-stream')
-        response['Cache-Control'] = 'no-cache'
-        response['X-Accel-Buffering'] = 'no'
-        return response
-    except Exception as e:
-        logger.error(f"Error in stream_xero_sync: {str(e)}")
-        raise
+        # 2) Starting event
+        start_payload = {
+            'datetime': timezone.now().isoformat(),
+            'entity': 'sync',
+            'severity': 'info',
+            'message': 'Starting Xero sync',
+            'progress': 0.0
+        }
+        yield f"data: {json.dumps(start_payload)}\n\n"
 
-# --- VIEW FUNCTIONS USING CREATORS ---
+        # 3) Begin streaming cached messages
+        task_id = XeroSyncService.get_active_task_id()
+        last_index = 0
+
+        while True:
+            messages = XeroSyncService.get_messages(task_id, last_index)
+
+            # 4a) If sync lock released and no pending messages → end
+            if not cache.get('xero_sync_lock', False) and not messages:
+                end_payload = {
+                    'datetime': timezone.now().isoformat(),
+                    'entity': 'sync',
+                    'severity': 'info',
+                    'message': 'Sync stream ended',
+                    'progress': 1.0
+                }
+                yield f"data: {json.dumps(end_payload)}\n\n"
+                break
+
+            # 4b) Stream each new message
+            for msg in messages:
+                yield f"data: {json.dumps(msg)}\n\n"
+                last_index += 1
+
+            # 4c) Sleep to reduce CPU load
+            time.sleep(0.5)
+
+    except Exception:
+        # 5) Unexpected error
+        logger.exception("Unexpected error in generate_xero_sync_events")
+        error_payload = {
+            'datetime': timezone.now().isoformat(),
+            'entity': 'sync',
+            'severity': 'error',
+            'message': 'Internal server error during sync.',
+            'progress': None
+        }
+        yield f"data: {json.dumps(error_payload)}\n\n"
+
+        final_payload = {
+            'datetime': timezone.now().isoformat(),
+            'entity': 'sync',
+            'severity': 'info',
+            'message': 'Sync stream ended',
+            'progress': None
+        }
+        yield f"data: {json.dumps(final_payload)}\n\n"
+
+
+@require_GET
+def stream_xero_sync(request: HttpRequest) -> StreamingHttpResponse:
+    """
+    HTTP endpoint to serve an EventSource stream of Xero sync events.
+    """
+    response = StreamingHttpResponse(
+        generate_xero_sync_events(),
+        content_type='text/event-stream'
+    )
+    # Prevent Django or proxies from buffering
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
 
 def ensure_xero_authentication():
     """
@@ -374,10 +455,50 @@ def get_xero_sync_info(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 def start_xero_sync(request):
-    """View function to handle Xero sync requests"""
+    """
+    View function to start a Xero sync as a background task.
+    """
     try:
-        sync_generator = synchronise_xero_data() # Assuming this handles its own threading/background task
-        return JsonResponse({'status': 'success'})
+        token = get_valid_token()
+        if not token:
+            return JsonResponse({'error': 'No valid token. Please authenticate.'}, status=401)
+        
+        # Start sync using the service
+        task_id, is_new = XeroSyncService.start_sync()
+        
+        if not task_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Failed to start sync. The scheduler may not be running or a sync is already in progress.'
+            }, status=500)
+        
+        message = 'Started new Xero sync' if is_new else 'A sync is already running'
+        return JsonResponse({
+            'status': 'success',
+            'message': message,
+            'task_id': task_id
+        })
     except Exception as e:
         logger.error(f"Error starting Xero sync: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+    
+@require_POST
+def trigger_xero_sync(request):
+    """
+    Manual “Sync now” endpoint. Returns the task_id so the frontend
+    can connect to the same SSE stream.
+    """
+    # Ensure user is authenticated with Xero
+    tenant = ensure_xero_authentication()
+    if isinstance(tenant, JsonResponse):
+        return tenant
+
+    task_id, started = XeroSyncService.start_sync()
+    if not task_id:
+        return JsonResponse({'success': False, 'message': 'Unable to start sync.'}, status=400)
+
+    return JsonResponse({
+        'success': True,
+        'task_id': task_id,
+        'started': started
+    })
