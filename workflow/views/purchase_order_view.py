@@ -339,10 +339,18 @@ def extract_supplier_quote_data_view(request):
             ai_provider = "Anthropic"
         
         logger.info(f"Processing quote with {ai_provider} AI provider")
+        
+        purchase_order = PurchaseOrder.objects.create(
+            status="draft",
+            order_date=timezone.now().date()
+        )
+
+        quote = save_quote_file(purchase_order, quote_file)
 
         # Create PO from quote
         purchase_order, error = create_po_from_quote(
-            quote_file=quote_file,
+            purchase_order=purchase_order,
+            quote=quote,
             ai_provider=ai_provider
         )
 
