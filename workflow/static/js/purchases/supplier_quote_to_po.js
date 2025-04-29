@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add CSRF token explicitly
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             formData.append('csrfmiddlewaretoken', csrfToken);
+
+            formData.append('ai_provider', aiProviderInput.value);
             
             processQuoteFile(formData);
         } else {
@@ -78,13 +80,18 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('csrfmiddlewaretoken', csrfToken);
 
             // Add AI provider selection
+            console.log('AI Provider log:', aiProviderInput.value);
             formData.append("ai_provider", aiProviderInput.value);
-            
+
             processQuoteFile(formData);
         }
     });
     
-    // Function to process the quote file
+    /**
+     * Function to process the quote file
+     * 
+     * @param {FormData} formData 
+     */
     function processQuoteFile(formData) {
         console.log('processQuoteFile called with FormData');
         console.log('Using AI provider:', formData.get('ai_provider'));
