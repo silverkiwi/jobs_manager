@@ -8,7 +8,7 @@ import { getState, updateState } from "./purchase_order_state.js";
 import { createNewRowShortcut, updateGridEditability } from "./purchase_order_grid.js";
 import { debouncedAutosave } from "./purchase_order_autosave.js";
 import { deleteXeroPurchaseOrder } from "./purchase_order_xero_actions.js";
-import { renderMessages } from "./messages.js";
+import { renderMessages } from "../../timesheet/timesheet_entry/messages.js";
 
 /**
  * Set up event listeners for the purchase order form
@@ -98,14 +98,48 @@ export function setupEventListeners() {
       });
     });
   });
+
+  const printButton = document.getElementById("printPO");
+  if (printButton) {
+    printButton.addEventListener("click", async () => {
+      try {
+        const purchaseOrderId = getPurchaseOrderId();
+        if (!purchaseOrderId) {
+          throw new Error('Purchase Order ID not found');
+        }
+
+        const response = await fetch(`/api/purchase-order/print/${purchaseOrderId}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to generate Purchase Order PDF');
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const pdfWindow = window.open(url, "_blank");
+
+        if (!pdfWindow) {
+          throw new Error('Popup blocked. Please allow popups to print the purchase order');
+        }
+
+        pdfWindow.print();
+      } catch (error) {
+        console.error('Print error:', error);
+        renderMessages([
+          {
+        level: "error",
+        message: `Unable to print: ${error.message}`
+          }
+        ], "toast-container");
+      }
+    });
+  }
   
   // Add event listener for the delete Xero PO button
   const deleteButton = document.getElementById("deleteXeroPOButton");
   if (deleteButton) {
     deleteButton.addEventListener("click", () => {
-      const purchaseOrderIdInput = document.getElementById("purchase_order_id");
-      const purchaseOrderId = purchaseOrderIdInput ? purchaseOrderIdInput.value : null;
-
+      const purchaseOrderId = getPurchaseOrderId();
       if (purchaseOrderId) {
         deleteXeroPurchaseOrder(purchaseOrderId);
       } else {
@@ -117,9 +151,24 @@ export function setupEventListeners() {
               message: "Cannot delete Xero PO: Purchase Order ID not found.",
             },
           ],
-          "purchase-order-messages",
+          "toast-container"
         );
       }
     });
   }
+}
+
+/**
+ * Gets the PO ID based on the input element present in the template.
+ * 
+ * @returns {String | null} The purchase order ID based on the input value, or null if the element is not found or if the value is blank.
+ */
+function getPurchaseOrderId() {
+  const purchaseOrderIdInput = document.getElementById("purchase_order_id");
+
+  if (!purchaseOrderIdInput) {
+    return null;
+  }
+
+  return purchaseOrderIdInput.value !== '' ? purchaseOrderIdInput.value : null;
 }
