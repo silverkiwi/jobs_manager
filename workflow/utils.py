@@ -1,4 +1,6 @@
+from datetime import timezone
 import uuid
+from zoneinfo import ZoneInfo
 from django.contrib.messages import get_messages
 from django.db import models
 from workflow.models import Job
@@ -154,3 +156,19 @@ def get_active_jobs() -> models.QuerySet[Job]:
     return Job.objects.exclude(
         status__in=excluded_statuses
     ).select_related("client")
+
+def get_nz_tz() -> timezone | ZoneInfo:
+    """
+    Gets the New Zealand timezone object using either zoneinfo or pytz.
+
+    Returns:
+        timezone | ZoneInfo: A timezone object for Pacific/Auckland, 
+        using ZoneInfo if available (Python 3.9+) or falling back to pytz
+    """
+    try:
+        from zoneinfo import ZoneInfo
+        nz_timezone = ZoneInfo('Pacific/Auckland')
+    except ImportError:
+        import pytz
+        nz_timezone = pytz.timezone('Pacific/Auckland')
+    return nz_timezone

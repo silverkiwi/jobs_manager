@@ -1,5 +1,6 @@
 # adjustment_entry.py
 
+from django.utils import timezone
 import uuid
 
 from django.db import models

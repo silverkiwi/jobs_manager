@@ -70,14 +70,14 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": "INFO",
+            "level": "DEBUG",
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "verbose",
         },
         "xero_console": {
-            "level": "INFO",
+            "level": "DEBUG",
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "verbose",
         },
         "sql_file": {
             "level": "DEBUG",
@@ -106,12 +106,12 @@ LOGGING = {
     },
     "loggers": {
         "django.db.backends": {
-            "handlers": ["sql_file"],
+            "handlers": ["sql_file", "console"],
             "level": "DEBUG",
             "propagate": False,
         },
         "xero": {
-            "handlers": ["xero_file", "xero_console"],
+            "handlers": ["xero_file", "console"],
             "level": "DEBUG",
             "propagate": False,
         },
@@ -234,11 +234,13 @@ STATICFILES_DIRS = [
     ("sortablejs", "node_modules/sortablejs"),
     # Quill (CSS/JS)
     ("quill", "node_modules/quill/dist"),
-    # FullCalendar
+    # FullCalendar (JS)
     ("fullcalendar", "node_modules/@fullcalendar/core"),
     ("fullcalendar-daygrid", "node_modules/@fullcalendar/daygrid"),
     ("fullcalendar-interaction", "node_modules/@fullcalendar/interaction"),
     ("fullcalendar-timegrid", "node_modules/@fullcalendar/timegrid"),
+    # Chart.js (JS)
+    ("chart.js", "node_modules/chart.js/dist")
 ]
 
 # Default primary key field type
