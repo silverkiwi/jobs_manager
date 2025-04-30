@@ -2,6 +2,7 @@ import logging
 import os
 import json
 import base64
+import tempfile
 from typing import Literal, Optional, Tuple, Union
 import requests
 import mimetypes
@@ -388,29 +389,6 @@ def create_concise_prompt(metal_types: list[str]) -> str:
         5. Return ONLY a valid JSON object
         """
 
-
-def prepare_file_content(file_content: bytes, content_type: Optional[str], is_pdf: bool, is_image: bool) -> Union[str, dict]:
-    """Prepare file content for Gemini API based on file type."""
-    if is_pdf:
-        return {
-            "mime_type": "application/pdf", 
-            "data": file_content
-        }
-    elif is_image:
-        return {
-            "mime_type": content_type, 
-            "data": file_content
-        }
-    else: 
-        try:
-            return file_content.decode("utf-8", errors="ignore")
-        except Exception as e:
-            logger.error(f"Failed to decode as text: {e}")
-            return {
-                "mime_type": content_type or "application/octet-stream",
-                "data": file_content
-            }
-
 def clean_json_response(text: str) -> str:
     """Clean up JSON response by removing markdown code blocks."""
     text = text.strip()
@@ -453,9 +431,9 @@ def create_po_line_from_quote_item(purchase_order: PurchaseOrder, line_data: dic
         logger.warning("Skipping line item with no description")
         return None
     
-    quantity = safe_float(line_data.get("quantity", 1), default=1)
-    line_total = safe_float(line_data.get("line_total", 0), default=0)
-    unit_price = safe_float(line_data.get("unit_price", default=None))
+    quantity = safe_float(line_data.get("quantity", 1), 1)
+    line_total = safe_float(line_data.get("line_total", 0), 0)
+    unit_price = safe_float(line_data.get("unit_price"))
 
     unit_cost = calculate_unit_cost(quantity, line_total, unit_price, description)
 
@@ -543,8 +521,36 @@ def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optio
         valid_metal_types = [choice[0] for choice in MetalType.choices]
         prompt = create_concise_prompt(valid_metal_types)
 
-        contents = [prompt]
-        contents.append(prepare_file_content(file_content, content_type, is_pdf, is_image))
+        contents = []
+        contents.append({"text": prompt})
+        
+        if is_pdf:
+            mime_type = "application/pdf"
+            file_b64 = base64.b64encode(file_content).decode('utf-8')
+            contents.append({
+                "inline_data": {
+                    "mime_type": mime_type,
+                    "data": file_b64
+                }
+            })
+        
+        if is_image:
+            mime_type = content_type or "image/jpeg"
+            file_b64 = base64.b64encode(file_content).decode('utf-8')
+            contents.append({
+                "inline_data": {
+                    "mime_type": mime_type,
+                    "data": file_b64
+                }
+            })
+        
+        if not is_image or not is_pdf:
+            try:
+                text_content = file_content.decode('utf-8', errors='ignore')
+                contents.append({"text": text_content})
+            except Exception as e:
+                logger.error(f"Failed to decode as text: {e}")
+                return None, f"Failed to process file: {str(e)}"
         
         response = client.models.generate_content(
             model='gemini-2.5-pro-exp-03-25',
@@ -561,7 +567,6 @@ def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optio
         
         result_text = clean_json_response(response.text)
         quote_data = json.loads(result_text)
-
         quote_data = process_supplier_data(quote_data)
 
         return quote_data, None
