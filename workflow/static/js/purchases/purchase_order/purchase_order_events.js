@@ -108,7 +108,7 @@ export function setupEventListeners() {
           throw new Error('Purchase Order ID not found');
         }
 
-        const response = await fetch(`/api/purchase-order/print/${purchaseOrderId}`);
+        const response = await fetch(`/api/purchase-orders/${purchaseOrderId}/pdf`);
 
         if (!response.ok) {
           throw new Error('Failed to generate Purchase Order PDF');
