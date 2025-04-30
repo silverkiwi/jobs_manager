@@ -103,6 +103,14 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
         },
+        "app_file": {
+            "level": "DEBUG",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/application.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
     },
     "loggers": {
         "django.db.backends": {
@@ -127,7 +135,7 @@ LOGGING = {
         },
     },
     "root": {
-        "handlers": ["console"],
+        "handlers": ["console", "app_file"],
         "level": "DEBUG",
     },
 }

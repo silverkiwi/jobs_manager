@@ -68,7 +68,7 @@ def check_xero_sync_needed():
         if now - company_defaults.last_xero_sync > timedelta(days=1):
             return {
                 'needed': True,
-                'message': 'Xero data is outdated, please run a Xero sync'
+                'message': 'Xero data is outdated, please contact Corrin'
             }
 
         # Check deep sync (30 days)
