@@ -64,6 +64,7 @@ class PurchaseOrderPDFView(APIView):
             
             return response
             
+
         except Exception as e:
             logger.exception(f"Error generating PDF for purchase order {purchase_order_id}: {str(e)}")
             return Response(
@@ -74,4 +75,3 @@ class PurchaseOrderPDFView(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-```

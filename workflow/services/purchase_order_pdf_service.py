@@ -140,7 +140,6 @@ class PurchaseOrderPDFGenerator:
         if supplier:
             supplier_data = [
                 ["Name:", supplier.name],
-                ["Contact:", supplier.contact_person or "N/A"],
                 ["Email:", supplier.email or "N/A"],
                 ["Phone:", supplier.phone or "N/A"],
                 ["Address:", supplier.address or "N/A"],
@@ -254,7 +253,7 @@ class PurchaseOrderPDFGenerator:
         # Add footer to each page
         for page_num in range(1, self.pdf.getPageNumber() + 1):
             self.pdf.showPage()  # Move to next page (includes the first page)
-            self.pdf.setFont("Helvetica-Italic", 9)
+            self.pdf.setFont("Helvetica-Oblique", 9)
             
             # Get current timestamp
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -267,9 +266,7 @@ class PurchaseOrderPDFGenerator:
             page_text = f"Page {page_num} of {self.pdf.getPageNumber()}"
             self.pdf.drawRightString(PAGE_WIDTH - MARGIN, 25, page_text)
         
-        # Go to the first page so the buffer has the complete document
         self.pdf.bookmarkPage("1")
-        self.pdf.goToPage(0)
 
 
 def create_purchase_order_pdf(purchase_order):
@@ -284,4 +281,3 @@ def create_purchase_order_pdf(purchase_order):
     """
     generator = PurchaseOrderPDFGenerator(purchase_order)
     return generator.generate()
-```
