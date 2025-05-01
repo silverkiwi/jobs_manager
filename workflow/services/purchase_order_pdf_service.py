@@ -34,7 +34,6 @@ PRIMARY_COLOR = colors.HexColor("#000080")  # Navy blue
 class PurchaseOrderPDFGenerator:
     """
     Generator class for Purchase Order PDF documents.
-    Follows the Single Responsibility Principle by focusing only on PDF generation.
     """
     
     def __init__(self, purchase_order):
@@ -61,7 +60,6 @@ class PurchaseOrderPDFGenerator:
             self.y_position = self.add_header_info(self.y_position)
             self.y_position = self.add_supplier_info(self.y_position)
             self.y_position = self.add_line_items_table(self.y_position)
-            self.add_footer()
             
             # Save PDF and return buffer
             self.pdf.save()
@@ -247,26 +245,6 @@ class PurchaseOrderPDFGenerator:
         
         lines_table.drawOn(self.pdf, MARGIN, y_position - table_height)
         return y_position - table_height - 20
-    
-    def add_footer(self):
-        """Add footer with generation timestamp and page number."""
-        # Add footer to each page
-        for page_num in range(1, self.pdf.getPageNumber() + 1):
-            self.pdf.showPage()  # Move to next page (includes the first page)
-            self.pdf.setFont("Helvetica-Oblique", 9)
-            
-            # Get current timestamp
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            
-            # Add footer text
-            footer_text = f"Purchase Order #{self.purchase_order.po_number} - Generated on {timestamp}"
-            self.pdf.drawString(MARGIN, 25, footer_text)
-            
-            # Add page number
-            page_text = f"Page {page_num} of {self.pdf.getPageNumber()}"
-            self.pdf.drawRightString(PAGE_WIDTH - MARGIN, 25, page_text)
-        
-        self.pdf.bookmarkPage("1")
 
 
 def create_purchase_order_pdf(purchase_order):
