@@ -20,6 +20,7 @@ from django.utils import timezone
 
 from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote, Client, Job
 from workflow.forms import PurchaseOrderForm, PurchaseOrderLineForm
+from workflow.models.company_defaults import CompanyDefaults
 from workflow.utils import extract_messages
 from workflow.services.quote_to_po_service import save_quote_file, create_po_from_quote, extract_data_from_supplier_quote
 from workflow.views.xero.xero_po_manager import XeroPurchaseOrder, XeroPurchaseOrderManager
@@ -332,11 +333,7 @@ def extract_supplier_quote_data_view(request):
 
         quote_file = request.FILES['quote_file']
 
-        ai_provider = request.POST.get("ai_provider", "Anthropic")
-
-        if ai_provider not in ["Anthropic", "Google"]:
-            logger.warning(f"Invalid AI provider: {ai_provider}, defaulting to Claude")
-            ai_provider = "Anthropic"
+        ai_provider = CompanyDefaults.get_instance().get_active_ai_provider()
         
         logger.info(f"Processing quote with {ai_provider} AI provider")
         

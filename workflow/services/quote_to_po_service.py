@@ -19,7 +19,8 @@ from django.db.models import Q
 from workflow.models import PurchaseOrder, PurchaseOrderLine, \
     PurchaseOrderSupplierQuote, Client
 from workflow.helpers import get_company_defaults
-from workflow.enums import MetalType
+from workflow.enums import AIProviderTypes, MetalType
+from workflow.models.ai_provider import AIProvider
 
 logger = logging.getLogger(__name__)
 
@@ -582,7 +583,7 @@ def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optio
 def create_po_from_quote(
         purchase_order: PurchaseOrder, 
         quote: PurchaseOrderSupplierQuote, 
-        ai_provider: Literal["Google", "Anthropic"] = "Anthropic"
+        ai_provider: AIProvider
     ) -> Tuple[Optional[PurchaseOrder], Optional[str]]:
     """
     Create purchase order lines from a supplier quote.
@@ -594,13 +595,13 @@ def create_po_from_quote(
     """
     quote_path = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, quote.file_path)
 
-    match ai_provider:
-        case "Google":
+    match ai_provider.provider_type:
+        case AIProviderTypes.GOOGLE:
             logger.info(f"Using Gemini for quote extraction: {quote.filename}")
             quote_data, error = extract_data_from_supplier_quote_gemini(
                 quote_path, quote.mime_type
             )
-        case "Anthropic":
+        case AIProviderTypes.ANTHROPIC:
             logger.info(f"Using Claude for quote extraction: {quote.filename}")
             quote_data, error = extract_data_from_supplier_quote(
                 quote_path, quote.mime_type
