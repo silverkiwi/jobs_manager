@@ -228,3 +228,37 @@
 .ag-theme-alpine::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0,0,0,0.25);
 }
+
+.ag-theme-alpine .metal-type-cell .ag-cell-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+/* Custom styling for the dropdown in edit mode */
+.ag-theme-alpine .ag-popup-editor select {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--ag-border-color);
+  background-color: white;
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ag-theme-alpine .ag-popup-editor select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+}
+
+/* Style for the select dropdown arrow */
+.ag-theme-alpine .ag-popup-editor select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 1em;
+  padding-right: 30px;
+}

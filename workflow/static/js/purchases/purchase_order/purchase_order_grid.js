@@ -9,6 +9,7 @@ import { renderMessages } from "./messages.js";
 import { getState, updateState, getStatusDisplay } from "./purchase_order_state.js";
 import { debouncedAutosave, markLineItemAsDeleted } from "./purchase_order_autosave.js";
 import { updateJobSummary } from "./purchase_order_summary.js";
+import { fetchMetalTypes } from "./purchase_order_metal_types.js";
 
 /**
  * Create a new empty row for the grid
@@ -253,6 +254,29 @@ function onCellValueChanged(params) {
   debouncedAutosave().then((success) => {
     updateState({ lastAutosaveSuccess: success });
   });
+}
+
+/**
+ * Configure metal type column with improved display
+ * @param {Array} options - Metal type options with value and label
+ * @param {Object} columnDef - Column definition
+ */
+export function configureMetalTypeColumn(options, columnDef) {
+  columnDef.cellEditorParams = {
+    values: options.map(opt => opt.value),
+    valueFormatter: (params) => {
+      const option = options.find(opt => opt.value === params.value);
+      return option ? option.label : params.value;
+    },
+    cellRenderer: "agSelectCellRenderer",
+    cellClass: "metal-type-cell"
+  }
+
+  columnDef.valueFormatter = (params) => {
+    if (!params.value) return '';
+    const option = options.find(opt => opt.value === params.value);
+    return option ? option.label : params.value;
+  }
 }
 
 /**
@@ -574,6 +598,14 @@ export function initializeGrid() {
 
   // Initial adjustment
   adjustGridHeight();
+
+  fetchMetalTypes()
+  .then(options => {
+    const metalTypeColumn = columnDefs.find(col => col.field === "metal_type");
+    configureMetalTypeColumn(options, metalTypeColumn);
+    grid.api.setGridOption('columnDefs', columnDefs);
+    grid.api.refreshCells({ columns: ["metal_type"] });
+  });
 
   return Promise.resolve(true);
 }
