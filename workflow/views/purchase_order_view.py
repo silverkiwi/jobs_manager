@@ -1,8 +1,10 @@
+import base64
 import json
 import logging
 import os
 import tempfile
 import uuid
+
 from datetime import datetime
 from django.urls import reverse
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView
@@ -17,12 +19,16 @@ from django.core.exceptions import ValidationError
 from django.db import transaction, IntegrityError # Import transaction and IntegrityError
 from django.utils import timezone
 
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 
 from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote, Client, Job
 from workflow.forms import PurchaseOrderForm, PurchaseOrderLineForm
 from workflow.models.company_defaults import CompanyDefaults
+from workflow.services.purchase_order_pdf_service import create_purchase_order_pdf
 from workflow.utils import extract_messages
 from workflow.services.quote_to_po_service import save_quote_file, create_po_from_quote, extract_data_from_supplier_quote
+from workflow.services.purchase_order_email_service import create_purchase_order_email
 from workflow.views.xero.xero_po_manager import XeroPurchaseOrder, XeroPurchaseOrderManager
 
 logger = logging.getLogger(__name__)
@@ -367,4 +373,55 @@ def extract_supplier_quote_data_view(request):
             "success": False,
             "error": f"Error extracting data from quote: {str(e)}"
         }, status=500)
-    
+
+
+class PurchaseOrderEmailView(APIView):
+    """
+    API view for generating email links for purchase orders.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, purchase_order_id):
+        """
+        Generate and return email details for the specified purchase order.
+
+        Args:
+            request: The HTTP request
+            purchase_order_id: UUID of the purchase order
+        
+        Returns:
+            Response: Email details if successful
+            Response: Error details if unsuccessful
+        """
+        try:
+            purchase_order = get_object_or_404(PurchaseOrder, pk=purchase_order_id)
+
+            email_data = create_purchase_order_email(purchase_order)
+
+            pdf_buffer = create_purchase_order_pdf(purchase_order)
+            pdf_content = pdf_buffer.getvalue()
+            pdf_buffer.close()
+
+            pdf_base64 = base64.b64encode(pdf_content).decode("utf-8")
+            return JsonResponse({
+                "success": True,
+                "mailto_url": email_data["mailto_url"],
+                "email": email_data["email"],
+                "subject": email_data["subject"],
+                "body": email_data["body"],
+                "pdf_content": pdf_base64,
+                "pdf_name": f"po_{purchase_order.po_number}.pdf",
+            })
+        except ValueError as e:
+            logger.warning(f"Value error for purchase order {purchase_order_id}: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "error": str(e),
+            }, status=400)
+        except Exception as e:
+            logger.exception(f"Error generating email for purchase order {purchase_order_id}: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "error": "Could not generate email",
+                "details": str(e)
+            }, status=500)

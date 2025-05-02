@@ -6,6 +6,23 @@ from simple_history.admin import SimpleHistoryAdmin
 
 from workflow.forms import StaffChangeForm, StaffCreationForm
 from workflow.models import CompanyDefaults, Staff
+from workflow.models.ai_provider import AIProvider
+
+
+class AIProviderInline(admin.TabularInline):
+    """Inline admin for AIProvider to allow adding multiple providers in CompanyDefaults."""
+    model = AIProvider
+    extra = 1
+    fields = ('name', 'provider_type', 'api_key', 'active')
+
+    def save_model(self, request, obj, form, change):
+        """Ensure only one provider is active by deactivating others when a new one is activated."""
+        if obj.active:
+            AIProvider.objects.filter(
+                company=obj.company,
+                active=True
+            ).exclude(pk=obj.pk).update(active=False)
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(CompanyDefaults)
@@ -18,7 +35,8 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
     edit_link.allow_tags = True
 
     list_display = ["edit_link", "charge_out_rate", "wage_rate", "time_markup", "materials_markup", "starting_job_number"]
-    
+    inlines = [AIProviderInline]
+
     fieldsets = (
         (
             None,
@@ -67,7 +85,7 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "LLM Integration",
+            "(DEPRECATED) LLM Integration",
             {
                 "fields": (
                     "anthropic_api_key",
@@ -76,6 +94,13 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
                 "description": "API keys for Large Language Model integrations.",
             },
         ),
+        (
+            "AI Providers",
+            {
+                "fields": (),
+                "description": "LLM providers are managed in the section below. Only one provider can be active at a time.",
+            }
+        )
     )
 
 
