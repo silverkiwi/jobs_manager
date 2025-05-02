@@ -16,12 +16,6 @@ logger = logging.getLogger(__name__)
 class PurchaseOrderPDFView(APIView):
     """
     API view for generating and returning PDF documents for purchase orders.
-    
-    This view follows REST principles by:
-    - Using appropriate HTTP methods (GET to retrieve a resource representation)
-    - Using appropriate status codes
-    - Being stateless (no session state required)
-    - Using clear resource naming in the URL
     """
     permission_classes = [IsAuthenticated]
     
@@ -64,6 +58,7 @@ class PurchaseOrderPDFView(APIView):
             
             return response
             
+
         except Exception as e:
             logger.exception(f"Error generating PDF for purchase order {purchase_order_id}: {str(e)}")
             return Response(

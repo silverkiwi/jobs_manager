@@ -25,6 +25,8 @@ class XeroInvoiceManager(XeroDocumentManager):
     """
     Handles invoice management in Xero.
     """
+    _is_invoice_manager = True
+
     def __init__(self, client: Client, job: Job):
         """
         Initializes the invoice manager. Both client and job are required for invoices.

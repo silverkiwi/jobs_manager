@@ -61,6 +61,7 @@ from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views, stock_view, use_stock_view
 from workflow.views.purchase_order_view import (
+    PurchaseOrderEmailView,
     PurchaseOrderListView,
     PurchaseOrderCreateView,
     autosave_purchase_order_view,
@@ -257,6 +258,11 @@ urlpatterns = [
         "api/purchase-orders/<uuid:purchase_order_id>/pdf/",
         PurchaseOrderPDFView.as_view(),
         name="purchase-order-pdf",
+    ),
+    path(
+        "api/purchase-orders/<uuid:purchase_order_id>/email/",
+        PurchaseOrderEmailView.as_view(),
+        name="purchase-order-email"
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),

@@ -103,10 +103,18 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
         },
+        "app_file": {
+            "level": "DEBUG",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/application.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
     },
     "loggers": {
         "django.db.backends": {
-            "handlers": ["sql_file", "console"],
+            "handlers": ["sql_file"],
             "level": "DEBUG",
             "propagate": False,
         },
@@ -116,7 +124,12 @@ LOGGING = {
             "propagate": False,
         },
         "xero_python": {
-            "handlers": ["xero_file", "console"],
+            "handlers": ["xero_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "workflow": {
+            "handlers": ["console"],
             "level": "DEBUG",
             "propagate": False,
         },
@@ -127,7 +140,7 @@ LOGGING = {
         },
     },
     "root": {
-        "handlers": ["console"],
+        "handlers": ["console", "app_file"],
         "level": "DEBUG",
     },
 }
