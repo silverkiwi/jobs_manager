@@ -126,3 +126,8 @@ def get_latest_job_pricings(job):
         "quote_pricing": job.latest_quote_pricing,
         "reality_pricing": job.latest_reality_pricing,
     }
+
+
+def get_paid_complete_jobs():
+    """Fetches the jobs that are both completed and paid."""
+    return Job.objects.filter(status="completed", paid=True)
