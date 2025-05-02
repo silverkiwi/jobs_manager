@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('quoteUploadForm');
     const fileInput = document.getElementById('quoteFile');
     const uploadButton = document.querySelector('#quoteUploadForm label');
-    
+
     // Handle file selection
     fileInput.addEventListener('change', function(event) {
         console.log('File input change event triggered');
@@ -65,12 +65,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add CSRF token
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             formData.append('csrfmiddlewaretoken', csrfToken);
-            
+
             processQuoteFile(formData);
         }
     });
     
-    // Function to process the quote file
+    /**
+     * Function to process the quote file
+     * 
+     * @param {FormData} formData 
+     */
     function processQuoteFile(formData) {
         console.log('processQuoteFile called with FormData');
         

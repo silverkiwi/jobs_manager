@@ -14,7 +14,10 @@ import { getState, updateState } from "./purchase_order_state.js";
 export function fetchMetalTypes() {
   return fetchEnumChoices("MetalType")
     .then(choices => {
-      const metalTypeValues = choices.map(choice => choice.value);
+      const metalTypeValues = choices.map(choice => ({
+        value: choice.value,
+        label: formatMetalTypeLabel(choice.value, choice.display_name)
+      }));
       console.log("Fetched metal type values:", metalTypeValues);
       
       // Update state with new values
@@ -24,7 +27,7 @@ export function fetchMetalTypes() {
     })
     .catch(error => {
       console.error("Error fetching metal type values:", error);
-      return getState().metalTypeValues; // Return default values if API fails
+      return getState().metalTypeValues || []; // Return default values if API fails
     });
 }
 
@@ -46,4 +49,18 @@ export function updateMetalTypeValues(values) {
   } catch (error) {
     console.error("Failed to update metal type values:", error);
   }
+}
+
+/**
+ * Format a metal type value into a user-friendly label
+ * @param {string} value - Raw metal type value
+ * @param {string} displayName - Display name from server (if available)
+ * @returns {string} Formatted label
+ */
+function formatMetalTypeLabel(value, displayName) {
+  if (displayName) return displayName;
+
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, letter => letter.toUpperCase());
 }

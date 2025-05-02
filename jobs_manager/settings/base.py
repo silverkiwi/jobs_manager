@@ -114,7 +114,7 @@ LOGGING = {
     },
     "loggers": {
         "django.db.backends": {
-            "handlers": ["sql_file", "console"],
+            "handlers": ["sql_file"],
             "level": "DEBUG",
             "propagate": False,
         },
@@ -124,7 +124,12 @@ LOGGING = {
             "propagate": False,
         },
         "xero_python": {
-            "handlers": ["xero_file", "console"],
+            "handlers": ["xero_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "workflow": {
+            "handlers": ["console"],
             "level": "DEBUG",
             "propagate": False,
         },

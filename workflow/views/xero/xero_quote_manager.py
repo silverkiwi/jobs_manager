@@ -24,6 +24,7 @@ class XeroQuoteManager(XeroDocumentManager):
     Handles Quote creation and syncing in Xero.
     """
     _is_quote_manager = True
+    
     def __init__(self, client, job):
         """
         Initializes the quote creator. Both client and job are required for quotes.

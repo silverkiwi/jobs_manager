@@ -152,6 +152,11 @@ class PurchaseOrderLine(models.Model):
         null=True,
         help_text="Dimensions such as length, width, height, etc."
     )
+    raw_line_data = models.JSONField(
+        null=True, 
+        blank=True,
+        help_text="Raw JSON data from the source system or document"
+    )
 
 
 class PurchaseOrderSupplierQuote(models.Model):

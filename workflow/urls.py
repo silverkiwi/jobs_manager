@@ -61,6 +61,7 @@ from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views, stock_view, use_stock_view
 from workflow.views.purchase_order_view import (
+    PurchaseOrderEmailView,
     PurchaseOrderListView,
     PurchaseOrderCreateView,
     autosave_purchase_order_view,
@@ -68,6 +69,7 @@ from workflow.views.purchase_order_view import (
     extract_supplier_quote_data_view
 )
 from workflow.views.delivery_receipt_view import DeliveryReceiptListView, DeliveryReceiptCreateView
+from workflow.views.purchase_order_pdf_view import PurchaseOrderPDFView
 
 urlpatterns = [
     # Redirect to Kanban board
@@ -251,6 +253,16 @@ urlpatterns = [
         "api/xero/sync/",
         xero_view.start_xero_sync,
         name="synchronise_xero_data",
+    ),
+    path(
+        "api/purchase-orders/<uuid:purchase_order_id>/pdf/",
+        PurchaseOrderPDFView.as_view(),
+        name="purchase-order-pdf",
+    ),
+    path(
+        "api/purchase-orders/<uuid:purchase_order_id>/email/",
+        PurchaseOrderEmailView.as_view(),
+        name="purchase-order-email"
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),

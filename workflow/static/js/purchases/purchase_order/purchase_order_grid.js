@@ -9,6 +9,7 @@ import { renderMessages } from "./messages.js";
 import { getState, updateState, getStatusDisplay } from "./purchase_order_state.js";
 import { debouncedAutosave, markLineItemAsDeleted } from "./purchase_order_autosave.js";
 import { updateJobSummary } from "./purchase_order_summary.js";
+import { fetchMetalTypes } from "./purchase_order_metal_types.js";
 
 /**
  * Create a new empty row for the grid
@@ -43,17 +44,24 @@ export function adjustGridHeight() {
   let rowCount = 0;
   state.grid.api.forEachNode(() => rowCount++);
 
-  const rowHeight = 40;
-  const headerHeight = 50;
+  // Use the consistent dimensions from our unified grid styles
+  const rowHeight = 28;
+  const headerHeight = 32;
   const padding = 5;
-  const minHeight = 150; // Minimum height for the grid
-
-  // Set grid height
-  const height = Math.max(
-    rowCount * rowHeight + headerHeight + padding,
-    minHeight,
+  const minHeight = 500;
+  
+  // Maximum height with scrolling beyond this point (same as timesheet)
+  const maxVisibleRows = 10; // Show up to 10 rows before scrolling
+  const maxHeight = Math.min(
+    Math.max(rowCount * rowHeight + headerHeight + padding, minHeight),
+    maxVisibleRows * rowHeight + headerHeight + padding
   );
-  gridElement.style.height = `${height}px`;
+
+  // Set max height instead of fixed height to enable scrolling
+  gridElement.style.maxHeight = `${maxHeight}px`;
+  
+  // Ensure the grid has proper overflow settings
+  gridElement.style.overflowY = 'auto';
 }
 
 /**
@@ -246,6 +254,29 @@ function onCellValueChanged(params) {
   debouncedAutosave().then((success) => {
     updateState({ lastAutosaveSuccess: success });
   });
+}
+
+/**
+ * Configure metal type column with improved display
+ * @param {Array} options - Metal type options with value and label
+ * @param {Object} columnDef - Column definition
+ */
+export function configureMetalTypeColumn(options, columnDef) {
+  columnDef.cellEditorParams = {
+    values: options.map(opt => opt.value),
+    valueFormatter: (params) => {
+      const option = options.find(opt => opt.value === params.value);
+      return option ? option.label : params.value;
+    },
+    cellRenderer: "agSelectCellRenderer",
+    cellClass: "metal-type-cell"
+  }
+
+  columnDef.valueFormatter = (params) => {
+    if (!params.value) return '';
+    const option = options.find(opt => opt.value === params.value);
+    return option ? option.label : params.value;
+  }
 }
 
 /**
@@ -567,6 +598,14 @@ export function initializeGrid() {
 
   // Initial adjustment
   adjustGridHeight();
+
+  fetchMetalTypes()
+  .then(options => {
+    const metalTypeColumn = columnDefs.find(col => col.field === "metal_type");
+    configureMetalTypeColumn(options, metalTypeColumn);
+    grid.api.setGridOption('columnDefs', columnDefs);
+    grid.api.refreshCells({ columns: ["metal_type"] });
+  });
 
   return Promise.resolve(true);
 }
