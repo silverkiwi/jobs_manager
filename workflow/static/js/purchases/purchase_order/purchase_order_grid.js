@@ -43,17 +43,24 @@ export function adjustGridHeight() {
   let rowCount = 0;
   state.grid.api.forEachNode(() => rowCount++);
 
-  const rowHeight = 40;
-  const headerHeight = 50;
+  // Use the consistent dimensions from our unified grid styles
+  const rowHeight = 28;
+  const headerHeight = 32;
   const padding = 5;
-  const minHeight = 150; // Minimum height for the grid
-
-  // Set grid height
-  const height = Math.max(
-    rowCount * rowHeight + headerHeight + padding,
-    minHeight,
+  const minHeight = 500;
+  
+  // Maximum height with scrolling beyond this point (same as timesheet)
+  const maxVisibleRows = 10; // Show up to 10 rows before scrolling
+  const maxHeight = Math.min(
+    Math.max(rowCount * rowHeight + headerHeight + padding, minHeight),
+    maxVisibleRows * rowHeight + headerHeight + padding
   );
-  gridElement.style.height = `${height}px`;
+
+  // Set max height instead of fixed height to enable scrolling
+  gridElement.style.maxHeight = `${maxHeight}px`;
+  
+  // Ensure the grid has proper overflow settings
+  gridElement.style.overflowY = 'auto';
 }
 
 /**
