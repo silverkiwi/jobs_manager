@@ -11,7 +11,7 @@ def create_purchase_order_email(purchase_order: PurchaseOrder) -> dict:
     Create and email for a purchase order.
 
     Args:
-        purchase_oder: The PurchaseOrder instance
+        purchase_order: The PurchaseOrder instance
 
     Returns:
         dict: a Dictionary containing the mailto URL and other email related data
