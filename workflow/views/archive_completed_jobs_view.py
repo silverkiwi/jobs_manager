@@ -35,7 +35,7 @@ class ArchiveCompleteJobsViews:
     """
 
     class ArchiveCompleteJobsTemplateView(TemplateView):
-        """View for renderizing the related page."""
+        """View for rendering the related page."""
         template_name = "jobs/archive_complete_jobs.html"
 
 
