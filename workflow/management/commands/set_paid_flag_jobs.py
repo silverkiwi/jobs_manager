@@ -42,16 +42,28 @@ class Command(BaseCommand):
         missing_invoices = 0
 
         for job in completed_jobs:
-            if not job.invoiced:
-                missing_invoices += 1
-                self.stdout.write(f"Job {job.job_number} - {job.name} has no associate invoice") if verbose else None
-            
-            if not job.invoice.paid:
-                unpaid_invoices += 1
-                self.stdout.write(f"Job {job.job_number} - {job.name} has unpaid invoice {job.invoice.number}") if verbose else None
+            try:
+                invoice = job.invoice
+                has_invoice = True
+            except Job.invoice.RelatedObjectDoesNotExist:
+                has_invoice = False
 
-            self.stdout.write(f"Job {job.job_number} - {job.name} has paid invoice {job.invoice.number}") if verbose else None
-            self.stdout.write(f"Would mark job {job.job_number} - {job.name} as paid") if dry_run else None
+            if not has_invoice:
+                missing_invoices += 1
+                if verbose:
+                    self.stdout.write(f"Job {job.job_number} - {job.name} has no associate invoice")
+                continue
+            
+            if not invoice.paid:
+                unpaid_invoices += 1
+                if verbose:
+                    self.stdout.write(f"Job {job.job_number} - {job.name} has unpaid invoice {job.invoice.number}")
+
+            if verbose:
+                self.stdout.write(f"Job {job.job_number} - {job.name} has paid invoice {job.invoice.number}")
+            if dry_run:
+                self.stdout.write(f"Would mark job {job.job_number} - {job.name} as paid") if dry_run else None
+            
             jobs_to_update.append(job)
         
         if not dry_run and jobs_to_update:

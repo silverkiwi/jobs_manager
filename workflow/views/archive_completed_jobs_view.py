@@ -1,16 +1,31 @@
+import json
 import traceback
 
 import logging
 
+from django.db import transaction
+
 from django.views.generic import TemplateView
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 
-from workflow.services.job_service import get_paid_complete_jobs
+from workflow.models.job import Job
+from workflow.serializers.job_serializer import CompleteJobSerializer
+from workflow.services.job_service import archive_complete_jobs, get_paid_complete_jobs
 
 logger = logging.getLogger(__name__)
+
+
+class StandardResultsSetPagination(PageNumberPagination):
+    """Standard pagination for job results."""
+    page_size = 50
+    page_size_query_param  = 'page_size'
+    max_page_size = 100
 
 
 class ArchiveCompleteJobsViews:
@@ -21,23 +36,51 @@ class ArchiveCompleteJobsViews:
 
     class ArchiveCompleteJobsTemplateView(TemplateView):
         """View for renderizing the related page."""
-        template_names = "jobs/archive_complete_jobs.html"
+        template_name = "jobs/archive_complete_jobs.html"
 
-    class ArchiveCompleteJobsAPIView(APIView):
+
+    class ArchiveCompleteJobsListAPIView(ListAPIView):
         """API Endpoint to provide Job data for archiving display"""
-        def get(self, request, *args, **kwargs):
-            try:
-                jobs = get_paid_complete_jobs()
+        serializer_class = CompleteJobSerializer
+        permission_classes = [IsAuthenticated]
+        pagination_class = StandardResultsSetPagination
 
-                if jobs.count() == 0:
+        def get_queryset(self):
+            """Return completed and paid jobs"""
+            return get_paid_complete_jobs()
+        
+    class ArchiveCompleteJobsAPIView(APIView):
+        """API Endpoint to set 'paid' flag as True in the received jobs"""
+        permission_classes = [IsAuthenticated]
+        
+        def post(self, request, *args, **kwargs):
+            try:
+                job_ids = request.data.get("ids", [])
+
+                if not job_ids:
                     return Response({
-                        "success": True,
-                        "jobs": []
-                    }, status=status.HTTP_200_OK)
+                        "success": False,
+                        "error": "No jobs found for the provided list of IDs. Please try again or contact an administrator if the problem persists."
+                    }, status.HTTP_404_NOT_FOUND)
                 
+                errors, archived_count = archive_complete_jobs(job_ids)
+                
+                if errors:
+                    return Response({
+                        "success": archived_count > 0,
+                        "message": f"Successfully archived {archived_count} jobs with {len(errors)} errors",
+                        "errors": errors
+                    }, status=status.HTTP_207_MULTI_STATUS if archived_count > 0 else status.HTTP_400_BAD_REQUEST)
+
                 return Response({
                     "success": True,
-                    "jobs": 
-                })
+                    "message": f"Successfully archived {archived_count} jobs."
+                }, status=status.HTTP_200_OK)
+            
             except Exception as e:
-                pass
+                logger.exception(f"Unexpected error in archive jobs view: {str(e)}")
+                return Response({
+                    "success": False,
+                    "error": f"An unexpected error occurred: {str(e)}"
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

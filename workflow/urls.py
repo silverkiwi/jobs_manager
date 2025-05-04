@@ -55,6 +55,7 @@ from workflow.views import (
     workshop_view,
     job_management_view,
 )
+from workflow.views.archive_completed_jobs_view import ArchiveCompleteJobsViews
 from workflow.views.kpi_view import KPICalendarViews
 from workflow.views.xero import xero_view
 from workflow.views.job_file_view import JobFileView
@@ -173,6 +174,16 @@ urlpatterns = [
         name="toggle_pricing_type",
     ),
     path(
+        "api/job/completed/",
+        ArchiveCompleteJobsViews.ArchiveCompleteJobsListAPIView.as_view(),
+        name="api_jobs_completed"
+    ),
+    path(
+        "api/job/completed/archive",
+        ArchiveCompleteJobsViews.ArchiveCompleteJobsAPIView.as_view(),
+        name="api_jobs_archive"
+    ),
+    path(
         "api/job-event/<uuid:job_id>/add-event/",
         edit_job_view_ajax.add_job_event,
         name="add-event",
@@ -282,6 +293,11 @@ urlpatterns = [
         "job/<uuid:job_id>/workshop-pdf/",
         workshop_view.WorkshopPDFView.as_view(),
         name="workshop-pdf",
+    ),
+    path(
+        "job/archive-complete",
+        ArchiveCompleteJobsViews.ArchiveCompleteJobsTemplateView.as_view(),
+        name="archive_complete_jobs"
     ),
     path("month-end/", job_management_view.month_end_view, name="month_end"),
     path(
