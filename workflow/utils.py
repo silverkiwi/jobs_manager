@@ -4,8 +4,13 @@ from zoneinfo import ZoneInfo
 from django.contrib.messages import get_messages
 from django.db import models
 from workflow.models import Job
-    
+import logging
+from django.apps import apps
+from django.db.utils import ProgrammingError, OperationalError
 
+
+
+logger = logging.getLogger(__name__)
 
 def extract_messages(request):
     """
@@ -103,44 +108,41 @@ def get_jobs_data(related_jobs):
     return job_data
 
 
-def get_excluded_staff():
+def is_valid_uuid(value: str) -> bool:
+    """Check if the given string is a valid UUID."""
+    try:
+        uuid.UUID(value)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+def get_excluded_staff() -> list[str]:
     """
-    Retrieves the IDs of staff members who are excluded from the scheduling system.
+    Dynamically retrieves staff IDs to exclude based on missing or malformed IMS payroll IDs.
 
     Returns:
-        list: A list of staff IDs (as strings) who are excluded from the scheduling system
+        list[str]: A list of Staff model primary keys for exclusion.
     """
-    # Static list of excluded staff IDs
-    static_excluded_ids = [
-        "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
-        "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
-        "d335acd4-800e-517a-8ff4-ba7aada58d14",
-        "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
-    ]
-    
-    # Delaying database query execution
-    from django.apps import apps
-    from django.db.utils import ProgrammingError, OperationalError
-    
-    if apps.ready:
-        try:
-            # Get the Staff model dynamically only when needed
-            # This is so the installation process can run without the database being ready
-            from workflow.models import Staff
-            dynamic_excluded_ids = []
-            for staff in Staff.objects.all():
-                try:
-                    uuid.UUID(staff.ims_payroll_id)
-                except ValueError:
-                    # If the UUID conversion fails, add the staff ID to the excluded list
-                    dynamic_excluded_ids.append(staff.id)
-            return static_excluded_ids + dynamic_excluded_ids
-        except (ProgrammingError, OperationalError):
-            # If the table doesn't exist yet (during migrations), return only static IDs
-            return static_excluded_ids
-    
-    # Return only static IDs if apps are not ready
-    return static_excluded_ids
+    # Ensure Django apps registry is ready
+    if not apps.ready:
+        return []
+
+    # Attempt to load Staff model and fetch entries; allow missing table/migrations
+    try:
+        Staff = apps.get_model('workflow', 'Staff')
+        staff_qs = Staff.objects.all()
+    except (ProgrammingError, OperationalError):
+        # Database not ready or migrations pending
+        return []
+
+    excluded: list[str] = []
+    for staff in staff_qs:
+        pid = staff.ims_payroll_id
+        if not is_valid_uuid(pid):
+            logger.error(f"Could not get IMS ID for {staff.name}")
+            excluded.append(staff.id)
+    return excluded
+
     
     
 def get_active_jobs() -> models.QuerySet[Job]:
