@@ -19,7 +19,7 @@ class KPICalendarViews:
     """
 
     class KPICalendarTemplateView(TemplateView):
-        """View to renderizing the KPI Calendar page"""
+        """View for rendering the KPI Calendar page"""
         template_name = "reports/kpi_calendar.html"
 
         def get_context_data(self, **kwargs):

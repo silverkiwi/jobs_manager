@@ -108,6 +108,15 @@ class Invoice(BaseXeroInvoiceDocument):
 
     def get_line_items(self):
         return self.line_items.all()
+    
+    @property
+    def paid(self):
+        """Computes whether this invoice was already paid based on the amount due value."""
+        return (
+            (self.amount_due == self.total_incl_tax and self.total_incl_tax > 0) or
+            (self.amount_due == self.total_excl_tax and self.total_incl_tax == 0) or
+            (self.amount_due == self.total_amount)
+        )
 
 
 class Bill(BaseXeroInvoiceDocument):

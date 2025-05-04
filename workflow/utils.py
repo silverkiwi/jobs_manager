@@ -151,7 +151,7 @@ def get_active_jobs() -> models.QuerySet[Job]:
     Excludes jobs that are rejected, on hold, completed, or archived.
     This matches the filter used in the TimesheetEntryView.
     """
-    excluded_statuses = ["rejected", "on_hold", "completed", "archived"]
+    excluded_statuses = ["rejected", "on_hold", "archived"]
     # Include select_related for fields commonly needed when displaying these jobs
     return Job.objects.exclude(
         status__in=excluded_statuses

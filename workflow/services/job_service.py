@@ -1,3 +1,5 @@
+import logging
+
 from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
@@ -10,6 +12,8 @@ from workflow.models import (
     MaterialEntry,
     TimeEntry,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def archive_and_reset_job_pricing(job_id):
@@ -126,3 +130,34 @@ def get_latest_job_pricings(job):
         "quote_pricing": job.latest_quote_pricing,
         "reality_pricing": job.latest_reality_pricing,
     }
+
+
+def get_paid_complete_jobs():
+    """Fetches the jobs that are both completed and paid."""
+    return ( 
+        Job.objects.filter(status="completed", paid=True)
+        .select_related("client")
+        .order_by("-updated_at")
+    )
+
+
+def archive_complete_jobs(job_ids):
+    """Archives the jobs on the provided list by changing their statuses"""
+    archived_count = 0
+    errors = []
+
+    with transaction.atomic():
+        for jid in job_ids:
+            try:
+                job = Job.objects.get(id=jid)
+                job.status = "archived"
+                job.save(update_fields=['status'])
+                archived_count += 1
+                logger.info(f"Job {jid} successfully archived")
+            except Job.DoesNotExist:
+                errors.append(f"Job with id {jid} not found")
+            except Exception as e:
+                errors.append(f"Failed to archive job {jid}: {str(e)}")
+                logger.error(f"Error archiving job {jid}: {str(e)}")
+    
+    return errors, archived_count
