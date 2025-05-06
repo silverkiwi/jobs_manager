@@ -34,6 +34,9 @@ class PurchaseOrder(models.Model):
     order_date = models.DateField(default=timezone.now)
     expected_delivery = models.DateField(null=True, blank=True)
     xero_id = models.UUIDField(unique=True, null=True, blank=True)
+    xero_tenant_id = models.CharField(
+            max_length=255, null=True, blank=True
+        ) # For reference only - we are not fully multi-tenant yet
     status = models.CharField(
         max_length=20,
         choices=[
