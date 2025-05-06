@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Usage: rollback_release.sh 20250130_221922
-# Provide the date/time suffix of the backups to restore.
+# Provide the date/time suffix of the backup folder to restore.
 
 if [[ $# -lt 1 ]]; then
   echo "Usage: $0 <BACKUP_TIMESTAMP>"
@@ -12,8 +12,9 @@ fi
 
 BACKUP_TIMESTAMP="$1"
 BACKUP_ROOT="/var/backups/jobs_manager"
-CODE_BACKUP="$BACKUP_ROOT/code_${BACKUP_TIMESTAMP}.tgz"
-DB_BACKUP="$BACKUP_ROOT/db_${BACKUP_TIMESTAMP}.sql.gz"
+DATE_DIR="$BACKUP_ROOT/$BACKUP_TIMESTAMP"
+CODE_BACKUP="$DATE_DIR/code_${BACKUP_TIMESTAMP}.tgz"
+DB_BACKUP="$DATE_DIR/db_${BACKUP_TIMESTAMP}.sql.gz"
 PROJECT_DIR="/home/django_user/jobs_manager"
 SERVICE="gunicorn"  # Adjust if your service name differs
 
@@ -48,4 +49,4 @@ gunzip < "$DB_BACKUP" | mysql -u root jobs_manager
 echo "=== Starting $SERVICE..."
 systemctl start "$SERVICE"
 
-echo "=== Rollback complete. Verify the site is now running the older version!"
+echo "=== Rollback complete. Verify the site is now running the older version! ==="
