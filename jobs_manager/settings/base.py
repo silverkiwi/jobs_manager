@@ -70,12 +70,7 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-        "xero_console": {
-            "level": "DEBUG",
+            "level": "INFO",  # INFO+ only
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
@@ -106,37 +101,40 @@ LOGGING = {
         "app_file": {
             "level": "DEBUG",
             "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/application.log"),
+            "filename": os.path.join(BASE_DIR, "logs/application.log"),  # catch-all
             "maxBytes": 5 * 1024 * 1024,
             "backupCount": 5,
             "formatter": "verbose",
         },
     },
     "loggers": {
+        # your SQL logger only writes to sql_file, and bubbles up to root
         "django.db.backends": {
             "handlers": ["sql_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
+        # xero logs to xero_file, and bubbles up to root
         "xero": {
-            "handlers": ["xero_file", "console"],
+            "handlers": ["xero_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
         "xero_python": {
             "handlers": ["xero_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
+        # workflow writes to app_file, and bubbles up
         "workflow": {
-            "handlers": ["console"],
+            "handlers": ["app_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
         "workflow.views.purchase_order_view": {
-            "handlers": ["purchase_file", "console"],
+            "handlers": ["purchase_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
     },
     "root": {
