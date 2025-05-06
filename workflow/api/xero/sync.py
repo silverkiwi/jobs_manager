@@ -7,10 +7,13 @@ from uuid import UUID
 from django.core.cache import cache
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import models, transaction
+from django.db.utils import IntegrityError
 from django.utils import timezone
+from django.conf import settings
+
 from xero_python.accounting import AccountingApi
 from xero_python.exceptions.http_status_exceptions import RateLimitException
-
+from workflow.utils import get_machine_id
 from workflow.models import CompanyDefaults
 from workflow.api.xero.reprocess_xero import (
     set_client_fields,
@@ -37,6 +40,8 @@ def apply_rate_limit_delay(response_headers):
         time.sleep(retry_after)
 
 
+
+
 def sync_xero_data(
     xero_entity_type,  # The entity type as known in Xero's API
     our_entity_type,   # The entity type as known in our system
@@ -45,12 +50,35 @@ def sync_xero_data(
     last_modified_time,
     additional_params=None,
     pagination_mode="single",  # "single", "page", or "offset"
+    xero_tenant_id=None,
 ):
     if pagination_mode not in ("single", "page", "offset"):
         raise ValueError("pagination_mode must be 'single', 'page', or 'offset'")
 
     if pagination_mode == "offset" and xero_entity_type != "journals":
         raise TypeError("We only support journals for offset currently")
+
+    if xero_tenant_id is None:
+        xero_tenant_id = get_tenant_id()
+
+    # Determine if running in production based on machine ID
+    current_machine_id = get_machine_id()
+    is_production = current_machine_id is not None and current_machine_id == settings.PRODUCTION_MACHINE_ID
+
+    # Check if running in production and not using the production tenant ID
+    if is_production and xero_tenant_id != settings.PRODUCTION_XERO_TENANT_ID:
+        logger.warning(
+            f"Attempted to sync Xero data in production with non-production tenant ID: {xero_tenant_id}. Aborting sync."
+        )
+        yield {
+            "datetime": timezone.now().isoformat(),
+            "entity": our_entity_type,
+            "severity": "warning",
+            "message": f"Sync aborted: Attempted to sync in production with non-production tenant ID: {xero_tenant_id}",
+            "progress": 0.0,
+            "lastSync": last_modified_time
+        }
+        return # Abort the sync
 
     logger.info(
         "Starting sync for %s, mode=%s, since=%s",
@@ -68,7 +96,6 @@ def sync_xero_data(
         "lastSync": last_modified_time
     }
 
-    xero_tenant_id = get_tenant_id()
     offset = 0
     page = 1
     page_size = 20
@@ -1203,7 +1230,7 @@ def delete_client_from_xero(client):
     if not client.xero_contact_id:
         logger.info(f"Client {client.name} has no Xero contact ID - skipping Xero deletion")
         return True
-
+    
     xero_tenant_id = get_tenant_id()
     accounting_api = AccountingApi(api_client)
 

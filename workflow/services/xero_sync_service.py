@@ -118,6 +118,12 @@ class XeroSyncService:
                 'task_id': task_id
             })
             cache.set(messages_key, msgs, timeout=86400)
+            # Re-raise the exception to ensure the calling process is aware of the failure
+            # We are about to crash, so we need to clean up the lock
+            cache.delete(current_key)
+            cache.delete(progress_key)
+            cache.delete(XeroSyncService.SYNC_STATUS_KEY) # Release lock and clear task ID
+            raise e
 
         finally:
             cache.delete(current_key)

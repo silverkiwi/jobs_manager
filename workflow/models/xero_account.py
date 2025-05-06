@@ -10,10 +10,13 @@ class XeroAccount(models.Model):
     xero_id = models.UUIDField(
         unique=True, null=False, blank=False
     )  # Xero's UUID for the account, required
+    xero_tenant_id = models.CharField(
+            max_length=255, null=True, blank=True
+        ) # For reference only - we are not fully multi-tenant yet
     account_code = models.CharField(
         max_length=20, null=True, blank=True
     )  # Optional since some accounts don't have codes
-    account_name = models.CharField(max_length=255, null=False, blank=False)  # Required
+    account_name = models.CharField(max_length=255, null=False, blank=False, unique=True)  # Non-null to help catch duplicates
     description = models.TextField(null=True, blank=True)
     account_type = models.CharField(
         max_length=50, null=True, blank=True

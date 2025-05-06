@@ -1,4 +1,5 @@
 from datetime import timezone
+import os
 import uuid
 from zoneinfo import ZoneInfo
 from django.contrib.messages import get_messages
@@ -174,3 +175,18 @@ def get_nz_tz() -> timezone | ZoneInfo:
         import pytz
         nz_timezone = pytz.timezone('Pacific/Auckland')
     return nz_timezone
+
+def get_machine_id(path="/etc/machine-id"):
+    """
+    Reads the machine ID from the specified path.
+    Defaults to /etc/machine-id for Linux systems.
+    """
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        logger.warning(f"Machine ID file not found at {path}. Cannot determine production environment based on machine ID.")
+        return None
+    except Exception as e:
+        logger.error(f"Error reading machine ID file {path}: {e}")
+        return None
