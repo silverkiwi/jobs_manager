@@ -444,6 +444,17 @@ def sync_bills(bills):
         dirty_raw_json = serialise_xero_object(bill_data)
         raw_json = clean_raw_json(dirty_raw_json)
         bill_number = raw_json["_invoice_number"]
+        status = raw_json.get("_status")
+        date = raw_json.get("_date")
+
+        if not bill_number:
+            logger.warning(
++               "Skipping bill %s (status=%s, date=%s): missing invoice_number",
+                xero_id,
+                bill_data.status,
+            )
+            continue
+
         
         # Retrieve the client for the bill
         client = get_or_fetch_client_by_contact_id(
