@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 
 from .base import *  # noqa: F403
 from .local import STATIC_ROOT as LOCAL_STATIC_ROOT
+from .local import MEDIA_ROOT as LOCAL_MEDIA_ROOT
 
 # Production like is for things like ngnix, Redis, celery, etc.
 # Let's keep it because it'll be needed to reset user passwords
@@ -20,6 +21,9 @@ MIDDLEWARE = [
 
 STATIC_URL = "/static/"
 STATIC_ROOT = os.getenv("STATIC_ROOT", LOCAL_STATIC_ROOT)
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.getenv("MEDIA_ROOT", LOCAL_MEDIA_ROOT)
 
 # Use ManifestStaticFilesStorage to add hashes to static files
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"

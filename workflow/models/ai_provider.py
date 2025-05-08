@@ -15,7 +15,7 @@ class AIProvider(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.provider_type})"
-    
+
     class Meta:
         verbose_name = "AI Provider"
         verbose_name_plural = "AI Providers"

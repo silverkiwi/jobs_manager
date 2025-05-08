@@ -1,4 +1,7 @@
+import { Environment } from "./env.js";
 import { setupAdvancedSearch } from "./job/advanced_search.js";
+
+import { renderMessages } from "./timesheet/timesheet_entry/messages.js"
 
 console.log("kanban.js load started");
 
@@ -10,6 +13,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeColumns();
   setupToggleArchived();
   setupAdvancedSearch();
+  fetchAvailableStaff();
 
   document.getElementById("search").addEventListener("input", function () {
     filterJobs();
@@ -93,6 +97,8 @@ function renderJobs(status, jobs) {
     const jobCard = createJobCard(job);
     container.appendChild(jobCard);
   });
+
+  initializeStaffDragAndDrop();
 }
 
 function updateCounters(status, filteredCount, totalCount) {
@@ -126,6 +132,8 @@ function createJobCard(job) {
   card.setAttribute("data-job-description", job.description || "");
   card.setAttribute("data-job-number", job.job_number);
 
+  card.setAttribute("data-assigned-staff", JSON.stringify(job.people || []));
+
   const clientName = job.client_name.length > 13 ? `${job.client_name.slice(0, 13)}...` : job.client_name
 
   card.innerHTML = `
@@ -136,7 +144,21 @@ function createJobCard(job) {
         ${job.name}
       </div>
     </a>
+    <div class="job-assigned-staff">
+    </div>
   `;
+
+  const staffContainer = card.querySelector(".job-assigned-staff");
+  if (job.people && job.people.length > 0) {
+    job.people.forEach(staff => {
+      const staffIcon = document.createElement("div");
+      staffIcon.className = "staff-avatar staff-avatar-sm";
+      staffIcon.setAttribute("data-staff-id", staff.id);
+      staffIcon.innerHTML = generateAvatar(staff);
+      staffIcon.title = staff.display_name;
+      staffContainer.appendChild(staffIcon);
+    });
+  }
 
   // Tooltip container (Hidden initially)
   let tooltip = document.createElement("div");
@@ -330,4 +352,247 @@ function setupToggleArchived() {
         break;
     }
   });
+}
+
+function fetchAvailableStaff() {
+  fetch("/api/staff/all", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Actual-Users": "True",
+    },
+  })
+    .then((response) => {
+      if (Environment.isDebugMode())
+        console.log("Staff API response status:", response.status);
+      return response.json().then((data) => ({ data, ok: response.ok }));
+    })
+    .then(({ data, ok }) => {
+      if (!ok) {
+        throw new Error("Error while trying to fetch available staff users: ", e);
+      }
+
+      renderStaffPanel(data);
+    })
+    .catch(error => {
+      console.error(error);
+    });
+}
+
+function renderStaffPanel(staff) {
+  const staffPanelContainer = document.getElementById("staff-panel");
+  if (!staffPanelContainer) return;
+
+  staffPanelContainer.innerHTML = '<h6>Team Members</h6><div class="staff-list"></div>';
+  const staffList = staffPanelContainer.querySelector(".staff-list");
+
+  staff.forEach(s => {
+    const staffIcon = document.createElement("div");
+    staffIcon.className = "staff-avatar draggable-staff";
+    staffIcon.setAttribute("data-staff-id", s.id);
+    staffIcon.innerHTML = generateAvatar(s);
+
+    staffIcon.title = s.display_name;
+    staffList.appendChild(staffIcon);
+  });
+
+  initializeStaffDragAndDrop();
+}
+
+function generateAvatar(staff) {
+  const predefinedColors = [
+    "#3498db", // blue
+    "#2ecc71", // green
+    "#e74c3c", // red
+    "#9b59b6", // purple
+    "#f39c12", // orange
+    "#1abc9c", // teal
+    "#d35400", // dark orange
+    "#c0392b", // dark red
+    "#8e44ad", // dark purple
+    "#16a085", // dark teal
+    "#27ae60", // dark green
+    "#2980b9", // dark blue
+    "#f1c40f", // yellow
+    "#e67e22", // orange
+    "#34495e"  // navy blue
+  ];
+
+  if (!staff.icon) {
+    const initials = staff.display_name
+      .split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+
+    const colorIndex = Math.abs(staff.display_name.split('').reduce((acc, char) =>
+      acc + char.charCodeAt(0), 0)) % predefinedColors.length;
+
+    const color = predefinedColors[colorIndex];
+
+    return `<div class="staff-initials" style="background-color: ${color}">${initials}</div>`;
+  }
+  return `<img src="${staff.icon}" alt="${staff.display_name}" class="staff-img">`;
+}
+
+function initializeStaffDragAndDrop() {
+  const staffItems = document.querySelectorAll(".draggable-staff");
+  staffItems.forEach(item => {
+    new Sortable(item.parentElement, {
+      group: {
+        name: "staff",
+        pull: "clone",
+        put: true
+      },
+      sort: false,
+      animation: 150,
+      ghostClass: "staff-ghost",
+      chosenClass: "staff-chosen",
+      dragClass: "staff-drag",
+      onStart: function () {
+        const card = evt.item.closest(".job-card");
+        if (card) evt.item.dataset.originJobId = card.dataset.id;
+      },
+      onAdd: function (evt) {
+        const originCard = evt.from.closest(".job-card");
+        let jobId;
+
+        if (originCard) {
+          jobId = originCard.dataset.id;
+        } else if (evt.item.dataset.originJobId) {
+          jobId = evt.item.dataset.originJobId;
+        } else {
+          console.card.error("No job ID found for the dragged staff item.");
+          return;
+        }
+
+        const staffId = evt.item.dataset.staffId;
+        evt.item.remove();
+        removeStaffFromJob(jobId, staffId);
+      },
+      onEnd: function () { }
+    });
+  });
+
+  const jobLists = document.querySelectorAll(".job-list");
+  jobLists.forEach(list => {
+    list.querySelectorAll(".job-card").forEach(card => {
+      const staffContainer = card.querySelector(".job-assigned-staff");
+
+      if (!staffContainer) return;
+
+      new Sortable(staffContainer, {
+        group: {
+          name: "staff",
+          pull: true,
+          put: true
+        },
+        animation: 150,
+        onAdd: function (evt) {
+          const staffId = evt.item.getAttribute("data-staff-id");
+          const jobId = evt.to.closest(".job-card").getAttribute("data-id");
+
+          evt.item.remove();
+          assignStaffToJob(jobId, staffId);
+        }
+      });
+    })
+  });
+}
+
+function assignStaffToJob(jobId, staffId) {
+  fetch(`/api/job/${jobId}/assignment`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken")
+    },
+    body: JSON.stringify({
+      staff_id: staffId,
+      job_id: jobId
+    })
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) throw new Error(data.error);
+      const columns = document.querySelectorAll(".kanban-column");
+      const columnIds = Array.from(columns).map((col) => col.id);
+
+      columnIds.forEach((status) => {
+        loadJobs(status);
+      });
+    })
+    .catch(error => {
+      console.error("Error assigning staff:", error);
+      renderMessages([{ level: "danger", message: `Error assigning staff to job ${jobId}` + error }]);
+    });
+}
+
+function removeStaffFromJob(jobId, staffId) {
+  fetch(`/api/job/${jobId}/assignment`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken")
+    },
+    body: JSON.stringify({ job_id: jobId, staff_id: staffId })
+  })
+  .then(r => r.json())
+  .then(data => data.success ? refreshAllColumns()
+                              : renderMessages([{ level:"danger", message:data.error }]))
+  .catch(err => console.error(err));
+}
+
+let activeStaffFilters = [];
+function setupStaffFiltering() {
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".draggable-staff")) return;
+    const staffIcon = e.target.closest(".draggable-staff");
+    const staffId = staffIcon.getAttribute("data-staff-id");
+
+    toggleStaffFilter(staffId, staffIcon);
+
+    applyStaffFilters();
+  });
+}
+
+function toggleStaffFilter(staffId, staffIcon) {
+  const index = activeStaffFilters.indexOf(staffId);
+
+  if (!index === -1) {
+    activeStaffFilters.splice(index, 1);
+    staffIcon.classList.remove("staff-filter-active");
+  }
+
+  activeStaffFilters.push(staffId);
+  staffIcon.classList.add("staff-filter-active");
+}
+
+function applyStaffFilters() {
+  if (activeStaffFilters.length === 0) {
+    document.querySelectorAll(".job-card").forEach(card => {
+      card.style.display = "";
+    });
+    return;
+  }
+
+  document.querySelectorAll(".job-card").forEach(card => {
+    const assignedStaffJson = card.getAttribute("data-assigned-staff");
+    let assignedStaff = [];
+
+    try {
+      assignedStaff = JSON.parse(assignedStaffJson || '[]');
+    } catch (e) {
+      console.error("Error parsing assigned staff:", e);
+    }
+
+    const hasMatchingStaff = assignedStaff.some(staff => {
+      activeStaffFilters.includes(staff.id.toString())
+    });
+
+    card.style.display = hasMatchingStaff ? "" : "none";
+  });
+
+  updateColumnCounts();
 }

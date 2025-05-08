@@ -38,6 +38,7 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )  # type: ignore
+    icon = models.ImageField(upload_to='staff_icons/', null=True, blank=True)  # type: ignore
     password_needs_reset: bool = models.BooleanField(default=False)  # type: ignore
     email: str = models.EmailField(unique=True)  # type: ignore
     first_name: str = models.CharField(max_length=30)  # type: ignore

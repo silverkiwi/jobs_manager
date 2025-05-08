@@ -8,7 +8,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from workflow.forms import StaffChangeForm, StaffCreationForm
-from workflow.serializers.staff_serializer import StaffNameSerializer
+from workflow.serializers.staff_serializer import KanbanStaffSerializer
 from workflow.utils import get_excluded_staff
 
 
@@ -17,22 +17,24 @@ Staff = get_user_model()
 
 class StaffListAPIView(generics.ListAPIView):
     queryset = Staff.objects.all()
-    serializer_class = StaffNameSerializer
+    serializer_class = KanbanStaffSerializer
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset(request)
-        serializer = StaffNameSerializer(queryset, many=True)
+        queryset = self.get_queryset()
+        serializer = KanbanStaffSerializer(queryset, many=True)
         return JsonResponse(serializer.data, safe=False)
     
-    def get_queryset(self, request):
-        actual_users = eval(request.headers.get("X-Actual-Users", "False"))
-        match actual_users:
-            case True:
-                excluded_ids = get_excluded_staff()
-                return Staff.objects.exclude(id__in=excluded_ids)
-            case False:
-                return Staff.objects.all()
+    def get_queryset(self):
+        header_value = self.request.headers.get("X-Actual-Users", "false").lower()
+        actual_users = header_value == "true"
+        if actual_users:
+            excluded_ids = get_excluded_staff()
+            return Staff.objects.exclude(id__in=excluded_ids)
+        return Staff.objects.all()
+    
+    def get_serializer_context(self):
+        return {"request": self.request}
 
 
 class StaffListView(LoginRequiredMixin, UserPassesTestMixin, ListView):

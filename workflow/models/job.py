@@ -162,6 +162,8 @@ class Job(models.Model):
 
     created_by = models.ForeignKey("Staff", on_delete=models.SET_NULL, null=True)
 
+    people = models.ManyToManyField("Staff", related_name="assigned_jobs")
+
     class Meta:
         ordering = ["job_number"]
 

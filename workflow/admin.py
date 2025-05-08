@@ -127,6 +127,7 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
             "Personal Info",
             {
                 "fields": (
+                    "icon",
                     "first_name",
                     "last_name",
                     "preferred_name",

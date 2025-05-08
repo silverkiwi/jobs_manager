@@ -91,6 +91,14 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
                 "job_number": job.job_number,
                 "client_name": job.client.name if job.client else "",
                 "contact_person": job.contact_person,
+                "people": [
+                    {
+                        "id": staff.id,
+                        "display_name": staff.get_display_full_name(),
+                        "icon": request.build_absolute_uri(staff.icon.url) if staff.icon else None,
+                    }
+                    for staff in job.people.all()
+                ],
                 "status": job.get_status_display(),
                 "paid": job.paid,
             }
@@ -181,10 +189,11 @@ def advanced_search(request: HttpRequest) -> JsonResponse:
                 "description": job.description,
                 "job_number": job.job_number,
                 "client_name": job.client.name if job.client else "",
+                "people": [(staff.get_display_name(), staff.icon) for staff in job.people.all()],
                 "contact_person": job.contact_person,
                 "status": job.get_status_display(),
                 "status_key": job.status,
-                "created_by": job.created_by.name if job.created_by else "",
+                "created_by": job.created_by.get_display_name() if job.created_by else "",
                 "created_at": job.created_at.strftime("%d/%m/%Y"),
                 "paid": job.paid,
             }
