@@ -5,9 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ("workflow", "0132_stock_job_stock_source_purchase_order_line"),
-    ]
+    dependencies = [("workflow", "0137_stock_job_stock_source_purchase_order_line")]
 
     operations = [
         migrations.AddField(

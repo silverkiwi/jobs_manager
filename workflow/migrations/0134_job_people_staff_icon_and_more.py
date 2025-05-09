@@ -6,9 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ("workflow", "0131_aiprovider_companydefaults_anthropic_api_key_and_more"),
-    ]
+    dependencies = [("workflow", "0133_bill_xero_tenant_id_client_xero_tenant_id_and_more")]
 
     operations = [
         migrations.AddField(

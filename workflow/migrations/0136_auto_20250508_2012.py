@@ -12,9 +12,7 @@ def convert_approved_to_accepted_quote(apps, schema_editor):
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ("workflow", "0133_rename_job_status"),
-    ]
+    dependencies = [("workflow", "0135_rename_job_status")]
 
     operations = [
         migrations.RunPython(convert_approved_to_accepted_quote, migrations.RunPython.noop),

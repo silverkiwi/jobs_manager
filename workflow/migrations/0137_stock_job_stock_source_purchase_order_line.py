@@ -6,9 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ("workflow", "0131_aiprovider_companydefaults_anthropic_api_key_and_more"),
-    ]
+    dependencies = [("workflow", "0136_auto_20250508_2012")]
 
     operations = [
         migrations.AddField(
