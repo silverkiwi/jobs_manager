@@ -10,13 +10,21 @@
 {% block content %}
 
 <div class="search-container">
-  <div class="simple-search-container">
-    <input type="text" id="search" class="form-control"
-      placeholder="🔍 Search jobs (name, description, client, contact, creator)...">
-    <div class="left-container">
-      <button type="button" id="advancedSearchButton" class="btn btn-info btn-sm hover-lift">
-        <i class="bi bi-search me-1"></i>Advanced Search
-      </button>
+  <div class="search-controls-wrapper">
+    <div class="search-block-aligner">      
+      <div class="search-staff-container">
+        <div class="search-wrapper">
+          <button type="button" id="advancedSearchButton" class="btn btn-info btn-sm hover-lift advanced-search-btn">
+            <i class="bi bi-search me-1"></i>Advanced Search
+          </button>
+          <input type="text" id="search" class="form-control"
+            placeholder="🔍 Search jobs (name, description, client, contact, creator)...">
+        </div>
+        
+        <div class="staff-panel" id="staff-panel">
+          <!-- Content will be rendered by JS -->
+        </div>
+      </div>
     </div>
   </div>
 

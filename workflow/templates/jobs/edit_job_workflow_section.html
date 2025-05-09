@@ -4,15 +4,10 @@
     <!-- Job Status Selection -->
     <div class="form-group mb-4">
         <label for="job_status" class="form-label">Job Status:</label>
-        <select id="job_status" name="job_status" class="form-select autosave-input">
-            <option value="quoting" {% if job.status == 'quoting' %}selected{% endif %}>Quoting</option>
-            <option value="approved" {% if job.status == 'approved' %}selected{% endif %}>Approved</option>
-            <option value="in_progress" {% if job.status == 'in_progress' %}selected{% endif %}>In Progress</option>
-            <option value="rejected" {% if job.status == 'rejected' %}selected{% endif %}>Rejected</option>
-            <option value="on_hold" {% if job.status == 'on_hold' %}selected{% endif %}>On Hold</option>
-            <option value="special" {% if job.status == 'special' %}selected{% endif %}>Special</option>
-            <option value="completed" {% if job.status == 'completed' %}selected{% endif %}>Completed</option>
-            <option value="archived" {% if job.status == 'archived' %}selected{% endif %}>Archived</option>
+        <select id="job_status" name="status" class="form-select autosave-input">
+            {% for value, label in job_status_choices %}
+                <option value="{{ value }}" {% if job.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
         </select>
     </div>
 

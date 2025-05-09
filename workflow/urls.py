@@ -56,6 +56,7 @@ from workflow.views import (
     job_management_view,
 )
 from workflow.views.archive_completed_jobs_view import ArchiveCompleteJobsViews
+from workflow.views.assign_job_view import AssignJobView
 from workflow.views.kpi_view import KPICalendarViews
 from workflow.views.xero import xero_view
 from workflow.views.job_file_view import JobFileView
@@ -182,6 +183,11 @@ urlpatterns = [
         "api/job/completed/archive",
         ArchiveCompleteJobsViews.ArchiveCompleteJobsAPIView.as_view(),
         name="api_jobs_archive"
+    ),
+    path(
+        "api/job/<uuid:job_id>/assignment",
+        AssignJobView.as_view(),
+        name="api_job_assigment",
     ),
     path(
         "api/job-event/<uuid:job_id>/add-event/",

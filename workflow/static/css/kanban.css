@@ -1,193 +1,182 @@
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
 }
 
 .kanban-board {
-    display: flex;
-    flex-wrap: wrap; /* Allows columns to wrap to the next line if needed */
-    gap: 20px; /* Adds spacing between columns */
-    justify-content: flex-start; /* Align columns to the left */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: flex-start;
 }
 
 .kanban-column {
-    flex: 1 1 200px;  /* Maintain flexibility but keep some base width */
-    margin-bottom: 20px;  /* Adds spacing below each column */
-    background-color: #f4f5f7;
-    border-radius: 3px;
-    display: flex;
-    flex-direction: column;
-    max-height: 100%;
-    transition: background-color 0.3s ease;
-    min-width: 150px;  /* Minimum width to maintain readability */
-    min-height: 300px; /* Set a minimum height to prevent collapsing */
-    justify-content: flex-start; /* Align items to the top */
+  flex: 1 1 200px;
+  margin-bottom: 20px;
+  background-color: #f4f5f7;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  transition: background-color 0.3s ease;
+  min-width: 150px;
+  min-height: 300px;
+  justify-content: flex-start;
 }
 
-/* Media query for larger screens */
 @media (min-width: 1200px) {
-    .kanban-column {
-        flex: 1 1 12%; /* Adjust percentage for ultra-wide monitors */
-    }
+  .kanban-column {
+    flex: 1 1 12%;
+  }
 }
 
-/* Media query for medium screens */
 @media (min-width: 768px) and (max-width: 1199px) {
-    .kanban-column {
-        flex: 1 1 20%; /* Allow fewer columns per row on medium screens */
-    }
+  .kanban-column {
+    flex: 1 1 20%;
+  }
 }
 
-/* Media query for small screens */
 @media (max-width: 767px) {
-    .kanban-column {
-        flex: 1 1 45%; /* Allow two columns per row on small screens */
-        min-width: 150px; /* Keep a minimum width for readability */
-    }
+  .kanban-column {
+    flex: 1 1 45%;
+    min-width: 150px;
+  }
 }
 
 .column-header {
-    padding: 10px;
-    font-size: 16px;
-    font-weight: bold;
-    border-bottom: 1px solid #dfe1e6;
-    background-color: #ebecf0;
-    text-align: center;
+  padding: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  border-bottom: 1px solid #dfe1e6;
+  background-color: #ebecf0;
+  text-align: center;
 }
 
 .job-list {
-    padding: 10px;
-    overflow-y: auto;
-    flex-grow: 1;
+  padding: 10px;
+  overflow-y: auto;
+  flex-grow: 1;
 }
 
 .job-card {
-    background-color: white;
-    border-radius: 3px;
-    padding: 10px;
-    margin-bottom: 8px;
-    box-shadow: 0 1px 3px rgba(9,30,66,0.12);
-    cursor: grab;
-    transition: all 0.2s ease;
+  background-color: white;
+  border-radius: 3px;
+  padding: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(9, 30, 66, 0.12);
+  cursor: grab;
+  transition: all 0.2s ease;
 }
 
 .job-card:hover {
-    box-shadow: 0 3px 6px rgba(9,30,66,0.2);
-    transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(9, 30, 66, 0.2);
+  transform: translateY(-2px);
 }
 
 .job-card h3 {
-    font-size: 14px;
-    margin: 0 0 8px 0;
+  font-size: 14px;
+  margin: 0 0 8px 0;
 }
 
 .job-card h3 a {
-    text-decoration: none;
-    color: #172B4D;
-    transition: color 0.2s ease;
+  text-decoration: none;
+  color: #172b4d;
+  transition: color 0.2s ease;
 }
 
 .job-card:hover h3 a {
-    color: #0052CC;
+  color: #0052cc;
 }
 
 .job-tooltip {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.85);
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 5px;
-    font-size: 12px;
-    max-width: 250px;
-    white-space: normal;
-    z-index: 1000;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-    transition: opacity 0.2s ease-in-out;
-}
-.search-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    padding: 10px 20px;
-    background-color: #f4f5f7;
-    border-bottom: 1px solid #dfe1e6;
+  position: absolute;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  max-width: 250px;
+  white-space: normal;
+  z-index: 1000;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.2s ease-in-out;
 }
 
 .job-controls {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .styled-select {
-    padding: 6px 12px;
-    font-size: 14px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    background-color: white;
-    cursor: pointer;
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background-color: white;
+  cursor: pointer;
 }
 
 #search {
-    flex-grow: 1;
-    padding: 8px 12px;
-    border-radius: 5px;
-    border: 1px solid #dfe1e6;
-    width: 100%;
-    float: left;
-    max-width: 300px;
+  flex-grow: 1;
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 1px solid #dfe1e6;
+  width: 100%;
+  float: left;
+  max-width: 300px;
 }
 
 .job-card-dragging {
-    opacity: 0.9;
-    transform: rotate(2deg);
+  opacity: 0.9;
+  transform: rotate(2deg);
 }
 
 .no-jobs {
-    color: #888;  /* Light grey to resemble a placeholder */
-    font-style: italic;  /* Italic style to differentiate from job cards */
-    text-align: center;  /* Center align the text */
-    pointer-events: none;  /* Makes the element non-interactive (not draggable) */
-    user-select: none;  /* Prevents the text from being selected */
-    position: absolute;  /* Position it absolutely to overlay in the center */
-    width: 100%;  /* Take full width of the parent container */
-    top: 50%;  /* Vertically center the text */
-    transform: translateY(-50%);  /* Adjust for perfect vertical centering */
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  position: absolute;
+  width: 100%;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-/* Scrollbar styling */
 .kanban-board::-webkit-scrollbar,
 .job-list::-webkit-scrollbar {
-    height: 8px;
-    width: 8px;
+  height: 8px;
+  width: 8px;
 }
 
 .kanban-board::-webkit-scrollbar-thumb,
 .job-list::-webkit-scrollbar-thumb {
-    background: #c1c7d0;
-    border-radius: 4px;
+  background: #c1c7d0;
+  border-radius: 4px;
 }
 
 .kanban-board::-webkit-scrollbar-track,
 .job-list::-webkit-scrollbar-track {
-    background: #f4f5f7;
+  background: #f4f5f7;
 }
 
 .load-more-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
 }
 
 .left-container {
-    display: flex;
-    gap: 20px;
-    align-items: center;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .left-container .btn {
-    max-width: fit-content;
-    white-space: nowrap;
+  max-width: fit-content;
+  white-space: nowrap;
 }

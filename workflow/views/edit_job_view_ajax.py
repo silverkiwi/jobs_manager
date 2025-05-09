@@ -299,6 +299,7 @@ def edit_job_view_ajax(request, job_id=None):
         "has_only_summary_pdf": has_only_summary,
         "historical_job_pricings_json": historical_job_pricings_json,  # Revisions
         "latest_job_pricings_json": latest_job_pricings_json,  # Latest version
+        "job_status_choices": Job.JOB_STATUS_CHOICES,
     }
 
     logger.debug(
