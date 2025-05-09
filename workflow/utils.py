@@ -1,5 +1,4 @@
 from datetime import timezone
-import os
 import uuid
 from zoneinfo import ZoneInfo
 from django.contrib.messages import get_messages
@@ -8,7 +7,6 @@ from workflow.models import Job
 import logging
 from django.apps import apps
 from django.db.utils import ProgrammingError, OperationalError
-
 
 
 logger = logging.getLogger(__name__)
@@ -117,35 +115,40 @@ def is_valid_uuid(value: str) -> bool:
     except (ValueError, TypeError):
         return False
 
-def get_excluded_staff() -> list[str]:
+def get_excluded_staff(apps_registry=None) -> list[str]:
     """
-    Dynamically retrieves staff IDs to exclude based on missing or malformed IMS payroll IDs.
-
+    Retrieves staff IDs to exclude based on missing or malformed IMS payroll IDs.
+    Returns an empty list if the Staff model is not available.
+    
+    Args:
+        apps_registry: The Django apps registry to use (optional).
+        
     Returns:
         list[str]: A list of Staff model primary keys for exclusion.
     """
-    # Ensure Django apps registry is ready
-    if not apps.ready:
-        return []
-
-    # Attempt to load Staff model and fetch entries; allow missing table/migrations
-    try:
-        Staff = apps.get_model('workflow', 'Staff')
-        staff_qs = Staff.objects.all()
-    except (ProgrammingError, OperationalError):
-        # Database not ready or migrations pending
-        return []
-
     excluded: list[str] = []
-    for staff in staff_qs:
-        pid = staff.ims_payroll_id
-        if not is_valid_uuid(pid):
-            logger.error(f"Could not get IMS ID for {staff.name}")
-            excluded.append(staff.id)
+    
+    try:
+        # Attempt to get the Staff model
+        Staff = apps_registry.get_model('workflow', 'Staff') if apps_registry else apps.get_model('workflow', 'Staff')
+        
+        # Get staff with null ims_payroll_id
+        excluded_null_ids = list(Staff.objects.filter(ims_payroll_id__isnull=True).values_list('id', flat=True))
+        excluded.extend(str(id) for id in excluded_null_ids)
+        
+        # Get staff with non-null but invalid ims_payroll_id
+        staff_with_ids = Staff.objects.exclude(ims_payroll_id__isnull=True).values_list('id', 'ims_payroll_id')
+        for staff_id, ims_payroll_id in staff_with_ids:
+            if not is_valid_uuid(str(ims_payroll_id)):
+                excluded.append(str(staff_id))
+        
+        logger.info(f"Successfully retrieved {len(excluded)} excluded staff.")
+    except Exception as e:
+        logger.warning(f"Unable to access Staff model: {e}. No staff will be excluded.")
+        # Return empty list when Staff model can't be accessed
+        
     return excluded
 
-    
-    
 def get_active_jobs() -> models.QuerySet[Job]:
     """
     Returns a queryset of Jobs considered active for work or resource assignment
@@ -165,7 +168,7 @@ def get_nz_tz() -> timezone | ZoneInfo:
     Gets the New Zealand timezone object using either zoneinfo or pytz.
 
     Returns:
-        timezone | ZoneInfo: A timezone object for Pacific/Auckland, 
+        timezone | ZoneInfo: A timezone object for Pacific/Auckland,
         using ZoneInfo if available (Python 3.9+) or falling back to pytz
     """
     try:
