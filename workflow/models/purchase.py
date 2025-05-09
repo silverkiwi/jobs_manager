@@ -10,6 +10,10 @@ from workflow.enums import MetalType
 from workflow.helpers import get_company_defaults
 from workflow.models import CompanyDefaults
 
+from django.db.models import Max, IntegerField
+from django.db.models.functions import Cast, Substr
+
+
 
 class PurchaseOrder(models.Model):
     """A request to purchase materials from a supplier."""
@@ -34,6 +38,9 @@ class PurchaseOrder(models.Model):
     order_date = models.DateField(default=timezone.now)
     expected_delivery = models.DateField(null=True, blank=True)
     xero_id = models.UUIDField(unique=True, null=True, blank=True)
+    xero_tenant_id = models.CharField(
+            max_length=255, null=True, blank=True
+        ) # For reference only - we are not fully multi-tenant yet
     status = models.CharField(
         max_length=20,
         choices=[
@@ -52,24 +59,23 @@ class PurchaseOrder(models.Model):
     online_url = models.URLField(max_length=500, null=True, blank=True)
 
     def generate_po_number(self):
-        """Generate a sequential PO number based on company defaults."""
-        company_defaults = get_company_defaults()
-        starting_number = company_defaults.starting_po_number
+        """Generate the next sequential PO number, ignoring any non-standard prefixes."""
+        defaults = get_company_defaults()
+        start = defaults.starting_po_number
 
-        highest_po = PurchaseOrder.objects.all().aggregate(Max('po_number'))['po_number__max'] or 0
+        # 1) Filter to exactly PO-<digits>
+        # 2) Strip off "PO-" (first 3 chars), cast the rest to int
+        # 3) Take the MAX of that numeric part
+        agg = (
+            PurchaseOrder.objects
+                .filter(po_number__regex=r"^PO-\d+$")
+                .annotate(num=Cast(Substr("po_number", 4), IntegerField()))
+                .aggregate(max_num=Max("num"))
+        )
+        max_existing = agg["max_num"] or 0
 
-        # If the highest PO is a string (like "PO-12345"), extract the number part
-        if isinstance(highest_po, str) and '-' in highest_po:
-            try:
-                highest_po = int(highest_po.split('-')[1])
-            except (IndexError, ValueError):
-                highest_po = 0
-
-        # Generate the next number
-        next_number = max(starting_number, int(highest_po) + 1)
-
-        # Return with PO prefix and zero-padding (e.g., PO-0013)
-        return f"PO-{next_number:04d}"
+        nxt = max(start, max_existing + 1)
+        return f"PO-{nxt:04d}"
 
     def save(self, *args, **kwargs):
         """Save the model and auto-generate PO number if none exists."""

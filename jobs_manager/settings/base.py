@@ -70,12 +70,7 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-        "xero_console": {
-            "level": "DEBUG",
+            "level": "INFO",  # INFO+ only
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
@@ -106,37 +101,40 @@ LOGGING = {
         "app_file": {
             "level": "DEBUG",
             "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs/application.log"),
+            "filename": os.path.join(BASE_DIR, "logs/application.log"),  # catch-all
             "maxBytes": 5 * 1024 * 1024,
             "backupCount": 5,
             "formatter": "verbose",
         },
     },
     "loggers": {
+        # your SQL logger only writes to sql_file, and bubbles up to root
         "django.db.backends": {
             "handlers": ["sql_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
+        # xero logs to xero_file, and bubbles up to root
         "xero": {
-            "handlers": ["xero_file", "console"],
+            "handlers": ["xero_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
         "xero_python": {
             "handlers": ["xero_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
+        # workflow writes to app_file, and bubbles up
         "workflow": {
-            "handlers": ["console"],
+            "handlers": ["app_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
         "workflow.views.purchase_order_view": {
-            "handlers": ["purchase_file", "console"],
+            "handlers": ["purchase_file"],
             "level": "DEBUG",
-            "propagate": False,
+            "propagate": True,
         },
     },
     "root": {
@@ -284,6 +282,15 @@ DEFAULT_XERO_SCOPES = " ".join([
 ])
 XERO_SCOPES = os.getenv("XERO_SCOPES", DEFAULT_XERO_SCOPES).split()
 
+# Hardcoded production Xero tenant ID
+# THIS IS TO ENSURE WE CANNOT SYNC NON-PRODUCTION DATA TO PRODUCTION XERO
+PRODUCTION_XERO_TENANT_ID = "75e57cfd-302d-4f84-8734-8aae354e76a7"
+
+# Hardcoded production machine ID
+# THIS IS SO WE KNOW WITH CERTAINTY WE ARE RUNNING ON THE PRODUCTION MACHINE
+# If the server is ever replaced, edit this using /etc/machine-id
+PRODUCTION_MACHINE_ID = "19d6339c35f7416b9f41d9a35dba6111"
+
 DROPBOX_WORKFLOW_FOLDER = os.getenv('DROPBOX_WORKFLOW_FOLDER', os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow"))
 
 SITE_ID = 1
@@ -300,10 +307,11 @@ def validate_required_settings():
         'XERO_CLIENT_ID': XERO_CLIENT_ID,
         'XERO_CLIENT_SECRET': XERO_CLIENT_SECRET,
         'XERO_REDIRECT_URI': XERO_REDIRECT_URI,
+        # PRODUCTION_XERO_TENANT_ID and PRODUCTION_MACHINE_ID are hardcoded, no need to validate their presence in env
     }
-    
+
     missing_settings = [key for key, value in required_settings.items() if not value]
-    
+
     if missing_settings:
         raise ImproperlyConfigured(
             f"The following required settings are missing or empty: {', '.join(missing_settings)}\n"
