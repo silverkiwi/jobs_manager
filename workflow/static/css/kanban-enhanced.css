@@ -769,3 +769,30 @@
   content: "+";
   font-weight: bold;
 }
+
+#quoting .column-header {
+  background-color: rgba(249, 199, 79, 0.2);
+  color: #d67d00;
+  border-bottom: 2px solid var(--warning-color);
+}
+
+#accepted_quote .column-header {
+  background-color: rgba(76, 201, 240, 0.2);
+  color: #0077b6;
+  border-bottom: 2px solid #0077b6;
+}
+
+#awaiting_materials .column-header {
+  background-color: rgba(255, 145, 77, 0.2);
+  color: #e76f51;
+  border-bottom: 2px solid #e76f51;
+}
+
+#in_progress .column-header {
+  background-color: rgba(67, 97, 238, 0.2);
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.status-badge.accepted_quote { background-color: #5cb85c; }
+.status-badge.awaiting_materials { background-color: #ff9149; }

@@ -51,6 +51,7 @@ function loadJobs(status) {
     .then((data) => {
       if (data.success) {
         renderJobs(status, data.jobs);
+        applyStaffFilters();
         updateCounters(status, data.filtered_count, data.total);
         const loadMoreContainer = document.querySelector(
           `#${status}-load-more-container`,
@@ -373,6 +374,7 @@ function fetchAvailableStaff() {
       }
 
       renderStaffPanel(data);
+      setupStaffFiltering();
     })
     .catch(error => {
       console.error(error);
@@ -538,10 +540,10 @@ function removeStaffFromJob(jobId, staffId) {
     },
     body: JSON.stringify({ job_id: jobId, staff_id: staffId })
   })
-  .then(r => r.json())
-  .then(data => data.success ? refreshAllColumns()
-                              : renderMessages([{ level:"danger", message:data.error }]))
-  .catch(err => console.error(err));
+    .then(r => r.json())
+    .then(data => data.success ? refreshAllColumns()
+      : renderMessages([{ level: "danger", message: data.error }]))
+    .catch(err => console.error(err));
 }
 
 let activeStaffFilters = [];
@@ -560,13 +562,13 @@ function setupStaffFiltering() {
 function toggleStaffFilter(staffId, staffIcon) {
   const index = activeStaffFilters.indexOf(staffId);
 
-  if (!index === -1) {
+  if (index !== -1) {
     activeStaffFilters.splice(index, 1);
     staffIcon.classList.remove("staff-filter-active");
+  } else {
+    activeStaffFilters.push(staffId);
+    staffIcon.classList.add("staff-filter-active");
   }
-
-  activeStaffFilters.push(staffId);
-  staffIcon.classList.add("staff-filter-active");
 }
 
 function applyStaffFilters() {
@@ -587,9 +589,9 @@ function applyStaffFilters() {
       console.error("Error parsing assigned staff:", e);
     }
 
-    const hasMatchingStaff = assignedStaff.some(staff => {
+    const hasMatchingStaff = assignedStaff.some(staff => 
       activeStaffFilters.includes(staff.id.toString())
-    });
+    );
 
     card.style.display = hasMatchingStaff ? "" : "none";
   });
