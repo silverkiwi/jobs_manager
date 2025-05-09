@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [("workflow", "0134_job_people_staff_icon_and_more")]
+    dependencies = [("workflow", "0135_job_people_staff_icon_and_more")]
 
     operations = [
         migrations.AlterField(

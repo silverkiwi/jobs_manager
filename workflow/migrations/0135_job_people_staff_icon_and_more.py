@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [("workflow", "0133_bill_xero_tenant_id_client_xero_tenant_id_and_more")]
+    dependencies = [("workflow", "0134_alter_purchaseorder_order_date")]
 
     operations = [
         migrations.AddField(
