@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
-AUTH_USER_MODEL = "workflow.Staff"
+AUTH_USER_MODEL = "accounts.Staff"
 
 # Application definition
 
@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "django_node_assets",
+    "accounts",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
