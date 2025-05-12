@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 from pathlib import Path
 
@@ -16,7 +17,6 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "django_node_assets",
-    "accounts",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     "django_tables2",
     "workflow",
     "simple_history",
+    "accounts",
+    "rest_framework"
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -45,15 +47,57 @@ MIDDLEWARE = [
     "workflow.middleware.PasswordStrengthMiddleware",
 ]
 
+# JWT/general authentication settings
+
+ENABLE_JWT_AUTH = False
+ENABLE_DUAL_AUTHENTICATION = True
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ]
+}
+
+if ENABLE_JWT_AUTH:
+    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
+        "jobs_manager.authentication.JWTAuthentication"
+    )
+
+if not ENABLE_JWT_AUTH or ENABLE_DUAL_AUTHENTICATION:
+    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
+        "rest_framework.authentication.SessionAuthentication"
+    )
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "ALGORITHM": "HS256",
+    "VERIFYING_KEY": None,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIMS": "token_type",
+    "AUTH_COOKIE": "access_token",
+    "AUTH_COOKIE_SECURE": True,
+    "AUTH_COOKIE_HTTP_ONLY": True,
+    "AUTH_COOKIE_SAMESITE": "Lax",
+}
+
+LOGIN_URL = "accounts:login"
+LOGOUT_URL = "accounts:logout"
 LOGIN_REDIRECT_URL = "/"
-LOGIN_URL = "/login/"
 LOGIN_EXEMPT_URLS = [
-    "logout",
-    "password_reset",
-    "password_reset_done",
-    "reset",
-    "password_reset_confirm",
-    "password_reset_complete"
+    "accounts:login",
+    "accounts:logout",
+    "accounts:password_reset",
+    "accounts:password_reset_done",
+    "accounts:reset",
+    "accounts:password_reset_confirm",
+    "accounts:password_reset_complete"
 ]
 
 LOGGING = {
@@ -154,7 +198,10 @@ ROOT_URLCONF = "jobs_manager.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, "workflow/templates")],
+        "DIRS": [
+            os.path.join(BASE_DIR, "workflow/templates"),
+            os.path.join(BASE_DIR, "accounts/templates"),
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

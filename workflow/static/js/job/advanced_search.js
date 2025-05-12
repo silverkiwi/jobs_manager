@@ -80,7 +80,7 @@ function loadClientsDropdown() {
 
 function loadStaffDropdown() {
   if (Environment.isDebugMode()) console.log("Loading staff for dropdown...");
-  fetch("/api/staff/all", {
+  fetch("/accounts/api/staff/all", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

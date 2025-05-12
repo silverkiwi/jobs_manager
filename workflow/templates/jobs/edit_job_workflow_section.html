@@ -4,7 +4,7 @@
     <!-- Job Status Selection -->
     <div class="form-group mb-4">
         <label for="job_status" class="form-label">Job Status:</label>
-        <select id="job_status" name="status" class="form-select autosave-input">
+        <select id="job_status" name="job_status" class="form-select autosave-input">
             {% for value, label in job_status_choices %}
                 <option value="{{ value }}" {% if job.status == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}

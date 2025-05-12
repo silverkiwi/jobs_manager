@@ -21,7 +21,9 @@ from logging import getLogger
 from workflow.models import TimeEntry, CompanyDefaults, Job
 from workflow.models.adjustment_entry import AdjustmentEntry
 from workflow.models.material_entry import MaterialEntry
-from workflow.utils import get_excluded_staff, get_nz_tz
+from workflow.utils import get_nz_tz
+
+from accounts.utils import get_excluded_staff
 
 logger = getLogger(__name__)
 

@@ -12,7 +12,6 @@ from django.db.models import Q
 from workflow.models import (
     Job, 
     JobPricing,
-    Staff,
     TimeEntry,
     MaterialEntry,
     AdjustmentEntry,
@@ -21,6 +20,8 @@ from workflow.models import (
 from workflow.enums import JobPricingStage
 from workflow.models.client import Client
 from workflow.utils import get_nz_tz
+
+from accounts.models import Staff
 
 
 class Command(BaseCommand):

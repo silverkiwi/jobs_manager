@@ -4,7 +4,7 @@ import pytz
 from django import template
 from django.utils import timezone
 
-from workflow.models import Staff
+from accounts.models import Staff
 
 register = template.Library()
 

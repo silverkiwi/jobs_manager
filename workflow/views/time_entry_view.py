@@ -14,11 +14,14 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 
 from workflow.enums import RateType
-from workflow.models import Job, Staff, TimeEntry
+from workflow.models import Job, TimeEntry
 from workflow.serializers.time_entry_serializer import (
     TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
 )
-from workflow.utils import extract_messages, get_jobs_data, get_excluded_staff, get_active_jobs
+from workflow.utils import extract_messages, get_jobs_data, get_active_jobs
+
+from accounts.models import Staff
+from accounts.utils import get_excluded_staff
 
 logger = logging.getLogger(__name__)
 
