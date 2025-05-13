@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/timesheet-enhanced.css' %}">
+<link rel="stylesheet" href="{% static 'timesheet/css/timesheet-enhanced.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -99,7 +99,7 @@
                         <tr>
                             <th>Staff</th>
                             {% for day in week_days %}
-                            <th><a href="{% url 'timesheet_daily_view' date=day %}" class="animated-link">{{ day|date:"D" }}</a></th>
+                            <th><a href="{% url 'timesheet:timesheet_daily_view' date=day %}" class="animated-link">{{ day|date:"D" }}</a></th>
                             {% endfor %}
                             <th>Total</th>
                             <th>Billable%</th>
@@ -145,5 +145,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script type="module" src="{% static 'js/timesheet/timesheet_overview.js' %}"></script>
+<script type="module" src="{% static 'timesheet/js/timesheet_overview.js' %}"></script>
 {% endblock %}

@@ -23,12 +23,14 @@ from django.utils.html import format_html
 from django.views.generic import TemplateView
 from django.db import models
 
-from workflow.forms import PaidAbsenceForm
-from workflow.models import Job, JobPricing, TimeEntry
+from workflow.models import Job, JobPricing
 from workflow.utils import extract_messages
 
 from accounts.models import Staff
 from accounts.utils import get_excluded_staff
+
+from timesheet.models import TimeEntry
+from timesheet.forms import PaidAbsenceForm
 
 # Configure logging to only show logs from this module
 logger = logging.getLogger(__name__)
@@ -56,7 +58,7 @@ EXCLUDED_JOBS = [
 class TimesheetOverviewView(TemplateView):
     """View for displaying timesheet overview including staff hours, job statistics and graphics."""
 
-    template_name = "time_entries/timesheet_overview.html"
+    template_name = "timesheet/timesheet_overview.html"
 
     @classmethod
     def get_filtered_staff(cls) -> List[Staff]:
@@ -215,11 +217,11 @@ class TimesheetOverviewView(TemplateView):
         next_week_date = start_date + timezone.timedelta(days=7)
 
         prev_week_url = reverse(
-            "timesheet_overview_with_date",
+            "timesheet:timesheet_overview_with_date",
             kwargs={"start_date": prev_week_date.strftime("%Y-%m-%d")},
         )
         next_week_url = reverse(
-            "timesheet_overview_with_date",
+            "timesheet:timesheet_overview_with_date",
             kwargs={"start_date": next_week_date.strftime("%Y-%m-%d")},
         )
 
@@ -604,7 +606,7 @@ class TimesheetOverviewView(TemplateView):
         """
         form = PaidAbsenceForm()
         form_html = render_to_string(
-            "time_entries/paid_absence_form.html",
+            "timesheet/paid_absence_form.html",
             {"form": form, "staff_members": self.get_filtered_staff()},
             request=request,
         )
@@ -726,7 +728,7 @@ class TimesheetOverviewView(TemplateView):
             )
 
 class TimesheetDailyView(TemplateView):
-    template_name = "time_entries/timesheet_daily_view.html"
+    template_name = "timesheet/timesheet_daily_view.html"
 
     @classmethod
     def get_filtered_staff(cls) -> List[Staff]:

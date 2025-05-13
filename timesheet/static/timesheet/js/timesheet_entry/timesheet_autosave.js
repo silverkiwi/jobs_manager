@@ -239,12 +239,12 @@ function autosaveData() {
  * - Dynamically adds or removes jobs in the UI based on the server's response.
  */
 function saveDataToServer(collectedData) {
-  console.log("Autosaving timesheet data to /api/autosave-timesheet/...", {
+  console.log("Autosaving timesheet data to /timesheets/autosave/...", {
     time_entries: collectedData.time_entries.length,
     deleted_entries: collectedData.deleted_entries.length,
   });
 
-  fetch("/api/autosave-timesheet/", {
+  fetch("/timesheets/autosave/", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

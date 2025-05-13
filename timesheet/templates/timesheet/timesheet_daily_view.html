@@ -3,7 +3,7 @@
 
 {#{% block extra_css %}#}
 {#
-<link rel="stylesheet" href="{% static 'css/timesheet_daily_view.css' %}">#}
+<link rel="stylesheet" href="{% static 'timesheet/css/timesheet_daily_view.css' %}">#}
 {#{% endblock %}#}
 
 {% block content %}
@@ -24,7 +24,7 @@
             {% for staff in staff_data %}
             <tr>
                 <td>
-                    <a href="{% url 'timesheet_entry' date=date staff_id=staff.staff_id %}" class="animated-link">
+                    <a href="{% url 'timesheet:timesheet_entry' date=date staff_id=staff.staff_id %}" class="animated-link">
                         {{ staff.name }}
                     </a>
                 </td>

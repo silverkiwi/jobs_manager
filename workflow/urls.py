@@ -49,8 +49,6 @@ from workflow.views import (
     edit_job_view_ajax,
     kanban_view,
     submit_quote_view,
-    time_entry_view,
-    time_overview_view,
     workshop_view,
     job_management_view,
 )
@@ -75,18 +73,6 @@ from workflow.views.purchase_order_pdf_view import PurchaseOrderPDFView
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
-    
-    # API endpoints
-    path(
-        "api/autosave-job/",
-        edit_job_view_ajax.autosave_job_view,
-        name="autosave_job_api",
-    ),
-    path(
-        "api/autosave-timesheet/",
-        time_entry_view.autosave_timesheet_view,
-        name="autosave_timesheet-api",
-    ),
     path(
         "api/autosave-purchase-order/",
         autosave_purchase_order_view,
@@ -332,32 +318,6 @@ urlpatterns = [
         edit_job_view_ajax.get_company_defaults_api,
         name="company_defaults_api",
     ),
-    path(
-        "timesheets/day/<str:date>/<uuid:staff_id>/",
-        time_entry_view.TimesheetEntryView.as_view(),
-        name="timesheet_entry",
-    ),
-    path(
-        "timesheets/overview/",
-        time_overview_view.TimesheetOverviewView.as_view(),
-        name="timesheet_overview",
-    ),
-    path(
-        "timesheets/overview/<str:start_date>/",
-        time_overview_view.TimesheetOverviewView.as_view(),
-        name="timesheet_overview_with_date",
-    ),
-    path(
-        "timesheets/export_to_ims/",
-        time_overview_view.TimesheetOverviewView.as_view(),
-        name="timesheet_export_to_ims",
-    ),
-    # Edit timesheet entries for a specific day
-    path(
-        "timesheets/day/<str:date>/",
-        time_overview_view.TimesheetDailyView.as_view(),
-        name="timesheet_daily_view",
-    ),
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
     path(
         "xero/sync-progress/",
@@ -380,51 +340,4 @@ urlpatterns = [
     path('purchases/use-stock/', use_stock_view.use_stock_view, name='use_stock'),
     
     path("__debug__/", include(debug_toolbar.urls)),
-
-    # # LEGACY URLS - app accounts
-    # path("login/", RedirectView.as_view(pattern_name="accounts:login"), name="login"),
-    # path("logout/", RedirectView.as_view(pattern_name="accounts:logout"), name="logout"),
-    # path(
-    #     "password_reset/",
-    #     auth_views.PasswordResetView.as_view(
-    #         template_name="registration/password_reset_form.html",
-    #         email_template_name="registration/password_reset_email.html",
-    #         subject_template_name="registration/password_reset_subject.txt",
-    #     ),
-    #     name="password_reset",
-    # ),
-    # path(
-    #     "password_reset/done/",
-    #     auth_views.PasswordResetDoneView.as_view(
-    #         template_name="registration/password_reset_done.html"
-    #     ),
-    #     name="password_reset_done",
-    # ),
-    # path(
-    #     "reset/<uidb64>/<token>/",
-    #     auth_views.PasswordResetConfirmView.as_view(
-    #         template_name="registration/password_reset_confirm.html"
-    #     ),
-    #     name="password_reset_confirm",
-    # ),
-    # path(
-    #     "reset/done/",
-    #     auth_views.PasswordResetCompleteView.as_view(
-    #         template_name="registration/password_reset_complete.html"
-    #     ),
-    #     name="password_reset_complete",
-    # ),
-    # # Password change views
-    # path(
-    #     "password_change/",
-    #     password_views.SecurityPasswordChangeView.as_view(),
-    #     name="password_change",
-    # ),
-    # path(
-    #     "password_change/done/",
-    #     auth_views.PasswordChangeDoneView.as_view(
-    #         template_name="registration/password_change_done.html"
-    #     ),
-    #     name="password_change_done",
-    # ),
 ]

@@ -70,18 +70,44 @@ export function fetchJobs() {
   });
 }
 
+/**
+ * Returns an emoji icon representing the job status.
+ * @param {string} status - The job status.
+ * @returns {string} - The emoji icon representing the status.
+ */
 function getStatusIcon(status) {
   const icons = {
     quoting: "📝",
-    approved: "✅",
-    rejected: "❌",
+    accepted_quote: "✅",  // Updated from "approved"
+    awaiting_materials: "🔄", // Added missing status
     in_progress: "🚧",
     on_hold: "⏸️",
     special: "⭐",
     completed: "✔️",
+    rejected: "❌",
     archived: "📦",
   };
   return icons[status] || "";
+}
+
+/**
+ * Returns a human-readable display name for a job status.
+ * @param {string} status - The internal job status value.
+ * @returns {string} - The display name for the status.
+ */
+function getStatusDisplayName(status) {
+  const displayNames = {
+    quoting: "Quoting",
+    accepted_quote: "Accepted Quote",
+    awaiting_materials: "Awaiting Materials",
+    in_progress: "In Progress", 
+    on_hold: "On Hold",
+    special: "Special",
+    completed: "Completed",
+    rejected: "Rejected",
+    archived: "Archived"
+  };
+  return displayNames[status] || capitalizeFirstLetter(status);
 }
 
 /**
@@ -203,6 +229,7 @@ function renderJobsSection(currentJobs) {
  */
 function createJobItem(job, isSingleJob = false) {
   const statusIcon = getStatusIcon(job.job_status);
+  const statusDisplayName = getStatusDisplayName(job.job_status);
   const hoursExceeded = job.hours_spent > job.estimated_hours;
   const warningMessage = hoursExceeded
     ? `<small class="text-danger">⚠ Exceeds estimated hours</small>`
@@ -220,7 +247,7 @@ function createJobItem(job, isSingleJob = false) {
                             ${statusIcon} ${job.job_display_name}
                         </a>
                     </h5>
-                    <p class="card-text mb-1"><strong>Status:</strong> ${capitalizeFirstLetter(job.job_status)}</p>
+                    <p class="card-text mb-1"><strong>Status:</strong> ${statusDisplayName}</p>
                     <p class="card-text mb-1"><strong>Client:</strong> ${job.client_name || "N/A"}</p>
                     <p class="card-text mb-1"><strong>Estimated Hours:</strong> ${job.estimated_hours || 0}</p>
                     <p class="card-text mb-1">

@@ -14,14 +14,16 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 
 from workflow.enums import RateType
-from workflow.models import Job, TimeEntry
-from workflow.serializers.time_entry_serializer import (
-    TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
-)
+from workflow.models import Job
 from workflow.utils import extract_messages, get_jobs_data, get_active_jobs
 
 from accounts.models import Staff
 from accounts.utils import get_excluded_staff
+
+from timesheet.models import TimeEntry
+from timesheet.serializers import (
+    TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +53,7 @@ class TimesheetEntryView(TemplateView):
     - Provides the back-end logic for the `time_entries/timesheet_entry.html` template.
     """
 
-    template_name = "time_entries/timesheet_entry.html"
+    template_name = "timesheet/timesheet_entry.html"
 
     # Excluding app users ID's to avoid them being loaded in timesheet views because they do not have entries
     # (Valerie and Corrin included as they are not supposed to enter hours)

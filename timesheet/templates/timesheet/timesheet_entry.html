@@ -5,7 +5,7 @@
 <!-- AG Grid Styles -->
 <link rel="stylesheet" href="{% static 'ag-grid-styles/ag-theme-alpine.css' %}">
 <link rel="stylesheet" href="{% static 'css/enhanced-grid.css' %}">
-<link rel="stylesheet" href="{% static 'css/timesheet-enhanced.css' %}">
+<link rel="stylesheet" href="{% static 'timesheet/css/timesheet-enhanced.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -15,14 +15,14 @@
         <h2 class="timesheet-daily-date">Timesheet Entry - {{ staff_member.get_display_full_name }} - {{ timesheet_date }}</h2>
         
         <div class="timesheet-daily-controls">
-            <a href="{% url 'timesheet_entry' date=timesheet_date staff_id=prev_staff.id %}" class="btn btn-primary">
+            <a href="{% url 'timesheet:timesheet_entry' date=timesheet_date staff_id=prev_staff.id %}" class="btn btn-primary">
                 <i class="bi bi-arrow-left me-1"></i>{{ prev_staff.name }}
             </a>
-            <a href="{% url 'timesheet_daily_view' date=timesheet_date %}"
+            <a href="{% url 'timesheet:timesheet_daily_view' date=timesheet_date %}"
                 class="btn btn-secondary align-self-center">
                 <i class="bi bi-list me-1"></i>Daily Overview
             </a>
-            <a href="{% url 'timesheet_entry' date=timesheet_date staff_id=next_staff.id %}"
+            <a href="{% url 'timesheet:timesheet_entry' date=timesheet_date staff_id=next_staff.id %}"
                 class="btn btn-primary">
                 {{ next_staff.name }} <i class="bi bi-arrow-right ms-1"></i>
             </a>
@@ -132,7 +132,7 @@
     {% block extra_js %}
     <!-- AG Grid Script -->
     <script src="{% static 'ag-grid-community/ag-grid-community.min.js' %}"></script>
-    <script src="{% static 'js/timesheet/deserialize_timesheet.js' %}"></script>
-    <script type="module" src="{% static 'js/timesheet/timesheet_entry/timesheet_autosave.js' %}"></script>
-    <script type="module" src="{% static 'js/timesheet/timesheet_entry/timesheet_entry.js' %}"></script>
+    <script src="{% static 'timesheet/js/deserialize_timesheet.js' %}"></script>
+    <script type="module" src="{% static 'timesheet/js/timesheet_entry/timesheet_autosave.js' %}"></script>
+    <script type="module" src="{% static 'timesheet/js/timesheet_entry/timesheet_entry.js' %}"></script>
     {% endblock %}
