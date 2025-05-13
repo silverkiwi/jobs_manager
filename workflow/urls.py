@@ -48,7 +48,6 @@ from workflow.views import (
     client_view,
     edit_job_view_ajax,
     kanban_view,
-    staff_view,
     submit_quote_view,
     time_entry_view,
     time_overview_view,
@@ -97,7 +96,6 @@ urlpatterns = [
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
     path("api/client-detail/", client_view.client_detail, name="client_detail"),
     path("api/extract-supplier-quote/", extract_supplier_quote_data_view, name="extract_supplier_quote_data"),
-    path("api/staff/all/", staff_view.StaffListAPIView.as_view(), name="all_staff_api"),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
         submit_quote_view.generate_quote_pdf,
@@ -368,53 +366,6 @@ urlpatterns = [
     ),
     path("xero/unused-clients/", client_view.UnusedClientsView.as_view(), name="xero_unused_clients"),
 
-    # Login/Logout views
-    path("login/", auth_views.LoginView.as_view(), name="login"),
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-    # Password reset views
-    path(
-        "password_reset/",
-        auth_views.PasswordResetView.as_view(
-            template_name="registration/password_reset_form.html",
-            email_template_name="registration/password_reset_email.html",
-            subject_template_name="registration/password_reset_subject.txt",
-        ),
-        name="password_reset",
-    ),
-    path(
-        "password_reset/done/",
-        auth_views.PasswordResetDoneView.as_view(
-            template_name="registration/password_reset_done.html"
-        ),
-        name="password_reset_done",
-    ),
-    path(
-        "reset/<uidb64>/<token>/",
-        auth_views.PasswordResetConfirmView.as_view(
-            template_name="registration/password_reset_confirm.html"
-        ),
-        name="password_reset_confirm",
-    ),
-    path(
-        "reset/done/",
-        auth_views.PasswordResetCompleteView.as_view(
-            template_name="registration/password_reset_complete.html"
-        ),
-        name="password_reset_complete",
-    ),
-    # Password change views
-    path(
-        "password_change/",
-        password_views.SecurityPasswordChangeView.as_view(),
-        name="password_change",
-    ),
-    path(
-        "password_change/done/",
-        auth_views.PasswordChangeDoneView.as_view(
-            template_name="registration/password_change_done.html"
-        ),
-        name="password_change_done",
-    ),
     # Purchase Order URLs with purchases prefix
     path('purchases/purchase-orders/', PurchaseOrderListView.as_view(), name='purchase_orders'),
     path('purchases/purchase-orders/new/', PurchaseOrderCreateView.as_view(), name='new_purchase_order'),
@@ -428,12 +379,52 @@ urlpatterns = [
     # Stock Management URLs with purchases prefix
     path('purchases/use-stock/', use_stock_view.use_stock_view, name='use_stock'),
     
-    # This URL doesn't match our naming pattern - need to fix.
-    # Probably should be in api/internal?
-    path(
-        "staff/<uuid:staff_id>/get_rates/",
-        staff_view.get_staff_rates,
-        name="get_staff_rates",
-    ),
     path("__debug__/", include(debug_toolbar.urls)),
+
+    # # LEGACY URLS - app accounts
+    # path("login/", RedirectView.as_view(pattern_name="accounts:login"), name="login"),
+    # path("logout/", RedirectView.as_view(pattern_name="accounts:logout"), name="logout"),
+    # path(
+    #     "password_reset/",
+    #     auth_views.PasswordResetView.as_view(
+    #         template_name="registration/password_reset_form.html",
+    #         email_template_name="registration/password_reset_email.html",
+    #         subject_template_name="registration/password_reset_subject.txt",
+    #     ),
+    #     name="password_reset",
+    # ),
+    # path(
+    #     "password_reset/done/",
+    #     auth_views.PasswordResetDoneView.as_view(
+    #         template_name="registration/password_reset_done.html"
+    #     ),
+    #     name="password_reset_done",
+    # ),
+    # path(
+    #     "reset/<uidb64>/<token>/",
+    #     auth_views.PasswordResetConfirmView.as_view(
+    #         template_name="registration/password_reset_confirm.html"
+    #     ),
+    #     name="password_reset_confirm",
+    # ),
+    # path(
+    #     "reset/done/",
+    #     auth_views.PasswordResetCompleteView.as_view(
+    #         template_name="registration/password_reset_complete.html"
+    #     ),
+    #     name="password_reset_complete",
+    # ),
+    # # Password change views
+    # path(
+    #     "password_change/",
+    #     password_views.SecurityPasswordChangeView.as_view(),
+    #     name="password_change",
+    # ),
+    # path(
+    #     "password_change/done/",
+    #     auth_views.PasswordChangeDoneView.as_view(
+    #         template_name="registration/password_change_done.html"
+    #     ),
+    #     name="password_change_done",
+    # ),
 ]

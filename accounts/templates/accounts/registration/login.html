@@ -1,4 +1,4 @@
-{% extends "registration/registration_base.html" %}
+{% extends "accounts/registration/registration_base.html" %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -23,7 +23,7 @@
                     </div>
                 </form>
                 <div class="text-center mt-3">
-                    <a href="{% url 'password_reset' %}" class="text-decoration-none">
+                    <a href="{% url 'accounts:password_reset' %}" class="text-decoration-none">
                         <i class="bi bi-key me-1"></i>Forgot your password?
                     </a>
                 </div>

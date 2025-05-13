@@ -72,7 +72,7 @@
                             <ul class="dropdown-menu" aria-labelledby="adminMenu">
                                 {% comment %} <li><a class="dropdown-item" href="{% url 'export_to_ims' %}">Export to IMS</a></li> {% endcomment %}
                                 <li><a class="dropdown-item" href="{% url 'month_end' %}">Run Month End</a></li>
-                                <li><a class="dropdown-item" href="{% url 'admin:workflow_staff_changelist' %}">Edit Staff</a></li>
+                                <li><a class="dropdown-item" href="{% url 'admin:accounts_staff_changelist' %}">Edit Staff</a></li>
                                 <li><a class="dropdown-item" href="{% url 'admin:workflow_companydefaults_changelist' %}">Edit Company Defaults</a></li>
                                 <li><a href="{% url 'archive_complete_jobs' %}" class="dropdown-item">Archive Complete Jobs</a></li>
                             </ul>
@@ -86,14 +86,14 @@
                         <span class="nav-link">Welcome, {{ user.get_username }}!</span>
                     </li>
                     <li class="nav-item">
-                        <form method="post" action="{% url 'logout' %}">
+                        <form method="post" action="{% url 'accounts:logout' %}">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-link nav-link">Log Out</button>
                         </form>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        <a class="nav-link" href="{% url 'accounts:login' %}">Login</a>
                     </li>
                     {% endif %}
                 </ul>
