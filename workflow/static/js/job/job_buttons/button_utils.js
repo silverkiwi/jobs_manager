@@ -382,7 +382,7 @@ export function updateJobStatus(jobId) {
       "X-CSRFToken": getCSRFToken(),
     },
     body: JSON.stringify({
-      status: "approved",
+      status: "accepted_quote",
     }),
   })
     .then((response) => response.json())

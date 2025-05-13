@@ -35,7 +35,7 @@ class ArchiveCompleteJobsViews:
     """
 
     class ArchiveCompleteJobsTemplateView(TemplateView):
-        """View for renderizing the related page."""
+        """View for rendering the related page."""
         template_name = "jobs/archive_complete_jobs.html"
 
 
@@ -61,7 +61,7 @@ class ArchiveCompleteJobsViews:
                     return Response({
                         "success": False,
                         "error": "No jobs found for the provided list of IDs. Please try again or contact an administrator if the problem persists."
-                    }, status.HTTP_404_NOT_FOUND)
+                    }, status.HTTP_400_BAD_REQUEST)
                 
                 errors, archived_count = archive_complete_jobs(job_ids)
                 

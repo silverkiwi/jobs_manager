@@ -361,11 +361,11 @@ export function checkRealityValues() {
 export function checkJobAccepted() {
   console.log(
     "Job accepted?",
-    document.getElementById("job_status").value === "approved",
+    document.getElementById("job_status").value === "accepted_quote",
   );
   const job_status = document.getElementById("job_status").value;
   const accepted =
-    job_status === "approved"
+    job_status === "accepted_quote"
       ? true
       : job_status === "completed"
         ? true

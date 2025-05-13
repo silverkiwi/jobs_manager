@@ -11,6 +11,7 @@ from workflow.models import (
     JobPricing,
     MaterialEntry,
     TimeEntry,
+    Staff
 )
 
 logger = logging.getLogger(__name__)
@@ -161,3 +162,41 @@ def archive_complete_jobs(job_ids):
                 logger.error(f"Error archiving job {jid}: {str(e)}")
     
     return errors, archived_count
+
+
+class JobStaffService:
+    @staticmethod
+    def assign_staff_to_job(job_id, staff_id):
+        """Assign a staff member to a job"""
+        try:
+            job = Job.objects.get(id=job_id)
+            staff = Staff.objects.get(id=staff_id)
+
+            if staff not in job.people.all():
+                job.people.add(staff)
+            
+            return True, None
+        except Job.DoesNotExist:
+            return False, "Job not found"
+        except Staff.DoesNotExist:
+            return False, "Staff member not found"
+        except Exception as e:
+            return False, str(e)
+    
+    @staticmethod
+    def remove_staff_from_job(job_id, staff_id):
+        """Remove a staff member from a job"""
+        try:
+            job = Job.objects.get(id=job_id)
+            staff = Staff.objects.get(id=staff_id)
+
+            if staff in job.people.all():
+                job.people.remove(staff)
+            
+            return True, None
+        except Job.DoesNotExist:
+            return False, "Job not found"
+        except Staff.DoesNotExist:
+            return False, "Staff member not found"
+        except Exception as e:
+            raise e

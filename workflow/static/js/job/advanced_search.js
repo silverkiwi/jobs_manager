@@ -222,7 +222,7 @@ function createSearchResultCard(job) {
 function getStatusClassFromLabel(statusLabel) {
   const statusMap = {
     Quoting: "quoting",
-    Approved: "approved",
+    "Accepted Quote": "accepted_quote",
     Rejected: "rejected",
     "In Progress": "in_progress",
     "On Hold": "on_hold",

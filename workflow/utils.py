@@ -4,8 +4,12 @@ from zoneinfo import ZoneInfo
 from django.contrib.messages import get_messages
 from django.db import models
 from workflow.models import Job
-    
+import logging
+from django.apps import apps
+from django.db.utils import ProgrammingError, OperationalError
 
+
+logger = logging.getLogger(__name__)
 
 def extract_messages(request):
     """
@@ -103,46 +107,48 @@ def get_jobs_data(related_jobs):
     return job_data
 
 
-def get_excluded_staff():
-    """
-    Retrieves the IDs of staff members who are excluded from the scheduling system.
+def is_valid_uuid(value: str) -> bool:
+    """Check if the given string is a valid UUID."""
+    try:
+        uuid.UUID(value)
+        return True
+    except (ValueError, TypeError):
+        return False
 
-    Returns:
-        list: A list of staff IDs (as strings) who are excluded from the scheduling system
+def get_excluded_staff(apps_registry=None) -> list[str]:
     """
-    # Static list of excluded staff IDs
-    static_excluded_ids = [
-        "a9bd99fa-c9fb-43e3-8b25-578c35b56fa6",
-        "b50dd08a-58ce-4a6c-b41e-c3b71ed1d402",
-        "d335acd4-800e-517a-8ff4-ba7aada58d14",
-        "e61e2723-26e1-5d5a-bd42-bbd318ddef81",
-    ]
+    Retrieves staff IDs to exclude based on missing or malformed IMS payroll IDs.
+    Returns an empty list if the Staff model is not available.
     
-    # Delaying database query execution
-    from django.apps import apps
-    from django.db.utils import ProgrammingError, OperationalError
+    Args:
+        apps_registry: The Django apps registry to use (optional).
+        
+    Returns:
+        list[str]: A list of Staff model primary keys for exclusion.
+    """
+    excluded: list[str] = []
     
-    if apps.ready:
-        try:
-            # Get the Staff model dynamically only when needed
-            # This is so the installation process can run without the database being ready
-            from workflow.models import Staff
-            dynamic_excluded_ids = []
-            for staff in Staff.objects.all():
-                try:
-                    uuid.UUID(staff.ims_payroll_id)
-                except ValueError:
-                    # If the UUID conversion fails, add the staff ID to the excluded list
-                    dynamic_excluded_ids.append(staff.id)
-            return static_excluded_ids + dynamic_excluded_ids
-        except (ProgrammingError, OperationalError):
-            # If the table doesn't exist yet (during migrations), return only static IDs
-            return static_excluded_ids
-    
-    # Return only static IDs if apps are not ready
-    return static_excluded_ids
-    
-    
+    try:
+        # Attempt to get the Staff model
+        Staff = apps_registry.get_model('workflow', 'Staff') if apps_registry else apps.get_model('workflow', 'Staff')
+        
+        # Get staff with null ims_payroll_id
+        excluded_null_ids = list(Staff.objects.filter(ims_payroll_id__isnull=True).values_list('id', flat=True))
+        excluded.extend(str(id) for id in excluded_null_ids)
+        
+        # Get staff with non-null but invalid ims_payroll_id
+        staff_with_ids = Staff.objects.exclude(ims_payroll_id__isnull=True).values_list('id', 'ims_payroll_id')
+        for staff_id, ims_payroll_id in staff_with_ids:
+            if not is_valid_uuid(str(ims_payroll_id)):
+                excluded.append(str(staff_id))
+        
+        logger.info(f"Successfully retrieved {len(excluded)} excluded staff.")
+    except Exception as e:
+        logger.warning(f"Unable to access Staff model: {e}. No staff will be excluded.")
+        # Return empty list when Staff model can't be accessed
+        
+    return excluded
+
 def get_active_jobs() -> models.QuerySet[Job]:
     """
     Returns a queryset of Jobs considered active for work or resource assignment
@@ -162,7 +168,7 @@ def get_nz_tz() -> timezone | ZoneInfo:
     Gets the New Zealand timezone object using either zoneinfo or pytz.
 
     Returns:
-        timezone | ZoneInfo: A timezone object for Pacific/Auckland, 
+        timezone | ZoneInfo: A timezone object for Pacific/Auckland,
         using ZoneInfo if available (Python 3.9+) or falling back to pytz
     """
     try:
@@ -172,3 +178,18 @@ def get_nz_tz() -> timezone | ZoneInfo:
         import pytz
         nz_timezone = pytz.timezone('Pacific/Auckland')
     return nz_timezone
+
+def get_machine_id(path="/etc/machine-id"):
+    """
+    Reads the machine ID from the specified path.
+    Defaults to /etc/machine-id for Linux systems.
+    """
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        logger.warning(f"Machine ID file not found at {path}. Cannot determine production environment based on machine ID.")
+        return None
+    except Exception as e:
+        logger.error(f"Error reading machine ID file {path}: {e}")
+        return None

@@ -18,6 +18,7 @@ class XeroSyncService:
     """
 
     LOCK_TIMEOUT = 60 * 60 * 4  # 4 hours
+    SYNC_STATUS_KEY = 'xero_sync_status'
 
     @staticmethod
     def start_sync():
@@ -27,21 +28,24 @@ class XeroSyncService:
         - task_id: The ID of the sync task or None if failed to start
         - is_new: True if a new sync was started, False if one was already running
         """
-        # Atomic lock acquire
-        got_lock = cache.add('xero_sync_lock', True, timeout=XeroSyncService.LOCK_TIMEOUT)
+        task_id = str(uuid.uuid4())
+        # Atomic lock acquire and store task ID
+        got_lock = cache.add(XeroSyncService.SYNC_STATUS_KEY, task_id, timeout=XeroSyncService.LOCK_TIMEOUT)
+
         if not got_lock:
             logger.info("Sync already running; not starting a new one")
-            return XeroSyncService.get_active_task_id(), False
+            # Retrieve the task ID of the currently running sync
+            active_task_id = cache.get(XeroSyncService.SYNC_STATUS_KEY)
+            return active_task_id, False
 
         # Validate token
         token = get_valid_token()
         if not token:
             logger.error("No valid Xero token found")
-            cache.delete('xero_sync_lock')
+            cache.delete(XeroSyncService.SYNC_STATUS_KEY) # Release lock if token is invalid
             return None, False
 
-        # Prepare task
-        task_id = str(uuid.uuid4())
+        # Prepare task (message and progress keys still use task_id)
         cache.set(f'xero_sync_messages_{task_id}', [], timeout=86400)
         cache.set(f'xero_sync_current_entity_{task_id}', None, timeout=86400)
         cache.set(f'xero_sync_entity_progress_{task_id}', 0.0, timeout=86400)
@@ -114,11 +118,17 @@ class XeroSyncService:
                 'task_id': task_id
             })
             cache.set(messages_key, msgs, timeout=86400)
+            # Re-raise the exception to ensure the calling process is aware of the failure
+            # We are about to crash, so we need to clean up the lock
+            cache.delete(current_key)
+            cache.delete(progress_key)
+            cache.delete(XeroSyncService.SYNC_STATUS_KEY) # Release lock and clear task ID
+            raise e
 
         finally:
             cache.delete(current_key)
             cache.delete(progress_key)
-            cache.delete('xero_sync_lock')
+            cache.delete(XeroSyncService.SYNC_STATUS_KEY) # Release lock and clear task ID
 
     @staticmethod
     def get_messages(task_id, since_index=0):
@@ -135,8 +145,4 @@ class XeroSyncService:
 
     @staticmethod
     def get_active_task_id():
-        if cache.get('xero_sync_lock', False):
-            for key in cache.keys():
-                if key.startswith('xero_sync_messages_'):
-                    return key.replace('xero_sync_messages_', '')
-        return None
+        return cache.get(XeroSyncService.SYNC_STATUS_KEY) # Retrieve active task ID directly from the status key

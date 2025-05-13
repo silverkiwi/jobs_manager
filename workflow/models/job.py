@@ -29,18 +29,20 @@ class Job(models.Model):
 
     JOB_STATUS_CHOICES: List[tuple[str, str]] = [
         ("quoting", "Quoting"),
-        ("approved", "Approved"),
-        ("rejected", "Rejected"),
+        ("accepted_quote", "Accepted Quote"),
+        ("awaiting_materials", "Awaiting Materials"),
         ("in_progress", "In Progress"),
         ("on_hold", "On Hold"),
         ("special", "Special"),
         ("completed", "Completed"),
+        ("rejected", "Rejected"),
         ("archived", "Archived"),
     ]
 
     STATUS_TOOLTIPS: Dict[str, str] = {
         "quoting": "The quote is currently being prepared.",
-        "approved": "The quote has been approved, but work hasn't started yet.",
+        "accepted_quote": "The quote has been approved, but work hasn't started yet.",
+        "awaiting_materials": "Job is ready to start but waiting for materials.",
         "rejected": "The quote was declined.",
         "in_progress": "Work has started on this job.",
         "on_hold": "The job is on hold, possibly awaiting materials.",
@@ -161,6 +163,8 @@ class Job(models.Model):
     )
 
     created_by = models.ForeignKey("Staff", on_delete=models.SET_NULL, null=True)
+
+    people = models.ManyToManyField("Staff", related_name="assigned_jobs")
 
     class Meta:
         ordering = ["job_number"]

@@ -3,29 +3,33 @@ set -euo pipefail
 
 BACKUP_ROOT="/var/backups/jobs_manager"
 RELEASE_DATE=$(date +%Y%m%d_%H%M%S)
-CODE_BACKUP="$BACKUP_ROOT/code_${RELEASE_DATE}.tgz"
-DB_BACKUP="$BACKUP_ROOT/db_${RELEASE_DATE}.sql.gz"
+DATE_DIR="$BACKUP_ROOT/$RELEASE_DATE"
 PROJECT_DIR="/home/django_user/jobs_manager"
 
-mkdir -p "$BACKUP_ROOT"
+mkdir -p "$DATE_DIR"
 
-echo "=== Backing up code to $CODE_BACKUP..."
+echo "=== Backing up code to $DATE_DIR/code_${RELEASE_DATE}.tgz..."
+CODE_BACKUP="$DATE_DIR/code_${RELEASE_DATE}.tgz"
 tar -zcf "$CODE_BACKUP" \
     -C /home/django_user \
     --exclude='gunicorn.sock' \
     jobs_manager
 
-echo "=== Backing up DB to $DB_BACKUP..."
+echo "=== Backing up DB to $DATE_DIR/db_${RELEASE_DATE}.sql.gz..."
+DB_BACKUP="$DATE_DIR/db_${RELEASE_DATE}.sql.gz"
 mysqldump -u root jobs_manager | gzip > "$DB_BACKUP"
 
-echo "=== Copying backups to Google Drive..."
-rclone copy "$BACKUP_ROOT" gdrive:msm_backups/
+echo "=== Copying backups to Google Drive under msm_backups/$RELEASE_DATE/ …"
+rclone copy "$DATE_DIR" gdrive:msm_backups/"$RELEASE_DATE"
 
-echo "=== Deploying (su to django_user)..."
-# This calls the second script as django_user
+echo "=== Deploying (su to django_user)…"
 su - django_user -c "/usr/local/bin/deploy_app.sh"
 
-echo "=== Restarting Gunicorn..."
+echo "=== Restarting Gunicorn…"
 systemctl restart gunicorn
 
-echo "=== Deployment complete. Verify the site is running correctly!"
+sleep 10
+
+echo "=== Restarting Xero Sync"
+systemctl restart xero-sync.service
+echo "=== Deployment complete. Verify the site is running correctly! ==="

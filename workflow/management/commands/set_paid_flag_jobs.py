@@ -58,11 +58,11 @@ class Command(BaseCommand):
                 unpaid_invoices += 1
                 if verbose:
                     self.stdout.write(f"Job {job.job_number} - {job.name} has unpaid invoice {job.invoice.number}")
-
-            if verbose:
-                self.stdout.write(f"Job {job.job_number} - {job.name} has paid invoice {job.invoice.number}")
-            if dry_run:
-                self.stdout.write(f"Would mark job {job.job_number} - {job.name} as paid") if dry_run else None
+            else:
+                if verbose:
+                    self.stdout.write(f"Job {job.job_number} - {job.name} has paid invoice {job.invoice.number}")
+                if dry_run:
+                    self.stdout.write(f"Would mark job {job.job_number} - {job.name} as paid") if dry_run else None
             
             jobs_to_update.append(job)
         
