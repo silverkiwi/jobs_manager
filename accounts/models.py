@@ -30,7 +30,7 @@ class Staff(AbstractBaseUser, PermissionsMixin):
     is_staff: bool = models.BooleanField(default=False)
     date_joined: datetime = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
 
     hours_mon = models.DecimalField(
         max_digits=4,
