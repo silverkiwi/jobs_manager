@@ -21,6 +21,7 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
     description = serializers.CharField(allow_blank=True)
     staff_id = serializers.SerializerMethodField()
     timesheet_date = serializers.SerializerMethodField()
+    staff_name = serializers.SerializerMethodField()
 
     class Meta:
         model = TimeEntry
@@ -36,6 +37,7 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
             "cost",
             "staff_id",
             "timesheet_date",
+            "staff_name"
         ]
 
     def get_total_minutes(self, obj):
@@ -59,6 +61,9 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
 
     def get_timesheet_date(self, obj):
         return obj.date.strftime("%Y-%m-%d") if obj.date else None
+    
+    def get_staff_name(self, obj):
+        return obj.staff.get_display_name() if obj.staff else None
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

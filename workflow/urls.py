@@ -65,14 +65,24 @@ from workflow.views.purchase_order_view import (
     PurchaseOrderCreateView,
     autosave_purchase_order_view,
     delete_purchase_order_view,
-    extract_supplier_quote_data_view
+    extract_supplier_quote_data_view,
 )
-from workflow.views.delivery_receipt_view import DeliveryReceiptListView, DeliveryReceiptCreateView
+from workflow.views.delivery_receipt_view import (
+    DeliveryReceiptListView,
+    DeliveryReceiptCreateView,
+)
 from workflow.views.purchase_order_pdf_view import PurchaseOrderPDFView
 
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
+    
+    # API Endpoints
+    path(
+        "api/autosave-job/",
+        edit_job_view_ajax.autosave_job_view,
+        name="autosave_job_api",
+    ),
     path(
         "api/autosave-purchase-order/",
         autosave_purchase_order_view,
@@ -81,7 +91,11 @@ urlpatterns = [
     path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
     path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
     path("api/client-detail/", client_view.client_detail, name="client_detail"),
-    path("api/extract-supplier-quote/", extract_supplier_quote_data_view, name="extract_supplier_quote_data"),
+    path(
+        "api/extract-supplier-quote/",
+        extract_supplier_quote_data_view,
+        name="extract_supplier_quote_data",
+    ),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
         submit_quote_view.generate_quote_pdf,
@@ -109,7 +123,7 @@ urlpatterns = [
     path(
         "api/reports/calendar/",
         KPICalendarViews.KPICalendarAPIView.as_view(),
-        name="api_kpi_calendar"
+        name="api_kpi_calendar",
     ),
     path(
         "api/fetch_status_values/",
@@ -120,28 +134,24 @@ urlpatterns = [
     path(
         "api/stock/consume/",
         stock_view.consume_stock_api_view,
-        name="consume_stock_api"
+        name="consume_stock_api",
     ),
     path(
-        "api/stock/create/",
-        stock_view.create_stock_api_view,
-        name="create_stock_api"
+        "api/stock/create/", stock_view.create_stock_api_view, name="create_stock_api"
     ),
     path(
         "api/stock/<uuid:stock_id>/deactivate/",
         stock_view.deactivate_stock_api_view,
-        name="deactivate_stock_api"
+        name="deactivate_stock_api",
     ),
     # Stock Search API (for autocomplete)
     path(
         "api/stock/search/",
         stock_view.search_available_stock_api,
-        name="search_stock_api"
+        name="search_stock_api",
     ),
     path(
-        "api/job/advanced-search/",
-        kanban_view.advanced_search,
-        name="advanced-search"
+        "api/job/advanced-search/", kanban_view.advanced_search, name="advanced-search"
     ),
     path(
         "api/job/<uuid:job_id>/delete/",
@@ -161,12 +171,12 @@ urlpatterns = [
     path(
         "api/job/completed/",
         ArchiveCompleteJobsViews.ArchiveCompleteJobsListAPIView.as_view(),
-        name="api_jobs_completed"
+        name="api_jobs_completed",
     ),
     path(
         "api/job/completed/archive",
         ArchiveCompleteJobsViews.ArchiveCompleteJobsAPIView.as_view(),
-        name="api_jobs_archive"
+        name="api_jobs_archive",
     ),
     path(
         "api/job/<uuid:job_id>/assignment",
@@ -195,7 +205,7 @@ urlpatterns = [
         xero_view.xero_oauth_callback,
         name="xero_oauth_callback",
     ),
-        path(
+    path(
         "api/xero/disconnect/",
         xero_view.xero_disconnect,
         name="xero_disconnect",
@@ -263,7 +273,7 @@ urlpatterns = [
     path(
         "api/purchase-orders/<uuid:purchase_order_id>/email/",
         PurchaseOrderEmailView.as_view(),
-        name="purchase-order-email"
+        name="purchase-order-email",
     ),
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
@@ -273,7 +283,11 @@ urlpatterns = [
         name="update_client",
     ),
     path("client/add/", client_view.AddClient, name="add_client"),
-    path("clients/unused/", client_view.UnusedClientsView.as_view(), name="unused_clients"),
+    path(
+        "clients/unused/",
+        client_view.UnusedClientsView.as_view(),
+        name="unused_clients",
+    ),
     # Job URLs
     # Job Pricing URLs
     # Entry URLs
@@ -287,7 +301,7 @@ urlpatterns = [
     path(
         "job/archive-complete",
         ArchiveCompleteJobsViews.ArchiveCompleteJobsTemplateView.as_view(),
-        name="archive_complete_jobs"
+        name="archive_complete_jobs",
     ),
     path("month-end/", job_management_view.month_end_view, name="month_end"),
     path(
@@ -311,7 +325,7 @@ urlpatterns = [
     path(
         "reports/calendar/",
         KPICalendarViews.KPICalendarTemplateView.as_view(),
-        name="kpi_calendar"
+        name="kpi_calendar",
     ),
     path(
         "api/company_defaults/",
@@ -324,20 +338,44 @@ urlpatterns = [
         xero_view.xero_sync_progress_page,
         name="xero_sync_progress",
     ),
-    path("xero/unused-clients/", client_view.UnusedClientsView.as_view(), name="xero_unused_clients"),
-
+    path(
+        "xero/unused-clients/",
+        client_view.UnusedClientsView.as_view(),
+        name="xero_unused_clients",
+    ),
     # Purchase Order URLs with purchases prefix
-    path('purchases/purchase-orders/', PurchaseOrderListView.as_view(), name='purchase_orders'),
-    path('purchases/purchase-orders/new/', PurchaseOrderCreateView.as_view(), name='new_purchase_order'),
-    path('purchases/purchase-orders/<uuid:pk>/', PurchaseOrderCreateView.as_view(), name='edit_purchase_order'),
-    path('purchases/purchase-orders/delete/<uuid:pk>/', delete_purchase_order_view, name='delete_purchase_order'),
-
+    path(
+        "purchases/purchase-orders/",
+        PurchaseOrderListView.as_view(),
+        name="purchase_orders",
+    ),
+    path(
+        "purchases/purchase-orders/new/",
+        PurchaseOrderCreateView.as_view(),
+        name="new_purchase_order",
+    ),
+    path(
+        "purchases/purchase-orders/<uuid:pk>/",
+        PurchaseOrderCreateView.as_view(),
+        name="edit_purchase_order",
+    ),
+    path(
+        "purchases/purchase-orders/delete/<uuid:pk>/",
+        delete_purchase_order_view,
+        name="delete_purchase_order",
+    ),
     # Delivery Receipt URLs with purchases prefix
-    path('purchases/delivery-receipts/', DeliveryReceiptListView.as_view(), name='delivery_receipts'),
-    path('purchases/delivery-receipts/<uuid:pk>/', DeliveryReceiptCreateView.as_view(), name='edit_delivery_receipt'),
-    
+    path(
+        "purchases/delivery-receipts/",
+        DeliveryReceiptListView.as_view(),
+        name="delivery_receipts",
+    ),
+    path(
+        "purchases/delivery-receipts/<uuid:pk>/",
+        DeliveryReceiptCreateView.as_view(),
+        name="edit_delivery_receipt",
+    ),
     # Stock Management URLs with purchases prefix
-    path('purchases/use-stock/', use_stock_view.use_stock_view, name='use_stock'),
-    
+    path("purchases/use-stock/", use_stock_view.use_stock_view, name="use_stock"),
     path("__debug__/", include(debug_toolbar.urls)),
 ]
