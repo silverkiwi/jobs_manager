@@ -49,7 +49,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000001",
       "fields": {
         "email": "charles.baker@example.com",
@@ -69,7 +69,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000002",
       "fields": {
         "email": "alex.cooper@example.com",
@@ -89,7 +89,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000003",
       "fields": {
         "email": "nathan.chen@example.com",
@@ -109,7 +109,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000004",
       "fields": {
         "email": "robert.irwin@example.com",
@@ -129,7 +129,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000005",
       "fields": {
         "email": "peter.johnson@example.com",
@@ -149,7 +149,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000006",
       "fields": {
         "email": "james.kennedy@example.com",
@@ -169,7 +169,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000007",
       "fields": {
         "email": "andrew.mitchell@example.com",
@@ -189,7 +189,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000008",
       "fields": {
         "email": "anthony.parker@example.com",
@@ -209,7 +209,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000009",
       "fields": {
         "email": "thomas.richards@example.com",
@@ -229,7 +229,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000010",
       "fields": {
         "email": "matthew.robinson@example.com",
@@ -249,7 +249,7 @@
       }
     },
     {
-      "model": "workflow.staff",
+      "model": "accounts.staff",
       "pk": "10000000-0000-0000-0000-000000000011",
       "fields": {
         "email": "patrick.xu@example.com",
@@ -269,7 +269,7 @@
       }
     },
     {
-        "model": "workflow.staff",
+        "model": "accounts.staff",
         "pk": "10000000-0000-0000-0000-000000000012",
         "fields": {
           "password": "pbkdf2_sha256$870000$5Nw3RUuFaZZPCkeyVOm4kx$Attep1SqGF6ymdwm44LOte4wwszqte0W5ey3xcENFAI=",

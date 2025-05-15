@@ -24,8 +24,11 @@ from django.views.generic import TemplateView
 from django.db import models
 
 from workflow.forms import PaidAbsenceForm
-from workflow.models import Job, JobPricing, Staff, TimeEntry
-from workflow.utils import extract_messages, get_excluded_staff
+from workflow.models import Job, JobPricing, TimeEntry
+from workflow.utils import extract_messages
+
+from accounts.models import Staff
+from accounts.utils import get_excluded_staff
 
 # Configure logging to only show logs from this module
 logger = logging.getLogger(__name__)

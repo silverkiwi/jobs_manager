@@ -11,8 +11,9 @@ from workflow.models import (
     JobPricing,
     MaterialEntry,
     TimeEntry,
-    Staff
 )
+
+from accounts.models import Staff
 
 logger = logging.getLogger(__name__)
 

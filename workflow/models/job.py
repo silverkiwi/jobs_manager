@@ -16,6 +16,8 @@ from workflow.models import CompanyDefaults
 from .job_event import JobEvent
 from .job_pricing import JobPricing
 
+from accounts.models import Staff
+
 
 logger = logging.getLogger(__name__)
 
@@ -162,9 +164,9 @@ class Job(models.Model):
         help_text="Internal notes about the job. Not shown on the invoice.",
     )
 
-    created_by = models.ForeignKey("Staff", on_delete=models.SET_NULL, null=True)
+    created_by = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True)
 
-    people = models.ManyToManyField("Staff", related_name="assigned_jobs")
+    people = models.ManyToManyField(Staff, related_name="assigned_jobs")
 
     class Meta:
         ordering = ["job_number"]

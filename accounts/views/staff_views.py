@@ -7,12 +7,10 @@ from django.views.generic import CreateView, ListView, UpdateView
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
-from workflow.forms import StaffChangeForm, StaffCreationForm
-from workflow.serializers.staff_serializer import KanbanStaffSerializer
-from workflow.utils import get_excluded_staff
-
-
-Staff = get_user_model()
+from accounts.forms import StaffChangeForm, StaffCreationForm
+from accounts.serializers import KanbanStaffSerializer
+from accounts.utils import get_excluded_staff
+from accounts.models import Staff
 
 
 class StaffListAPIView(generics.ListAPIView):
@@ -39,7 +37,7 @@ class StaffListAPIView(generics.ListAPIView):
 
 class StaffListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Staff
-    template_name = "list_staff.html"
+    template_name = "accounts/staff/list_staff.html"
     context_object_name = "staff_list"
 
     def test_func(self):
@@ -49,8 +47,8 @@ class StaffListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 class StaffCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Staff
     form_class = StaffCreationForm
-    template_name = "create_staff.html"
-    success_url = reverse_lazy("list_staff")
+    template_name = "accounts/staff/create_staff.html"
+    success_url = reverse_lazy("accounts:list_staff")
 
     def test_func(self):
         return self.request.user.is_staff_manager()
@@ -59,8 +57,8 @@ class StaffCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 class StaffUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Staff
     form_class = StaffChangeForm
-    template_name = "update_staff.html"
-    success_url = reverse_lazy("list_staff")
+    template_name = "accounts/staff/update_staff.html"
+    success_url = reverse_lazy("accounts:list_staff")
 
     def test_func(self):
         return (

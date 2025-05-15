@@ -356,7 +356,7 @@ function setupToggleArchived() {
 }
 
 function fetchAvailableStaff() {
-  fetch("/api/staff/all", {
+  fetch("/accounts/api/staff/all", {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

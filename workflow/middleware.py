@@ -10,13 +10,18 @@ from django.contrib import messages
 class LoginRequiredMiddleware:
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
-        self.exempt_urls = [reverse("login")]
+        self.exempt_urls = [reverse("accounts:login")]
         self.exempt_url_prefixes = []
         
         if hasattr(settings, "LOGIN_EXEMPT_URLS"):
-            for url in settings.LOGIN_EXEMPT_URLS:
+            for url_name in settings.LOGIN_EXEMPT_URLS:
                 # Using URL prefixes instead of doing reverse
-                self.exempt_url_prefixes.append(url)
+                try:
+                    # Try to resolve the URL name to an actual path
+                    self.exempt_urls.append(reverse(url_name))
+                except Exception as e:
+                    # If it fails, we assume it's a prefix and add it directly
+                    self.exempt_url_prefixes.append(url_name)
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         if request.path_info in self.exempt_urls:
@@ -37,19 +42,28 @@ class PasswordStrengthMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if getattr(settings, "ENABLE_JWT_AUTH", False) and not hasattr(request, "session"):
+            return self.get_response(request)
+
         if request.user.is_authenticated and request.user.password_needs_reset:
             exempt_urls = [
-                reverse('password_change'),
-                reverse('password_change_done'),
-                reverse('logout'),
-                reverse('login'),
+                reverse('accounts:password_change'),
+                reverse('accounts:password_change_done'),
+                reverse('accounts:logout'),
+                reverse('accounts:login'),
+                reverse("accounts:token_obtain_pair"),
+                reverse("accounts:token_refresh"),
+                reverse("accounts:token_verify")
             ]
+
+            if request.path.startswith("/api/") and getattr(settings, "ENABLE_DUAL_AUTHENTICATION", False):
+                return self.get_response(request)
             
             if request.path not in exempt_urls and not request.path.startswith('/static/'):
                 messages.warning(
                     request, 
                     "For security reasons, you need to update your password to meet our new requirements."
                 )
-                return redirect('password_change')
+                return redirect('accounts:password_change')
         
         return self.get_response(request)

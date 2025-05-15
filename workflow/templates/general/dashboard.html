@@ -9,11 +9,12 @@
         <li><a href="{% url 'create_job' %}">Create Job</a></li>
         <li><a href="{% url 'create_time_entry' %}">Create Time Entry</a></li>
         <li><a href="{% url 'admin:index' %}">Admin (e.g. add staff)</a></li>
-        <li>    <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit">Log Out</button>
-    </form>
-</li>
+        <li>
+            <form method="post" action="{% url 'accounts:logout' %}">
+                {% csrf_token %}
+                <button type="submit">Log Out</button>
+            </form>
+        </li>
     </ul>
 </nav>
 {% endblock %}

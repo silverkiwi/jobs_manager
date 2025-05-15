@@ -5,6 +5,8 @@ from decimal import Decimal
 from django.db import models
 from django.forms import ValidationError
 
+from accounts.models import Staff
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,7 +20,7 @@ class TimeEntry(models.Model):
         blank=False,
     )
     staff = models.ForeignKey(
-        "Staff",
+        Staff,
         on_delete=models.CASCADE,
         related_name="time_entries",
         help_text="The Staff member who did the work.  Null for estimates/quotes.",

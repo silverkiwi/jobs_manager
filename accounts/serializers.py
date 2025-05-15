@@ -1,8 +1,6 @@
 from rest_framework import serializers
 
-from django.templatetags.static import static
-
-from workflow.models import Staff
+from accounts.models import Staff
 
 
 class StaffSerializer(serializers.ModelSerializer):

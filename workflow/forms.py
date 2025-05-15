@@ -12,69 +12,16 @@ from workflow.models import (
     Job,
     JobPricing,
     MaterialEntry,
-    Staff,
     TimeEntry,
     PurchaseOrder,
     PurchaseOrderLine,
 )
-from workflow.utils import get_excluded_staff
+from accounts.utils import get_excluded_staff
+
+from accounts.models import Staff
 
 logger = logging.getLogger(__name__)
 DEBUG_FORM = False  # Toggle form debugging
-
-
-
-
-class StaffCreationForm(UserCreationForm):
-    class Meta:
-        model = Staff
-        fields = (
-            "email",
-            "first_name",
-            "last_name",
-            "preferred_name",
-            "wage_rate",
-            # "charge_out_rate",
-            "ims_payroll_id",
-            "is_staff",
-            "is_active",
-        )
-    
-    # Override to provide more helpful error messages
-    error_messages = {
-        'password_mismatch': _("The two password fields didn't match."),
-        'password_too_short': _("Password must be at least 10 characters."),
-        'password_too_common': _("Password can't be a commonly used password."),
-        'password_entirely_numeric': _("Password can't be entirely numeric."),
-    }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['password1'].help_text = _(
-            "Your password must be at least 10 characters long, "
-            "can't be too similar to your personal information, "
-            "can't be a commonly used password, and "
-            "can't be entirely numeric."
-        )
-
-
-class StaffChangeForm(UserChangeForm):
-    class Meta:
-        model = Staff
-        fields = (
-            "email",
-            "first_name",
-            "last_name",
-            "preferred_name",
-            "wage_rate",
-            # "charge_out_rate",
-            "ims_payroll_id",
-            "is_staff",
-            "is_active",
-            "is_superuser",
-            "groups",
-            "user_permissions",
-        )
 
 
 class ClientForm(forms.ModelForm):
