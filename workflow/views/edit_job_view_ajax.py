@@ -1,7 +1,6 @@
 import json
 import logging
 
-from django.contrib.auth.decorators import login_required
 from django.forms import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -10,12 +9,14 @@ from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
 from workflow.enums import JobPricingType, JobPricingStage
-from job.models import Job, JobEvent, JobPricing
 from workflow.helpers import DecimalEncoder, get_company_defaults
 from workflow.models import Quote, Invoice
 from workflow.serializers import JobPricingSerializer, JobSerializer
-from workflow.services.file_service import sync_job_folder
-from workflow.services.job_service import (
+
+from job.models import Job, JobEvent
+
+from job.services.file_service import sync_job_folder
+from job.services.job_service import (
     get_historical_job_pricings,
     get_job_with_pricings,
     get_latest_job_pricings,

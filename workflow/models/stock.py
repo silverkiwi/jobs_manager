@@ -5,7 +5,7 @@ from django.utils import timezone
 import logging
 
 from workflow.enums import MetalType
-from workflow.models.job import Job
+from job.models import Job
 
 logger = logging.getLogger(__name__)
 

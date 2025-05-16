@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-from workflow.services.job_service import JobStaffService
+from job.services.job_service import JobStaffService
 
 logger = logging.getLogger(__name__)
 

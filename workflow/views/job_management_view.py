@@ -8,7 +8,7 @@ from django.http import HttpRequest, HttpResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 from job.models import Job, JobPricing
-from workflow.services.job_service import archive_and_reset_job_pricing
+from job.services.job_service import archive_and_reset_job_pricing
 
 logger = logging.getLogger(__name__)
 
