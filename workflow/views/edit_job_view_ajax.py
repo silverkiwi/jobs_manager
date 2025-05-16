@@ -10,8 +10,9 @@ from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
 from workflow.enums import JobPricingType, JobPricingStage
+from job.models import Job, JobEvent, JobPricing
 from workflow.helpers import DecimalEncoder, get_company_defaults
-from workflow.models import Job, JobEvent, Quote, Invoice
+from workflow.models import Quote, Invoice
 from workflow.serializers import JobPricingSerializer, JobSerializer
 from workflow.services.file_service import sync_job_folder
 from workflow.services.job_service import (

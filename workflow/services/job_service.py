@@ -7,11 +7,11 @@ from django.shortcuts import get_object_or_404
 from workflow.models import (
     AdjustmentEntry,
     CompanyDefaults,
-    Job,
-    JobPricing,
     MaterialEntry,
-    TimeEntry,
 )
+from job.models import Job, JobPricing
+
+from timesheet.models import TimeEntry
 
 from accounts.models import Staff
 

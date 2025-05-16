@@ -50,3 +50,7 @@ class JobFile(models.Model):
 
         file_path = os.path.join(self.full_path, self.filename)
         return os.path.getsize(file_path) if os.path.exists(file_path) else None
+    
+    class Meta:
+        db_table = "workflow_jobfile"
+        ordering = ["-uploaded_at"]

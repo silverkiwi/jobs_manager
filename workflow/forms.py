@@ -9,16 +9,17 @@ from django.utils.translation import gettext_lazy as _
 from workflow.models import (
     AdjustmentEntry,
     Client,
-    Job,
-    JobPricing,
     MaterialEntry,
-    TimeEntry,
     PurchaseOrder,
     PurchaseOrderLine,
 )
+from job.models import Job, JobPricing
+
 from accounts.utils import get_excluded_staff
 
 from accounts.models import Staff
+
+from timesheet.models import TimeEntry
 
 logger = logging.getLogger(__name__)
 DEBUG_FORM = False  # Toggle form debugging

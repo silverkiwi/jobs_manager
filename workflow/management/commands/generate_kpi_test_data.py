@@ -10,13 +10,11 @@ from django.utils import timezone
 from django.db.models import Q
 
 from workflow.models import (
-    Job, 
-    JobPricing,
-    TimeEntry,
     MaterialEntry,
     AdjustmentEntry,
     CompanyDefaults
 )
+from job.models import Job, JobPricing, TimeEntry
 from workflow.enums import JobPricingStage
 from workflow.models.client import Client
 from workflow.utils import get_nz_tz

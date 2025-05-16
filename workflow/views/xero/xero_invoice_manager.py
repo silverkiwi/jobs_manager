@@ -14,7 +14,8 @@ from .xero_base_manager import XeroDocumentManager
 from .xero_helpers import format_date # Assuming format_date is needed
 
 # Import models
-from workflow.models import Invoice, Job, Client # Add Job, Client if needed by methods
+from workflow.models import Invoice, Client
+from job.models import Job
 from workflow.enums import InvoiceStatus, JobPricingType
 from xero_python.accounting.models import LineItem, Invoice as XeroInvoice
 from xero_python.exceptions import AccountingBadRequestException # If specific exceptions handled
@@ -255,4 +256,3 @@ class XeroInvoiceManager(XeroDocumentManager):
             error_msg = "No invoices found in the Xero response or failed to delete invoice."
             logger.error(error_msg)
             return JsonResponse({"success": False, "error": error_msg}, status=400)
-        

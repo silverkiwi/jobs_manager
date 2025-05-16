@@ -8,7 +8,7 @@ from .invoice import BaseXeroInvoiceDocument, BaseLineItem, Invoice, Bill, Credi
 from .job import Job
 from .job_event import JobEvent
 from .job_file import JobFile
-from .job_pricing import JobPricing, QuotePricing
+from .job_pricing import JobPricing
 from .material_entry import MaterialEntry
 from .purchase import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote
 from .quote import Quote
@@ -36,7 +36,6 @@ __all__ = [
     'JobEvent',
     'JobFile',
     'JobPricing',
-    'QuotePricing',
     'MaterialEntry',
     'PurchaseOrder',
     'PurchaseOrderLine',

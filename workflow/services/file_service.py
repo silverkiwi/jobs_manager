@@ -23,6 +23,7 @@ def create_thumbnail(source_path, thumb_path, size=(400, 400)):
     Try to create a thumbnail if possible. Returns True if successful.
     Silently returns False if file type isn't supported or thumbnail fails.
     """
+    
     try:
         if source_path.lower().endswith(".pdf"):
             pages = convert_from_path(source_path, first_page=1, last_page=1)
@@ -49,7 +50,7 @@ def create_thumbnail(source_path, thumb_path, size=(400, 400)):
 
 def sync_job_folder(job):
     """Scan job folder and manage JobFile records and thumbnails."""
-    from workflow.models import JobFile
+    from job.models import JobFile
 
     job_folder = get_job_folder_path(job.job_number)
     if not os.path.exists(job_folder):

@@ -4,6 +4,7 @@ from django.utils import timezone
 import uuid
 
 from django.db import models
+from job.models import JobPricing
 
 
 class AdjustmentEntry(models.Model):
@@ -11,7 +12,7 @@ class AdjustmentEntry(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job_pricing = models.ForeignKey(
-        "JobPricing",  # Use string reference to avoid circular import
+        JobPricing,  # Usando o modelo real agora
         on_delete=models.CASCADE,
         null=False,
         blank=False,

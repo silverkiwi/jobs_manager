@@ -26,11 +26,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "django_tables2",
-    "workflow",
-    "simple_history",
-    "accounts",
     "rest_framework",
-    "timesheet"
+    "simple_history",
+    "workflow",
+    "accounts",
+    "timesheet",
+    "job"
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"

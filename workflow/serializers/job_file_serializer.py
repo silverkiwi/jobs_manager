@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from workflow.models import JobFile
+from job.models import JobFile
 
 
 class JobFileSerializer(serializers.ModelSerializer):

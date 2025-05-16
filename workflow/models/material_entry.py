@@ -7,6 +7,7 @@ from django.db import models
 
 from .company_defaults import CompanyDefaults
 from .purchase import PurchaseOrderLine
+from job.models import JobPricing
 
 
 class MaterialEntry(models.Model):
@@ -14,7 +15,7 @@ class MaterialEntry(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job_pricing = models.ForeignKey(
-        "JobPricing",
+        JobPricing,
         on_delete=models.CASCADE,
         null=False,
         blank=False,

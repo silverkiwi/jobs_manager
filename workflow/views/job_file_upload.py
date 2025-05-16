@@ -8,6 +8,9 @@ from rest_framework.views import APIView
 # This ensures we get settings after all imports and env vars are processed
 from django.conf import settings
 
+# Atualizar imports se necessário
+from job.models import Job, JobFile
+
 
 class JobFileUploadView(APIView):
     def post(self, request):

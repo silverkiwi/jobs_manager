@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
-from workflow.models import Job
+from job.models import Job
 
 logger = logging.getLogger(__name__)
 

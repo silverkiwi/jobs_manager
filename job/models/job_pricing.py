@@ -7,7 +7,6 @@ from django.apps import apps
 from django.db import models, transaction
 
 from workflow.enums import JobPricingStage
-from workflow.models import CompanyDefaults
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +41,7 @@ class JobPricing(models.Model):
             "-created_at",
             "pricing_stage",
         ]  # Orders by newest entries first, and then by stage
+        db_table = "workflow_jobpricing"
 
     @property
     def material_entries(self):
@@ -109,6 +109,8 @@ class JobPricing(models.Model):
         )
 
     def save(self, *args, **kwargs):
+        from workflow.models import CompanyDefaults
+
         if self._state.adding:
             company_defaults = CompanyDefaults.objects.first()
             wage_rate = company_defaults.wage_rate

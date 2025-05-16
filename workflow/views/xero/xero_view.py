@@ -50,7 +50,8 @@ from workflow.api.xero.xero import (
     refresh_token,
 )
 from workflow.enums import InvoiceStatus, JobPricingType, QuoteStatus # Keep if needed
-from workflow.models import Invoice, Job, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults, PurchaseOrder, Quote # Keep models used in views
+from workflow.models import Invoice, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults, PurchaseOrder, Quote
+from job.models import Job, JobFile, JobEvent, JobPricing
 from workflow.utils import extract_messages
 from workflow.services.xero_sync_service import XeroSyncService
 

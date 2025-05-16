@@ -15,7 +15,7 @@ from reportlab.platypus import Paragraph, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.utils import ImageReader
 
-from workflow.models.job import Job
+from job.models import Job
 
 logger = logging.getLogger(__name__)
 

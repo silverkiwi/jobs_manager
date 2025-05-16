@@ -13,7 +13,8 @@ from .xero_base_manager import XeroDocumentManager
 from .xero_helpers import format_date, clean_payload, convert_to_pascal_case
 
 # Import models
-from workflow.models import PurchaseOrder, XeroAccount, Client, Job # Add models used
+from workflow.models import PurchaseOrder, XeroAccount, Client
+from job.models import Job
 from xero_python.accounting.models import LineItem, PurchaseOrder as XeroPurchaseOrder
 from xero_python.exceptions import AccountingBadRequestException
 

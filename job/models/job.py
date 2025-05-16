@@ -9,7 +9,6 @@ from simple_history.models import HistoricalRecords  # type: ignore
 
 from workflow.enums import JobPricingType
 from workflow.helpers import get_company_defaults
-from workflow.models import CompanyDefaults, Client
 
 # We say . rather than job.models to avoid going through init,
 # otherwise it would have a circular import
@@ -54,7 +53,7 @@ class Job(models.Model):
     }
 
     client = models.ForeignKey(
-        Client,
+        "workflow.Client",
         on_delete=models.SET_NULL,  # Option to handle if a client is deleted
         null=True,
         related_name="jobs",  # Allows reverse lookup of jobs for a client
@@ -154,7 +153,7 @@ class Job(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    history: HistoricalRecords = HistoricalRecords()
+    history: HistoricalRecords = HistoricalRecords(table_name="workflow_historicaljob")
 
     complex_job = models.BooleanField(default=False)  # type: ignore
 
@@ -169,7 +168,10 @@ class Job(models.Model):
     people = models.ManyToManyField(Staff, related_name="assigned_jobs")
 
     class Meta:
+        verbose_name = "Job"
+        verbose_name_plural = "Jobs"
         ordering = ["job_number"]
+        db_table = "workflow_job"
 
     @property
     def shop_job(self) -> bool:
@@ -216,6 +218,8 @@ class Job(models.Model):
         return f"{self.job_number} - {client_name}, {self.name}"
     
     def generate_job_number(self) -> int:
+        from workflow.models import CompanyDefaults
+
         company_defaults: CompanyDefaults = get_company_defaults()
         starting_number: int = company_defaults.starting_job_number
 
@@ -224,6 +228,8 @@ class Job(models.Model):
         return max(starting_number, highest_job + 1)
 
     def save(self, *args, **kwargs):
+        from workflow.models import CompanyDefaults
+
         staff = kwargs.pop("staff", None)
 
         is_new = self._state.adding

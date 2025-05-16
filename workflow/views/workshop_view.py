@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from workflow.models import Job
+from job.models import Job
 from workflow.services.workshop_pdf_service import create_workshop_pdf
 
 logger = logging.getLogger(__name__)

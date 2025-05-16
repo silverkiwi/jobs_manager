@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from workflow.models import Job, JobPricing
+from job.models import Job, JobPricing
 
 
 class Command(BaseCommand):

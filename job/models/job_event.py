@@ -15,3 +15,7 @@ class JobEvent(models.Model):
 
     def __str__(self):
         return f"{self.timestamp}: {self.event_type} for {self.job.name}"
+    
+    class Meta:
+        db_table = "workflow_jobevent"
+        ordering = ["-timestamp"]

@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpRequest, HttpResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
 
-from workflow.models import Job, JobPricing
+from job.models import Job, JobPricing
 from workflow.services.job_service import archive_and_reset_job_pricing
 
 logger = logging.getLogger(__name__)
@@ -104,4 +104,4 @@ def month_end_view(request: HttpRequest) -> HttpResponse:
         "job_data": job_data,
         "page_title": "Month-End Processing",
     }
-    return render(request, "jobs/month_end.html", context) 
+    return render(request, "jobs/month_end.html", context)
