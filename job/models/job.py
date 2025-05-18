@@ -8,7 +8,7 @@ from django.db.models import Max
 from simple_history.models import HistoricalRecords  # type: ignore
 
 from job.enums import JobPricingType
-from workflow.helpers import get_company_defaults
+from job.helpers import get_company_defaults
 
 # We say . rather than job.models to avoid going through init,
 # otherwise it would have a circular import

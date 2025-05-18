@@ -14,7 +14,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 
 from job.enums import RateType
-from workflow.models import Job
+from job.models import Job
 
 from workflow.utils import extract_messages, get_jobs_data, get_active_jobs
 

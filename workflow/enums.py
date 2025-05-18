@@ -16,6 +16,3 @@ from django.db import models
 class AIProviderTypes(models.TextChoices):
     ANTHROPIC = "Claude"
     GOOGLE = "Gemini"
-
-# Note: After all code has been updated to import from job.enums,
-# this re-exporting can be removed.

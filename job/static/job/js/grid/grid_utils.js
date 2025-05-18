@@ -42,7 +42,7 @@ export function calculateTotalRevenue() {
   sections.forEach((section) => {
     gridTypes.forEach((gridType) => {
       const gridKey = `${section}${gridType}Table`;
-      const gridData = window.grids[gridKey];
+      const gridData = window.grids?.[gridKey];
       if (gridData && gridData.api) {
         gridData.api.forEachNode((node) => {
           const rowCost = parseFloat(node.data.cost) || 0;
@@ -54,7 +54,7 @@ export function calculateTotalRevenue() {
     });
   });
 
-  const revenueGrid = window.grids["revenueTable"];
+  const revenueGrid = window.grids?.["revenueTable"];
   if (revenueGrid && revenueGrid.api) {
     revenueGrid.api.forEachNode((node, index) => {
       const data = node.data;
@@ -90,9 +90,9 @@ export function calculateTotalRevenue() {
           break;
       }
     });
+    
+    revenueGrid.api.refreshCells();
   }
-
-  revenueGrid.api.refreshCells();
 }
 
 export function calculateTotalCost() {
@@ -107,7 +107,7 @@ export function calculateTotalCost() {
   sections.forEach((section) => {
     gridTypes.forEach((gridType) => {
       const gridKey = `${section}${gridType}Table`;
-      const gridData = window.grids[gridKey];
+      const gridData = window.grids?.[gridKey];
       if (gridData && gridData.api) {
         gridData.api.forEachNode((node) => {
           let rowCost = 0;
@@ -135,7 +135,7 @@ export function calculateTotalCost() {
     });
   });
 
-  const costGrid = window.grids["costsTable"];
+  const costGrid = window.grids?.["costsTable"];
   if (costGrid && costGrid.api) {
     costGrid.api.forEachNode((node, index) => {
       const data = node.data;
@@ -205,23 +205,35 @@ export function onCellKeyDown(params) {
 }
 
 export function calculateRetailRate(costRate, markupRate) {
-  return costRate + costRate * markupRate;
+  // Ensure we're working with numbers
+  costRate = parseFloat(costRate) || 0;
+  markupRate = parseFloat(markupRate) || 0.2; // Default 20% markup
+  
+  // Calculate and ensure we return a number, not NaN
+  const result = costRate + (costRate * markupRate);
+  console.log(`calculateRetailRate: ${costRate} + (${costRate} * ${markupRate}) = ${result}`);
+  return result;
 }
 
 export function fetchMaterialsMarkup(rowData) {
+  // If already stored, return immediately
   if (rowData.materialsMarkup !== undefined) {
+    console.log(`Using cached markup: ${rowData.materialsMarkup}`);
     return Promise.resolve(rowData.materialsMarkup);
   }
 
+  console.log("Fetching materials markup from API...");
   return fetch("/api/company_defaults")
     .then((response) => response.json())
     .then((companyDefaults) => {
       rowData.materialsMarkup =
         parseFloat(companyDefaults.materials_markup) || 0.2;
+      console.log(`Received markup from API: ${rowData.materialsMarkup}`);
       return rowData.materialsMarkup;
     })
     .catch((error) => {
       console.error("Error fetching company defaults:", error);
+      rowData.materialsMarkup = 0.2; // Default to 20% on error
       return 0.2;
     });
 }

@@ -13,7 +13,7 @@ class Quote(models.Model):
             max_length=255, null=True, blank=True
         ) # For reference only - we are not fully multi-tenant yet
     job = models.OneToOneField(
-        "Job", on_delete=models.CASCADE, related_name="quote", null=True, blank=True
+        "job.Job", on_delete=models.CASCADE, related_name="quote", null=True, blank=True
     )
     client = models.ForeignKey("Client", on_delete=models.CASCADE)
     date = models.DateField()

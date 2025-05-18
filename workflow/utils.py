@@ -3,7 +3,7 @@ import uuid
 from zoneinfo import ZoneInfo
 from django.contrib.messages import get_messages
 from django.db import models
-from workflow.models import Job
+from job.models import Job
 import logging
 from django.apps import apps
 from django.db.utils import ProgrammingError, OperationalError

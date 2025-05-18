@@ -6,7 +6,7 @@ from django.db import models
 
 from accounts.models import Staff
 
-from workflow.models import JobPricing
+from job.models import JobPricing
 
 logger = logging.getLogger(__name__)
 
