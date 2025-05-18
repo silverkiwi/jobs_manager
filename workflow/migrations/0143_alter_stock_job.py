@@ -7,7 +7,6 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("job", "0002_alter_historicaljob_table_alter_quotepricing_table"),
         ("workflow", "0142_remove_historicaljob_client_and_more"),
     ]
 

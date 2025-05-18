@@ -1,5 +1,5 @@
 import { Environment } from "/static/js/env.js";
-import { setupAdvancedSearch } from "./job/advanced_search.js";
+import { setupAdvancedSearch } from "./advanced_search.js";
 
 import { renderMessages } from "/static/timesheet/js/timesheet_entry/messages.js"
 

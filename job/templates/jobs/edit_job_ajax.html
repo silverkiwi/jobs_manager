@@ -4,7 +4,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/enhanced-forms.css' %}">
 <link rel="stylesheet" href="{% static 'css/enhanced-grid.css' %}">
-<link rel="stylesheet" href="{% static 'css/edit_job.css' %}">
+<link rel="stylesheet" href="{% static 'job/css/edit_job.css' %}">
 <link rel="stylesheet" href="{% static 'css/client_lookup.css' %}">
 <link rel="stylesheet" href="{% static 'css/animation-utils.css' %}">
 <link rel="stylesheet" href="{% static 'css/historical_pricing.css' %}">
@@ -298,12 +298,12 @@
     style="display:none;">{{ latest_job_pricings_json|safe }}</script>
 <script type="application/json" id="historicalJobPricingsData"
     style="display:none;">{{ historical_job_pricings_json|safe }}</script>
-<script type="module" src="{% static 'js/job/deserialize_job_pricing.js' %}"></script>
-<script type="module" src="{% static 'js/job/edit_job_form_autosave.js' %}"></script>
-<script type="module" src="{% static 'js/job/job_file_handling.js' %}"></script>
-<script type="module" src="{% static 'js/job/client_lookup.js' %}"></script>
-<script type="module" src="{% static 'js/job/edit_job_grid_logic.js' %}"></script>
+<script type="module" src="{% static 'job/js/deserialize_job_pricing.js' %}"></script>
+<script type="module" src="{% static 'job/js/edit_job_form_autosave.js' %}"></script>
+<script type="module" src="{% static 'job/js/job_file_handling.js' %}"></script>
+<script type="module" src="{% static 'job/js/client_lookup.js' %}"></script>
+<script type="module" src="{% static 'job/js/edit_job_grid_logic.js' %}"></script>
 <script type="module" src="{% static 'js/time_conversion.js' %}"></script>
-<script type="module" src="{% static 'js/job/delete_job.js' %}"></script>
-<script type="module" src="{% static 'js/job/quill_init.js' %}"></script>
+<script type="module" src="{% static 'job/js/delete_job.js' %}"></script>
+<script type="module" src="{% static 'job/js/quill_init.js' %}"></script>
 {% endblock %}

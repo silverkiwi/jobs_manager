@@ -13,8 +13,9 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 
-from workflow.enums import RateType
+from job.enums import RateType
 from workflow.models import Job
+
 from workflow.utils import extract_messages, get_jobs_data, get_active_jobs
 
 from accounts.models import Staff
@@ -592,4 +593,3 @@ def autosave_timesheet_view(request):
         return JsonResponse(
             {"error": str(e), "messages": extract_messages(request)}, status=500
         )
-        

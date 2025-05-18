@@ -5,7 +5,7 @@ import {
   capitalize,
 } from "./grid_utils.js";
 import { currencyFormatter } from "./parsers.js";
-import { Environment } from "../../env.js";
+import { Environment } from "/static/js/env.js";
 
 // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
 export function createRevenueGridOptions() {

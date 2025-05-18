@@ -205,6 +205,7 @@ TEMPLATES = [
             os.path.join(BASE_DIR, "workflow/templates"),
             os.path.join(BASE_DIR, "accounts/templates"),
             os.path.join(BASE_DIR, "timesheet/templates"),
+            os.path.join(BASE_DIR, "job/templates"),
         ],
         "APP_DIRS": True,
         "OPTIONS": {

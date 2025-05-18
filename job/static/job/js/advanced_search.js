@@ -1,4 +1,4 @@
-import { Environment } from "../env.js";
+import { Environment } from "/static/js/env.js";
 
 export function setupAdvancedSearch() {
   loadClientsDropdown();

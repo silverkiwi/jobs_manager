@@ -8,7 +8,7 @@ import {
 import { uploadJobFile, checkExistingJobFile } from "./job_file_handling.js";
 import { calculateSimpleTotals } from "./grid/revenue_cost_options.js";
 import { renderMessages } from "/static/timesheet/js/timesheet_entry/messages.js";
-import { debugLog } from "../env.js";
+import { debugLog } from "/static/js/env.js";
 import { initHistoricalNavigation } from "./historical_pricing_navigation.js";
 
 // Debounce function to avoid frequent autosave calls
