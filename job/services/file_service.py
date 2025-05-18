@@ -5,7 +5,7 @@ import os
 from pdf2image import convert_from_path
 from PIL import Image
 
-from workflow.helpers import get_job_folder_path
+from job.helpers import get_job_folder_path
 
 logger = logging.getLogger(__name__)
 

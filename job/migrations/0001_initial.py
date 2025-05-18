@@ -286,6 +286,9 @@ class Migration(migrations.Migration):
                         ("date_quote_submitted", models.DateField(blank=True, null=True)),
                         ("quote_number", models.IntegerField(unique=True)),
                     ],
+                    options={
+                        "db_table": "workflow_quotepricing",
+                    },
                     bases=("job.jobpricing",),
                 ),
                 migrations.AddField(
@@ -503,6 +506,7 @@ class Migration(migrations.Migration):
                         "verbose_name_plural": "historical Jobs",
                         "ordering": ("-history_date", "-history_id"),
                         "get_latest_by": ("history_date", "history_id"),
+                        "db_table": "workflow_historicaljob",
                     },
                     bases=(simple_history.models.HistoricalChanges, models.Model),
                 ),

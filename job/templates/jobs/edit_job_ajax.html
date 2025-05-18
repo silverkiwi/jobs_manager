@@ -167,7 +167,7 @@
             <div class="file-card card-enhanced">
                 {% if file.thumbnail_path %}
                 <div class="thumbnail-container">
-                    <img src="{% url 'serve-job-file' file.thumbnail_path %}" alt="{{ file.filename }}"
+                    <img src="{% url 'jobs:serve-job-file' file.thumbnail_path %}" alt="{{ file.filename }}"
                         class="file-thumbnail">
                 </div>
                 {% else %}
@@ -178,7 +178,7 @@
                 </div>
                 {% endif %}
                 <div class="file-info">
-                    <a href="{% url 'serve-job-file' file.file_path %}" target="_blank" class="animated-link">
+                    <a href="{% url 'jobs:serve-job-file' file.file_path %}" target="_blank" class="animated-link">
                         {{ file.filename }}
                     </a>
                     <span class="timestamp">({{ file.uploaded_at|date:"Y-m-d H:i" }})</span>

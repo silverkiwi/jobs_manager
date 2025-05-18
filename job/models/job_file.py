@@ -3,7 +3,7 @@ import uuid
 
 from django.db import models
 
-from workflow.helpers import get_job_folder_path
+from job.helpers import get_job_folder_path
 from job.services.file_service import get_thumbnail_folder
 
 

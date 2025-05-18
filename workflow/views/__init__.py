@@ -12,14 +12,10 @@ from .password_views import SecurityPasswordChangeView
 from .purchase_order_pdf_view import PurchaseOrderPDFView
 from .purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, PurchaseOrderEmailView
 from .report_view import ReportsIndexView, CompanyProfitAndLossView
-from .workshop_view import WorkshopPDFView
 
 __all__ = [
     'StandardResultsSetPagination',
     'ArchiveCompleteJobsViews',
-    'ArchiveCompleteJobsTemplateView',
-    'ArchiveCompleteJobsListAPIView',
-    'ArchiveCompleteJobsAPIView',
     'AssignJobView',
     'ClientListView',
     'ClientUpdateView',
@@ -31,8 +27,6 @@ __all__ = [
     'BinaryFileRenderer',
     'JobFileView',
     'KPICalendarViews',
-    'KPICalendarTemplateView',
-    'KPICalendarAPIView',
     'SecurityPasswordChangeView',
     'PurchaseOrderPDFView',
     'PurchaseOrderListView',
@@ -40,5 +34,4 @@ __all__ = [
     'PurchaseOrderEmailView',
     'ReportsIndexView',
     'CompanyProfitAndLossView',
-    'WorkshopPDFView',
 ]
