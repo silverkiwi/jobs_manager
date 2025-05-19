@@ -1,6 +1,7 @@
 import { createNewRow } from "../deserialize_job_pricing.js";
 import { lockQuoteGrids } from "../job_buttons/button_utils.js";
 import { sections } from "./grid_initialization.js";
+import { Environment } from "/static/js/env.js";
 
 export function calculateGridHeight(gridApi, numRows) {
   const rowHeight = gridApi.getSizesForCurrentTheme().rowHeight || 28;
@@ -30,6 +31,19 @@ export function updateGridOverflowClasses() {
   });
 }
 
+// Helper function to determine the current UI mode (simple/complex)
+function isComplex() {
+  const complexJobElement = document.getElementById("complex-job");
+  if (complexJobElement) {
+    return complexJobElement.textContent.toLowerCase() === "true";
+  }
+  // Fallback or other logic if the element não existir
+  console.warn(
+    "Complex job toggle element not found, defaulting to true for calculations.",
+  );
+  return true; // Default to complex if cannot determine
+}
+
 export function calculateTotalRevenue() {
   const revenueTotals = {
     time: { estimate: 0, quote: 0, reality: 0 },
@@ -38,17 +52,57 @@ export function calculateTotalRevenue() {
   };
 
   const gridTypes = ["Time", "Materials", "Adjustments"];
+  const uiIsComplex = isComplex();
 
   sections.forEach((section) => {
     gridTypes.forEach((gridType) => {
-      const gridKey = `${section}${gridType}Table`;
-      const gridData = window.grids?.[gridKey];
-      if (gridData && gridData.api) {
-        gridData.api.forEachNode((node) => {
-          const rowCost = parseFloat(node.data.cost) || 0;
-          const rowRevenue = parseFloat(node.data.revenue) || 0;
-          const revenueType = gridType.toLowerCase();
-          revenueTotals[revenueType][section] += rowRevenue;
+      // 'reality' section always uses complex data model for calculations,
+      // regardless of UI toggle for estimate/quote
+      const useComplexDataForThisGrid = section === "reality" || uiIsComplex;
+
+      const complexGridKey = `${section}${gridType}Table`;
+      const simpleGridKey = `simple${capitalize(section)}${gridType}Table`;
+
+      const gridKeyToRead = useComplexDataForThisGrid
+        ? complexGridKey
+        : simpleGridKey;
+      const gridApi = window.grids?.[gridKeyToRead]?.api;
+
+      if (gridApi) {
+        gridApi.forEachNode((node) => {
+          let rowRevenue = 0;
+          if (useComplexDataForThisGrid) {
+            // Logic for complex grids (or reality section)
+            if (gridType === "Time") {
+              // For complex TimeTable, revenue is derived from total_minutes and charge_out_rate
+              // This assumes total_minutes is numeric (e.g., 120, not "120 (2.0 hours)")
+              // The data loading functions (loadAdvJobTime) should ensure total_minutes is stored numerically if needed here,
+              // or this calculation needs to parse it. For now, assume node.data.revenue is populated if complex.
+              // If node.data.revenue is not directly available for complex time, calculate it:
+              const totalMinutesStr = String(node.data.total_minutes);
+              const totalMinutes = parseFloat(totalMinutesStr.split(" ")[0]) || 0; // Extracts number part
+              const chargeRate = parseFloat(node.data.charge_out_rate) || 0;
+              rowRevenue = (totalMinutes / 60) * chargeRate;
+              // If 'revenue' field is already correctly populated in complex time grids, prefer that:
+              // rowRevenue = parseFloat(node.data.revenue) || ((parseFloat(String(node.data.total_minutes).split(" ")[0]) || 0) / 60) * (parseFloat(node.data.charge_out_rate) || 0);
+
+            } else if (gridType === "Materials") {
+              rowRevenue = parseFloat(node.data.revenue) || 0; // 'revenue' field already calculated
+            } else if (gridType === "Adjustments") {
+              rowRevenue = parseFloat(node.data.price_adjustment) || 0; // price_adjustment is the revenue part
+            }
+          } else {
+            // Logic for simple grids (estimate, quote, if uiIsComplex = false)
+            if (gridType === "Time") {
+              rowRevenue = parseFloat(node.data.value_of_time) || 0;
+            } else if (gridType === "Materials") {
+              rowRevenue = parseFloat(node.data.retail_price) || 0;
+            } else if (gridType === "Adjustments") {
+              rowRevenue = parseFloat(node.data.price_adjustment) || 0;
+            }
+          }
+          const revenueTypeKey = gridType.toLowerCase(); // 'time', 'materials', 'adjustments'
+          revenueTotals[revenueTypeKey][section] += rowRevenue;
         });
       }
     });
@@ -96,40 +150,56 @@ export function calculateTotalRevenue() {
 }
 
 export function calculateTotalCost() {
-  const totals = {
+  const costTotals = { // Renamed from 'totals'
     time: { estimate: 0, quote: 0, reality: 0 },
     materials: { estimate: 0, quote: 0, reality: 0 },
     adjustments: { estimate: 0, quote: 0, reality: 0 },
   };
 
   const gridTypes = ["Time", "Materials", "Adjustments"];
+  const uiIsComplex = isComplex();
 
   sections.forEach((section) => {
     gridTypes.forEach((gridType) => {
-      const gridKey = `${section}${gridType}Table`;
-      const gridData = window.grids?.[gridKey];
-      if (gridData && gridData.api) {
-        gridData.api.forEachNode((node) => {
+      const useComplexDataForThisGrid = section === "reality" || uiIsComplex;
+
+      const complexGridKey = `${section}${gridType}Table`;
+      const simpleGridKey = `simple${capitalize(section)}${gridType}Table`;
+
+      const gridKeyToRead = useComplexDataForThisGrid
+        ? complexGridKey
+        : simpleGridKey;
+      const gridApi = window.grids?.[gridKeyToRead]?.api;
+
+      if (gridApi) {
+        gridApi.forEachNode((node) => {
           let rowCost = 0;
-
-          // Different cost calculation for each type
-          if (gridType === "Time") {
-            // Cost = (minutes * wage_rate) / 60
-            const minutes = parseFloat(node.data.total_minutes) || 0;
-            const wageRate = parseFloat(node.data.wage_rate) || 0;
-            rowCost = (minutes * wageRate) / 60;
-          } else if (gridType === "Materials") {
-            // Cost = quantity * unit_cost
-            const quantity = parseFloat(node.data.quantity) || 0;
-            const unitCost = parseFloat(node.data.unit_cost) || 0;
-            rowCost = quantity * unitCost;
-          } else if (gridType === "Adjustments") {
-            // Cost = cost_adjustment
-            rowCost = parseFloat(node.data.cost_adjustment) || 0;
+          if (useComplexDataForThisGrid) {
+            // Logic for complex grids (or reality section)
+            if (gridType === "Time") {
+              const totalMinutesStr = String(node.data.total_minutes);
+              const totalMinutes = parseFloat(totalMinutesStr.split(" ")[0]) || 0; // Extracts number part
+              const wageRate = parseFloat(node.data.wage_rate) || 0;
+              rowCost = (totalMinutes / 60) * wageRate;
+            } else if (gridType === "Materials") {
+              const quantity = parseFloat(node.data.quantity) || 0;
+              const unitCost = parseFloat(node.data.unit_cost) || 0;
+              rowCost = quantity * unitCost;
+            } else if (gridType === "Adjustments") {
+              rowCost = parseFloat(node.data.cost_adjustment) || 0;
+            }
+          } else {
+            // Logic for simple grids (estimate, quote, if uiIsComplex = false)
+            if (gridType === "Time") {
+              rowCost = parseFloat(node.data.cost_of_time) || 0;
+            } else if (gridType === "Materials") {
+              rowCost = parseFloat(node.data.material_cost) || 0;
+            } else if (gridType === "Adjustments") {
+              rowCost = parseFloat(node.data.cost_adjustment) || 0;
+            }
           }
-
-          const costType = gridType.toLowerCase();
-          totals[costType][section] += rowCost;
+          const costTypeKey = gridType.toLowerCase();
+          costTotals[costTypeKey][section] += rowCost;
         });
       }
     });
@@ -141,33 +211,33 @@ export function calculateTotalCost() {
       const data = node.data;
       switch (index) {
         case 0: // Total Time
-          data.estimate = totals.time.estimate;
-          data.quote = totals.time.quote;
-          data.reality = totals.time.reality;
+          data.estimate = costTotals.time.estimate;
+          data.quote = costTotals.time.quote;
+          data.reality = costTotals.time.reality;
           break;
         case 1: // Total Materials
-          data.estimate = totals.materials.estimate;
-          data.quote = totals.materials.quote;
-          data.reality = totals.materials.reality;
+          data.estimate = costTotals.materials.estimate;
+          data.quote = costTotals.materials.quote;
+          data.reality = costTotals.materials.reality;
           break;
         case 2: // Total Adjustments
-          data.estimate = totals.adjustments.estimate;
-          data.quote = totals.adjustments.quote;
-          data.reality = totals.adjustments.reality;
+          data.estimate = costTotals.adjustments.estimate;
+          data.quote = costTotals.adjustments.quote;
+          data.reality = costTotals.adjustments.reality;
           break;
         case 3: // Total Project Cost
           data.estimate =
-            totals.time.estimate +
-            totals.materials.estimate +
-            totals.adjustments.estimate;
+            costTotals.time.estimate +
+            costTotals.materials.estimate +
+            costTotals.adjustments.estimate;
           data.quote =
-            totals.time.quote +
-            totals.materials.quote +
-            totals.adjustments.quote;
+            costTotals.time.quote +
+            costTotals.materials.quote +
+            costTotals.adjustments.quote;
           data.reality =
-            totals.time.reality +
-            totals.materials.reality +
-            totals.adjustments.reality;
+            costTotals.time.reality +
+            costTotals.materials.reality +
+            costTotals.adjustments.reality;
           break;
       }
     });

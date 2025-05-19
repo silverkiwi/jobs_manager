@@ -124,10 +124,25 @@ export function recalcSimpleTimeRow(row) {
   row.value_of_time = hours * charge;
 }
 
+// Helper function to determine the current UI mode (simple/complex)
+function isComplex() {
+  const complexJobElement = document.getElementById("complex-job");
+  if (complexJobElement) {
+    return complexJobElement.textContent.toLowerCase() === "true";
+  }
+  // Fallback or other logic if the element não existir
+  console.warn(
+    "Complex job toggle element not found, defaulting to true for calculations.",
+  );
+  return true; // Default to complex if cannot determine
+}
+
 /**
  * Function that calculate totals (cost, retail) for each section (estimate, quote, reality)
  */
 export function calculateSimpleTotals() {
+  const isComplexJob = isComplex();
+
   const simpleTotals = {
     estimate: { cost: 0, retail: 0 },
     quote: { cost: 0, retail: 0 },
@@ -144,16 +159,16 @@ export function calculateSimpleTotals() {
     }
 
     // Reality is always complex
-    const isRealitySection = section === "reality";
+    const useComplex = section === "reality" || isComplexJob;
 
     // 1) Time
-    processTimeGrid(section, isRealitySection, simpleTotals);
+    processTimeGrid(section, useComplex, simpleTotals);
 
     // 2) Materials
-    processMaterialsGrid(section, isRealitySection, simpleTotals);
+    processMaterialsGrid(section, useComplex, simpleTotals);
 
     // 3) Adjustments
-    processAdjustmentsGrid(section, isRealitySection, simpleTotals);
+    processAdjustmentsGrid(section, useComplex, simpleTotals);
   });
 
   updateTotalsTables(simpleTotals);

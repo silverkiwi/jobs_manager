@@ -206,9 +206,8 @@ export function createCommonGridOptions() {
           });
           
           // Recalculate all totals
-          calculateSimpleTotals();
-          calculateTotalRevenue();
-          calculateTotalCost();
+          // calculateSimpleTotals will call calculateTotalRevenue and calculateTotalCost
+          calculateSimpleTotals(); 
         });
       }
 
@@ -314,9 +313,8 @@ export function createCommonGridOptions() {
           }
           
           // Update totals
+          // calculateSimpleTotals will call calculateTotalRevenue and calculateTotalCost
           calculateSimpleTotals();
-          calculateTotalRevenue();
-          calculateTotalCost();
         });
       }
 
@@ -494,9 +492,6 @@ export function createCommonGridOptions() {
       adjustGridHeight(event.api, `${gridKey}`);
       debouncedAutosave(event);
       
-      // Make sure to call all calculation functions
-      calculateTotalRevenue();
-      calculateTotalCost();
       calculateSimpleTotals();
     },
   };
