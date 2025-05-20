@@ -2,8 +2,8 @@ import json
 import logging
 from datetime import datetime
 from decimal import Decimal
-import math # Added import
-import decimal # Added import
+import math
+import decimal
 
 from django.contrib import messages
 from django.core.cache import cache
@@ -31,7 +31,6 @@ from timesheet.serializers import (
 logger = logging.getLogger(__name__)
 
 
-# Helper function to sanitize decimal inputs
 def sanitize_decimal_input(raw_value, default=Decimal(0)):
     """
     Sanitizes a raw input value to ensure it's a valid Decimal.
@@ -412,10 +411,8 @@ def autosave_timesheet_view(request):
                 logger.error("Missing job ID in entry data")
                 continue
 
-            # Sanitize hours
             hours_raw = entry_data.get("hours", 0)
             hours = sanitize_decimal_input(hours_raw)
-            # Remove old try-except for hours as sanitize_decimal_input handles it
 
             try:
                 timesheet_date = entry_data.get("timesheet_date", None)
@@ -463,11 +460,10 @@ def autosave_timesheet_view(request):
 
                     # Update existing entry
                     entry.description = description
-                    entry.hours = hours # Use sanitized hours
+                    entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
                     entry.items = entry_data.get("items", entry.items)
                     
-                    # Sanitize minutes_per_item for update
                     minutes_per_item_raw = entry_data.get("mins_per_item", entry.minutes_per_item)
                     entry.minutes_per_item = sanitize_decimal_input(minutes_per_item_raw)
                     
@@ -476,7 +472,6 @@ def autosave_timesheet_view(request):
                         entry_data.get("rate_type", "Ord")
                     ).multiplier
                     
-                    # Sanitize charge_out_rate for update
                     charge_out_rate_raw = job_data.get("charge_out_rate", entry.charge_out_rate)
                     entry.charge_out_rate = sanitize_decimal_input(charge_out_rate_raw)
 
@@ -544,7 +539,6 @@ def autosave_timesheet_view(request):
                 date_str = entry_data.get("timesheet_date")
                 target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
-                # Sanitize minutes_per_item and charge_out_rate for creation
                 minutes_per_item_val = sanitize_decimal_input(entry_data.get("mins_per_item", 0))
                 charge_out_rate_val = sanitize_decimal_input(job_data.get("charge_out_rate", 0))
 
@@ -553,14 +547,14 @@ def autosave_timesheet_view(request):
                     staff=staff,
                     date=target_date,
                     description=description,
-                    hours=hours, # Use sanitized hours
+                    hours=hours,
                     items=entry_data.get("items"),
-                    minutes_per_item=minutes_per_item_val, # Use sanitized minutes_per_item
+                    minutes_per_item=minutes_per_item_val,
                     is_billable=entry_data.get("is_billable", True),
                     note=entry_data.get("notes", ""),
                     wage_rate_multiplier=RateType(entry_data["rate_type"]).multiplier,
-                    wage_rate=staff.wage_rate, # Assuming staff.wage_rate is already Decimal and valid
-                    charge_out_rate=charge_out_rate_val, # Use sanitized charge_out_rate
+                    wage_rate=staff.wage_rate,
+                    charge_out_rate=charge_out_rate_val,
                 )
 
                 updated_entries.append(entry)
