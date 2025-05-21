@@ -6,7 +6,7 @@ from django.db import models
 
 from accounts.models import Staff
 
-from workflow.models import JobPricing
+from job.models import JobPricing
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ class TimeEntry(models.Model):
         return self.hours * self.charge_out_rate
 
     def __str__(self):
-        staff_name = self.staff.get_display_name()
+        staff_name = self.staff.get_display_name() if self.staff else "No Staff"
         job_name = self.job_pricing.job.name if self.job_pricing else "No Job"
         time_date = self.date.strftime("%Y-%m-%d")
         return f"{staff_name} - {job_name} on {time_date}"

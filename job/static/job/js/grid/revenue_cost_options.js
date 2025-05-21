@@ -5,7 +5,7 @@ import {
   capitalize,
 } from "./grid_utils.js";
 import { currencyFormatter } from "./parsers.js";
-import { Environment } from "../../env.js";
+import { Environment } from "/static/js/env.js";
 
 // Grid options for Totals table (default 4 rows, autoHeight for proper resizing)
 export function createRevenueGridOptions() {
@@ -124,10 +124,25 @@ export function recalcSimpleTimeRow(row) {
   row.value_of_time = hours * charge;
 }
 
+// Helper function to determine the current UI mode (simple/complex)
+function isComplex() {
+  const complexJobElement = document.getElementById("complex-job");
+  if (complexJobElement) {
+    return complexJobElement.textContent.toLowerCase() === "true";
+  }
+  // Fallback or other logic if the element não existir
+  console.warn(
+    "Complex job toggle element not found, defaulting to true for calculations.",
+  );
+  return true; // Default to complex if cannot determine
+}
+
 /**
  * Function that calculate totals (cost, retail) for each section (estimate, quote, reality)
  */
 export function calculateSimpleTotals() {
+  const isComplexJob = isComplex();
+
   const simpleTotals = {
     estimate: { cost: 0, retail: 0 },
     quote: { cost: 0, retail: 0 },
@@ -144,19 +159,31 @@ export function calculateSimpleTotals() {
     }
 
     // Reality is always complex
-    const isRealitySection = section === "reality";
+    const useComplex = section === "reality" || isComplexJob;
 
     // 1) Time
-    processTimeGrid(section, isRealitySection, simpleTotals);
+    processTimeGrid(section, useComplex, simpleTotals);
 
     // 2) Materials
-    processMaterialsGrid(section, isRealitySection, simpleTotals);
+    processMaterialsGrid(section, useComplex, simpleTotals);
 
     // 3) Adjustments
-    processAdjustmentsGrid(section, isRealitySection, simpleTotals);
+    processAdjustmentsGrid(section, useComplex, simpleTotals);
   });
 
   updateTotalsTables(simpleTotals);
+
+  // Check if necessary grids exist before calculating overall totals
+  const revenueGridExists = window.grids?.["revenueTable"]?.api;
+  const costsGridExists = window.grids?.["costsTable"]?.api;
+
+  if (revenueGridExists) {
+    calculateTotalRevenue();
+  }
+  
+  if (costsGridExists) {
+    calculateTotalCost();
+  }
 
   if (Environment.isDebugMode()) {
     console.log("Completed calculateSimpleTotals calculation", simpleTotals);
@@ -169,7 +196,7 @@ function processTimeGrid(section, isRealitySection, simpleTotals) {
     ? `${section}TimeTable`
     : `simple${capitalize(section)}TimeTable`;
 
-  const timeApi = window.grids[timeGridKey]?.api;
+  const timeApi = window.grids?.[timeGridKey]?.api;
   if (!timeApi) return;
 
   const updatedTimeRows = [];
@@ -224,7 +251,7 @@ function processMaterialsGrid(section, isRealitySection, simpleTotals) {
     ? `${section}MaterialsTable`
     : `simple${capitalize(section)}MaterialsTable`;
 
-  const matApi = window.grids[matGridKey]?.api;
+  const matApi = window.grids?.[matGridKey]?.api;
   if (!matApi) return;
 
   matApi.forEachNode((node) => {
@@ -259,7 +286,7 @@ function processAdjustmentsGrid(section, isRealitySection, simpleTotals) {
     ? `${section}AdjustmentsTable`
     : `simple${capitalize(section)}AdjustmentsTable`;
 
-  const adjApi = window.grids[adjGridKey]?.api;
+  const adjApi = window.grids?.[adjGridKey]?.api;
   if (!adjApi) return;
 
   adjApi.forEachNode((node) => {
@@ -281,7 +308,7 @@ function processAdjustmentsGrid(section, isRealitySection, simpleTotals) {
 function updateTotalsTables(simpleTotals) {
   sections.forEach((section) => {
     const stKey = `simple${capitalize(section)}TotalsTable`;
-    const stGrid = window.grids[stKey];
+    const stGrid = window.grids?.[stKey];
     if (!stGrid || !stGrid.api) return;
 
     const rowUpdates = [];

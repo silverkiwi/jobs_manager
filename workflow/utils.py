@@ -3,7 +3,7 @@ import uuid
 from zoneinfo import ZoneInfo
 from django.contrib.messages import get_messages
 from django.db import models
-from workflow.models import Job
+from job.models import Job
 import logging
 from django.apps import apps
 from django.db.utils import ProgrammingError, OperationalError
@@ -75,7 +75,7 @@ def get_jobs_data(related_jobs):
             - client_name (str): The client name
             - charge_out_rate (float): The charge out rate
     """
-    from workflow.models import Job
+    from job.models import Job
 
     jobs = Job.objects.filter(id__in=related_jobs).select_related(
         "client", "latest_estimate_pricing", "latest_reality_pricing"

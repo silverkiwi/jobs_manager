@@ -6,7 +6,7 @@ from decimal import Decimal
 from django.apps import apps
 from django.db import models, transaction
 
-from workflow.enums import JobPricingStage
+from job.enums import JobPricingStage
 
 logger = logging.getLogger(__name__)
 
@@ -261,3 +261,6 @@ class QuotePricing(JobPricing):
             if last_pricing and last_pricing.quote_number:
                 return last_pricing.quote_number + 1
             return 1  # Start numbering from 1 if there are no existing records
+
+    class Meta:
+        db_table = "workflow_quotepricing"

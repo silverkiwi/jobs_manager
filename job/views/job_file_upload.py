@@ -32,12 +32,15 @@ class JobFileUploadView(APIView):
         job_folder = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, f"Job-{job_number}")
         os.makedirs(job_folder, exist_ok=True)
 
+        os.chmod(job_folder, 0o2775)
+ 
         # Save each uploaded file
         for file in files:
             file_path = os.path.join(job_folder, file.name)
             with open(file_path, "wb") as destination:
                 for chunk in file.chunks():
                     destination.write(chunk)
+                os.chmod(file_path, 0o664)
 
         return Response(
             {"status": "success", "message": "Files uploaded successfully"},

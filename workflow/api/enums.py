@@ -20,14 +20,27 @@ def get_enum_choices(request, enum_name):
         JsonResponse with the enum choices
     """
     try:
-        # Import the enums module
+        # First check the job enums module
+        try:
+            enums_module = importlib.import_module('job.enums')
+            
+            if hasattr(enums_module, enum_name):
+                enum_class = getattr(enums_module, enum_name)
+                
+                if hasattr(enum_class, 'choices'):
+                    choices = [{'value': value, 'display_name': display_name} 
+                              for value, display_name in enum_class.choices]
+                    return JsonResponse({'choices': choices})
+        except (ImportError, AttributeError):
+            # Fall back to workflow enums
+            pass
+            
+        # Fall back to workflow.enums if not found in job.enums
         enums_module = importlib.import_module('workflow.enums')
         
-        # Try to get the enum class by name
         if hasattr(enums_module, enum_name):
             enum_class = getattr(enums_module, enum_name)
             
-            # Check if the class has choices attribute (Django TextChoices)
             if hasattr(enum_class, 'choices'):
                 choices = [{'value': value, 'display_name': display_name} 
                           for value, display_name in enum_class.choices]
@@ -36,16 +49,24 @@ def get_enum_choices(request, enum_name):
                 return JsonResponse({'error': f'"{enum_name}" does not appear to be a valid Django Choices enum'}, 
                                    status=400)
         else:
-            # List available enums for better error messages
-            available_enums = [name for name, obj in inspect.getmembers(enums_module) 
-                              if inspect.isclass(obj) and hasattr(obj, 'choices')]
+            # List available enums from both modules
+            job_enums_module = importlib.import_module('job.enums')
+            workflow_enums_module = importlib.import_module('workflow.enums')
+            
+            job_enums = [name for name, obj in inspect.getmembers(job_enums_module) 
+                        if inspect.isclass(obj) and hasattr(obj, 'choices')]
+            
+            workflow_enums = [name for name, obj in inspect.getmembers(workflow_enums_module) 
+                             if inspect.isclass(obj) and hasattr(obj, 'choices')]
             
             return JsonResponse({
                 'error': f'Enum "{enum_name}" not found',
-                'available_enums': available_enums
+                'available_enums': {
+                    'job': job_enums,
+                    'workflow': workflow_enums
+                }
             }, status=404)
             
     except Exception as e:
         logger.exception(f"Unexpected error getting enum choices: {e}")
         return JsonResponse({'error': 'An unexpected server error occurred.'}, status=500)
-    

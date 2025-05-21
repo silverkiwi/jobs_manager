@@ -2,8 +2,8 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/kanban-enhanced.css' %}">
-<link rel="stylesheet" href="{% static 'css/job-cards.css' %}">
+<link rel="stylesheet" href="{% static 'job/css/kanban-enhanced.css' %}">
+<link rel="stylesheet" href="{% static 'job/css/job-cards.css' %}">
 <link rel="stylesheet" href="{% static 'css/animation-utils.css' %}">
 {% endblock %}
 
@@ -149,6 +149,6 @@
 
 {% block extra_js %}
 <script src="{% static 'sortablejs/Sortable.min.js' %}"></script>
-<script type="module" src="{% static 'js/kanban.js' %}"></script>
+<script type="module" src="{% static 'job/js/kanban.js' %}"></script>
 <script src="{% static 'js/archive-toggle.js' %}"></script>
 {% endblock %}

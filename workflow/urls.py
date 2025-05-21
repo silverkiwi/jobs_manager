@@ -46,17 +46,10 @@ from workflow.api.reports.pnl import CompanyProfitAndLossReport
 from workflow.api.enums import get_enum_choices
 from workflow.views import (
     client_view,
-    edit_job_view_ajax,
-    kanban_view,
     submit_quote_view,
-    workshop_view,
-    job_management_view,
 )
-from workflow.views.archive_completed_jobs_view import ArchiveCompleteJobsViews
-from workflow.views.assign_job_view import AssignJobView
 from workflow.views.kpi_view import KPICalendarViews
 from workflow.views.xero import xero_view
-from workflow.views.job_file_view import JobFileView
 from workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from workflow.views import password_views, stock_view, use_stock_view
 from workflow.views.purchase_order_view import (
@@ -78,11 +71,6 @@ urlpatterns = [
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
     
     # API Endpoints
-    path(
-        "api/autosave-job/",
-        edit_job_view_ajax.autosave_job_view,
-        name="autosave_job_api",
-    ),
     path(
         "api/autosave-purchase-order/",
         autosave_purchase_order_view,
@@ -108,13 +96,6 @@ urlpatterns = [
     ),
     path("api/get-env-variable/", server.get_env_variable, name="get_env_variable"),
     path("api/enums/<str:enum_name>/", get_enum_choices, name="get_enum_choices"),
-    # path("api/get-job/", edit_job_view_ajax.get_job_api, name="get_job_api"),
-    path("api/create-job/", edit_job_view_ajax.create_job_api, name="create_job_api"),
-    path(
-        "api/fetch_job_pricing/",
-        edit_job_view_ajax.fetch_job_pricing_api,
-        name="fetch_job_pricing_api",
-    ),
     path(
         "api/reports/company-profit-loss/",
         CompanyProfitAndLossReport.as_view(),
@@ -124,12 +105,7 @@ urlpatterns = [
         "api/reports/calendar/",
         KPICalendarViews.KPICalendarAPIView.as_view(),
         name="api_kpi_calendar",
-    ),
-    path(
-        "api/fetch_status_values/",
-        edit_job_view_ajax.api_fetch_status_values,
-        name="fetch_status_values",
-    ),
+    ),    
     # Stock APIs
     path(
         "api/stock/consume/",
@@ -151,51 +127,6 @@ urlpatterns = [
         name="search_stock_api",
     ),
     path(
-        "api/job/advanced-search/", kanban_view.advanced_search, name="advanced-search"
-    ),
-    path(
-        "api/job/<uuid:job_id>/delete/",
-        edit_job_view_ajax.delete_job,
-        name="delete_job",
-    ),
-    path(
-        "api/job/toggle-complex-job/",
-        edit_job_view_ajax.toggle_complex_job,
-        name="toggle_complex_job",
-    ),
-    path(
-        "api/job/toggle-pricing-type/",
-        edit_job_view_ajax.toggle_pricing_type,
-        name="toggle_pricing_type",
-    ),
-    path(
-        "api/job/completed/",
-        ArchiveCompleteJobsViews.ArchiveCompleteJobsListAPIView.as_view(),
-        name="api_jobs_completed",
-    ),
-    path(
-        "api/job/completed/archive",
-        ArchiveCompleteJobsViews.ArchiveCompleteJobsAPIView.as_view(),
-        name="api_jobs_archive",
-    ),
-    path(
-        "api/job/<uuid:job_id>/assignment",
-        AssignJobView.as_view(),
-        name="api_job_assigment",
-    ),
-    path(
-        "api/job-event/<uuid:job_id>/add-event/",
-        edit_job_view_ajax.add_job_event,
-        name="add-event",
-    ),
-    path("api/job-files/", JobFileView.as_view(), name="job-files"),  # For POST/PUT
-    path(
-        "api/job-files/<int:job_number>", JobFileView.as_view(), name="get-job-file"
-    ),  # To check if file already exists
-    path(
-        "api/job-files/<path:file_path>", JobFileView.as_view(), name="serve-job-file"
-    ),  # For GET/download
-    path(
         "api/xero/authenticate/",
         xero_view.xero_authenticate,
         name="api_xero_authenticate",
@@ -209,21 +140,6 @@ urlpatterns = [
         "api/xero/disconnect/",
         xero_view.xero_disconnect,
         name="xero_disconnect",
-    ),
-    path(
-        "api/xero/purchase-order/<uuid:purchase_order_id>/create/",
-        xero_view.create_xero_purchase_order,
-        name="create_xero_purchase_order",
-    ),
-    path(
-        "api/xero/refresh/",
-        xero_view.refresh_xero_data,
-        name="refresh_xero_data",
-    ),
-    path(
-        "api/xero/success/",
-        xero_view.success_xero_connection,
-        name="xero_success",
     ),
     path(
         "api/xero/sync-stream/",
@@ -256,7 +172,7 @@ urlpatterns = [
         name="xero_sync_info",
     ),
     path(
-        "api/xero/delete_purchase_order/<uuid:purchase_order_id>",  # <-- New URL
+        "api/xero/delete_purchase_order/<uuid:purchase_order_id>",
         xero_view.delete_xero_purchase_order,
         name="delete_xero_purchase_order",
     ),
@@ -275,6 +191,7 @@ urlpatterns = [
         PurchaseOrderEmailView.as_view(),
         name="purchase-order-email",
     ),
+    
     # Other URL patterns
     path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
     path(
@@ -288,34 +205,6 @@ urlpatterns = [
         client_view.UnusedClientsView.as_view(),
         name="unused_clients",
     ),
-    # Job URLs
-    # Job Pricing URLs
-    # Entry URLs
-    path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
-    path("job/<uuid:job_id>/", edit_job_view_ajax.edit_job_view_ajax, name="edit_job"),
-    path(
-        "job/<uuid:job_id>/workshop-pdf/",
-        workshop_view.WorkshopPDFView.as_view(),
-        name="workshop-pdf",
-    ),
-    path(
-        "job/archive-complete",
-        ArchiveCompleteJobsViews.ArchiveCompleteJobsTemplateView.as_view(),
-        name="archive_complete_jobs",
-    ),
-    path("month-end/", job_management_view.month_end_view, name="month_end"),
-    path(
-        "jobs/<uuid:job_id>/update_status/",
-        kanban_view.update_job_status,
-        name="update_job_status",
-    ),
-    # Kanban views
-    path("kanban/", kanban_view.kanban_view, name="view_kanban"),
-    path(
-        "kanban/fetch_jobs/<str:status>/",
-        kanban_view.fetch_jobs,
-        name="fetch_jobs",
-    ),
     path("reports/", ReportsIndexView.as_view(), name="reports_index"),
     path(
         "reports/company-profit-loss/",
@@ -326,11 +215,6 @@ urlpatterns = [
         "reports/calendar/",
         KPICalendarViews.KPICalendarTemplateView.as_view(),
         name="kpi_calendar",
-    ),
-    path(
-        "api/company_defaults/",
-        edit_job_view_ajax.get_company_defaults_api,
-        name="company_defaults_api",
     ),
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
     path(

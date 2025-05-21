@@ -23,7 +23,7 @@ from django.utils.html import format_html
 from django.views.generic import TemplateView
 from django.db import models
 
-from workflow.models import Job, JobPricing
+from job.models import Job, JobPricing
 from workflow.utils import extract_messages
 
 from accounts.models import Staff

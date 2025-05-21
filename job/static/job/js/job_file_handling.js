@@ -437,7 +437,11 @@ function setupDropZoneEvents(dropZone) {
   ["dragenter", "dragover"].forEach((event) =>
     dropZone.addEventListener(
       event,
-      () => dropZone.classList.add("drag-over"),
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add("drag-over");
+      },
       false,
     ),
   );
@@ -445,7 +449,12 @@ function setupDropZoneEvents(dropZone) {
   ["dragleave", "drop"].forEach((event) =>
     dropZone.addEventListener(
       event,
-      () => dropZone.classList.remove("drag-over"),
+      (e) => {
+        if (event === 'dragleave') {
+          e.preventDefault();
+        }
+        dropZone.classList.remove("drag-over");
+      },
       false,
     ),
   );
@@ -461,6 +470,7 @@ async function handleFileInputChange(event) {
 
 async function handleFileDrop(e) {
   e.preventDefault();
+  e.stopPropagation();
   const files = e.dataTransfer.files;
   if (!files.length) return;
 

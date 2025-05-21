@@ -10,7 +10,7 @@
             <div class="form-group required-field">
                 <label for="client_name" class="form-label">Client</label>
                 <div class="d-flex gap-2">
-                    <input type="text" id="client_name" class="form-control" value="{{ job.client.name|default_if_none:'' }}" placeholder="Search for client...">
+                    <input type="text" id="client_name" class="form-control" value="{{ job.client.name|default_if_none:'' }}" placeholder="Search for client..." autocomplete="off">
                     <input type="text" id="client_xero_id" name="client_xero_id" class="form-control autosave-input" style="width: 200px;"
                         value="{{ job.client.xero_contact_id|default:'' }}" placeholder="Xero ID" required readonly>
                 </div>

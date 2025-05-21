@@ -100,7 +100,7 @@ class BaseLineItem(models.Model):
 
 class Invoice(BaseXeroInvoiceDocument):
     job = models.OneToOneField(
-        "Job", on_delete=models.CASCADE, related_name="invoice", null=True, blank=True
+        "job.Job", on_delete=models.CASCADE, related_name="invoice", null=True, blank=True
     )
     online_url = models.URLField(null=True, blank=True)
 

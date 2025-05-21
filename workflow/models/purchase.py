@@ -27,7 +27,7 @@ class PurchaseOrder(models.Model):
         blank=True,
     )
     job = models.ForeignKey(
-        "Job",
+        "job.Job",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -108,7 +108,7 @@ class PurchaseOrderLine(models.Model):
         PurchaseOrder, on_delete=models.CASCADE, related_name="po_lines"
     )
     job = models.ForeignKey(
-        "Job",
+        "job.Job",
         on_delete=models.PROTECT,
         null=True,
         blank=True,

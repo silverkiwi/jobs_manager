@@ -1,5 +1,5 @@
 // deserialize_job_pricing.js
-import { Environment } from "../env.js";
+import { Environment } from "/static/js/env.js";
 
 document.addEventListener("DOMContentLoaded", function () {
   const latestJobPricingsElement = document.getElementById(

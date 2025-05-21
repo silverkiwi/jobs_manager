@@ -9,7 +9,8 @@ import json
 import logging
 
 
-from workflow.models import PurchaseOrder, PurchaseOrderLine, Job
+from workflow.models import PurchaseOrder, PurchaseOrderLine
+from job.models import Job
 from workflow.services.delivery_receipt_service import process_delivery_receipt
 from workflow.utils import get_active_jobs
 

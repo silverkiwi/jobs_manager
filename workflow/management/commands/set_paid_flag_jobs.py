@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from workflow.models import Job
+from job.models import Job
 
 logger = logging.getLogger(__name__)
 

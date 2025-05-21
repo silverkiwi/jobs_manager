@@ -8,8 +8,7 @@ import { getState, updateState } from "./purchase_order_state.js";
 import { createNewRowShortcut, updateGridEditability } from "./purchase_order_grid.js";
 import { debouncedAutosave } from "./purchase_order_autosave.js";
 import { deleteXeroPurchaseOrder } from "./purchase_order_xero_actions.js";
-import { renderMessages } from "../../timesheet/timesheet_entry/messages.js";
-import { getCookie } from "../../timesheet/timesheet_entry/utils.js";
+import { renderMessages } from "./messages.js";
 
 /**
  * Set up event listeners for the purchase order form
