@@ -68,7 +68,10 @@ export const gridOptions = {
       minWidth: 80,
       editable: true,
       type: "numericColumn",
-      valueParser: (params) => Number(params.newValue),
+      valueParser: (params) => {
+        const num = Number(params.newValue);
+        return isNaN(num) ? 0 : num; // Ensure NaN becomes 0
+      },
       valueFormatter: (params) => params.value?.toFixed(2),
       cellStyle: (params) => {
         if (params.data.hours > params.data.scheduled_hours) {
@@ -287,7 +290,12 @@ export const gridOptions = {
 
     // Recalculate amounts if rate type or hours changes
     if (["rate_type", "hours"].includes(params.column?.colId)) {
-      params.node.setDataValue("rate_type", Number(params.newValue));
+      // params.node.setDataValue("rate_type", Number(params.newValue)); // This line seems incorrect for 'hours' change
+      if (params.column?.colId === "rate_type") {
+        // Assuming rate_type values are strings like "Ord", "1.5", "2.0"
+        // No direct conversion to Number needed here unless it's purely numeric rate_type
+         params.node.setDataValue("rate_type", params.newValue);
+      }
       calculateAmounts(params.node.data);
       params.api.refreshCells({
         rowNodes: [params.node],

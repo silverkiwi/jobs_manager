@@ -22,7 +22,8 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote, Client, Job
+from workflow.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote, Client
+from job.models import Job
 from workflow.forms import PurchaseOrderForm, PurchaseOrderLineForm
 from workflow.models.company_defaults import CompanyDefaults
 from workflow.services.purchase_order_pdf_service import create_purchase_order_pdf

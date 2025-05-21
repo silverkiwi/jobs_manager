@@ -5,10 +5,6 @@ from .ai_provider import AIProvider
 from .client import Client, Supplier
 from .company_defaults import CompanyDefaults
 from .invoice import BaseXeroInvoiceDocument, BaseLineItem, Invoice, Bill, CreditNote, InvoiceLineItem, BillLineItem, CreditNoteLineItem
-from .job import Job
-from .job_event import JobEvent
-from .job_file import JobFile
-from .job_pricing import JobPricing, QuotePricing
 from .material_entry import MaterialEntry
 from .purchase import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote
 from .quote import Quote
@@ -32,11 +28,6 @@ __all__ = [
     'InvoiceLineItem',
     'BillLineItem',
     'CreditNoteLineItem',
-    'Job',
-    'JobEvent',
-    'JobFile',
-    'JobPricing',
-    'QuotePricing',
     'MaterialEntry',
     'PurchaseOrder',
     'PurchaseOrderLine',

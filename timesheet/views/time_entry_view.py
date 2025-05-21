@@ -2,6 +2,8 @@ import json
 import logging
 from datetime import datetime
 from decimal import Decimal
+import math
+import decimal
 
 from django.contrib import messages
 from django.core.cache import cache
@@ -13,8 +15,9 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 
-from workflow.enums import RateType
-from workflow.models import Job
+from job.enums import RateType
+from job.models import Job
+
 from workflow.utils import extract_messages, get_jobs_data, get_active_jobs
 
 from accounts.models import Staff
@@ -27,6 +30,29 @@ from timesheet.serializers import (
 
 logger = logging.getLogger(__name__)
 
+
+def sanitize_decimal_input(raw_value, default=Decimal(0)):
+    """
+    Sanitizes a raw input value to ensure it's a valid Decimal.
+    Handles None, NaN, Infinity, and conversion errors.
+    """
+    if raw_value is None:
+        logger.warning(f"Sanitizing None to {default}.")
+        return default
+    if isinstance(raw_value, float) and (math.isnan(raw_value) or math.isinf(raw_value)):
+        logger.warning(f"Sanitizing invalid float {raw_value} to {default}.")
+        return default
+    try:
+        # Convert to string first to handle floats safely and allow Decimal to parse strings.
+        val_str = str(raw_value)
+        d = decimal.Decimal(val_str) # Use decimal.Decimal to avoid conflict
+        if d.is_nan() or d.is_infinite():
+            logger.warning(f"Sanitizing Decimal special value {d} to {default}.")
+            return default
+        return d
+    except (decimal.InvalidOperation, TypeError, ValueError) as e:
+        logger.warning(f"Sanitizing invalid decimal input '{raw_value}' (type: {type(raw_value)}) to {default} due to {e}.")
+        return default
 
 class TimesheetEntryView(TemplateView):
     """
@@ -385,17 +411,8 @@ def autosave_timesheet_view(request):
                 logger.error("Missing job ID in entry data")
                 continue
 
-            try:
-                hours = Decimal(str(entry_data.get("hours", 0)))
-            except (TypeError, ValueError) as e:
-                messages.error(request, f"Invalid hours value: {str(e)}")
-                return JsonResponse(
-                    {
-                        "error": f"Invalid hours value: {str(e)}",
-                        "messages": extract_messages(request),
-                    },
-                    status=400,
-                )
+            hours_raw = entry_data.get("hours", 0)
+            hours = sanitize_decimal_input(hours_raw)
 
             try:
                 timesheet_date = entry_data.get("timesheet_date", None)
@@ -446,16 +463,17 @@ def autosave_timesheet_view(request):
                     entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
                     entry.items = entry_data.get("items", entry.items)
-                    entry.minutes_per_item = Decimal(
-                        entry_data.get("mins_per_item", entry.minutes_per_item)
-                    )
+                    
+                    minutes_per_item_raw = entry_data.get("mins_per_item", entry.minutes_per_item)
+                    entry.minutes_per_item = sanitize_decimal_input(minutes_per_item_raw)
+                    
                     entry.note = entry_data.get("notes", "")
                     entry.wage_rate_multiplier = RateType(
                         entry_data.get("rate_type", "Ord")
                     ).multiplier
-                    entry.charge_out_rate = Decimal(
-                        str(job_data.get("charge_out_rate", 0))
-                    )
+                    
+                    charge_out_rate_raw = job_data.get("charge_out_rate", entry.charge_out_rate)
+                    entry.charge_out_rate = sanitize_decimal_input(charge_out_rate_raw)
 
                     related_jobs.add(job_id)
                     entry.save()
@@ -521,6 +539,9 @@ def autosave_timesheet_view(request):
                 date_str = entry_data.get("timesheet_date")
                 target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
+                minutes_per_item_val = sanitize_decimal_input(entry_data.get("mins_per_item", 0))
+                charge_out_rate_val = sanitize_decimal_input(job_data.get("charge_out_rate", 0))
+
                 entry = TimeEntry.objects.create(
                     job_pricing=job_pricing,
                     staff=staff,
@@ -528,12 +549,12 @@ def autosave_timesheet_view(request):
                     description=description,
                     hours=hours,
                     items=entry_data.get("items"),
-                    minutes_per_item=Decimal(entry_data.get("mins_per_item", 0)),
+                    minutes_per_item=minutes_per_item_val,
                     is_billable=entry_data.get("is_billable", True),
                     note=entry_data.get("notes", ""),
                     wage_rate_multiplier=RateType(entry_data["rate_type"]).multiplier,
                     wage_rate=staff.wage_rate,
-                    charge_out_rate=Decimal(str(job_data.get("charge_out_rate", 0))),
+                    charge_out_rate=charge_out_rate_val,
                 )
 
                 updated_entries.append(entry)
@@ -592,4 +613,3 @@ def autosave_timesheet_view(request):
         return JsonResponse(
             {"error": str(e), "messages": extract_messages(request)}, status=500
         )
-        

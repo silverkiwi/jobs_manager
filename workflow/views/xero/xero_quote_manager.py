@@ -12,7 +12,8 @@ from .xero_base_manager import XeroDocumentManager
 from .xero_helpers import format_date # Assuming format_date is needed
 
 # Import models
-from workflow.models import Quote, Job, Client # Add Job, Client if needed by methods
+from workflow.models import Quote, Client
+from job.models import Job
 from workflow.enums import QuoteStatus
 from xero_python.accounting.models import LineItem, Quote as XeroQuote
 from xero_python.exceptions import AccountingBadRequestException # If specific exceptions handled

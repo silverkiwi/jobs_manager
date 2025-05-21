@@ -9,14 +9,17 @@ from django.http import JsonResponse
 from xero_python.accounting import AccountingApi
 from xero_python.accounting.models import Contact
 
+from django.utils import timezone
+
 # Import models used in type hints or logic
+from job.models import Job
+from workflow.models import Client
 
 # Type hints will use string literals to avoid circular imports
 # from .xero_invoice_manager import XeroInvoiceManager
 # from .xero_quote_manager import XeroQuoteManager
 # from .xero_po_manager import XeroPurchaseOrderManager
 
-from workflow.models import Job, Client
 from workflow.api.xero.xero import api_client, get_tenant_id
 from .xero_helpers import clean_payload, convert_to_pascal_case # Import helpers
 
@@ -293,4 +296,3 @@ class XeroDocumentManager(ABC):
         except Exception as e:
             logger.error(f"Failed to sync document {xero_id}: {str(e)}")
             return (False, "sync_failed")
-    

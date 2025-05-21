@@ -11,7 +11,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Table, TableStyle
 
-from workflow.models import Job
+from job.models import Job
 from workflow.utils import extract_messages
 
 logger = logging.getLogger(__name__)

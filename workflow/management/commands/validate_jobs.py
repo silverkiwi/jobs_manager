@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.db.models import Count, Q
-from workflow.models import Job, JobPricing
+from job.models import Job, JobPricing
 from workflow.enums import JobPricingStage
 
 
@@ -88,4 +88,4 @@ class Command(BaseCommand):
                     f'\nSuccessfully deleted {deleted_jobs} jobs and {deleted_pricing} reality pricing entries'
                 ))
             else:
-                self.stdout.write('\nDeletion cancelled') 
+                self.stdout.write('\nDeletion cancelled')
