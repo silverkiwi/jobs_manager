@@ -18,6 +18,7 @@ export function createXeroDocument(jobId, type, buttonEl) {
   if (!jobId) {
     console.error("Job ID is missing");
     renderMessages([{ level: "error", message: "Job id is missing!" }]);
+    buttonEl.innerHTML = originalText;
     return;
   }
 
@@ -35,30 +36,18 @@ export function createXeroDocument(jobId, type, buttonEl) {
   })
     .then(async (response) => {
       if (!response.ok) {
-        return response.json().then((data) => {
-          if (data.redirect_to_auth) {
-            renderMessages([
-              {
-                level: "error",
-                message:
-                  "Your Xero session ended. Redirecting you to Xero login...",
-              },
-            ]);
-            // Redirect if needed
-            return;
-          }
-          throw new Error(data.message || "Failed to create document.");
-        });
+        const errorData = await response.json().catch(() => null); // Gracefully handle non-JSON responses
+        const errorMessage = errorData?.message || `Request failed with status ${response.status}. Please check logs.`;
+        throw new Error(errorMessage);
       }
       return response.json();
     })
     .then((data) => {
       if (!data || !data.success) {
-        console.error("Document creation failed:", data?.messages);
+        console.error("Document creation failed:", data?.message || data?.messages);
         renderMessages(
-          data?.messages || [
-            { level: "error", message: "Failed to create document." },
-          ],
+          data?.messages || // If data.messages (array) is provided, use it
+          [{ level: "error", message: data?.message || "Failed to create document. Please check logs." }],
         );
         return;
       }
@@ -88,7 +77,7 @@ export function createXeroDocument(jobId, type, buttonEl) {
     .catch((error) => {
       console.error("Error creating Xero document:", error);
       renderMessages([
-        { level: "error", message: `An error occurred: ${error.message}` },
+        { level: "error", message: error.message || "An unexpected error occurred. Please check logs." },
       ]);
     })
     .finally(() => {
@@ -169,24 +158,21 @@ export function deleteXeroDocument(jobId, type, buttonEl) {
       "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
     },
   })
-    .then((response) => {
+    .then(async (response) => {
       if (!response.ok) {
-        return response.json().then((data) => {
-          if (data.redirect_to_auth) {
-            // Redirect if needed
-            return;
-          }
-          throw new Error(data.message || "Failed to delete document.");
-        });
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.message || `Request failed with status ${response.status}. Please check logs.`;
+        throw new Error(errorMessage);
       }
       return response.json();
     })
     .then((data) => {
       if (!data || !data.success) {
+        console.error("Document deletion failed:", data?.message || data?.messages);
         renderMessages(
-          data?.messages || [
-            { level: "error", message: "Failed to delete document." },
-          ],
+          data?.messages || 
+          [{ level: "error", message: data?.message || "Failed to delete document. Please check logs." }],
+           "toast-container"
         );
         return;
       }
@@ -196,7 +182,7 @@ export function deleteXeroDocument(jobId, type, buttonEl) {
     .catch((error) => {
       console.error("Error deleting Xero document:", error);
       renderMessages([
-        { level: "error", message: `An error occurred: ${error.message}` },
+        { level: "error", message: error.message || "An unexpected error occurred. Please check logs." },
       ], "toast-container");
     })
     .finally(() => {
