@@ -7,17 +7,14 @@ from dotenv import load_dotenv
 from rest_framework import serializers
 from rest_framework.test import APITestCase
 
-from workflow.enums import JobPricingType
-from workflow.models import (
-    AdjustmentEntry,
-    Job,
-    JobFile,
-    JobPricing,
-    MaterialEntry,
-    TimeEntry,
-)
-from workflow.serializers.job_pricing_serializer import JobPricingSerializer
-from workflow.serializers.job_serializer import JobSerializer
+from job.enums import JobPricingType
+
+from job.models import Job, JobFile, MaterialEntry, AdjustmentEntry
+
+from timesheet.models import TimeEntry
+
+from job.serializers.job_pricing_serializer import JobPricingSerializer
+from job.serializers.job_serializer import JobSerializer
 
 django.setup()  # Force initialization
 load_dotenv()

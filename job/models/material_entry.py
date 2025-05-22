@@ -1,13 +1,7 @@
-# material_entry.py
-from django.utils import timezone
 import uuid
 from decimal import Decimal
 
 from django.db import models
-
-from .company_defaults import CompanyDefaults
-from .purchase import PurchaseOrderLine
-from job.models import JobPricing
 
 
 class MaterialEntry(models.Model):
@@ -15,7 +9,7 @@ class MaterialEntry(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job_pricing = models.ForeignKey(
-        JobPricing,
+        "JobPricing",
         on_delete=models.CASCADE,
         null=False,
         blank=False,
@@ -38,7 +32,7 @@ class MaterialEntry(models.Model):
         max_digits=10, decimal_places=2, null=False, default=0
     )
     source_stock = models.ForeignKey(
-        'Stock',
+        "workflow.Stock",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -46,7 +40,7 @@ class MaterialEntry(models.Model):
         help_text="The Stock item consumed to create this entry"
     )
     purchase_order_line = models.ForeignKey(
-        PurchaseOrderLine,
+        "workflow.PurchaseOrderLine",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -59,6 +53,7 @@ class MaterialEntry(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+        db_table = "workflow_materialentry"
 
     @property
     def cost(self) -> Decimal:

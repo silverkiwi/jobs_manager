@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from workflow.models import AdjustmentEntry
+from job.models import AdjustmentEntry
 
 
 class AdjustmentEntrySerializer(serializers.ModelSerializer):

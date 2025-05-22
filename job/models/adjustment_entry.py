@@ -1,10 +1,6 @@
-# adjustment_entry.py
-
-from django.utils import timezone
 import uuid
 
 from django.db import models
-from job.models import JobPricing
 
 
 class AdjustmentEntry(models.Model):
@@ -12,7 +8,7 @@ class AdjustmentEntry(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job_pricing = models.ForeignKey(
-        JobPricing,  # Usando o modelo real agora
+        "JobPricing",
         on_delete=models.CASCADE,
         null=False,
         blank=False,
@@ -33,6 +29,7 @@ class AdjustmentEntry(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+        db_table = "workflow_adjustmententry"
 
     def __str__(self):
         return (
