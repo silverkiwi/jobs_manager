@@ -196,8 +196,12 @@ function createJobCard(job) {
 // Initialize SortableJS to allow moving jobs between columns
 function initializeDragAndDrop() {
   document.querySelectorAll(".job-list").forEach((container) => {
-    new Sortable(container, {
-      group: "shared",
+    // Destroy existing instance if any, to prevent duplicates
+    if (container.sortableJobsInstance) {
+      container.sortableJobsInstance.destroy();
+    }
+    container.sortableJobsInstance = new Sortable(container, {
+      group: "jobGroup",
       animation: 150,
       ghostClass: "sortable-ghost",
       chosenClass: "sortable-drag",
@@ -340,16 +344,17 @@ function setupToggleArchived() {
 
   toggleButton.addEventListener("click", () => {
     archivedVisible = !archivedVisible;
+    const icon = toggleButton.querySelector("i");
 
     switch (archivedVisible) {
       case true:
         archiveContainer.style.display = "grid";
-        this.querySelector("i").className = "bi bi-chevron-up";
+        if (icon) icon.className = "bi bi-chevron-up";
         loadJobs("archived");
         break;
       default:
         archiveContainer.style.display = "none";
-        this.querySelector("i").className = "bi bi-chevron-down";
+        if (icon) icon.className = "bi bi-chevron-down";
         break;
     }
   });
@@ -370,7 +375,8 @@ function fetchAvailableStaff() {
     })
     .then(({ data, ok }) => {
       if (!ok) {
-        throw new Error("Error while trying to fetch available staff users: ", e);
+        const errorMessage = data && data.detail ? data.detail : "Unknown error fetching staff.";
+        throw new Error(`Error while trying to fetch available staff users: ${errorMessage}`);
       }
 
       renderStaffPanel(data);
@@ -378,6 +384,7 @@ function fetchAvailableStaff() {
     })
     .catch(error => {
       console.error(error);
+      renderMessages([{ level: "danger", message: "Could not load team members." }]);
     });
 }
 
@@ -439,67 +446,58 @@ function generateAvatar(staff) {
 }
 
 function initializeStaffDragAndDrop() {
-  const staffItems = document.querySelectorAll(".draggable-staff");
-  staffItems.forEach(item => {
-    new Sortable(item.parentElement, {
+  const staffPanelList = document.querySelector("#staff-panel .staff-list");
+  if (staffPanelList) {
+    if (staffPanelList.sortableStaffPoolInstance) {
+      staffPanelList.sortableStaffPoolInstance.destroy();
+    }
+    staffPanelList.sortableStaffPoolInstance = new Sortable(staffPanelList, {
       group: {
-        name: "staff",
+        name: "staffPool",
         pull: "clone",
-        put: true
+        put: ["staffOnJob"]
       },
       sort: false,
       animation: 150,
-      ghostClass: "staff-ghost",
-      chosenClass: "staff-chosen",
-      dragClass: "staff-drag",
-      onStart: function () {
-        const card = evt.item.closest(".job-card");
-        if (card) evt.item.dataset.originJobId = card.dataset.id;
-      },
       onAdd: function (evt) {
-        const originCard = evt.from.closest(".job-card");
-        let jobId;
-
-        if (originCard) {
-          jobId = originCard.dataset.id;
-        } else if (evt.item.dataset.originJobId) {
-          jobId = evt.item.dataset.originJobId;
-        } else {
-          console.card.error("No job ID found for the dragged staff item.");
-          return;
-        }
-
         const staffId = evt.item.dataset.staffId;
+        const fromJobCardElement = evt.from.closest(".job-card");
+
+        if (fromJobCardElement) {
+          const jobId = fromJobCardElement.dataset.id;
+          console.log(`Staff ${staffId} returned to pool from job ${jobId}.`);
+          removeStaffFromJob(jobId, staffId);
+        }
         evt.item.remove();
-        removeStaffFromJob(jobId, staffId);
-      },
-      onEnd: function () { }
+      }
     });
-  });
+  }
 
-  const jobLists = document.querySelectorAll(".job-list");
-  jobLists.forEach(list => {
-    list.querySelectorAll(".job-card").forEach(card => {
-      const staffContainer = card.querySelector(".job-assigned-staff");
 
-      if (!staffContainer) return;
-
-      new Sortable(staffContainer, {
+  document.querySelectorAll(".job-card").forEach(card => {
+    const staffContainerOnJob = card.querySelector(".job-assigned-staff");
+    if (staffContainerOnJob) {
+      if (staffContainerOnJob.sortableOnJobInstance) {
+        staffContainerOnJob.sortableOnJobInstance.destroy();
+      }
+      staffContainerOnJob.sortableOnJobInstance = new Sortable(staffContainerOnJob, {
         group: {
-          name: "staff",
+          name: "staffOnJob",
           pull: true,
-          put: true
+          put: ["staffPool", "staffOnJob"]
         },
         animation: 150,
         onAdd: function (evt) {
           const staffId = evt.item.getAttribute("data-staff-id");
           const jobId = evt.to.closest(".job-card").getAttribute("data-id");
+          
+          const fromStaffPool = evt.from.isEqualNode(staffPanelList);
 
-          evt.item.remove();
+          console.log(`Staff ${staffId} added/moved to job ${jobId}. From pool: ${fromStaffPool}`);
           assignStaffToJob(jobId, staffId);
         }
       });
-    })
+    }
   });
 }
 
@@ -517,7 +515,7 @@ function assignStaffToJob(jobId, staffId) {
   })
     .then(response => response.json())
     .then(data => {
-      if (!data.success) throw new Error(data.error);
+      if (!data.success) throw new Error(data.error || "Failed to assign staff.");
       const columns = document.querySelectorAll(".kanban-column");
       const columnIds = Array.from(columns).map((col) => col.id);
 
@@ -527,7 +525,7 @@ function assignStaffToJob(jobId, staffId) {
     })
     .catch(error => {
       console.error("Error assigning staff:", error);
-      renderMessages([{ level: "danger", message: `Error assigning staff to job ${jobId}` + error }]);
+      renderMessages([{ level: "danger", message: `Error assigning staff: ${error.message || error}` }]);
     });
 }
 
@@ -541,9 +539,17 @@ function removeStaffFromJob(jobId, staffId) {
     body: JSON.stringify({ job_id: jobId, staff_id: staffId })
   })
     .then(r => r.json())
-    .then(data => data.success ? refreshAllColumns()
-      : renderMessages([{ level: "danger", message: data.error }]))
-    .catch(err => console.error(err));
+    .then(data => {
+      if (data.success) {
+        refreshAllColumns();
+      } else {
+        renderMessages([{ level: "danger", message: data.error || "Failed to remove staff." }]);
+      }
+    })
+    .catch(err => {
+      console.error("Error removing staff:", err);
+      renderMessages([{ level: "danger", message: `Error removing staff: ${err.message || err}` }]);
+    });
 }
 
 let activeStaffFilters = [];
