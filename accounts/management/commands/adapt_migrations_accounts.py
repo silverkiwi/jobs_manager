@@ -33,7 +33,7 @@ class Command(BaseCommand):
                 return
             
             # Get the date of admin.0001_initial migration
-            cursor.execute("SELECT applied FROM django_migrations WHERE app='admin' AND name='0001_initial'")
+            cursor.execute("SELECT applied FROM django_migrations WHERE app='auth' AND name='0001_initial'")
             result = cursor.fetchone()
             if not result:
                 self.stdout.write(self.style.ERROR('admin.0001_initial migration not found in the database'))

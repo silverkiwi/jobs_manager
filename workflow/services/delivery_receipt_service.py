@@ -5,8 +5,7 @@ import logging
 
 from workflow.models.purchase import PurchaseOrder, PurchaseOrderLine
 from workflow.models.stock import Stock
-from job.models import Job, JobPricing
-from workflow.models.material_entry import MaterialEntry
+from job.models import Job, MaterialEntry
 
 logger = logging.getLogger(__name__)
 
