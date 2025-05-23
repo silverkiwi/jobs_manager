@@ -101,6 +101,7 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
                 ],
                 "status": job.get_status_display(),
                 "paid": job.paid,
+                "created_by_id": job.created_by.id if job.created_by else None,
             }
             for job in jobs
         ]

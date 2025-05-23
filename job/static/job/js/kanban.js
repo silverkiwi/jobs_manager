@@ -132,6 +132,7 @@ function createJobCard(job) {
   card.setAttribute("data-client-name", job.client_name ? job.client_name : "");
   card.setAttribute("data-job-description", job.description || "");
   card.setAttribute("data-job-number", job.job_number);
+  card.setAttribute("data-created-by-id", job.created_by_id || "");
 
   card.setAttribute("data-assigned-staff", JSON.stringify(job.people || []));
 
@@ -582,24 +583,52 @@ function applyStaffFilters() {
     document.querySelectorAll(".job-card").forEach(card => {
       card.style.display = "";
     });
+    // Ensure the main search filter is reapplied if it exists
+    filterJobs(); 
+    updateColumnCounts();
     return;
   }
 
   document.querySelectorAll(".job-card").forEach(card => {
     const assignedStaffJson = card.getAttribute("data-assigned-staff");
-    let assignedStaff = [];
+    const createdById = card.getAttribute("data-created-by-id");
+    let assignedStaffIds = [];
 
     try {
-      assignedStaff = JSON.parse(assignedStaffJson || '[]');
+      // Parse assigned staff which is an array of objects, map to their IDs
+      const staffObjects = JSON.parse(assignedStaffJson || '[]');
+      assignedStaffIds = staffObjects.map(staff => staff.id.toString());
     } catch (e) {
       console.error("Error parsing assigned staff:", e);
     }
 
-    const hasMatchingStaff = assignedStaff.some(staff => 
-      activeStaffFilters.includes(staff.id.toString())
+    // A job is visible if any of the active staff filters match an assigned staff member
+    // OR if any of the active staff filters match the creator of the job.
+    const isAssignedToActiveStaff = assignedStaffIds.some(staffId => 
+      activeStaffFilters.includes(staffId)
     );
+    
+    const isCreatedByActiveStaff = createdById ? activeStaffFilters.includes(createdById.toString()) : false;
 
-    card.style.display = hasMatchingStaff ? "" : "none";
+    // Card should be visible if it matches the general search term (if any)
+    // AND (it's assigned to an active staff filter OR created by an active staff filter)
+    const searchTerm = document.getElementById("search").value.toLowerCase();
+    const combinedText = [
+      card.dataset.jobName,
+      card.dataset.jobDescription,
+      card.dataset.clientName,
+      card.dataset.jobNumber,
+    ]
+      .join(" ")
+      .toLowerCase();
+    
+    const matchesGeneralSearch = searchTerm ? combinedText.includes(searchTerm) : true;
+
+    if (matchesGeneralSearch && (isAssignedToActiveStaff || isCreatedByActiveStaff)) {
+      card.style.display = "";
+    } else {
+      card.style.display = "none";
+    }
   });
 
   updateColumnCounts();
