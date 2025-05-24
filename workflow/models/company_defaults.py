@@ -1,7 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
-
 class CompanyDefaults(models.Model):
     company_name = models.CharField(max_length=255, primary_key=True)
     is_primary = models.BooleanField(default=True, unique=True)
@@ -16,10 +15,11 @@ class CompanyDefaults(models.Model):
 
     starting_job_number = models.IntegerField(default=1, help_text="Helper field to set the starting job number based on the latest paper job")
     starting_po_number = models.IntegerField(default=1, help_text="Helper field to set the starting purchase order number")
+    po_prefix = models.CharField(max_length=10, default="PO-", help_text="Prefix for purchase order numbers (e.g., PO-, JO-)")
 
     # Xero integration
     xero_tenant_id = models.CharField(max_length=100, null=True, blank=True, help_text="The Xero tenant ID to use for this company")
-    
+
     # (DEPRECATED) LLM integration
     anthropic_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="(DEPRECATED) API key for Anthropic Claude LLM")
     gemini_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="(DEPRECATED) API key for Google Gemini LLM")
@@ -88,7 +88,7 @@ class CompanyDefaults(models.Model):
         """
         with transaction.atomic():
             return cls.objects.get()
-    
+
     def get_active_ai_provider(self):
         return self.ai_providers.filter(active=True).first()
 
