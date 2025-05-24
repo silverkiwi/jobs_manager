@@ -1412,6 +1412,131 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize historical navigation
   initHistoricalNavigation();
+
+  function populateContactPersonDropdown(clientId, currentContactName, currentContactEmail) {
+    const contactSelect = document.getElementById('job_contact_select');
+    const contactNameHidden = document.getElementById('contact_person_name_hidden');
+    const contactEmailHidden = document.getElementById('contact_person_email_hidden');
+    const manageXeroContactsButton = document.getElementById('manage_xero_contact_persons_button');
+
+    contactSelect.innerHTML = '<option value="">Loading contacts...</option>'; // Clear and set loading
+    manageXeroContactsButton.style.display = 'none';
+
+
+    if (!clientId) {
+        contactSelect.innerHTML = '<option value="">--- Select a Client First ---</option>';
+        contactNameHidden.value = '';
+        contactEmailHidden.value = '';
+        // debouncedAutosave(); // Trigger save if client is cleared
+        return;
+    }
+
+    fetch(`/api/client/${clientId}/contact-persons/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(contactPersons => {
+            contactSelect.innerHTML = ''; // Clear loading/previous options
+
+            if (contactPersons.length === 0) {
+                contactSelect.innerHTML = '<option value="">--- No contact persons found ---</option>';
+                // Optionally clear hidden fields if no contacts, or leave them if a value was previously saved
+                // contactNameHidden.value = '';
+                // contactEmailHidden.value = '';
+            } else {
+                contactSelect.appendChild(new Option('--- Select Contact Person ---', ''));
+
+                let preselectEmail = null;
+
+                contactPersons.forEach(person => {
+                    const option = new Option(`${person.name} (${person.email || 'No email'})`, person.email);
+                    option.dataset.contactName = person.name;
+                    contactSelect.appendChild(option);
+                });
+
+                // Pre-selection logic
+                if (contactPersons.length === 1) {
+                    preselectEmail = contactPersons[0].email;
+                } else if (currentContactEmail) {
+                    // Try to preselect based on currently saved job contact email
+                    const existingContact = contactPersons.find(p => p.email === currentContactEmail && p.name === currentContactName);
+                    if (existingContact) {
+                        preselectEmail = currentContactEmail;
+                    }
+                }
+                
+                if (preselectEmail) {
+                    contactSelect.value = preselectEmail;
+                }
+            }
+            // Trigger change to update hidden fields based on (pre)selection
+            contactSelect.dispatchEvent(new Event('change'));
+            
+            // Show the Xero management button
+            const clientXeroIdField = document.getElementById('client_xero_id');
+            if (clientXeroIdField && clientXeroIdField.value) {
+                 manageXeroContactsButton.style.display = 'inline-block';
+                 manageXeroContactsButton.dataset.xeroContactId = clientXeroIdField.value;
+            }
+
+        })
+        .catch(error => {
+            console.error('Error fetching contact persons:', error);
+            contactSelect.innerHTML = '<option value="">Error loading contacts</option>';
+        });
+}
+
+  const contactSelect = document.getElementById('job_contact_select');
+  const contactNameHidden = document.getElementById('contact_person_name_hidden');
+  const contactEmailHidden = document.getElementById('contact_person_email_hidden');
+  const manageXeroContactsButton = document.getElementById('manage_xero_contact_persons_button');
+
+  // Listener for client selection from client_lookup.js
+  document.addEventListener('jobClientSelected', function (e) {
+      const clientId = e.detail.clientId;
+      // Pass current saved values for pre-selection attempt
+      populateContactPersonDropdown(clientId, contactNameHidden.value, contactEmailHidden.value);
+  });
+
+  // Listener for when client is cleared (e.g., name manually changed)
+  document.addEventListener('jobClientCleared', function () {
+      populateContactPersonDropdown(null, null, null); // Pass null to clear dropdown
+  });
+
+
+  if (contactSelect) {
+      contactSelect.addEventListener('change', function () {
+          const selectedOption = this.options[this.selectedIndex];
+          if (selectedOption && selectedOption.value) {
+              contactNameHidden.value = selectedOption.dataset.contactName || selectedOption.text.split(' (')[0]; // Fallback if data-contact-name is not set
+              contactEmailHidden.value = selectedOption.value;
+          } else {
+              contactNameHidden.value = '';
+              contactEmailHidden.value = '';
+          }
+          debouncedAutosave(); // Trigger autosave when contact person changes
+      });
+  }
+  
+  if (manageXeroContactsButton) {
+      manageXeroContactsButton.addEventListener('click', function() {
+          const xeroContactId = this.dataset.xeroContactId;
+          if (xeroContactId) {
+              window.open(`https://go.xero.com/Contacts/View.aspx?contactID=${xeroContactId}`, '_blank');
+          } else {
+              alert('Client Xero ID not found. Please select a client synced with Xero.');
+          }
+      });
+  }
+
+  // Initial population if a client is already selected on page load
+  const initialClientId = document.getElementById('client_id')?.value;
+  if (initialClientId) {
+      populateContactPersonDropdown(initialClientId, contactNameHidden.value, contactEmailHidden.value);
+  }
 });
 
 function getAllRowData(gridApi) {

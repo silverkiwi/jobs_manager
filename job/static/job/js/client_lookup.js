@@ -69,6 +69,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Trigger autosave
       debouncedAutosave();
+
+      // Dispatch a custom event with client details for other listeners
+      const clientSelectedEvent = new CustomEvent('jobClientSelected', {
+        detail: {
+          clientId: event.data.clientId,
+          clientName: event.data.clientName,
+          xeroContactId: event.data.xeroContactId
+        }
+      });
+      document.dispatchEvent(clientSelectedEvent);
     }
   });
 
@@ -83,6 +93,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
   clientInput.addEventListener("input", function () {
     const query = clientInput.value.trim();
+    const clientIdField = document.getElementById("client_id"); // Get client_id field
+    const clientXeroIdField = document.getElementById("client_xero_id"); // Get client_xero_id field
+
+    // Clear client_id and xero_contact_id when client_name is manually changed
+    if (clientIdField) clientIdField.value = "";
+    if (clientXeroIdField) clientXeroIdField.value = "";
+
+    // Dispatch event to clear contact persons dropdown
+    document.dispatchEvent(new CustomEvent('jobClientCleared'));
 
     if (query.length > 2) {
       fetch(`/api/client-search/?q=${encodeURIComponent(query)}`, {
@@ -149,9 +168,9 @@ document.addEventListener("DOMContentLoaded", function () {
           const clientNameField = document.getElementById("client_name");
           const clientXeroIdField = document.getElementById("client_xero_id");
 
-          clientIdField.value = client.id;
-          clientNameField.value = client.name;
-          clientXeroIdField.value = client.xero_contact_id;
+          if (clientIdField) clientIdField.value = client.id; // Ensure this is being set
+          if (clientNameField) clientNameField.value = client.name; // Ensure this is being set
+          if (clientXeroIdField) clientXeroIdField.value = client.xero_contact_id; // Ensure this is being set
 
           if (
             !clientIdField.value ||
@@ -172,6 +191,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
           debouncedAutosave();
           hideDropdown();
+
+          // Dispatch a custom event with client details for other listeners
+          const clientSelectedEvent = new CustomEvent('jobClientSelected', {
+            detail: {
+              clientId: client.id,
+              clientName: client.name,
+              xeroContactId: client.xero_contact_id
+            }
+          });
+          document.dispatchEvent(clientSelectedEvent);
         });
 
         suggestionsContainer.appendChild(suggestionItem);
@@ -182,8 +211,10 @@ document.addEventListener("DOMContentLoaded", function () {
     addNewOption.classList.add("suggestion-item", "add-new-client");
     addNewOption.textContent = `Add new client "${query}"`;
     addNewOption.addEventListener("click", function () {
+      const currentClientName = clientInput.value.trim(); // Get current name from input
       const newWindow = window.open(
-        `/client/add/?name=${encodeURIComponent(query)}`,
+        // Pass current name to the add client form
+        `/client/add/?name=${encodeURIComponent(currentClientName)}`,
         "_blank",
       );
       if (newWindow) {
