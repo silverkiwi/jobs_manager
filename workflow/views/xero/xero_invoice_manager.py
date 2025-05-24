@@ -18,7 +18,7 @@ from workflow.models import Invoice, Client
 from job.models import Job
 from workflow.enums import InvoiceStatus, JobPricingType
 from xero_python.accounting.models import LineItem, Invoice as XeroInvoice
-from xero_python.exceptions import AccountingBadRequestException # If specific exceptions handled
+from xero_python.exceptions import AccountingBadRequestException, ApiException # If specific exceptions handled
 
 logger = logging.getLogger("xero")
 
@@ -164,95 +164,137 @@ class XeroInvoiceManager(XeroDocumentManager):
 
     def create_document(self):
         """Creates an invoice, processes response, and stores it in the database."""
-        # Calls the base class create_document to handle API call
-        response = super().create_document()
+        try:
+            # Calls the base class create_document to handle API call
+            response = super().create_document()
 
-        if response and response.invoices:
-            xero_invoice_data = response.invoices[0]
-            xero_invoice_id = getattr(xero_invoice_data, 'invoice_id', None)
-            if not xero_invoice_id:
-                 logger.error("Xero response missing invoice_id.")
-                 raise ValueError("Xero response missing invoice_id.")
+            if response and response.invoices:
+                xero_invoice_data = response.invoices[0]
+                xero_invoice_id = getattr(xero_invoice_data, 'invoice_id', None)
+                if not xero_invoice_id:
+                     logger.error("Xero response missing invoice_id.")
+                     raise ValueError("Xero response missing invoice_id.")
 
-            invoice_url = f"https://go.xero.com/app/invoicing/edit/{xero_invoice_id}"
-            invoice_number = getattr(xero_invoice_data, 'invoice_number', None)
+                invoice_url = f"https://go.xero.com/app/invoicing/edit/{xero_invoice_id}"
+                invoice_number = getattr(xero_invoice_data, 'invoice_number', None)
 
-            # Store raw response for debugging
-            invoice_json = json.dumps(xero_invoice_data.to_dict(), default=str)
+                # Store raw response for debugging
+                invoice_json = json.dumps(xero_invoice_data.to_dict(), default=str)
 
-            # Create local Invoice record
-            invoice = Invoice.objects.create(
-                xero_id=xero_invoice_id,
-                job=self.job,
-                client=self.client,
-                number=invoice_number,
-                date=timezone.now().date(), # Use current date for management
-                due_date=(timezone.now().date() + timedelta(days=30)), # Assuming 30 day terms
-                status=InvoiceStatus.SUBMITTED, # Set local status
-                # Use getattr with defaults for safety
-                total_excl_tax=Decimal(getattr(xero_invoice_data, 'sub_total', 0)),
-                tax=Decimal(getattr(xero_invoice_data, 'total_tax', 0)),
-                total_incl_tax=Decimal(getattr(xero_invoice_data, 'total', 0)),
-                amount_due=Decimal(getattr(xero_invoice_data, 'amount_due', 0)),
-                xero_last_synced=timezone.now(),
-                xero_last_modified=timezone.now(), # Use current time as approximation
-                online_url=invoice_url,
-                raw_json=invoice_json,
-            )
+                # Create local Invoice record
+                invoice = Invoice.objects.create(
+                    xero_id=xero_invoice_id,
+                    job=self.job,
+                    client=self.client,
+                    number=invoice_number,
+                    date=timezone.now().date(), # Use current date for management
+                    due_date=(timezone.now().date() + timedelta(days=30)), # Assuming 30 day terms
+                    status=InvoiceStatus.SUBMITTED, # Set local status
+                    # Use getattr with defaults for safety
+                    total_excl_tax=Decimal(getattr(xero_invoice_data, 'sub_total', 0)),
+                    tax=Decimal(getattr(xero_invoice_data, 'total_tax', 0)),
+                    total_incl_tax=Decimal(getattr(xero_invoice_data, 'total', 0)),
+                    amount_due=Decimal(getattr(xero_invoice_data, 'amount_due', 0)),
+                    xero_last_synced=timezone.now(),
+                    xero_last_modified=timezone.now(), # Use current time as approximation
+                    online_url=invoice_url,
+                    raw_json=invoice_json,
+                )
 
-            logger.info(f"Invoice {invoice.id} created successfully for job {self.job.id}")
+                logger.info(f"Invoice {invoice.id} created successfully for job {self.job.id}")
 
-            # Return success details for the view
-            return JsonResponse(
-                {
-                    "success": True,
-                    "invoice_id": str(invoice.id), # Return local ID
-                    "xero_id": str(xero_invoice_id),
-                    "client": self.client.name,
-                    "total_excl_tax": str(invoice.total_excl_tax),
-                    "total_incl_tax": str(invoice.total_incl_tax),
-                    "invoice_url": invoice_url,
-                }
-            )
-        else:
-            # Handle API failure or unexpected response
-            error_msg = "No invoices found in the Xero response or failed to create invoice."
-            logger.error(error_msg)
-            # Attempt to extract more details if possible
-            if response and hasattr(response, 'elements') and response.elements:
-                 first_element = response.elements[0]
-                 if hasattr(first_element, 'validation_errors') and first_element.validation_errors:
-                     error_msg = "; ".join([err.message for err in first_element.validation_errors])
-                 elif hasattr(first_element, 'message'):
-                      error_msg = first_element.message
+                # Return success details for the view
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "invoice_id": str(invoice.id), # Return local ID
+                        "xero_id": str(xero_invoice_id),
+                        "client": self.client.name,
+                        "total_excl_tax": str(invoice.total_excl_tax),
+                        "total_incl_tax": str(invoice.total_incl_tax),
+                        "invoice_url": invoice_url,
+                    }
+                )
+            else:
+                # Handle API failure or unexpected response
+                error_msg = "No invoices found in the Xero response or failed to create invoice."
+                logger.error(error_msg)
+                # Attempt to extract more details if possible
+                if response and hasattr(response, 'elements') and response.elements:
+                     first_element = response.elements[0]
+                     if hasattr(first_element, 'validation_errors') and first_element.validation_errors:
+                         error_msg = "; ".join([err.message for err in first_element.validation_errors])
+                     elif hasattr(first_element, 'message'):
+                          error_msg = first_element.message
 
-            return JsonResponse(
-                {"success": False, "error": error_msg},
-                status=400, # Use 400 for API/validation errors
-            )
+                return JsonResponse(
+                    {"success": False, "message": error_msg}, # Changed "error" to "message"
+                    status=400, 
+                )
+        except AccountingBadRequestException as e:
+            logger.error(f"Xero API BadRequest during invoice creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
+            error_message = f"Xero Error ({e.status}): {e.reason}"
+            try:
+                if e.body:
+                    error_body = json.loads(e.body)
+                    if "Message" in error_body:
+                        error_message = error_body["Message"]
+                    elif "Elements" in error_body and error_body.get("Elements") and isinstance(error_body["Elements"], list) and len(error_body["Elements"]) > 0:
+                        element = error_body["Elements"][0]
+                        if "ValidationErrors" in element and element.get("ValidationErrors") and isinstance(element["ValidationErrors"], list) and len(element["ValidationErrors"]) > 0:
+                            error_message = element["ValidationErrors"][0].get("Message", error_message)
+                        elif "Message" in element:
+                             error_message = element.get("Message", error_message)
+            except (json.JSONDecodeError, KeyError, IndexError, TypeError) as parse_error:
+                logger.error(f"Could not parse detailed error from Xero BadRequestException body for invoice: {parse_error}. Body: {e.body}")
+            return JsonResponse({"success": False, "message": error_message}, status=e.status)
+        except ApiException as e:
+            logger.error(f"Xero API Exception during invoice creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
+            return JsonResponse({"success": False, "message": f"Xero API Error: {e.reason}"}, status=e.status)
+        except Exception as e:
+            logger.exception(f"Unexpected error during invoice creation for job {self.job.id if self.job else 'Unknown'}")
+            return JsonResponse({"success": False, "message": "An unexpected error occurred while creating the invoice with Xero."}, status=500)
 
     def delete_document(self):
         """Deletes an invoice in Xero and locally."""
-        # Calls the base class delete_document which handles the API call
-        response = super().delete_document()
+        try:
+            # Calls the base class delete_document which handles the API call
+            response = super().delete_document()
 
-        if response and response.invoices:
-             # Check if the response indicates successful deletion (e.g., status is DELETED)
-             xero_invoice_data = response.invoices[0]
-             if str(getattr(xero_invoice_data, 'status', '')).upper() == 'DELETED':
-                 # Delete local record only after confirming Xero deletion/update
-                 if hasattr(self.job, 'invoice') and self.job.invoice:
-                     local_invoice_id = self.job.invoice.id
-                     self.job.invoice.delete()
-                     logger.info(f"Invoice {local_invoice_id} deleted successfully for job {self.job.id}")
+            if response and response.invoices:
+                 # Check if the response indicates successful deletion (e.g., status is DELETED)
+                 xero_invoice_data = response.invoices[0]
+                 if str(getattr(xero_invoice_data, 'status', '')).upper() == 'DELETED':
+                     # Delete local record only after confirming Xero deletion/update
+                     if hasattr(self.job, 'invoice') and self.job.invoice:
+                         local_invoice_id = self.job.invoice.id
+                         self.job.invoice.delete()
+                         logger.info(f"Invoice {local_invoice_id} deleted successfully for job {self.job.id}")
+                     else:
+                          logger.warning(f"No local invoice found for job {self.job.id} to delete.")
+                     return JsonResponse({"success": True, "messages": [{"level": "success", "message": "Invoice deleted successfully."}]})
                  else:
-                      logger.warning(f"No local invoice found for job {self.job.id} to delete.")
-                 return JsonResponse({"success": True})
-             else:
-                  error_msg = "Xero response did not confirm invoice deletion."
-                  logger.error(f"{error_msg} Status: {getattr(xero_invoice_data, 'status', 'Unknown')}")
-                  return JsonResponse({"success": False, "error": error_msg}, status=400)
-        else:
-            error_msg = "No invoices found in the Xero response or failed to delete invoice."
-            logger.error(error_msg)
-            return JsonResponse({"success": False, "error": error_msg}, status=400)
+                      error_msg = "Xero response did not confirm invoice deletion."
+                      logger.error(f"{error_msg} Status: {getattr(xero_invoice_data, 'status', 'Unknown')}")
+                      return JsonResponse({"success": False, "message": error_msg}, status=400) # Changed "error" to "message"
+            else:
+                error_msg = "No invoices found in the Xero response or failed to delete invoice."
+                logger.error(error_msg)
+                return JsonResponse({"success": False, "message": error_msg}, status=400) # Changed "error" to "message"
+        except AccountingBadRequestException as e:
+            logger.error(f"Xero API BadRequest during invoice deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
+            error_message = f"Xero Error ({e.status}): {e.reason}"
+            try:
+                if e.body:
+                    error_body = json.loads(e.body)
+                    if "Message" in error_body:
+                        error_message = error_body["Message"]
+            except (json.JSONDecodeError, KeyError, TypeError) as parse_error:
+                logger.error(f"Could not parse detailed error from Xero BadRequestException body for invoice deletion: {parse_error}. Body: {e.body}")
+            return JsonResponse({"success": False, "message": error_message}, status=e.status)
+        except ApiException as e:
+            logger.error(f"Xero API Exception during invoice deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
+            return JsonResponse({"success": False, "message": f"Xero API Error: {e.reason}"}, status=e.status)
+        except Exception as e:
+            logger.exception(f"Unexpected error during invoice deletion for job {self.job.id if self.job else 'Unknown'}")
+            return JsonResponse({"success": False, "message": "An unexpected error occurred while deleting the invoice with Xero."}, status=500)

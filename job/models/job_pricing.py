@@ -3,7 +3,6 @@ import logging
 import uuid
 from decimal import Decimal
 
-from django.apps import apps
 from django.db import models, transaction
 
 from job.enums import JobPricingStage
@@ -107,34 +106,13 @@ class JobPricing(models.Model):
             + self.total_material_revenue
             + self.total_adjustment_revenue
         )
-
+    
     def save(self, *args, **kwargs):
-        from workflow.models import CompanyDefaults
-
         if self._state.adding:
-            company_defaults = CompanyDefaults.objects.first()
-            wage_rate = company_defaults.wage_rate
-            if not self.job.shop_job:  # Non-shop jobs
-                charge_out_rate = company_defaults.charge_out_rate
-            else:
-                charge_out_rate = 0.00
-
-            # Get the models we need
-            TimeEntry = apps.get_model("workflow", "TimeEntry")
-            MaterialEntry = apps.get_model("workflow", "MaterialEntry")
-            AdjustmentEntry = apps.get_model("workflow", "AdjustmentEntry")
-
             self.revision_number = 1
 
             # Save first so we have a primary key
             super().save(*args, **kwargs)
-
-            # # Create default entries - REMOVED to prevent automatic creation
-            # TimeEntry.objects.create(
-            #     job_pricing=self, wage_rate=wage_rate, charge_out_rate=charge_out_rate
-            # )
-            # MaterialEntry.objects.create(job_pricing=self)
-            # AdjustmentEntry.objects.create(job_pricing=self)
         else:
             # Normal save for existing instances
             super().save(*args, **kwargs)
@@ -202,11 +180,11 @@ class JobPricing(models.Model):
 
 # Not implemented yet - just putting this here to add in future design thinking
 def snapshot_and_add_time_entry(job_pricing, hours_worked):
-    from workflow.models import (  # Import the necessary models to avoid ciruclar
+    from job.models import (
         AdjustmentEntry,
         MaterialEntry,
-        TimeEntry,
     )
+    from timesheet.models import TimeEntry
 
     # Create a snapshot of the current JobPricing before modifying it
     snapshot_pricing = JobPricing.objects.create(

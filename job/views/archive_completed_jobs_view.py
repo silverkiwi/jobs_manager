@@ -14,7 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 
-from workflow.serializers.job_serializer import CompleteJobSerializer
+from job.serializers.job_serializer import CompleteJobSerializer
 from job.services.job_service import archive_complete_jobs, get_paid_complete_jobs
 
 logger = logging.getLogger(__name__)
