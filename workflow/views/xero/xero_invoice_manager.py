@@ -11,7 +11,7 @@ from workflow.models.xero_account import XeroAccount
 
 # Import base class and helpers
 from .xero_base_manager import XeroDocumentManager
-from .xero_helpers import format_date # Assuming format_date is needed
+from .xero_helpers import format_date, parse_xero_api_error_message # Assuming format_date is needed
 
 # Import models
 from workflow.models import Invoice, Client
@@ -216,44 +216,37 @@ class XeroInvoiceManager(XeroDocumentManager):
                     }
                 )
             else:
-                # Handle API failure or unexpected response
+                # Handle non-exception API failures (e.g., empty response)
                 error_msg = "No invoices found in the Xero response or failed to create invoice."
                 logger.error(error_msg)
                 # Attempt to extract more details if possible
                 if response and hasattr(response, 'elements') and response.elements:
                      first_element = response.elements[0]
                      if hasattr(first_element, 'validation_errors') and first_element.validation_errors:
-                         error_msg = "; ".join([err.message for err in first_element.validation_errors])
+                         error_msg = "; ".join([err.message for err in first_element.validation_errors if hasattr(err, 'message')])
                      elif hasattr(first_element, 'message'):
                           error_msg = first_element.message
 
                 return JsonResponse(
-                    {"success": False, "message": error_msg}, # Changed "error" to "message"
+                    {"success": False, "message": error_msg},
                     status=400, 
                 )
         except AccountingBadRequestException as e:
-            logger.error(f"Xero API BadRequest during invoice creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
-            error_message = f"Xero Error ({e.status}): {e.reason}"
-            try:
-                if e.body:
-                    error_body = json.loads(e.body)
-                    if "Message" in error_body:
-                        error_message = error_body["Message"]
-                    elif "Elements" in error_body and error_body.get("Elements") and isinstance(error_body["Elements"], list) and len(error_body["Elements"]) > 0:
-                        element = error_body["Elements"][0]
-                        if "ValidationErrors" in element and element.get("ValidationErrors") and isinstance(element["ValidationErrors"], list) and len(element["ValidationErrors"]) > 0:
-                            error_message = element["ValidationErrors"][0].get("Message", error_message)
-                        elif "Message" in element:
-                             error_message = element.get("Message", error_message)
-            except (json.JSONDecodeError, KeyError, IndexError, TypeError) as parse_error:
-                logger.error(f"Could not parse detailed error from Xero BadRequestException body for invoice: {parse_error}. Body: {e.body}")
+            logger.error(
+                f"Xero API BadRequest during invoice creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", 
+                exc_info=True
+            )
+            error_message = parse_xero_api_error_message(
+                exception_body=e.body,
+                default_message=f"Xero validation error ({e.status}): {e.reason}. Please contact support to check the data sent."
+            )
             return JsonResponse({"success": False, "message": error_message}, status=e.status)
         except ApiException as e:
             logger.error(f"Xero API Exception during invoice creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
             return JsonResponse({"success": False, "message": f"Xero API Error: {e.reason}"}, status=e.status)
         except Exception as e:
             logger.exception(f"Unexpected error during invoice creation for job {self.job.id if self.job else 'Unknown'}")
-            return JsonResponse({"success": False, "message": "An unexpected error occurred while creating the invoice with Xero."}, status=500)
+            return JsonResponse({"success": False, "message": f"An unexpected error occurred ({str(e)}) while creating the invoice with Xero. Please contact support to check the data sent."}, status=500)
 
     def delete_document(self):
         """Deletes an invoice in Xero and locally."""
@@ -282,19 +275,18 @@ class XeroInvoiceManager(XeroDocumentManager):
                 logger.error(error_msg)
                 return JsonResponse({"success": False, "message": error_msg}, status=400) # Changed "error" to "message"
         except AccountingBadRequestException as e:
-            logger.error(f"Xero API BadRequest during invoice deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
-            error_message = f"Xero Error ({e.status}): {e.reason}"
-            try:
-                if e.body:
-                    error_body = json.loads(e.body)
-                    if "Message" in error_body:
-                        error_message = error_body["Message"]
-            except (json.JSONDecodeError, KeyError, TypeError) as parse_error:
-                logger.error(f"Could not parse detailed error from Xero BadRequestException body for invoice deletion: {parse_error}. Body: {e.body}")
+            logger.error(
+                f"Xero API BadRequest during invoice deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", 
+                exc_info=True
+            )
+            error_message = parse_xero_api_error_message(
+                exception_body=e.body,
+                default_message=f"Xero validation error ({e.status}): {e.reason}. Please contact support to check the data sent during invoice deletion."
+            )
             return JsonResponse({"success": False, "message": error_message}, status=e.status)
         except ApiException as e:
             logger.error(f"Xero API Exception during invoice deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
             return JsonResponse({"success": False, "message": f"Xero API Error: {e.reason}"}, status=e.status)
         except Exception as e:
             logger.exception(f"Unexpected error during invoice deletion for job {self.job.id if self.job else 'Unknown'}")
-            return JsonResponse({"success": False, "message": "An unexpected error occurred while deleting the invoice with Xero."}, status=500)
+            return JsonResponse({"success": False, "message": f"An unexpected error occurred ({str(e)}) while deleting the invoice with Xero. Please contact support to check the data sent."}, status=500)
