@@ -30,6 +30,17 @@ class Client(models.Model):
     raw_json = models.JSONField(
         null=True, blank=True
     )  # For debugging, stores the raw JSON from Xero
+    
+    # Fields for the primary contact person
+    primary_contact_name = models.CharField(max_length=255, null=True, blank=True)
+    primary_contact_email = models.EmailField(null=True, blank=True)
+    
+    # Store all contact persons from the Xero ContactPersons list
+    additional_contact_persons = models.JSONField(null=True, blank=True, default=list)
+    
+    # Store all phone numbers from the Xero Phones list
+    all_phones = models.JSONField(null=True, blank=True, default=list)
+    
     django_created_at = models.DateTimeField(auto_now_add=True)
     django_updated_at = models.DateTimeField(auto_now=True)
 

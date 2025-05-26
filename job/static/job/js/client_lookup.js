@@ -78,6 +78,7 @@ document.addEventListener("DOMContentLoaded", function () {
           xeroContactId: event.data.xeroContactId
         }
       });
+      console.log('Dispatching jobClientSelected (from window.message) with detail:', clientSelectedEvent.detail); // Added log
       document.dispatchEvent(clientSelectedEvent);
     }
   });
@@ -200,6 +201,7 @@ document.addEventListener("DOMContentLoaded", function () {
               xeroContactId: client.xero_contact_id
             }
           });
+          console.log('Dispatching jobClientSelected (from suggestion click) with detail:', clientSelectedEvent.detail); // Added log
           document.dispatchEvent(clientSelectedEvent);
         });
 

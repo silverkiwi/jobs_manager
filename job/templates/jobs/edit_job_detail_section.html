@@ -53,8 +53,13 @@
         </div>
         <div class="col-md-6">
             <label for="contact_phone" class="form-label">Contact Phone</label>
-            <input type="text" id="contact_phone" name="contact_phone" class="form-control autosave-input"
-                value="{{ job.contact_phone|default_if_none:'' }}" placeholder="Contact phone number (client's primary or specific)">
+            <div class="form-group">
+                <select id="job_contact_phone_select" name="contact_phone" class="form-select autosave-input">
+                    <option value="">--- Select a Client First ---</option>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+                <input type="hidden" id="initial_contact_phone" value="{{ job.contact_phone|default_if_none:'' }}">
+            </div>
         </div>
     </div>
 

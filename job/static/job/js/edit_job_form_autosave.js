@@ -1414,6 +1414,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initHistoricalNavigation();
 
   function populateContactPersonDropdown(clientId, currentContactName, currentContactEmail) {
+    console.log('populateContactPersonDropdown called with clientId:', clientId, 'currentContactName:', currentContactName, 'currentContactEmail:', currentContactEmail); // Added log
     const contactSelect = document.getElementById('job_contact_select');
     const contactNameHidden = document.getElementById('contact_person_name_hidden');
     const contactEmailHidden = document.getElementById('contact_person_email_hidden');
@@ -1424,6 +1425,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     if (!clientId) {
+        console.log('populateContactPersonDropdown: clientId is null or undefined, clearing dropdown.'); // Added log
         contactSelect.innerHTML = '<option value="">--- Select a Client First ---</option>';
         contactNameHidden.value = '';
         contactEmailHidden.value = '';
@@ -1431,14 +1433,17 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
+    console.log(`populateContactPersonDropdown: Fetching contacts for clientId: ${clientId}`); // Added log
     fetch(`/api/client/${clientId}/contact-persons/`)
         .then(response => {
             if (!response.ok) {
+                console.error(`populateContactPersonDropdown: HTTP error! status: ${response.status} for clientId: ${clientId}`); // Added log
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(contactPersons => {
+            console.log('populateContactPersonDropdown: Received contactPersons from API:', contactPersons); // You should see your data here
             contactSelect.innerHTML = ''; // Clear loading/previous options
 
             if (contactPersons.length === 0) {
@@ -1484,26 +1489,108 @@ document.addEventListener("DOMContentLoaded", function () {
 
         })
         .catch(error => {
-            console.error('Error fetching contact persons:', error);
+            console.error('populateContactPersonDropdown: Error fetching contact persons:', error); // Added log
             contactSelect.innerHTML = '<option value="">Error loading contacts</option>';
         });
 }
+
+  // New function to populate the contact phone dropdown
+  function populateContactPhoneDropdown(clientId, currentPhoneNumberFromJob) { // Renamed parameter for clarity
+    console.log('populateContactPhoneDropdown called with clientId:', clientId, 'currentPhoneNumberFromJob:', currentPhoneNumberFromJob);
+    const phoneSelect = document.getElementById('job_contact_phone_select');
+
+    if (!phoneSelect) { 
+        console.error('ERROR: The dropdown element with ID "job_contact_phone_select" was not found in the DOM. Please ensure it is correctly placed in your HTML, most likely within the "jobs/edit_job_detail_section.html" template if you are using includes, and that the ID matches exatamente.');
+        return; 
+    }
+
+    phoneSelect.innerHTML = '<option value="">Loading phones...</option>'; 
+
+    if (!clientId) {
+        console.log('populateContactPhoneDropdown: clientId is null or undefined, clearing dropdown.');
+        phoneSelect.innerHTML = '<option value="">--- Select a Client First ---</option>';
+        return;
+    }
+
+    console.log(`populateContactPhoneDropdown: Fetching phones for clientId: ${clientId}`);
+    fetch(`/api/client/${clientId}/phones/`)
+        .then(response => {
+            if (!response.ok) {
+                console.error(`populateContactPhoneDropdown: HTTP error! status: ${response.status} for clientId: ${clientId}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(phones => {
+            console.log('populateContactPhoneDropdown: Received phones from API:', phones);
+            phoneSelect.innerHTML = ''; 
+
+            if (phones.length === 0) {
+                phoneSelect.innerHTML = '<option value="">--- No phone numbers found ---</option>';
+            } else {
+                phoneSelect.appendChild(new Option('--- Select Phone ---', ''));
+                let preselectPhoneNumber = null;
+
+                phones.forEach(phone => {
+                    const optionText = `${phone.number} (${phone.type})`;
+                    const option = new Option(optionText, phone.number);
+                    phoneSelect.appendChild(option);
+                });
+
+                // Pre-selection logic
+                if (phones.length === 1) {
+                    preselectPhoneNumber = phones[0].number;
+                } else if (currentPhoneNumberFromJob) { // Use the value from the job model
+                    const existingPhone = phones.find(p => p.number === currentPhoneNumberFromJob);
+                    if (existingPhone) {
+                        preselectPhoneNumber = currentPhoneNumberFromJob;
+                    }
+                } else {
+                    const defaultPhone = phones.find(p => p.type === "DEFAULT");
+                    if (defaultPhone) {
+                        preselectPhoneNumber = defaultPhone.number;
+                      } else {
+                        const mobilePhone = phones.find(p => p.type === "MOBILE");
+                        if (mobilePhone) {
+                          preselectPhoneNumber = mobilePhone.number;
+                        }
+                      }
+                }
+                
+                if (preselectPhoneNumber) {
+                    phoneSelect.value = preselectPhoneNumber;
+                }
+            }
+            phoneSelect.dispatchEvent(new Event('change')); 
+        })
+        .catch(error => {
+            console.error('populateContactPhoneDropdown: Error fetching phone numbers:', error);
+            phoneSelect.innerHTML = '<option value="">Error loading phones</option>';
+        });
+  }
+
 
   const contactSelect = document.getElementById('job_contact_select');
   const contactNameHidden = document.getElementById('contact_person_name_hidden');
   const contactEmailHidden = document.getElementById('contact_person_email_hidden');
   const manageXeroContactsButton = document.getElementById('manage_xero_contact_persons_button');
+  const phoneSelect = document.getElementById('job_contact_phone_select'); 
+  const initialContactPhoneEl = document.getElementById('initial_contact_phone'); // Get the hidden input
 
-  // Listener for client selection from client_lookup.js
   document.addEventListener('jobClientSelected', function (e) {
+      console.log('jobClientSelected event caught in edit_job_form_autosave.js, client ID:', e.detail.clientId); 
       const clientId = e.detail.clientId;
-      // Pass current saved values for pre-selection attempt
       populateContactPersonDropdown(clientId, contactNameHidden.value, contactEmailHidden.value);
+      
+      // Use the value from the hidden input for pre-selection
+      const currentPhoneFromJob = initialContactPhoneEl ? initialContactPhoneEl.value : null;
+      populateContactPhoneDropdown(clientId, currentPhoneFromJob);
   });
 
-  // Listener for when client is cleared (e.g., name manually changed)
   document.addEventListener('jobClientCleared', function () {
-      populateContactPersonDropdown(null, null, null); // Pass null to clear dropdown
+      console.log('jobClientCleared event caught in edit_job_form_autosave.js'); 
+      populateContactPersonDropdown(null, null, null); 
+      populateContactPhoneDropdown(null, null); 
   });
 
 
@@ -1532,11 +1619,38 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   }
 
-  // Initial population if a client is already selected on page load
-  const initialClientId = document.getElementById('client_id')?.value;
-  if (initialClientId) {
-      populateContactPersonDropdown(initialClientId, contactNameHidden.value, contactEmailHidden.value);
+  // Add change listener for the new phone select dropdown if it exists
+  if (phoneSelect) {
+      phoneSelect.addEventListener('change', function () {
+          // The value of contact_phone is directly taken from this select by autosave
+          // due to name="contact_phone" and class="autosave-input"
+          debouncedAutosave(); 
+      });
   }
+
+    // Initial population if a client is already selected on page load
+    const initialClientId = document.getElementById('client_id')?.value;
+    console.log('DOMContentLoaded: Initial client_id from DOM:', initialClientId); // Added log
+    if (initialClientId) {
+        populateContactPersonDropdown(initialClientId, contactNameHidden.value, contactEmailHidden.value);
+        
+        // Use the value from the hidden input for pre-selection on initial load
+        const initialPhoneFromJob = initialContactPhoneEl ? initialContactPhoneEl.value : null;
+        populateContactPhoneDropdown(initialClientId, initialPhoneFromJob);
+    } else {
+        console.log('DOMContentLoaded: No initial client_id found, clearing/setting default for contact dropdown.'); // Added log
+        // Ensure dropdown is in a sensible state if no client is initially selected
+        if (contactSelect) {
+            contactSelect.innerHTML = '<option value="">--- Select a Client First ---</option>';
+        }
+        // Check the global 'phoneSelect' again before trying to modify it.
+        const phoneSelectElement = document.getElementById('job_contact_phone_select');
+        if (phoneSelectElement) { 
+            phoneSelectElement.innerHTML = '<option value="">--- Select a Client First ---</option>';
+        } else {
+            console.warn('DOMContentLoaded: Phone select element "job_contact_phone_select" not found for initial setup. Check HTML.');
+        }
+    }
 });
 
 function getAllRowData(gridApi) {
