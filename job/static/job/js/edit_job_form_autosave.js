@@ -1413,162 +1413,268 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize historical navigation
   initHistoricalNavigation();
 
+  /**
+   * Populates a select dropdown with options.
+   * @param {HTMLSelectElement} selectElement - The select element to populate.
+   * @param {Array<Object>} items - Array of items to create options from.
+   * @param {Function} itemToOption - Function mapping an item to {value, text, dataAttributes}.
+   * @param {string} noItemsText - Text to display if items array is empty.
+   * @param {string} selectPromptText - Text for the initial prompt option (e.g., "--- Select ---").
+   */
+  function populateSelectWithOptions(selectElement, items, itemToOption, noItemsText, selectPromptText) {
+    selectElement.innerHTML = ''; // Clear previous options
+
+    if (!items || items.length === 0) {
+      selectElement.appendChild(new Option(noItemsText, ''));
+      return;
+    }
+
+    if (selectPromptText) {
+      selectElement.appendChild(new Option(selectPromptText, ''));
+    }
+
+    items.forEach(item => {
+      const optionData = itemToOption(item);
+      const option = new Option(optionData.text, optionData.value);
+      if (optionData.dataAttributes) {
+        Object.entries(optionData.dataAttributes).forEach(([key, val]) => {
+          option.dataset[key] = val;
+        });
+      }
+      selectElement.appendChild(option);
+    });
+  }
+
+  /**
+   * Determines the preselected value based on a list of strategies.
+   * @param {Array<Object>} items - The list of items (contacts or phones).
+   * @param {*} currentSavedValue - The currently saved value for this field on the job.
+   * @param {Array<Function>} strategies - Ordered list of functions to determine preselection.
+   * @returns {string|null} The value to preselect, or null.
+   */
+  function getPreselectedOptionValue(items, currentSavedValue, strategies) {
+    if (!items || items.length === 0) return null;
+
+    for (const strategy of strategies) {
+      const preselectedValue = strategy(items, currentSavedValue);
+      if (preselectedValue) {
+        return preselectedValue;
+      }
+    }
+    return null;
+  }
+
+  // --- Contact Person Dropdown Logic ---
+
+  /**
+   * @typedef {Object} ContactPerson
+   * @property {string} name - The name of the contact person.
+   * @property {string} email - The email of the contact person.
+   */
+
+  /**
+   * @typedef {Object} CurrentContactValue
+   * @property {string} name - The currently saved contact name.
+   * @property {string} email - The currently saved contact email.
+   */
+
+  /**
+   * Preselection strategy: Selects the first person if only one is available.
+   * @param {ContactPerson[]} persons - Array of contact persons.
+   * @param {CurrentContactValue} current - Currently saved contact values.
+   * @returns {string|null} The email of the person to preselect, or null.
+   */
+  const selectSingleContactStrategy = (persons, current) => persons.length === 1 ? persons[0].email : null;
+
+  /**
+   * Preselection strategy: Selects a person if their name and email match the currently saved values.
+   * @param {ContactPerson[]} persons - Array of contact persons.
+   * @param {CurrentContactValue} current - Currently saved contact values.
+   * @returns {string|null} The email of the person to preselect, or null.
+   */
+  const selectMatchingSavedContactStrategy = (persons, current) => {
+    if (!current || !current.email) return null; // Ensure current.email is available
+    const match = persons.find(p => p.email === current.email && p.name === current.name);
+    return match ? match.email : null;
+  };
+  
+  const contactPersonPreselectionStrategies = [
+    selectSingleContactStrategy,
+    selectMatchingSavedContactStrategy
+  ];
+
   function populateContactPersonDropdown(clientId, currentContactName, currentContactEmail) {
-    console.log('populateContactPersonDropdown called with clientId:', clientId, 'currentContactName:', currentContactName, 'currentContactEmail:', currentContactEmail); // Added log
+    console.log('populateContactPersonDropdown called with clientId:', clientId, 'currentContactName:', currentContactName, 'currentContactEmail:', currentContactEmail);
     const contactSelect = document.getElementById('job_contact_select');
     const contactNameHidden = document.getElementById('contact_person_name_hidden');
     const contactEmailHidden = document.getElementById('contact_person_email_hidden');
     const manageXeroContactsButton = document.getElementById('manage_xero_contact_persons_button');
 
-    contactSelect.innerHTML = '<option value="">Loading contacts...</option>'; // Clear and set loading
-    manageXeroContactsButton.style.display = 'none';
-
-
-    if (!clientId) {
-        console.log('populateContactPersonDropdown: clientId is null or undefined, clearing dropdown.'); // Added log
-        contactSelect.innerHTML = '<option value="">--- Select a Client First ---</option>';
-        contactNameHidden.value = '';
-        contactEmailHidden.value = '';
-        // debouncedAutosave(); // Trigger save if client is cleared
+    if (!contactSelect || !contactNameHidden || !contactEmailHidden || !manageXeroContactsButton) {
+        console.error("One or more contact person elements are missing from the DOM for populateContactPersonDropdown.");
         return;
     }
 
-    console.log(`populateContactPersonDropdown: Fetching contacts for clientId: ${clientId}`); // Added log
+    contactSelect.innerHTML = '<option value="">Loading contacts...</option>';
+    manageXeroContactsButton.style.display = 'none';
+
+    if (!clientId) {
+      populateSelectWithOptions(contactSelect, [], () => ({}), '--- Select a Client First ---', null);
+      contactNameHidden.value = '';
+      contactEmailHidden.value = '';
+      return;
+    }
+
     fetch(`/api/client/${clientId}/contact-persons/`)
-        .then(response => {
-            if (!response.ok) {
-                console.error(`populateContactPersonDropdown: HTTP error! status: ${response.status} for clientId: ${clientId}`); // Added log
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(contactPersons => {
-            console.log('populateContactPersonDropdown: Received contactPersons from API:', contactPersons); // You should see your data here
-            contactSelect.innerHTML = ''; // Clear loading/previous options
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
+      .then(contactPersons => {
+        console.log('populateContactPersonDropdown: Received contactPersons:', contactPersons);
+        populateSelectWithOptions(
+          contactSelect,
+          contactPersons,
+          (person) => ({ // itemToOption function
+            value: person.email,
+            text: `${person.name} (${person.email || 'No email'})`,
+            dataAttributes: { contactName: person.name }
+          }),
+          '--- No contact persons found ---',
+          '--- Select Contact Person ---'
+        );
 
-            if (contactPersons.length === 0) {
-                contactSelect.innerHTML = '<option value="">--- No contact persons found ---</option>';
-                // Optionally clear hidden fields if no contacts, or leave them if a value was previously saved
-                // contactNameHidden.value = '';
-                // contactEmailHidden.value = '';
-            } else {
-                contactSelect.appendChild(new Option('--- Select Contact Person ---', ''));
+        const preselectEmail = getPreselectedOptionValue(
+          contactPersons,
+          { name: currentContactName, email: currentContactEmail }, // currentSavedValue
+          contactPersonPreselectionStrategies
+        );
 
-                let preselectEmail = null;
+        if (preselectEmail) {
+          contactSelect.value = preselectEmail;
+        }
+        contactSelect.dispatchEvent(new Event('change')); // Update hidden fields
 
-                contactPersons.forEach(person => {
-                    const option = new Option(`${person.name} (${person.email || 'No email'})`, person.email);
-                    option.dataset.contactName = person.name;
-                    contactSelect.appendChild(option);
-                });
+        const clientXeroIdField = document.getElementById('client_xero_id');
+        if (clientXeroIdField && clientXeroIdField.value) {
+          manageXeroContactsButton.style.display = 'inline-block';
+          manageXeroContactsButton.dataset.xeroContactId = clientXeroIdField.value;
+        }
+      })
+      .catch(error => {
+        console.error('populateContactPersonDropdown: Error fetching contact persons:', error);
+        // Use populateSelectWithOptions for consistent error display
+        populateSelectWithOptions(contactSelect, [], () => ({}), 'Error loading contacts', null);
+      });
+  }
 
-                // Pre-selection logic
-                if (contactPersons.length === 1) {
-                    preselectEmail = contactPersons[0].email;
-                } else if (currentContactEmail) {
-                    // Try to preselect based on currently saved job contact email
-                    const existingContact = contactPersons.find(p => p.email === currentContactEmail && p.name === currentContactName);
-                    if (existingContact) {
-                        preselectEmail = currentContactEmail;
-                    }
-                }
-                
-                if (preselectEmail) {
-                    contactSelect.value = preselectEmail;
-                }
-            }
-            // Trigger change to update hidden fields based on (pre)selection
-            contactSelect.dispatchEvent(new Event('change'));
-            
-            // Show the Xero management button
-            const clientXeroIdField = document.getElementById('client_xero_id');
-            if (clientXeroIdField && clientXeroIdField.value) {
-                 manageXeroContactsButton.style.display = 'inline-block';
-                 manageXeroContactsButton.dataset.xeroContactId = clientXeroIdField.value;
-            }
+  // --- Contact Phone Dropdown Logic ---
 
-        })
-        .catch(error => {
-            console.error('populateContactPersonDropdown: Error fetching contact persons:', error); // Added log
-            contactSelect.innerHTML = '<option value="">Error loading contacts</option>';
-        });
-}
+  /**
+   * @typedef {Object} PhoneInfo
+   * @property {string} number - The phone number.
+   * @property {string} type - The type of phone (e.g., DEFAULT, MOBILE).
+   */
 
-  // New function to populate the contact phone dropdown
-  function populateContactPhoneDropdown(clientId, currentPhoneNumberFromJob) { // Renamed parameter for clarity
+  /**
+   * Preselection strategy: Selects the first phone if only one is available.
+   * @param {PhoneInfo[]} phones - Array of phone information objects.
+   * @param {string} currentPhone - Currently saved phone number.
+   * @returns {string|null} The phone number to preselect, or null.
+   */
+  const selectSinglePhoneStrategy = (phones, currentPhone) => phones.length === 1 ? phones[0].number : null;
+
+  /**
+   * Preselection strategy: Selects a phone if it matches the currently saved phone number.
+   * @param {PhoneInfo[]} phones - Array of phone information objects.
+   * @param {string} currentPhone - Currently saved phone number.
+   * @returns {string|null} The phone number to preselect, or null.
+   */
+  const selectMatchingSavedPhoneStrategy = (phones, currentPhone) => {
+    if (!currentPhone) return null;
+    const match = phones.find(p => p.number === currentPhone);
+    return match ? match.number : null;
+  };
+
+  /**
+   * Preselection strategy: Selects a phone if its type is "DEFAULT".
+   * @param {PhoneInfo[]} phones - Array of phone information objects.
+   * @param {string} currentPhone - Currently saved phone number.
+   * @returns {string|null} The phone number to preselect, or null.
+   */
+  const selectDefaultPhoneStrategy = (phones, currentPhone) => {
+    const defaultPhone = phones.find(p => p.type === "DEFAULT");
+    return defaultPhone ? defaultPhone.number : null;
+  };
+
+  /**
+   * Preselection strategy: Selects a phone if its type is "MOBILE".
+   * @param {PhoneInfo[]} phones - Array of phone information objects.
+   * @param {string} currentPhone - Currently saved phone number.
+   * @returns {string|null} The phone number to preselect, or null.
+   */
+  const selectMobilePhoneStrategy = (phones, currentPhone) => {
+    const mobilePhone = phones.find(p => p.type === "MOBILE");
+    return mobilePhone ? mobilePhone.number : null;
+  };
+
+  const contactPhonePreselectionStrategies = [
+    selectSinglePhoneStrategy,
+    selectMatchingSavedPhoneStrategy,
+    selectDefaultPhoneStrategy,
+    selectMobilePhoneStrategy
+  ];
+
+  function populateContactPhoneDropdown(clientId, currentPhoneNumberFromJob) {
     console.log('populateContactPhoneDropdown called with clientId:', clientId, 'currentPhoneNumberFromJob:', currentPhoneNumberFromJob);
     const phoneSelect = document.getElementById('job_contact_phone_select');
 
-    if (!phoneSelect) { 
-        console.error('ERROR: The dropdown element with ID "job_contact_phone_select" was not found in the DOM. Please ensure it is correctly placed in your HTML, most likely within the "jobs/edit_job_detail_section.html" template if you are using includes, and that the ID matches exatamente.');
-        return; 
+    if (!phoneSelect) {
+      console.error('ERROR: The dropdown element "job_contact_phone_select" not found for populateContactPhoneDropdown.');
+      return;
     }
-
-    phoneSelect.innerHTML = '<option value="">Loading phones...</option>'; 
+    phoneSelect.innerHTML = '<option value="">Loading phones...</option>';
 
     if (!clientId) {
-        console.log('populateContactPhoneDropdown: clientId is null or undefined, clearing dropdown.');
-        phoneSelect.innerHTML = '<option value="">--- Select a Client First ---</option>';
-        return;
+      populateSelectWithOptions(phoneSelect, [], () => ({}), '--- Select a Client First ---', null);
+      return;
     }
 
-    console.log(`populateContactPhoneDropdown: Fetching phones for clientId: ${clientId}`);
     fetch(`/api/client/${clientId}/phones/`)
-        .then(response => {
-            if (!response.ok) {
-                console.error(`populateContactPhoneDropdown: HTTP error! status: ${response.status} for clientId: ${clientId}`);
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(phones => {
-            console.log('populateContactPhoneDropdown: Received phones from API:', phones);
-            phoneSelect.innerHTML = ''; 
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
+      .then(phones => {
+        console.log('populateContactPhoneDropdown: Received phones:', phones);
+        populateSelectWithOptions(
+          phoneSelect,
+          phones,
+          (phone) => ({ // itemToOption function
+            value: phone.number,
+            text: `${phone.number} (${phone.type})`
+          }),
+          '--- No phone numbers found ---',
+          '--- Select Phone ---'
+        );
 
-            if (phones.length === 0) {
-                phoneSelect.innerHTML = '<option value="">--- No phone numbers found ---</option>';
-            } else {
-                phoneSelect.appendChild(new Option('--- Select Phone ---', ''));
-                let preselectPhoneNumber = null;
+        const preselectPhoneNumber = getPreselectedOptionValue(
+            phones,
+            currentPhoneNumberFromJob, // currentSavedValue
+            contactPhonePreselectionStrategies
+        );
 
-                phones.forEach(phone => {
-                    const optionText = `${phone.number} (${phone.type})`;
-                    const option = new Option(optionText, phone.number);
-                    phoneSelect.appendChild(option);
-                });
-
-                // Pre-selection logic
-                if (phones.length === 1) {
-                    preselectPhoneNumber = phones[0].number;
-                } else if (currentPhoneNumberFromJob) { // Use the value from the job model
-                    const existingPhone = phones.find(p => p.number === currentPhoneNumberFromJob);
-                    if (existingPhone) {
-                        preselectPhoneNumber = currentPhoneNumberFromJob;
-                    }
-                } else {
-                    const defaultPhone = phones.find(p => p.type === "DEFAULT");
-                    if (defaultPhone) {
-                        preselectPhoneNumber = defaultPhone.number;
-                      } else {
-                        const mobilePhone = phones.find(p => p.type === "MOBILE");
-                        if (mobilePhone) {
-                          preselectPhoneNumber = mobilePhone.number;
-                        }
-                      }
-                }
-                
-                if (preselectPhoneNumber) {
-                    phoneSelect.value = preselectPhoneNumber;
-                }
-            }
-            phoneSelect.dispatchEvent(new Event('change')); 
-        })
-        .catch(error => {
-            console.error('populateContactPhoneDropdown: Error fetching phone numbers:', error);
-            phoneSelect.innerHTML = '<option value="">Error loading phones</option>';
-        });
+        if (preselectPhoneNumber) {
+          phoneSelect.value = preselectPhoneNumber;
+        }
+        phoneSelect.dispatchEvent(new Event('change')); // Ensure autosave picks up preselected
+      })
+      .catch(error => {
+        console.error('populateContactPhoneDropdown: Error fetching phone numbers:', error);
+        // Use populateSelectWithOptions for consistent error display
+        populateSelectWithOptions(phoneSelect, [], () => ({}), 'Error loading phones', null);
+      });
   }
-
 
   const contactSelect = document.getElementById('job_contact_select');
   const contactNameHidden = document.getElementById('contact_person_name_hidden');
@@ -1632,25 +1738,24 @@ document.addEventListener("DOMContentLoaded", function () {
     const initialClientId = document.getElementById('client_id')?.value;
     console.log('DOMContentLoaded: Initial client_id from DOM:', initialClientId); // Added log
     if (initialClientId) {
-        populateContactPersonDropdown(initialClientId, contactNameHidden.value, contactEmailHidden.value);
-        
-        // Use the value from the hidden input for pre-selection on initial load
-        const initialPhoneFromJob = initialContactPhoneEl ? initialContactPhoneEl.value : null;
-        populateContactPhoneDropdown(initialClientId, initialPhoneFromJob);
-    } else {
-        console.log('DOMContentLoaded: No initial client_id found, clearing/setting default for contact dropdown.'); // Added log
-        // Ensure dropdown is in a sensible state if no client is initially selected
-        if (contactSelect) {
-            contactSelect.innerHTML = '<option value="">--- Select a Client First ---</option>';
-        }
-        // Check the global 'phoneSelect' again before trying to modify it.
-        const phoneSelectElement = document.getElementById('job_contact_phone_select');
-        if (phoneSelectElement) { 
-            phoneSelectElement.innerHTML = '<option value="">--- Select a Client First ---</option>';
-        } else {
-            console.warn('DOMContentLoaded: Phone select element "job_contact_phone_select" not found for initial setup. Check HTML.');
-        }
+    populateContactPersonDropdown(initialClientId, contactNameHidden.value, contactEmailHidden.value);
+    
+    const initialPhoneFromJob = initialContactPhoneEl ? initialContactPhoneEl.value : null;
+    populateContactPhoneDropdown(initialClientId, initialPhoneFromJob);
+  } else {
+    console.log('DOMContentLoaded: No initial client_id found, setting defaults for dropdowns.');
+    if (contactSelect) {
+        // Use populateSelectWithOptions for consistency
+        populateSelectWithOptions(contactSelect, [], () => ({}), '--- Select a Client First ---', null);
     }
+    const phoneSelectElement = document.getElementById('job_contact_phone_select');
+    if (phoneSelectElement) {
+        // Use populateSelectWithOptions for consistency
+        populateSelectWithOptions(phoneSelectElement, [], () => ({}), '--- Select a Client First ---', null);
+    } else {
+      console.warn('DOMContentLoaded: Phone select element "job_contact_phone_select" not found for initial setup.');
+    }
+  }
 });
 
 function getAllRowData(gridApi) {
