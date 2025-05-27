@@ -63,6 +63,24 @@
         </div>
     </div>
 
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <label class="form-label">Linked Quote</label>
+            <div>
+                {% if job.linked_quote %}
+                    <a href="{{ job.linked_quote }}" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-external-link-alt"></i> Edit Quote
+                    </a>
+                {% else %}
+                    <span class="text-muted">No linked quote</span>
+                    <!-- Future: Add button to create linked quote -->
+                {% endif %}
+                <input type="hidden" id="linked_quote" name="linked_quote" value="{{ job.linked_quote|default:'' }}">
+                <small class="text-muted d-block mt-1">Linked quotes functionality will be expanded in future updates.</small>
+            </div>
+        </div>
+    </div>
+
     <input type="hidden" id="material_gauge_quantity" name="material_gauge_quantity" 
     class="autosave-input" value="{{ job.material_gauge_quantity|default_if_none:'' }}">
 

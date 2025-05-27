@@ -27,6 +27,12 @@ class Job(models.Model):
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False
     )
+    
+    linked_quote = models.URLField(
+        null=True,
+        blank=True,
+        help_text="URL to a linked Google Sheets quote"
+    )
 
     JOB_STATUS_CHOICES: List[tuple[str, str]] = [
         ("quoting", "Quoting"),
