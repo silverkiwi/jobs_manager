@@ -308,9 +308,10 @@ def set_client_fields(client, new_from_xero=False):
                 phone_type = phone_entry.get("_phone_type", "UNKNOWN")
                 
                 # Extract all parts of the phone number
-                country_code = phone_entry.get("_phone_country_code", "").strip()
-                area_code = phone_entry.get("_phone_area_code", "").strip()
-                number_part = phone_entry.get("_phone_number", "").strip()
+                # Ensure that strip() is called on a string, even if the value is None
+                country_code = (phone_entry.get("_phone_country_code") or "").strip()
+                area_code = (phone_entry.get("_phone_area_code") or "").strip()
+                number_part = (phone_entry.get("_phone_number") or "").strip()
 
                 # Construct the full phone number
                 # Only add parts if they exist to avoid extra spaces or hyphens
