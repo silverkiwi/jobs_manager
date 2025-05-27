@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", function () {
           xeroContactId: event.data.xeroContactId
         }
       });
-      console.log('Dispatching jobClientSelected (from window.message) with detail:', clientSelectedEvent.detail); 
+      console.log('Dispatching jobClientSelected (from window.message) with detail:', clientSelectedEvent.detail); // Added log
       document.dispatchEvent(clientSelectedEvent);
     }
   });
@@ -94,8 +94,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   clientInput.addEventListener("input", function () {
     const query = clientInput.value.trim();
-    const clientIdField = document.getElementById("client_id");
-    const clientXeroIdField = document.getElementById("client_xero_id");
+    const clientIdField = document.getElementById("client_id"); // Get client_id field
+    const clientXeroIdField = document.getElementById("client_xero_id"); // Get client_xero_id field
 
     // Clear client_id and xero_contact_id when client_name is manually changed
     if (clientIdField) clientIdField.value = "";
@@ -169,9 +169,9 @@ document.addEventListener("DOMContentLoaded", function () {
           const clientNameField = document.getElementById("client_name");
           const clientXeroIdField = document.getElementById("client_xero_id");
 
-          if (clientIdField) clientIdField.value = client.id;
-          if (clientNameField) clientNameField.value = client.name;
-          if (clientXeroIdField) clientXeroIdField.value = client.xero_contact_id;
+          if (clientIdField) clientIdField.value = client.id; // Ensure this is being set
+          if (clientNameField) clientNameField.value = client.name; // Ensure this is being set
+          if (clientXeroIdField) clientXeroIdField.value = client.xero_contact_id; // Ensure this is being set
 
           if (
             !clientIdField.value ||
@@ -201,7 +201,7 @@ document.addEventListener("DOMContentLoaded", function () {
               xeroContactId: client.xero_contact_id
             }
           });
-          console.log('Dispatching jobClientSelected (from suggestion click) with detail:', clientSelectedEvent.detail); 
+          console.log('Dispatching jobClientSelected (from suggestion click) with detail:', clientSelectedEvent.detail); // Added log
           document.dispatchEvent(clientSelectedEvent);
         });
 

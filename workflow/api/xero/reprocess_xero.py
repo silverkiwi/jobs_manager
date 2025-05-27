@@ -306,9 +306,26 @@ def set_client_fields(client, new_from_xero=False):
         for phone_entry in raw_phones_list:
             if isinstance(phone_entry, dict):
                 phone_type = phone_entry.get("_phone_type", "UNKNOWN")
-                phone_number = phone_entry.get("_phone_number")
-                if phone_number: # Only add if there's a number
-                    temp_all_phones.append({"type": phone_type, "number": phone_number})
+                
+                # Extract all parts of the phone number
+                country_code = phone_entry.get("_phone_country_code", "").strip()
+                area_code = phone_entry.get("_phone_area_code", "").strip()
+                number_part = phone_entry.get("_phone_number", "").strip()
+
+                # Construct the full phone number
+                # Only add parts if they exist to avoid extra spaces or hyphens
+                full_number_parts = []
+                if country_code:
+                    full_number_parts.append(f"+{country_code}")
+                if area_code:
+                    full_number_parts.append(area_code)
+                if number_part:
+                    full_number_parts.append(number_part)
+                
+                full_number = " ".join(full_number_parts)
+
+                if full_number: # Only add if there's a resulting number
+                    temp_all_phones.append({"type": phone_type, "number": full_number})
         client.all_phones = temp_all_phones
         logger.info(f"Populated all_phones for client {client.id} with {len(temp_all_phones)} phone numbers.")
     else:
