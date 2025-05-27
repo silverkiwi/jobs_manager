@@ -91,6 +91,11 @@ urlpatterns = [
         edit_job_view_ajax.get_company_defaults_api,
         name="company_defaults_api",
     ),
+    path(
+        "api/job/<uuid:job_id>/create-linked-quote/",
+        edit_job_view_ajax.create_linked_quote_api,
+        name="create_linked_quote_api",
+    ),
     
     # Job view endpoints
     path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
