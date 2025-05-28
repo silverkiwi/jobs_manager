@@ -37,6 +37,108 @@ from job.models import Job
 logger = logging.getLogger(__name__)
 
 
+# Updated view function to get contact persons for a client from model fields
+def get_client_contact_persons(request, client_id):
+    """
+    API endpoint to retrieve contact persons for a specific client
+    from the structured fields in the Client model.
+    """
+    try:
+        client = get_object_or_404(Client, id=client_id)
+        contact_persons_data = []
+        processed_contacts = set() # To avoid duplicates
+
+        logger.debug(f"Fetching contact persons for client ID: {client_id} from model fields.")
+
+        # Add primary contact if available
+        if client.primary_contact_name:
+            primary_contact = {
+                "name": client.primary_contact_name,
+                "email": client.primary_contact_email or ""
+            }
+            contact_tuple = (primary_contact["name"], primary_contact["email"])
+            if contact_tuple not in processed_contacts:
+                contact_persons_data.append(primary_contact)
+                processed_contacts.add(contact_tuple)
+                logger.debug(f"Added primary contact: {primary_contact}")
+
+        # Add additional contact persons
+        if client.additional_contact_persons and isinstance(client.additional_contact_persons, list):
+            for person_dict in client.additional_contact_persons:
+                if isinstance(person_dict, dict) and person_dict.get("name"):
+                    additional_contact = {
+                        "name": person_dict["name"],
+                        "email": person_dict.get("email", "")
+                    }
+                    contact_tuple = (additional_contact["name"], additional_contact["email"])
+                    # Only add if it's not the same as the primary contact already added
+                    # or if it's a distinct additional contact.
+                    if contact_tuple not in processed_contacts:
+                        contact_persons_data.append(additional_contact)
+                        processed_contacts.add(contact_tuple)
+                        logger.debug(f"Added additional contact: {additional_contact}")
+                else:
+                    logger.warning(f"Skipping invalid item in additional_contact_persons for client {client_id}: {person_dict}")
+        
+        logger.info(f"Successfully retrieved {len(contact_persons_data)} contact persons for client {client_id} from model.")
+        return JsonResponse(contact_persons_data, safe=False)
+        
+    except Exception as e:
+        logger.error(f"Error fetching contact persons for client {client_id} from model: {str(e)}", exc_info=True)
+        return JsonResponse({"success": false, "message": "Failed to retrieve contact persons", "details": str(e)}, status=500)
+
+
+def get_client_phones(request, client_id):
+    """
+    API endpoint to retrieve all phone numbers for a specific client
+    from the Client model.
+    """
+    try:
+        client = get_object_or_404(Client, id=client_id)
+        phones_data = []
+
+        logger.debug(f"Fetching phone numbers for client ID: {client_id} from model field 'all_phones'.")
+
+        if client.all_phones and isinstance(client.all_phones, list):
+            for phone_entry in client.all_phones:
+                if isinstance(phone_entry, dict) and phone_entry.get("number"):
+                    phones_data.append({
+                        "type": phone_entry.get("type", "N/A"),
+                        "number": phone_entry["number"]
+                    })
+        
+        # Optionally, add the main client.phone if it's not already in all_phones
+        # For simplicity, we'll assume all_phones is comprehensive for now.
+
+        logger.info(f"Successfully retrieved {len(phones_data)} phone numbers for client {client_id} from model.")
+        return JsonResponse(phones_data, safe=False)
+        
+    except Exception as e:
+        logger.error(f"Error fetching phone numbers for client {client_id} from model: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Failed to retrieve phone numbers", "details": str(e)}, status=500)
+
+
+def get_all_clients_api(request):
+    """
+    API endpoint to retrieve all clients.
+    Returns a list of clients with their ID and name.
+    """
+    try:
+        clients = Client.objects.all().order_by('name')
+        clients_data = []
+        for client in clients:
+            clients_data.append({
+                "id": str(client.id), # Convert UUID to string
+                "name": client.name,
+                "xero_contact_id": client.xero_contact_id, # Might be useful
+            })
+        logger.info(f"Successfully retrieved {len(clients_data)} clients for API.")
+        return JsonResponse(clients_data, safe=False)
+    except Exception as e:
+        logger.error(f"Error fetching all clients for API: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Failed to retrieve clients", "details": str(e)}, status=500)
+    
+
 class ClientListView(SingleTableView):
     model = Client
     template_name = "clients/list_clients.html"

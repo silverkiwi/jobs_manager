@@ -76,8 +76,22 @@ urlpatterns = [
         autosave_purchase_order_view,
         name="autosave_purchase_order_api",
     ),
-    path("api/clients/all/", client_view.all_clients, name="all_clients_api"),
-    path("api/client-search/", client_view.ClientSearch, name="client_search_api"),
+    path(
+        "api/client/<uuid:client_id>/contact-persons/",
+        client_view.get_client_contact_persons,
+        name="api_get_client_contact_persons",
+    ),
+    path(
+        "api/client/<uuid:client_id>/phones/", 
+        client_view.get_client_phones,
+        name="api_get_client_phones",
+    ),
+    path("api/clients/all/", client_view.get_all_clients_api, name="api_clients_all"),
+    path(
+        "api/client-search/",
+        client_view.ClientSearch,
+        name="client_search_api",
+    ),
     path("api/client-detail/", client_view.client_detail, name="client_detail"),
     path(
         "api/extract-supplier-quote/",
