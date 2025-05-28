@@ -85,7 +85,7 @@ def get_client_contact_persons(request, client_id):
         
     except Exception as e:
         logger.error(f"Error fetching contact persons for client {client_id} from model: {str(e)}", exc_info=True)
-        return JsonResponse({"error": "Failed to retrieve contact persons", "details": str(e)}, status=500)
+        return JsonResponse({"success": false, "message": "Failed to retrieve contact persons", "details": str(e)}, status=500)
 
 
 def get_client_phones(request, client_id):

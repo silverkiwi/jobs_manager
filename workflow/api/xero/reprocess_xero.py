@@ -165,6 +165,12 @@ def set_client_fields(client, new_from_xero=False):
     client.name = raw_json.get("_name", client.name or "Unnamed Client")
     # This is the general email for the contact/company
     client.email = raw_json.get("_email_address", client.email) 
+
+    # Update xero_contact_id from raw_json if available
+    # This ensures the link to the Xero contact is maintained or established.
+    xero_contact_id_from_json = raw_json.get("_contact_id")
+    if xero_contact_id_from_json:
+        client.xero_contact_id = xero_contact_id_from_json
     
     # Attempt to get phone number from the 'DEFAULT' phone entry if available
     default_phone = ""
