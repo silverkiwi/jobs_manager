@@ -1560,15 +1560,17 @@ document.addEventListener("DOMContentLoaded", function () {
           const manageOption = new Option("--- Add/Edit Contact Persons in Xero ---", "__XERO_MANAGE_CONTACTS__");
           manageOption.classList.add('xero-manage-option');
           
+          contactSelect.appendChild(manageOption);
           contactSelect.dataset.xeroContactId = clientXeroIdField.value;
         }
 
-        contactSelect.dispatchEvent(new Event('change'));
+        contactSelect.dispatchEvent(new Event('change')); 
       })
       .catch(error => {
         console.error('populateContactPersonDropdown: Error fetching contact persons:', error);
         // Use populateSelectWithOptions for consistent error display
         populateSelectWithOptions(contactSelect, [], () => ({}), 'Error loading contacts', null);
+        contactSelect.dispatchEvent(new Event('change'));
       });
   }
 
