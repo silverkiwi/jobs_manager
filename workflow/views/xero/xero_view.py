@@ -273,14 +273,20 @@ def _handle_creator_response(request: HttpRequest, response_data: JsonResponse, 
             if is_success:
                 messages.success(request, success_msg)
             else:
-                error_detail = content.get('error', 'Unknown error from creator.')
+                error_detail = content.get('message')
+                if not error_detail or not isinstance(error_detail, str):
+                    error_detail = content.get('error', 'An unknown error occurred.')
+
+                if not isinstance(error_detail, str):
+                    error_detail = "An unspecified error occurred."
+                
                 messages.error(request, f"{failure_msg_prefix}: {error_detail}")
         except (json.JSONDecodeError, AttributeError):
             # Handle non-JSON or unexpected content
-            if response_data.status_code < 400:
-                messages.success(request, f"{success_msg} (non-JSON response)")
+            if response_data.status_code < 400: # Should ideally not happen if 'success' was false
+                messages.success(request, f"{success_msg} (unexpected response format but status indicates success)")
             else:
-                messages.error(request, f"{failure_msg_prefix} (non-JSON/unexpected error response)")
+                messages.error(request, f"{failure_msg_prefix}: An error occurred, but the details could not be read from the response.")
         return response_data
     else:
         # Should not happen if managers always return JsonResponse or raise Exception

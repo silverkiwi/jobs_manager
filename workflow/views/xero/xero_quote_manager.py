@@ -9,7 +9,7 @@ from django.utils import timezone
 
 # Import base class and helpers
 from .xero_base_manager import XeroDocumentManager
-from .xero_helpers import format_date # Assuming format_date is needed
+from .xero_helpers import format_date, parse_xero_api_error_message # Assuming format_date is needed
 
 # Import models
 from workflow.models import Quote, Client
@@ -169,44 +169,39 @@ class XeroQuoteManager(XeroDocumentManager):
                     }
                 )
             else:
-                # Handle API failure or unexpected response
+                # Handle API failure or unexpected response (e.g., empty response)
                 error_msg = "No quotes found in the Xero response or failed to create quote."
                 logger.error(error_msg)
                 # Attempt to extract more details if possible
                 if response and hasattr(response, 'elements') and response.elements:
                      first_element = response.elements[0]
                      if hasattr(first_element, 'validation_errors') and first_element.validation_errors:
-                         error_msg = "; ".join([err.message for err in first_element.validation_errors])
+                         # Ensure err.message exists before trying to join
+                         error_msg = "; ".join([err.message for err in first_element.validation_errors if hasattr(err, 'message')])
                      elif hasattr(first_element, 'message'):
                           error_msg = first_element.message
 
                 return JsonResponse(
                     {"success": False, "message": error_msg},
-                    status=400, 
+                    status=400,
                 )
         except AccountingBadRequestException as e:
-            logger.error(f"Xero API BadRequest during quote creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
-            error_message = f"Xero Error ({e.status}): {e.reason}"
-            try:
-                if e.body:
-                    error_body = json.loads(e.body)
-                    if "Message" in error_body:
-                        error_message = error_body["Message"]
-                    elif "Elements" in error_body and error_body.get("Elements") and isinstance(error_body["Elements"], list) and len(error_body["Elements"]) > 0:
-                        element = error_body["Elements"][0]
-                        if "ValidationErrors" in element and element.get("ValidationErrors") and isinstance(element["ValidationErrors"], list) and len(element["ValidationErrors"]) > 0:
-                            error_message = element["ValidationErrors"][0].get("Message", error_message)
-                        elif "Message" in element:
-                            error_message = element.get("Message", error_message)
-            except (json.JSONDecodeError, KeyError, IndexError, TypeError) as parse_error:
-                logger.error(f"Could not parse detailed error from Xero BadRequestException body for quote: {parse_error}. Body: {e.body}")
+            logger.error(
+                f"Xero API BadRequest during quote creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}",
+                exc_info=True
+            )
+            error_message = parse_xero_api_error_message(
+                exception_body=e.body,
+                default_message=f"Xero validation error ({e.status}): {e.reason} during quote creation. Please contact support."
+            )
             return JsonResponse({"success": False, "message": error_message}, status=e.status)
         except ApiException as e:
             logger.error(f"Xero API Exception during quote creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
             return JsonResponse({"success": False, "message": f"Xero API Error: {e.reason}"}, status=e.status)
         except Exception as e:
             logger.exception(f"Unexpected error during quote creation for job {self.job.id if self.job else 'Unknown'}")
-            return JsonResponse({"success": False, "message": "An unexpected error occurred while creating the quote with Xero."}, status=500)
+            return JsonResponse({"success": False, "message": f"An unexpected error occurred ({str(e)}) while creating the quote with Xero. Please contact support."}, status=500)
+
 
     def delete_document(self):
         """Deletes a quote in Xero and locally."""
@@ -244,19 +239,18 @@ class XeroQuoteManager(XeroDocumentManager):
 
             return JsonResponse({"success": True, "messages": [{"level": "success", "message": "Quote deleted successfully."}]})
         except AccountingBadRequestException as e:
-            logger.error(f"Xero API BadRequest during quote deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
-            error_message = f"Xero Error ({e.status}): {e.reason}"
-            try:
-                if e.body:
-                    error_body = json.loads(e.body)
-                    if "Message" in error_body:
-                        error_message = error_body["Message"]
-            except (json.JSONDecodeError, KeyError, TypeError) as parse_error:
-                logger.error(f"Could not parse detailed error from Xero BadRequestException body for quote deletion: {parse_error}. Body: {e.body}")
+            logger.error(
+                f"Xero API BadRequest during quote deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", 
+                exc_info=True
+            )
+            error_message = parse_xero_api_error_message(
+                exception_body=e.body,
+                default_message=f"Xero validation error ({e.status}): {e.reason} during quote deletion. Please contact support."
+            )
             return JsonResponse({"success": False, "message": error_message}, status=e.status)
         except ApiException as e:
             logger.error(f"Xero API Exception during quote deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}", exc_info=True)
             return JsonResponse({"success": False, "message": f"Xero API Error: {e.reason}"}, status=e.status)
         except Exception as e:
             logger.exception(f"Unexpected error during quote deletion for job {self.job.id if self.job else 'Unknown'}")
-            return JsonResponse({"success": False, "message": "An unexpected error occurred while deleting the quote with Xero."}, status=500)
+            return JsonResponse({"success": False, "message": f"An unexpected error occurred ({str(e)}) while deleting the quote with Xero. Please contact support."}, status=500)

@@ -34,6 +34,7 @@ class JobSerializer(serializers.ModelSerializer):
             "client_id",
             "client_name",
             "contact_person",
+            "contact_email",  # Added contact_email
             "contact_phone",
             "job_number",
             "notes",

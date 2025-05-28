@@ -448,11 +448,7 @@ def sync_bills(bills):
         date = raw_json.get("_date")
 
         if not bill_number:
-            logger.warning(
-+               "Skipping bill %s (status=%s, date=%s): missing invoice_number",
-                xero_id,
-                bill_data.status,
-            )
+            logger.warning(f"Skipping bill {xero_id} (status={status}, date={date}): missing invoice_number")
             continue
 
         

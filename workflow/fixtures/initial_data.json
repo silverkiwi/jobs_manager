@@ -10,9 +10,10 @@
         "wage_rate": "32.00",
         "starting_job_number": 1,
         "starting_po_number": 1,
-        "po_prefix": "JO",
+        "po_prefix": "JO-",
         "xero_tenant_id": "31d41e67-acad-400e-b2a9-aa6bb5e557a3",
         "anthropic_api_key": null,
+        "gemini_api_key": null,
         "mon_start": "07:00:00",
         "mon_end": "15:00:00",
         "tue_start": "07:00:00",
@@ -66,7 +67,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -86,7 +89,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -106,7 +111,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -126,7 +133,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -146,7 +155,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -166,7 +177,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -186,7 +199,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -206,7 +221,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -226,7 +243,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -246,7 +265,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {
@@ -266,7 +287,9 @@
         "hours_fri": "8.0",
         "hours_sat": "0.00",
         "hours_sun": "0.00",
-        "raw_ims_data": {}
+        "raw_ims_data": {},
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
       }
     },
     {

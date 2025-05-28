@@ -288,6 +288,8 @@ def edit_job_view_ajax(request, job_id=None):
     context = {
         "job": job,
         "job_id": job.id,
+        # Ensure job.contact_person and job.contact_email are available for initial hidden field values
+        # These are already available via the 'job' object itself
         "events": events,
         "quoted": job_quoted,
         "invoiced": job_invoiced,
