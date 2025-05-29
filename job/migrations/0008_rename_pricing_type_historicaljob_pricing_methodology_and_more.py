@@ -10,14 +10,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name="historicaljob",
-            old_name="pricing_type",
-            new_name="pricing_methodology",
-        ),
-        migrations.RenameField(
-            model_name="job",
-            old_name="pricing_type",
-            new_name="pricing_methodology",
-        ),
+        # No operations needed - the database already has the correct 'pricing_methodology' field
+        # Migration 0002 incorrectly created a phantom 'pricing_type' field in Django's state
+        # but the actual database column was always named 'pricing_methodology' from 0001_initial
     ]

@@ -573,7 +573,7 @@ def toggle_complex_job(request):
 
 @require_http_methods(["POST"])
 @transaction.atomic
-def toggle_pricing_type(request):
+def toggle_pricing_methodology(request):
     try:
         data = json.loads(request.body)
         if not isinstance(data, dict):
