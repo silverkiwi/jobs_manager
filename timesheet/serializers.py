@@ -27,6 +27,8 @@ class TimeEntryForJobPricingSerializer(serializers.ModelSerializer):
         model = TimeEntry
         fields = [
             "id",
+            "job_pricing",
+            "part",
             "description",
             "items",
             "minutes_per_item",
@@ -106,6 +108,7 @@ class TimeEntryForTimeEntryViewSerializer(serializers.ModelSerializer):
             "wage_rate",
             "charge_out_rate",
             "job_pricing_id",
+            "part",
             "job_number",
             "job_name",
             "hours",

@@ -19,8 +19,10 @@ class MaterialEntrySerializer(serializers.ModelSerializer):
         model = MaterialEntry
         fields = [
             "id",
+            "job_pricing",
+            "part",
             "item_code",
-            "description", 
+            "description",
             "quantity",
             "unit_cost",
             "unit_revenue",

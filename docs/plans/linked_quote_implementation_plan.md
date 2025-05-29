@@ -10,9 +10,10 @@ After examining the codebase, we've identified the following key components:
 
 1. **Job Model Structure**:
    - The Job model is the central entity with fields for job details
-   - Each Job has three JobPricing instances (estimate, quote, reality) that track different stages of pricing
+   - Each Job has three JobPricing instances (estimate, quote, reality) that track different types of pricing
    - JobPricing contains time_entries, material_entries, and adjustment_entries
    - The Quote model is linked to a Job and contains information about the quote in Xero
+   - Note that these are not stages of pricing.  An estimate can be edited after a quote is sent, or even part way through a job.
 
 2. **UI Components**:
    - The job edit page has sections for Estimate, Quote, and Reality
@@ -76,24 +77,73 @@ After examining the codebase, we've identified the following key components:
 
 **Now Test**: Create a new job, click the "Create Linked Quote" button, and verify a new spreadsheet is created and linked to the job.
 
-### Ticket 4: Create Part Model and Database Schema
-**Goal**: Introduce the concept of parts without changing the UI yet.
+Ticket 4a: Create Part Model and Schema
+Goal:
+Add a Part model, preparing for parts-based job pricing.
 
-1. Create a new `Part` model with fields for name, description, and job reference
-2. Modify JobPricing to reference parts instead of directly containing entries
-3. Create migration for these changes with a data migration to create default parts for existing jobs
-4. Update the serializers to handle the new structure
+Tasks:
 
-**Technical Details**:
-- The Part model should include:
-  - id (UUID)
-  - name (CharField)
-  - description (TextField, optional)
-  - job_pricing (ForeignKey to JobPricing)
-  - created_at, updated_at (DateTimeField)
-- The migration should create a default "Other Work" part for each existing JobPricing
-- Update JobPricingSerializer to handle the nested parts structure
+Create new Part model with the following fields:
 
+id (UUID, primary key)
+
+job_pricing (ForeignKey to JobPricing, required)
+
+name (CharField, required)
+
+description (TextField, optional)
+
+created_at, updated_at (DateTimeField, auto-managed)
+
+Add a nullable part ForeignKey to all entry models (TimeEntry, MaterialEntry, AdjustmentEntry), to enable migration.
+
+Ticket 4b: Data Migration — Assign Entries to Main Work
+Goal:
+Ensure every existing and future entry is associated with a Part.
+
+Tasks:
+
+For every existing JobPricing, create a single Part named “Main Work”.
+
+For every entry (time, material, adjustment) under that JobPricing that doesn’t have a Part, assign it to the new “Main Work” part.
+
+Ensure new entries always require a Part going forward.
+
+Ticket 4c: Update Serializers and Models
+Goal:
+Reflect the new parts-based structure in all relevant serializers and model validation.
+
+Tasks:
+
+Update entry model fields so part is required (null=False, blank=False) after migration.
+
+Update all serializers (JobPricingSerializer, TimeEntrySerializer, etc.) to nest/reflect the new Parts structure (i.e., JobPricing serializes its parts, and each part serializes its own entries).
+
+Update or add model constraints so every entry must be attached to a Part.
+
+Ticket 4d: Minimal UI/Admin Adjustment
+Goal:
+Allow basic management of parts in admin, without changing the main user UI yet.
+
+Tasks:
+
+Register Part with Django admin.
+
+(Optional) Make sure admin/console users can see and manage entries by Part, for QA and data integrity.
+
+Ticket 4e: Clean Up and Finalize Schema
+Goal:
+Remove legacy/flat entry relationships and enforce the new structure.
+
+Tasks:
+
+Remove any now-obsolete direct entry relationships on JobPricing (if any).
+
+Update business logic and documentation to clarify:
+
+All entries must belong to a Part.
+
+All JobPricing records will always have at least one Part (“Main Work” if not split).
 **Now Test**: Verify existing jobs still display correctly and all functionality works as before.
 
 ### Ticket 5: Update UI for Parts in Job Edit Page

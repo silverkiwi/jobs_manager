@@ -36,7 +36,7 @@ def archive_and_reset_job_pricing(job_id):
         # Create new pricing for "estimate"
         estimate_pricing = JobPricing.objects.create(
             job=job,
-            pricing_stage="estimate",
+            pricing_type="estimate",
         )
         estimate_pricing.time_entries.create(
             wage_rate=company_defaults.wage_rate,
@@ -46,7 +46,7 @@ def archive_and_reset_job_pricing(job_id):
         # Create new pricing for "quote"
         quote_pricing = JobPricing.objects.create(
             job=job,
-            pricing_stage="quote",
+            pricing_type="quote",
         )
         quote_pricing.adjustment_entries.create(
             cost_adjustment=company_defaults.time_markup,
@@ -57,7 +57,7 @@ def archive_and_reset_job_pricing(job_id):
         # Create new pricing for "reality"
         reality_pricing = JobPricing.objects.create(
             job=job,
-            pricing_stage="reality",
+            pricing_type="reality",
         )
         reality_pricing.material_entries.create(
             unit_cost=company_defaults.wage_rate,
@@ -75,8 +75,8 @@ def get_job_with_pricings(job_id):
     """Fetches a Job object with all relevant latest JobPricing data,
     including time, material, and adjustment entries."""
 
-    # Define pricing stages to reduce redundancy
-    pricing_stages = [
+    # Define pricing types to reduce redundancy
+    pricing_types = [
         "latest_estimate_pricing",
         "latest_quote_pricing",
         "latest_reality_pricing",
@@ -85,27 +85,27 @@ def get_job_with_pricings(job_id):
     # Prefetch list to store all prefetch operations
     prefetch_list = []
 
-    # Loop through each pricing stage to create Prefetch objects for pricing entries
-    for stage in pricing_stages:
+    # Loop through each pricing type to create Prefetch objects for pricing entries
+    for pt in pricing_types:
         # Prefetch time_entries with related staff
         prefetch_list.append(
             Prefetch(
-                f"{stage}__time_entries",
+                f"{pt}__time_entries",
                 queryset=TimeEntry.objects.select_related("staff"),
             )
         )
         # Prefetch material_entries
         prefetch_list.append(
-            Prefetch(f"{stage}__material_entries", queryset=MaterialEntry.objects.all())
+            Prefetch(f"{pt}__material_entries", queryset=MaterialEntry.objects.all())
         )
         # Prefetch adjustment_entries
         prefetch_list.append(
             Prefetch(
-                f"{stage}__adjustment_entries", queryset=AdjustmentEntry.objects.all()
+                f"{pt}__adjustment_entries", queryset=AdjustmentEntry.objects.all()
             )
         )
 
-    # Get the job with the relevant prefetch operations for each pricing stage
+    # Get the job with the relevant prefetch operations for each pricing type
     job = get_object_or_404(
         Job.objects.select_related("client").prefetch_related(*prefetch_list),
         id=job_id,
@@ -121,9 +121,9 @@ def get_historical_job_pricings(job):
     return list(historical_pricings)
 
 
-# Utility to fetch the latest pricing per stage
+# Utility to fetch the latest pricing per type
 def get_latest_job_pricings(job):
-    """Fetches the latest revision of each pricing stage for the given job."""
+    """Fetches the latest revision of each pricing type for the given job."""
     return {
         "estimate_pricing": job.latest_estimate_pricing,
         "quote_pricing": job.latest_quote_pricing,

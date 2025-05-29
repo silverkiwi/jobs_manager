@@ -15,7 +15,7 @@ from workflow.models import (
     CompanyDefaults
 )
 from job.models import Job, JobPricing, TimeEntry
-from workflow.enums import JobPricingStage
+from workflow.enums import JobPricingType
 from workflow.models.client import Client
 from workflow.utils import get_nz_tz
 
@@ -321,7 +321,7 @@ class Command(BaseCommand):
             # Get or create reality pricing for the job
             job_pricing, created = JobPricing.objects.get_or_create(
                 job=job,
-                pricing_stage=JobPricingStage.REALITY,
+                pricing_type=JobPricingType.REALITY,
                 defaults={'is_historical': False}
             )
             shop_job_pricings.append(job_pricing)
@@ -343,7 +343,7 @@ class Command(BaseCommand):
             # Get or create reality pricing for the job
             job_pricing, created = JobPricing.objects.get_or_create(
                 job=job,
-                pricing_stage=JobPricingStage.REALITY,
+                pricing_type=JobPricingType.REALITY,
                 defaults={'is_historical': False}
             )
             regular_job_pricings.append(job_pricing)
@@ -416,8 +416,8 @@ class Command(BaseCommand):
         return categories
     
     def _get_job_pricings(self, relaxed=False):
-        """Get active job pricings with reality stage"""
-        qs = JobPricing.objects.filter(pricing_stage=JobPricingStage.REALITY)
+        """Get active job pricings with reality type"""
+        qs = JobPricing.objects.filter(pricing_type=JobPricingType.REALITY)
         if relaxed:
             qs = qs.filter(job__status__in=[
                 "approved", "in_progress", "special", "quoting", "on_hold"

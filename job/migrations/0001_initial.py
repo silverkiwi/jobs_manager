@@ -37,7 +37,7 @@ class Migration(migrations.Migration):
                             ),
                         ),
                         (
-                            "pricing_stage",
+                            "pricing_type",
                             models.CharField(
                                 choices=[
                                     ("estimate", "Estimate"),
@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
                     ],
                     options={
                         "db_table": "workflow_jobpricing",
-                        "ordering": ["-created_at", "pricing_stage"],
+                        "ordering": ["-created_at", "pricing_type"],
                     },
                 ),
                 migrations.CreateModel(

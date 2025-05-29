@@ -13,6 +13,8 @@ class AdjustmentEntrySerializer(serializers.ModelSerializer):
         model = AdjustmentEntry
         fields = [
             "id",
+            "job_pricing",
+            "part",
             "description",
             "cost_adjustment",
             "price_adjustment",

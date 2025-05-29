@@ -457,7 +457,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "pricing_stage",
+                    "pricing_type",
                     models.CharField(
                         choices=[
                             ("estimate", "Estimate"),

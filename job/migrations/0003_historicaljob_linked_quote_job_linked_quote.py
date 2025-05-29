@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("job", "0002_alter_historicaljob_pricing_type_and_more"),
+        ("job", "0004_alter_historicaljob_contact_phone_and_more"),
     ]
 
     operations = [

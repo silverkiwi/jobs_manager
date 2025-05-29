@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from django.db import models, transaction
 
-from job.enums import JobPricingStage
+from job.enums import JobPricingType
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +18,10 @@ class JobPricing(models.Model):
         related_name="pricings",
     )
 
-    pricing_stage = models.CharField(
+    pricing_type = models.CharField(
         max_length=20,
-        choices=JobPricingStage.choices,
-        default=JobPricingStage.ESTIMATE,
+        choices=JobPricingType.choices,
+        default=JobPricingType.ESTIMATE,
         help_text="Stage of the job pricing (estimate, quote, or reality).",
     )
 
@@ -38,8 +38,8 @@ class JobPricing(models.Model):
     class Meta:
         ordering = [
             "-created_at",
-            "pricing_stage",
-        ]  # Orders by newest entries first, and then by stage
+            "pricing_type",
+        ]  # Orders by newest entries first, and then by type
         db_table = "workflow_jobpricing"
 
     @property
@@ -129,7 +129,7 @@ class JobPricing(models.Model):
         material_entries = self.material_entries.all()
         adjustment_entries = self.adjustment_entries.all()
 
-        logger.debug(f"\nEntries for JobPricing {self.id} ({self.pricing_stage}):")
+        logger.debug(f"\nEntries for JobPricing {self.id} ({self.pricing_type}):")
         logger.debug("\nTime Entries:")
         for entry in time_entries:
             logger.debug(
@@ -173,7 +173,7 @@ class JobPricing(models.Model):
         job = self.job
         job_name = job.name if job else "No Job"
         job_name_str = (
-            f"{job_name} - " f"{self.get_pricing_stage_display()}" f"{revision_str}"
+            f"{job_name} - " f"{self.get_pricing_type_display()}" f"{revision_str}"
         )
         return job_name_str
 
@@ -189,7 +189,7 @@ def snapshot_and_add_time_entry(job_pricing, hours_worked):
     # Create a snapshot of the current JobPricing before modifying it
     snapshot_pricing = JobPricing.objects.create(
         job=job_pricing.job,
-        pricing_stage=job_pricing.pricing_stage,
+        pricing_type=job_pricing.pricing_type,
         created_at=job_pricing.created_at,
         updated_at=job_pricing.updated_at,
     )

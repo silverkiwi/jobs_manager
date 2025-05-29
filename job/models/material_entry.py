@@ -15,6 +15,14 @@ class MaterialEntry(models.Model):
         blank=False,
         related_name="material_entries",
     )
+    part = models.ForeignKey(
+        "Part",
+        on_delete=models.CASCADE,
+        null=True,  # Nullable during migration - will be set to "General Work" by default after migration
+        blank=True,
+        related_name="material_entries",
+        help_text="The part this material entry belongs to",
+    )
     item_code = models.CharField(
         max_length=20, null=False, blank=True, default=""
     )  # Later a FK probably

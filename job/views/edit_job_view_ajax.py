@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
-from job.enums import JobPricingType, JobPricingStage
+from job.enums import JobPricingType, JobPricingType
 from job.helpers import DecimalEncoder, get_company_defaults
 from workflow.models import Quote, Invoice
 from job.serializers import JobPricingSerializer, JobSerializer
@@ -143,7 +143,7 @@ def edit_job_view_ajax(request, job_id=None):
         }
         
         # Determine which pricing section this historical record belongs to
-        section_prefix = pricing.pricing_stage
+        section_prefix = pricing.pricing_type
         
         # Process time entries
         time_entries = []
@@ -637,7 +637,7 @@ def delete_job(request, job_id):
     job = get_object_or_404(Job, id=job_id)
     
     # Get the latest reality pricing record
-    reality_pricing = job.pricings.filter(pricing_stage=JobPricingStage.REALITY, is_historical=False).first()
+    reality_pricing = job.pricings.filter(pricing_type=JobPricingType.REALITY, is_historical=False).first()
     
     # If there's a reality pricing with a total above zero, it has real costs or revenue
     if reality_pricing and (reality_pricing.total_revenue > 0 or reality_pricing.total_cost > 0):

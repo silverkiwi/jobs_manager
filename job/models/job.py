@@ -267,13 +267,13 @@ class Job(models.Model):
             #  Create the initial JobPricing instances
             logger.debug("Creating related JobPricing entries.")
             self.latest_estimate_pricing = JobPricing.objects.create(
-                pricing_stage="estimate", job=self
+                pricing_type="estimate", job=self
             )
             self.latest_quote_pricing = JobPricing.objects.create(
-                pricing_stage="quote", job=self
+                pricing_type="quote", job=self
             )
             self.latest_reality_pricing = JobPricing.objects.create(
-                pricing_stage="reality", job=self
+                pricing_type="reality", job=self
             )
             logger.debug("Initial pricings created successfully.")
 

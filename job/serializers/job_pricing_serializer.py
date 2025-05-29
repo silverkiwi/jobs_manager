@@ -5,10 +5,11 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from workflow.enums import JobPricingStage
+from workflow.enums import JobPricingType
 from job.models import JobPricing
 from .adjustment_entry_serializer import AdjustmentEntrySerializer
 from .material_entry_serializer import MaterialEntrySerializer
+from .part_serializer import PartSerializer
 from timesheet.serializers import (
     TimeEntryForJobPricingSerializer as TimeEntrySerializer,
 )
@@ -21,15 +22,17 @@ class JobPricingSerializer(serializers.ModelSerializer):
     time_entries = TimeEntrySerializer(many=True, required=False)
     material_entries = MaterialEntrySerializer(many=True, required=False)
     adjustment_entries = AdjustmentEntrySerializer(many=True, required=False)
+    parts = PartSerializer(many=True, required=False)
 
     class Meta:
         model = JobPricing
         fields = [
             "id",
-            "pricing_stage",
+            "pricing_type",
             "revision_number",
             "created_at",
             "updated_at",
+            "parts",
             "time_entries",
             "material_entries",
             "adjustment_entries",
@@ -57,7 +60,12 @@ class JobPricingSerializer(serializers.ModelSerializer):
             elif isinstance(value, uuid.UUID):
                 representation[key] = str(value)
 
-        # Ensure all entries are properly represented
+        # Ensure all parts and entries are properly represented
+        representation["parts"] = PartSerializer(
+            instance.parts.all(), many=True
+        ).data
+        
+        # For backward compatibility, still include direct entries
         representation["time_entries"] = TimeEntrySerializer(
             instance.time_entries.all(), many=True
         ).data
@@ -130,7 +138,7 @@ class JobPricingSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # Update time entries
-        if "time_entries" in validated_data and instance.pricing_stage != JobPricingStage.REALITY:
+        if "time_entries" in validated_data and instance.pricing_type != JobPricingType.REALITY:
             # Delete existing entries
             instance.time_entries.all().delete()
             # Create new entries using serializer
@@ -146,7 +154,7 @@ class JobPricingSerializer(serializers.ModelSerializer):
                         {"time_entries": time_entry_serializer.errors}
                     )
                 
-        # Remove time entries if the pricing stage is REALITY
+        # Remove time entries if the pricing type is REALITY
         if "time_entries" in validated_data:
             validated_data.pop("time_entries")
 

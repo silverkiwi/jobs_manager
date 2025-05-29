@@ -6,7 +6,7 @@ from django.db import models
 
 from accounts.models import Staff
 
-from job.models import JobPricing
+from job.models import JobPricing, Part
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,14 @@ class TimeEntry(models.Model):
         related_name="time_entries",
         null=False,
         blank=False,
+    )
+    part = models.ForeignKey(
+        Part,
+        on_delete=models.CASCADE,
+        null=True,  # Nullable during migration - will be set to "General Work" by default after migration
+        blank=True,
+        related_name="time_entries",
+        help_text="The part this time entry belongs to",
     )
     staff = models.ForeignKey(
         Staff,
