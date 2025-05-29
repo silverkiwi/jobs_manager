@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
-from job.enums import JobPricingMethodology, JobPricingType, JobPricingType
+from job.enums import JobPricingMethodology, JobPricingType
 from job.helpers import DecimalEncoder, get_company_defaults
 from workflow.models import Quote, Invoice
 from job.serializers import JobPricingSerializer, JobSerializer
