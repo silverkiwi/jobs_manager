@@ -457,6 +457,8 @@ def autosave_timesheet_view(request):
                         logger.info(f"Job for entry {entry_id} changed to {job_id}")
                         new_job = Job.objects.get(id=job_id)
                         entry.job_pricing = new_job.latest_reality_pricing
+                        # When job changes, assign to the new job's default part
+                        entry.part = entry.job_pricing.get_default_part()
 
                     # Update existing entry
                     entry.description = description
@@ -542,8 +544,14 @@ def autosave_timesheet_view(request):
                 minutes_per_item_val = sanitize_decimal_input(entry_data.get("mins_per_item", 0))
                 charge_out_rate_val = sanitize_decimal_input(job_data.get("charge_out_rate", 0))
 
+                # At the moment timesheets don't support selecting which part the person worked on
+                # We might add this in the future, but for now let's just put all time entries on the 
+                # default part
+                default_part = job_pricing.get_default_part()
+                
                 entry = TimeEntry.objects.create(
                     job_pricing=job_pricing,
+                    part=default_part,  
                     staff=staff,
                     date=target_date,
                     description=description,

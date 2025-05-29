@@ -1,4 +1,4 @@
-# workflow/models/job_pricing.py
+# job/models/job_pricing.py
 import logging
 import uuid
 from decimal import Decimal
@@ -6,6 +6,7 @@ from decimal import Decimal
 from django.db import models, transaction
 
 from job.enums import JobPricingType
+from .part import Part
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,15 @@ class JobPricing(models.Model):
     is_historical = models.BooleanField(
         default=False
     )  # New field to indicate historical records
+
+    default_part = models.OneToOneField(
+        "Part",
+        on_delete=models.CASCADE,
+        null=True,  # Note, only NULL during the migration.  It should be non-null after
+        blank=True,
+        related_name="default_for_job_pricing",
+        help_text="The default 'Main Work' part for this JobPricing"
+    )
 
     class Meta:
         ordering = [
@@ -113,9 +123,23 @@ class JobPricing(models.Model):
 
             # Save first so we have a primary key
             super().save(*args, **kwargs)
+            
+            # Create the default part immediately after saving
+            if not self.default_part:
+                self.default_part = Part.objects.create(
+                    job_pricing=self,
+                    name="Main Work",
+                    description="Default part for time entries"
+                )
+                # Save again to update the default_part reference
+                super().save(update_fields=['default_part'])
         else:
             # Normal save for existing instances
             super().save(*args, **kwargs)
+
+    def get_default_part(self):
+        """Get the default 'Main Work' part for this JobPricing."""
+        return self.default_part
 
     @property
     def total_hours(self) -> Decimal:
