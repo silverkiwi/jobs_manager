@@ -7,14 +7,13 @@ from dotenv import load_dotenv
 from rest_framework import serializers
 from rest_framework.test import APITestCase
 
-from job.enums import JobPricingType
+from job.enums import JobPricingMethodology
 
 from job.models import Job, JobFile, MaterialEntry, AdjustmentEntry
 
 from timesheet.models import TimeEntry
 
-from job.serializers.job_pricing_serializer import JobPricingSerializer
-from job.serializers.job_serializer import JobSerializer
+from job.serializers import JobPricingSerializer, JobSerializer
 
 django.setup()  # Force initialization
 load_dotenv()
@@ -149,8 +148,8 @@ class JobApiTests(TestCase):
         # Create a job for testing
         self.job = Job.objects.create()
 
-        # Set the job's pricing type
-        self.job.pricing_type = JobPricingType.FIXED_PRICE
+        # Set the job's pricing methodology
+        self.job.pricing_methodology = JobPricingMethodology.FIXED_PRICE
         self.job.save()
 
         # Store references to the job's pricings for testing

@@ -470,14 +470,14 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "pricing_type",
+                    "pricing_methodology",
                     models.CharField(
                         choices=[
                             ("fixed_price", "Fixed Price"),
                             ("time_materials", "Time & Materials"),
                         ],
                         default="time_materials",
-                        help_text="Type of pricing for the job (fixed price or time and materials).",
+                        help_text="Method of pricing for the job (fixed price or time and materials).",
                         max_length=20,
                     ),
                 ),

@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import Max
 from simple_history.models import HistoricalRecords  # type: ignore
 
-from job.enums import JobPricingType
+from job.enums import JobPricingType, JobPricingMethodology
 from job.helpers import get_company_defaults
 
 # We say . rather than job.models to avoid going through init,
@@ -120,10 +120,10 @@ class Job(models.Model):
         )
     )
 
-    pricing_type = models.CharField(
+    pricing_methodology = models.CharField(
         max_length=20,
-        choices=JobPricingType.choices,
-        default=JobPricingType.TIME_AND_MATERIALS,
+        choices=JobPricingMethodology.choices,
+        default=JobPricingMethodology.TIME_AND_MATERIALS,
         help_text="Type of pricing for the job (fixed price or time and materials).",
     )
 

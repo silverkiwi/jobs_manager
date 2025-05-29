@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
-from job.enums import JobPricingType, JobPricingType
+from job.enums import JobPricingMethodology, JobPricingType, JobPricingType
 from job.helpers import DecimalEncoder, get_company_defaults
 from workflow.models import Quote, Invoice
 from job.serializers import JobPricingSerializer, JobSerializer
@@ -298,7 +298,7 @@ def edit_job_view_ajax(request, job_id=None):
         "client_name": job.client.name if job.client else "No Client",
         "created_at": job.created_at.isoformat(),
         "complex_job": job.complex_job,
-        "pricing_type": job.pricing_type,
+        "pricing_methodology": job.pricing_methodology,
         "company_defaults": company_defaults,
         "job_files": job_files,
         "has_only_summary_pdf": has_only_summary,
@@ -580,41 +580,41 @@ def toggle_pricing_type(request):
             return JsonResponse({"error": "Invalid request format"}, status=400)
 
         job_id = data.get("job_id")
-        new_type = data.get("pricing_type")
+        new_method = data.get("pricing_methodology")
 
-        logger.info(f"[toggle_pricing_type]: data: {data}")
+        logger.info(f"[toggle_pricing_method]: data: {data}")
 
-        if job_id is None or new_type is None:
+        if job_id is None or new_method is None:
             return JsonResponse(
-                {"error": "Missing required fields: job_id and pricing_type"}, status=400
+                {"error": "Missing required fields: job_id and pricing_methodology"}, status=400
             )
 
-        if new_type not in [choice[0] for choice in JobPricingType.choices]:
+        if new_method not in [choice[0] for choice in JobPricingMethodology.choices]:
             return JsonResponse(
-                {"error": "Invalid pricing type value"}, status=400
+                {"error": "Invalid pricing methodology value"}, status=400
             )
 
         job = get_object_or_404(Job.objects.select_for_update(), id=job_id)
 
-        match (new_type):
-            case JobPricingType.TIME_AND_MATERIALS:
-                new_type = JobPricingType.TIME_AND_MATERIALS
-            case JobPricingType.FIXED_PRICE:
-                new_type = JobPricingType.FIXED_PRICE
+        match (new_method):
+            case JobPricingMethodology.TIME_AND_MATERIALS:
+                new_method = JobPricingMethodology.TIME_AND_MATERIALS
+            case JobPricingMethodology.FIXED_PRICE:
+                new_method = JobPricingMethodology.FIXED_PRICE
             case _:
                 return JsonResponse(
-                    {"error": "Invalid pricing type value"}, status=400
+                    {"error": "Invalid pricing method value"}, status=400
                 )
 
         # Update job
-        job.pricing_type = new_type
+        job.pricing_methodology = new_method
         job.save()
 
         return JsonResponse(
             {
                 "success": True,
                 "job_id": job_id,
-                "pricing_type": new_type,
+                "pricing_methodology": new_method,
                 "message": "Pricing type updated successfully",
             }
         )
