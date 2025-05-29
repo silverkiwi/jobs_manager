@@ -10,7 +10,6 @@ class PartSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
-            "job_pricing",
             "created_at",
             "updated_at",
         ]
@@ -19,9 +18,7 @@ class PartSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         
-        # Convert UUID fields to strings for JSON serialization
-        for field_name, value in representation.items():
-            if isinstance(value, UUID):
-                representation[field_name] = str(value)
+        # Convert UUID id field to string for JSON serialization
+        representation['id'] = str(representation['id'])
         
         return representation
