@@ -70,6 +70,15 @@ class TimeEntrySerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
+        
+        # Convert UUID id field to string for JSON serialization
+        if 'id' in representation and representation['id']:
+            representation['id'] = str(representation['id'])
+        
+        # Convert part UUID to string if present
+        if 'part' in representation and representation['part']:
+            representation['part'] = str(representation['part'])
+            
         logger.debug(f"Serialized TimeEntry: {representation}")
         return representation
 

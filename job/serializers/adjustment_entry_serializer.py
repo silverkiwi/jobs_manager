@@ -31,3 +31,16 @@ class AdjustmentEntrySerializer(serializers.ModelSerializer):
     def get_cost(self, obj):
         # Use cost_adjustment for cost
         return obj.cost_adjustment
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        
+        # Convert UUID id field to string for JSON serialization
+        if 'id' in representation and representation['id']:
+            representation['id'] = str(representation['id'])
+        
+        # Convert part UUID to string if present
+        if 'part' in representation and representation['part']:
+            representation['part'] = str(representation['part'])
+            
+        return representation

@@ -24,7 +24,7 @@ class DecimalEncoder(json.JSONEncoder):
         if isinstance(obj, decimal.Decimal):
             return float(obj)
         elif isinstance(obj, uuid.UUID):
-            logging.error("You found a bug! UUIDs should not be here.")
+            logging.error("You found a bug! UUIDs should not be here. UUID: %s", obj)
             return str(obj)
         return super(DecimalEncoder, self).default(obj)
 
