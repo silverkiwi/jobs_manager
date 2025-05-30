@@ -1,4 +1,4 @@
-import os
+nimport os
 
 import django
 from django.core.management import call_command
@@ -159,7 +159,7 @@ class JobApiTests(TestCase):
 
         # Create related adjustment entries for the estimate pricing
         self.adjustment_entry = AdjustmentEntry.objects.create(
-            job_pricing=self.estimate_pricing,
+            part=self.estimate_pricing.get_default_part(),
             description="Test adjustment description",
             cost_adjustment=100,
             price_adjustment=150,
@@ -167,7 +167,7 @@ class JobApiTests(TestCase):
 
         # Create related material and time entries if necessary for testing
         self.material_entry = MaterialEntry.objects.create(
-            job_pricing=self.quote_pricing,
+            part=self.quote_pricing.get_default_part(),
             item_code="MAT1",
             description="Material A",
             quantity=3.0,
@@ -176,7 +176,7 @@ class JobApiTests(TestCase):
         )
 
         self.time_entry = TimeEntry.objects.create(
-            job_pricing=self.reality_pricing,
+            part=self.reality_pricing.get_default_part(),
             description="Time entry description",
             items=2,
             minutes_per_item=60,

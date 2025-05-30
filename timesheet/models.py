@@ -6,25 +6,18 @@ from django.db import models
 
 from accounts.models import Staff
 
-from job.models import JobPricing, Part
+from job.models import Part
 
 logger = logging.getLogger(__name__)
 
 
 class TimeEntry(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    job_pricing = models.ForeignKey(
-        JobPricing,
-        on_delete=models.CASCADE,
-        related_name="time_entries",
-        null=False,
-        blank=False,
-    )
     part = models.ForeignKey(
         Part,
         on_delete=models.CASCADE,
-        null=True,  # Nullable during migration - will be set to "General Work" by default after migration
-        blank=True,
+        null=False,  # Should be required after migration
+        blank=False,
         related_name="time_entries",
         help_text="The part this time entry belongs to",
     )
@@ -113,6 +106,6 @@ class TimeEntry(models.Model):
 
     def __str__(self):
         staff_name = self.staff.get_display_name() if self.staff else "No Staff"
-        job_name = self.job_pricing.job.name if self.job_pricing else "No Job"
+        job_name = self.part.job_pricing.job.name if self.part and self.part.job_pricing else "No Job"
         time_date = self.date.strftime("%Y-%m-%d")
         return f"{staff_name} - {job_name} on {time_date}"

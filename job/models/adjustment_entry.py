@@ -7,18 +7,11 @@ class AdjustmentEntry(models.Model):
     """For when costs are manually added to a job"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    job_pricing = models.ForeignKey(
-        "JobPricing",
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-        related_name="adjustment_entries",
-    )
     part = models.ForeignKey(
         "Part",
         on_delete=models.CASCADE,
-        null=True,  # Nullable during migration - will be set to "General Work" by default after migration
-        blank=True,
+        null=False,  # Required after migration
+        blank=False,
         related_name="adjustment_entries",
         help_text="The part this adjustment entry belongs to",
     )
@@ -40,7 +33,5 @@ class AdjustmentEntry(models.Model):
         db_table = "workflow_adjustmententry"
 
     def __str__(self):
-        return (
-            f"Adjustment for {self.job_pricing.job.name} - "
-            f"{self.description or 'No Description'}"
-        )
+        job_name = self.part.job_pricing.job.name
+        return f"Adjustment for {job_name} - {self.description or 'No Description'}"

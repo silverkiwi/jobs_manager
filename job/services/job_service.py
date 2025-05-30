@@ -38,7 +38,8 @@ def archive_and_reset_job_pricing(job_id):
             job=job,
             pricing_type="estimate",
         )
-        estimate_pricing.time_entries.create(
+        TimeEntry.objects.create(
+            part=estimate_pricing.get_default_part(),
             wage_rate=company_defaults.wage_rate,
             charge_out_rate=company_defaults.charge_out_rate,
         )
@@ -48,7 +49,8 @@ def archive_and_reset_job_pricing(job_id):
             job=job,
             pricing_type="quote",
         )
-        quote_pricing.adjustment_entries.create(
+        AdjustmentEntry.objects.create(
+            part=quote_pricing.get_default_part(),
             cost_adjustment=company_defaults.time_markup,
             price_adjustment=company_defaults.charge_out_rate
             * company_defaults.time_markup,
@@ -59,7 +61,8 @@ def archive_and_reset_job_pricing(job_id):
             job=job,
             pricing_type="reality",
         )
-        reality_pricing.material_entries.create(
+        MaterialEntry.objects.create(
+            part=reality_pricing.get_default_part(),
             unit_cost=company_defaults.wage_rate,
             unit_revenue=company_defaults.charge_out_rate,
         )
@@ -87,21 +90,21 @@ def get_job_with_pricings(job_id):
 
     # Loop through each pricing type to create Prefetch objects for pricing entries
     for pt in pricing_types:
-        # Prefetch time_entries with related staff
+        # Prefetch time_entries with related staff through parts
         prefetch_list.append(
             Prefetch(
-                f"{pt}__time_entries",
+                f"{pt}__parts__time_entries",
                 queryset=TimeEntry.objects.select_related("staff"),
             )
         )
-        # Prefetch material_entries
+        # Prefetch material_entries through parts
         prefetch_list.append(
-            Prefetch(f"{pt}__material_entries", queryset=MaterialEntry.objects.all())
+            Prefetch(f"{pt}__parts__material_entries", queryset=MaterialEntry.objects.all())
         )
-        # Prefetch adjustment_entries
+        # Prefetch adjustment_entries through parts
         prefetch_list.append(
             Prefetch(
-                f"{pt}__adjustment_entries", queryset=AdjustmentEntry.objects.all()
+                f"{pt}__parts__adjustment_entries", queryset=AdjustmentEntry.objects.all()
             )
         )
 

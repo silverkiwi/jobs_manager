@@ -59,7 +59,7 @@ def consume_stock_api_view(request):
 
         # --- Perform Database Operations ---
         material_entry = MaterialEntry.objects.create(
-            job_pricing=reality_pricing,
+            part=reality_pricing.get_default_part(),
             source_stock=stock_item,
             description=f"Consumed: {stock_item.description}",
             quantity=quantity_used,

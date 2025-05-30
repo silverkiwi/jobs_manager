@@ -54,18 +54,21 @@ class JobPricing(models.Model):
 
     @property
     def material_entries(self):
-        """Returns all MaterialEntries related to this JobPricing"""
-        return self.materialentries_set.all()
+        """Returns all MaterialEntries related to this JobPricing through all parts"""
+        from job.models import MaterialEntry
+        return MaterialEntry.objects.filter(part__job_pricing=self)
 
     @property
     def time_entries(self):
-        """Returns all TimeEntries related to this JobPricing"""
-        return self.timeentries_set.all()
+        """Returns all TimeEntries related to this JobPricing through all parts"""
+        from timesheet.models import TimeEntry
+        return TimeEntry.objects.filter(part__job_pricing=self)
 
     @property
     def adjustment_entries(self):
-        """Returns all AdjustmentEntries related to this JobPricing"""
-        return self.adjustmententries_set.all()
+        """Returns all AdjustmentEntries related to this JobPricing through all parts"""
+        from job.models import AdjustmentEntry
+        return AdjustmentEntry.objects.filter(part__job_pricing=self)
 
     @property
     def total_time_cost(self):
@@ -221,26 +224,30 @@ def snapshot_and_add_time_entry(job_pricing, hours_worked):
     # Copy related time entries to the snapshot
     for time_entry in job_pricing.time_entries.all():
         TimeEntry.objects.create(
-            job_pricing=snapshot_pricing, hours_worked=time_entry.hours_worked
+            part=snapshot_pricing.get_default_part(),
+            hours_worked=time_entry.hours_worked
         )
 
     # Copy related materials and adjustments if necessary
     for material_entry in job_pricing.material_entries.all():
         MaterialEntry.objects.create(
-            job_pricing=snapshot_pricing,
+            part=snapshot_pricing.get_default_part(),
             material=material_entry.material,
             quantity=material_entry.quantity,
         )
 
     for adjustment_entry in job_pricing.adjustment_entries.all():
         AdjustmentEntry.objects.create(
-            job_pricing=snapshot_pricing,
+            part=snapshot_pricing.get_default_part(),
             description=adjustment_entry.description,
             amount=adjustment_entry.amount,
         )
 
     # Now, add the new time entry to the current (updated) JobPricing
-    TimeEntry.objects.create(job_pricing=job_pricing, hours_worked=hours_worked)
+    TimeEntry.objects.create(
+        part=job_pricing.get_default_part(),
+        hours_worked=hours_worked
+    )
 
     return snapshot_pricing  # Return the snapshot to track it if needed
 

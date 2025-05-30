@@ -8,18 +8,11 @@ class MaterialEntry(models.Model):
     """Materials, e.g., sheets"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    job_pricing = models.ForeignKey(
-        "JobPricing",
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-        related_name="material_entries",
-    )
     part = models.ForeignKey(
         "Part",
         on_delete=models.CASCADE,
-        null=True,  # Nullable during migration - will be set to "General Work" by default after migration
-        blank=True,
+        null=False,  # Required after migration
+        blank=False,
         related_name="material_entries",
         help_text="The part this material entry belongs to",
     )
@@ -72,4 +65,5 @@ class MaterialEntry(models.Model):
         return self.unit_revenue * self.quantity
 
     def __str__(self):
-        return f"Material for {self.job_pricing.job.name} - {self.description}"
+        job_name = self.part.job_pricing.job.name
+        return f"Material for {job_name} - {self.description}"
