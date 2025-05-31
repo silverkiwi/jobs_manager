@@ -17,6 +17,7 @@ User = get_user_model()
 
 class JobPricingSerializationTest(TestCase):
     """Test that JobPricing serialization handles UUIDs correctly."""
+    fixtures = ['workflow/fixtures/initial_data.json']
     
     def setUp(self):
         """Set up test data."""
@@ -30,7 +31,8 @@ class JobPricingSerializationTest(TestCase):
         # Create a job
         self.job = Job.objects.create(
             name='Test Job',
-            job_number='TEST001'
+            job_number=1001,
+            pricing_methodology='time_materials'  # Explicitly set the field that's missing from DB
         )
         
         # Create a job pricing
