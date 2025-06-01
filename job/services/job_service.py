@@ -4,13 +4,9 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 
-from workflow.models import (
-    AdjustmentEntry,
-    CompanyDefaults,
-    MaterialEntry,
-)
+from workflow.models import CompanyDefaults
 
-from job.models import Job, JobPricing
+from job.models import Job, JobPricing, AdjustmentEntry, MaterialEntry
 
 from timesheet.models import TimeEntry
 

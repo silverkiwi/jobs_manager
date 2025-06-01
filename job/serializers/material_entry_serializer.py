@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from job.helpers import decimal_to_float
-from workflow.models import MaterialEntry
+from job.models import MaterialEntry
 
 
 class MaterialEntrySerializer(serializers.ModelSerializer):

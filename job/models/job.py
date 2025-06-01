@@ -64,8 +64,9 @@ class Job(models.Model):
     contact_person = models.CharField(
         max_length=100, null=True, blank=True
     )
+    contact_email = models.EmailField(null=True, blank=True)  # New field for contact's email
     contact_phone = models.CharField(
-        max_length=15,
+        max_length=150,
         null=True,
         blank=True,
     )
