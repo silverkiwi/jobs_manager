@@ -12,11 +12,11 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RemoveField(
             model_name="jobpricing",
-            name="pricing_type",
+            name="pricing_methodology",
         ),
         migrations.AddField(
             model_name="historicaljob",
-            name="pricing_type",
+            name="pricing_methodology",
             field=models.CharField(
                 choices=[
                     ("fixed_price", "Fixed Price"),
@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="job",
-            name="pricing_type",
+            name="pricing_methodology",
             field=models.CharField(
                 choices=[
                     ("fixed_price", "Fixed Price"),

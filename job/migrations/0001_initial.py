@@ -135,7 +135,7 @@ class Migration(migrations.Migration):
                             models.DecimalField(decimal_places=2, max_digits=10),
                         ),
                         (
-                            "pricing_type",
+                            "pricing_methodology",
                             models.CharField(
                                 choices=[
                                     ("fixed_price", "Fixed Price"),
@@ -404,7 +404,7 @@ class Migration(migrations.Migration):
                             models.DecimalField(decimal_places=2, max_digits=10),
                         ),
                         (
-                            "pricing_type",
+                            "pricing_methodology",
                             models.CharField(
                                 choices=[
                                     ("fixed_price", "Fixed Price"),

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 # Re-export job-related enums from job.enums for backward compatibility
 from job.enums import (
-    JobPricingType,
+    JobPricingMethodology,
     JobPricingStage,
     InvoiceStatus,
     QuoteStatus,

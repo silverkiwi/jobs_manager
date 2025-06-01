@@ -56,8 +56,8 @@ urlpatterns = [
     ),
     path(
         "api/job/toggle-pricing-type/",
-        edit_job_view_ajax.toggle_pricing_type,
-        name="toggle_pricing_type",
+        edit_job_view_ajax.toggle_pricing_methodology,
+        name="toggle_pricing_methodology",
     ),
     path(
         "api/job/completed/",

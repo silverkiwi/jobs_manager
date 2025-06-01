@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
-from job.enums import JobPricingType, JobPricingStage
+from job.enums import JobPricingMethodology, JobPricingStage
 from job.helpers import DecimalEncoder, get_company_defaults
 from workflow.models import Quote, Invoice
 from job.serializers import JobPricingSerializer, JobSerializer
@@ -75,21 +75,21 @@ def create_job_api(request):
 @require_http_methods(["GET"])
 def fetch_job_pricing_api(request):
     job_id = request.GET.get("job_id")
-    pricing_type = request.GET.get("pricing_type")
+    pricing_methodology = request.GET.get("pricing_methodology")
 
-    if not job_id or not pricing_type:
-        return JsonResponse({"error": "Missing job_id or pricing_type"}, status=400)
+    if not job_id or not pricing_methodology:
+        return JsonResponse({"error": "Missing job_id or pricing_methodology"}, status=400)
 
     try:
         # Retrieve the job with related pricings using the service function
         job = get_job_with_pricings(job_id)
 
-        # Retrieve the pricing data by filtering the job pricings based on pricing_type
-        pricing_data = job.pricings.filter(pricing_type=pricing_type).values()
+        # Retrieve the pricing data by filtering the job pricings based on pricing_methodology
+        pricing_data = job.pricings.filter(pricing_methodology=pricing_methodology).values()
 
         if not pricing_data.exists():
             return JsonResponse(
-                {"error": "No data found for the provided job_id and pricing_type"},
+                {"error": "No data found for the provided job_id and pricing_methodology"},
                 status=404,
             )
 
@@ -297,7 +297,7 @@ def edit_job_view_ajax(request, job_id=None):
         "client_name": job.client.name if job.client else "No Client",
         "created_at": job.created_at.isoformat(),
         "complex_job": job.complex_job,
-        "pricing_type": job.pricing_type,
+        "pricing_methodology": job.pricing_methodology,
         "company_defaults": company_defaults,
         "job_files": job_files,
         "has_only_summary_pdf": has_only_summary,
@@ -572,23 +572,23 @@ def toggle_complex_job(request):
 
 @require_http_methods(["POST"])
 @transaction.atomic
-def toggle_pricing_type(request):
+def toggle_pricing_methodology(request):
     try:
         data = json.loads(request.body)
         if not isinstance(data, dict):
             return JsonResponse({"error": "Invalid request format"}, status=400)
 
         job_id = data.get("job_id")
-        new_type = data.get("pricing_type")
+        new_type = data.get("pricing_methodology")
 
-        logger.info(f"[toggle_pricing_type]: data: {data}")
+        logger.info(f"[toggle_pricing_methodology]: data: {data}")
 
         if job_id is None or new_type is None:
             return JsonResponse(
-                {"error": "Missing required fields: job_id and pricing_type"}, status=400
+                {"error": "Missing required fields: job_id and pricing_methodology"}, status=400
             )
 
-        if new_type not in [choice[0] for choice in JobPricingType.choices]:
+        if new_type not in [choice[0] for choice in JobPricingMethodology.choices]:
             return JsonResponse(
                 {"error": "Invalid pricing type value"}, status=400
             )
@@ -596,24 +596,24 @@ def toggle_pricing_type(request):
         job = get_object_or_404(Job.objects.select_for_update(), id=job_id)
 
         match (new_type):
-            case JobPricingType.TIME_AND_MATERIALS:
-                new_type = JobPricingType.TIME_AND_MATERIALS
-            case JobPricingType.FIXED_PRICE:
-                new_type = JobPricingType.FIXED_PRICE
+            case JobPricingMethodology.TIME_AND_MATERIALS:
+                new_type = JobPricingMethodology.TIME_AND_MATERIALS
+            case JobPricingMethodology.FIXED_PRICE:
+                new_type = JobPricingMethodology.FIXED_PRICE
             case _:
                 return JsonResponse(
                     {"error": "Invalid pricing type value"}, status=400
                 )
 
         # Update job
-        job.pricing_type = new_type
+        job.pricing_methodology = new_type
         job.save()
 
         return JsonResponse(
             {
                 "success": True,
                 "job_id": job_id,
-                "pricing_type": new_type,
+                "pricing_methodology": new_type,
                 "message": "Pricing type updated successfully",
             }
         )

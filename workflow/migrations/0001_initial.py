@@ -470,7 +470,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "pricing_type",
+                    "pricing_methodology",
                     models.CharField(
                         choices=[
                             ("fixed_price", "Fixed Price"),
