@@ -17,8 +17,8 @@ class JobPart(models.Model):
         "JobPricing",
         on_delete=models.CASCADE,
         related_name="parts",
-        null=False,
-        blank=False,
+        null=True,          # NOTE: ONLY NULL DURING MIGRATION
+        blank=True,
     )
     name = models.CharField(max_length=100, null=False, blank=False)
     description = models.TextField(null=True, blank=True)

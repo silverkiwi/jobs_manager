@@ -101,7 +101,7 @@ class Migration(migrations.Migration):
                         ),
                     ],
                     options={
-                        "db_table": "timesheet_timeentry",
+                        "db_table": "workflow_timeentry",
                         "ordering": ["created_at"],
                     },
                 ),

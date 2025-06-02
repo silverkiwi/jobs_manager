@@ -10,15 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            database_operations=[],
-            state_operations=[
-                migrations.DeleteModel(
-                    name="AdjustmentEntry",
-                ),
-                migrations.DeleteModel(
-                    name="MaterialEntry",
-                ),
-            ],
-        ),
     ]

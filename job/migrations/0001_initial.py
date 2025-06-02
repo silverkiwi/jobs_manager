@@ -498,6 +498,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 "verbose_name": "historical Job",
+                "verbose_name": "historical Job",
                 "verbose_name_plural": "historical Jobs",
                 "ordering": ("-history_date", "-history_id"),
                 "get_latest_by": ("history_date", "history_id"),
