@@ -663,3 +663,59 @@ def delete_job(request, job_id):
             "message": f"An error occurred while deleting the job: {str(e)}"
         }, status=500)
 
+@require_http_methods(["POST"])
+def create_linked_quote_api(request, job_id):
+    """
+    Create a new linked quote from the master template for a job.
+    
+    Args:
+        request: The HTTP request
+        job_id: The UUID of the job
+        
+    Returns:
+        JsonResponse with the URL of the newly created quote
+    """
+    try:
+        # Get the job
+        job = get_object_or_404(Job, id=job_id)
+        
+        # Get the client name
+        client_name = job.client.name if job.client else "No Client"
+        
+        # Create a new quote from the template
+        quote_url = create_quote_from_template(job.job_number, client_name)
+        
+        # Update the job with the new quote URL
+        job.linked_quote = quote_url
+        job.save(staff=request.user)
+        
+        # Create a job event to record this action
+        JobEvent.objects.create(
+            job=job,
+            event_type="linked_quote_created",
+            description=f"Created linked quote spreadsheet",
+            staff=request.user,
+        )
+        
+        # Return the URL of the new quote
+        return JsonResponse({
+            "success": True,
+            "quote_url": quote_url,
+            "message": "Linked quote created successfully"
+        })
+        
+    except ValueError as e:
+        # This will catch the error if the master template URL is not set
+        logger.error(f"Error creating linked quote: {str(e)}")
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=400)
+        
+    except Exception as e:
+        # Catch all other exceptions
+        logger.exception(f"Unexpected error creating linked quote: {str(e)}")
+        return JsonResponse({
+            "success": False,
+            "error": "An unexpected error occurred creating a linked quote."
+        }, status=500)
