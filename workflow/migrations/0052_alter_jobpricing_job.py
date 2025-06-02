@@ -10,15 +10,4 @@ class Migration(migrations.Migration):
         ("workflow", "0051_alter_historicalstaff_updated_at_and_more"),
     ]
 
-    operations = [
-        migrations.AlterField(
-            model_name="jobpricing",
-            name="job",
-            field=models.ForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="pricings",
-                to="workflow.job",
-            ),
-        ),
-    ]
+    operations = []

@@ -10,15 +10,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelOptions(
-            name="jobpricing",
-            options={"ordering": ["-created_at", "pricing_stage"]},
-        ),
-        migrations.AddField(
-            model_name="jobpricing",
-            name="revision_number",
-            field=models.PositiveIntegerField(
-                default=1, help_text="Tracks the revision number for friendlier quotes"
-            ),
-        ),
+
     ]

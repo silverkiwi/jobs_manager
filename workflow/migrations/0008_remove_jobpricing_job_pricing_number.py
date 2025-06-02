@@ -10,8 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="jobpricing",
-            name="job_pricing_number",
-        ),
     ]

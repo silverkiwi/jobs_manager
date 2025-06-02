@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("job", "0002_alter_historicaljob_pricing_methodology_and_more"),
+        ("job", "0002_alter_historicaljob_pricing_type_and_more"),
         ("timesheet", "0002_alter_timeentry_job_pricing_fk"),
         ("workflow", "0143_alter_stock_job"),
     ]

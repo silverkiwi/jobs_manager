@@ -11,15 +11,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="jobpricing",
-            name="job",
-            field=models.ForeignKey(
-                default=None,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="pricings",
-                to="workflow.job",
-            ),
-            preserve_default=False,
-        ),
     ]

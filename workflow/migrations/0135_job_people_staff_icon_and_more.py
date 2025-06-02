@@ -16,14 +16,4 @@ class Migration(migrations.Migration):
                 related_name="assigned_jobs", to=settings.AUTH_USER_MODEL
             ),
         ),
-        migrations.AddField(
-            model_name="staff",
-            name="icon",
-            field=models.ImageField(blank=True, null=True, upload_to="staff_icons/"),
-        ),
-        migrations.AddField(
-            model_name="historicalstaff",
-            name="icon",
-            field=models.ImageField(blank=True, null=True, upload_to="staff_icons/")
-        )
     ]

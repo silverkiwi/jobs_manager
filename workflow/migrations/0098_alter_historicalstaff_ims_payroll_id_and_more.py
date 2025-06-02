@@ -9,17 +9,4 @@ class Migration(migrations.Migration):
         ("workflow", "0097_alter_historicalstaff_ims_payroll_id_and_more"),
     ]
 
-    operations = [
-        migrations.AlterField(
-            model_name="historicalstaff",
-            name="ims_payroll_id",
-            field=models.CharField(
-                blank=True, db_index=True, max_length=100, null=True
-            ),
-        ),
-        migrations.AlterField(
-            model_name="staff",
-            name="ims_payroll_id",
-            field=models.CharField(blank=True, max_length=100, null=True, unique=True),
-        ),
-    ]
+    operations = []

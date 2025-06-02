@@ -10,24 +10,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="historicaljob",
-            name="description",
-            field=models.TextField(blank=True, null=True),
-        ),
-        migrations.AlterField(
-            model_name="historicaljob",
-            name="material_gauge_quantity",
-            field=models.TextField(blank=True, null=True),
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="description",
-            field=models.TextField(blank=True, null=True),
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="material_gauge_quantity",
-            field=models.TextField(blank=True, null=True),
-        ),
+
     ]

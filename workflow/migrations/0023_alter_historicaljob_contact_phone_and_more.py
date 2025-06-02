@@ -10,14 +10,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="historicaljob",
-            name="contact_phone",
-            field=models.CharField(blank=True, max_length=15, null=True),
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="contact_phone",
-            field=models.CharField(blank=True, max_length=15, null=True),
-        ),
+
     ]

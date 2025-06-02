@@ -9,9 +9,4 @@ class Migration(migrations.Migration):
         ("workflow", "0089_companydefaults_starting_job_number_and_more"),
     ]
 
-    operations = [
-        migrations.AlterModelOptions(
-            name="staff",
-            options={"ordering": ["last_name", "first_name"]},
-        ),
-    ]
+    operations = []

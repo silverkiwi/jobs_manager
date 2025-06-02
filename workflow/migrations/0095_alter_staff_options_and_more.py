@@ -10,10 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelOptions(
-            name="staff",
-            options={"ordering": ["last_name", "first_name"]},
-        ),
         migrations.AlterField(
             model_name="historicaljob",
             name="material_gauge_quantity",

@@ -7,11 +7,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    initial = True
-
-    # The dependencies list includes a swappable dependency on the AUTH_USER_MODEL
-    # to ensure compatibility with custom user models. This is necessary because
-    # the historicalstaff and staff models reference the user model.
+    initial = False
     dependencies = [
         ("accounts", "0001_initial"),
         ("auth", "0012_alter_user_first_name_max_length"),

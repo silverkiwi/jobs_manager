@@ -12,15 +12,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="timeentry",
-            name="staff",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="time_entries",
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
     ]

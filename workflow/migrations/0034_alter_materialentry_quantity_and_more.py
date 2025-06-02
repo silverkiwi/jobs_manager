@@ -10,19 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="materialentry",
-            name="quantity",
-            field=models.DecimalField(decimal_places=2, default=0, max_digits=10),
-        ),
-        migrations.AlterField(
-            model_name="materialentry",
-            name="unit_cost",
-            field=models.DecimalField(decimal_places=2, default=0, max_digits=10),
-        ),
-        migrations.AlterField(
-            model_name="materialentry",
-            name="unit_revenue",
-            field=models.DecimalField(decimal_places=2, default=0, max_digits=10),
-        ),
     ]

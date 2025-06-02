@@ -9,15 +9,4 @@ class Migration(migrations.Migration):
         ("workflow", "0037_remove_historicalstaff_charge_out_rate_and_more"),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name="historicaljob",
-            name="shop_job",
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name="job",
-            name="shop_job",
-            field=models.BooleanField(default=False),
-        ),
-    ]
+    operations = []

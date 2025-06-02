@@ -9,9 +9,4 @@ class Migration(migrations.Migration):
         ("workflow", "0044_remove_timeentry_mins_per_item_timeentry_hours_and_more"),
     ]
 
-    operations = [
-        migrations.RemoveField(
-            model_name="timeentry",
-            name="minutes",
-        ),
-    ]
+    operations = []

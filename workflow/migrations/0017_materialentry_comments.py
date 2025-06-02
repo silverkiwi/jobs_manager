@@ -10,9 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="materialentry",
-            name="comments",
-            field=models.CharField(blank=True, max_length=200, null=True),
-        ),
     ]

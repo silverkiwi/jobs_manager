@@ -10,14 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="historicaljob",
-            name="description",
-            field=models.TextField(blank=True),
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="description",
-            field=models.TextField(blank=True),
-        ),
     ]
