@@ -11,7 +11,7 @@ from google import genai
 from django.conf import settings
 
 from workflow.helpers import get_company_defaults
-from workflow.enums import MetalType
+from workflow.enums import MetalType, AIProviderTypes
 
 logger = logging.getLogger(__name__)
 
@@ -153,13 +153,21 @@ def extract_data_from_supplier_price_list_gemini(file_path: str, content_type: O
     """
     try:
         company_defaults = get_company_defaults()
-        gemini_api_key = company_defaults.gemini_api_key
+        active_ai_provider = company_defaults.get_active_ai_provider()
+
+        if not active_ai_provider:
+            return None, "No active AI provider configured. Please set one in company settings."
+
+        if active_ai_provider.provider_type != AIProviderTypes.GOOGLE:
+            return None, f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Google (Gemini)."
+
+        gemini_api_key = active_ai_provider.api_key
 
         if not gemini_api_key:
-            return None, "Gemini API key not configured. Please add it in company settings."
+            return None, "Gemini API key not configured for the active AI provider. Please add it in company settings."
 
-        genai.configure(api_key=gemini_api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        genai_client = genai.Client(api_key=gemini_api_key)
+        model = genai_client.GenerativeModel('gemini-1.5-flash')
 
         file_content = read_file_content(file_path)
         if file_content is None:

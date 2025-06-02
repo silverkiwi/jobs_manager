@@ -119,12 +119,20 @@ def extract_data_from_supplier_quote(quote_path, content_type=None,
                                      use_pdf_parser=USE_PDF_PARSER):
     """Extract data from a supplier quote file using Claude."""
     try:
-        # Get the API key
+        # Get the active AI provider and its API key
         company_defaults = get_company_defaults()
-        api_key = company_defaults.anthropic_api_key
+        active_ai_provider = company_defaults.get_active_ai_provider()
+
+        if not active_ai_provider:
+            return None, "No active AI provider configured. Please set one in company settings."
+
+        if active_ai_provider.provider_type != AIProviderTypes.ANTHROPIC:
+            return None, f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Anthropic (Claude)."
+
+        api_key = active_ai_provider.api_key
 
         if not api_key:
-            return None, "Anthropic API key not configured. Please add it in company settings."
+            return None, "Anthropic API key not configured for the active AI provider. Please add it in company settings."
 
         # Read and encode the file
         with open(quote_path, 'rb') as file:

@@ -276,4 +276,5 @@ urlpatterns = [
     # Stock Management URLs with purchases prefix
     path("purchases/use-stock/", use_stock_view.use_stock_view, name="use_stock"),
     path("__debug__/", include(debug_toolbar.urls)),
+# End of URL patterns
 ]

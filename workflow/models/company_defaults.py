@@ -27,9 +27,6 @@ class CompanyDefaults(models.Model):
     # Xero integration
     xero_tenant_id = models.CharField(max_length=100, null=True, blank=True, help_text="The Xero tenant ID to use for this company")
 
-    # (DEPRECATED) LLM integration
-    anthropic_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="(DEPRECATED) API key for Anthropic Claude LLM")
-    gemini_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="(DEPRECATED) API key for Google Gemini LLM")
 
     # Default working hours (Mon-Fri, 7am - 3pm)
     mon_start = models.TimeField(default="07:00")
@@ -98,6 +95,14 @@ class CompanyDefaults(models.Model):
 
     def get_active_ai_provider(self):
         return self.ai_providers.filter(active=True).first()
+
+    @property
+    def llm_api_key(self):
+        """
+        Returns the API key of the active LLM provider.
+        """
+        active_provider = self.get_active_ai_provider()
+        return active_provider.api_key if active_provider else None
 
     def __str__(self):
         return self.company_name
