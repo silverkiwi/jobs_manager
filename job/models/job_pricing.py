@@ -37,7 +37,7 @@ class JobPricing(models.Model):
     )  
 
     default_part = models.OneToOneField(
-        "Part",
+        "JobPart",
         on_delete=models.CASCADE,
         null=True,
         blank=True,
