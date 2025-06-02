@@ -18,6 +18,9 @@
                         <input type="file" id="pdfFile" name="pdf_file" accept=".pdf" class="d-none">
                     </label>
                 </form>
+                <div id="loadingSpinner" class="spinner-border text-primary" role="status" style="display: none;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
         </div>
     </div>
@@ -60,7 +63,13 @@
 {% block extra_js %}
 <script type="module">
     document.getElementById('pdfFile').addEventListener('change', function() {
-        document.getElementById('pdfUploadForm').submit();
+        const form = document.getElementById('pdfUploadForm');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        // Show the loading spinner
+        loadingSpinner.style.display = 'block';
+
+        form.submit();
     });
 </script>
 {% endblock extra_js %}
