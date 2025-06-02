@@ -10,29 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='companydefaults',
-            name='starting_job_number',
-            field=models.IntegerField(default=1, help_text='Helper field to set the starting job number based on the latest paper job'),
-        ),
-        migrations.AddField(
-            model_name='historicaljob',
-            name='collected',
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name='historicalstaff',
-            name='password_needs_reset',
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name='job',
-            name='collected',
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name='staff',
-            name='password_needs_reset',
-            field=models.BooleanField(default=False),
-        ),
     ]

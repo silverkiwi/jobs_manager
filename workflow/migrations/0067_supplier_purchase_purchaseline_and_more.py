@@ -78,17 +78,6 @@ class Migration(migrations.Migration):
                 ),
             ],
         ),
-        migrations.AddField(
-            model_name="materialentry",
-            name="purchase_line",
-            field=models.ForeignKey(
-                blank=True,
-                help_text="Source purchase line if from a purchase",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                to="workflow.purchaseline",
-            ),
-        ),
         migrations.CreateModel(
             name="PurchaseOrder",
             fields=[

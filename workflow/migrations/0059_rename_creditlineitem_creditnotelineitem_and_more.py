@@ -10,16 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameModel(
-            old_name="CreditLineItem",
-            new_name="CreditNoteLineItem",
-        ),
-        migrations.RemoveField(
-            model_name="creditnote",
-            name="credit_note_number",
-        ),
-        migrations.RemoveField(
-            model_name="creditnote",
-            name="reason",
-        ),
     ]

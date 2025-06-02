@@ -9,23 +9,4 @@ class Migration(migrations.Migration):
         ("workflow", "0091_rename_coolected_historicaljob_collected_and_more"),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name="historicaljob",
-            name="notes",
-            field=models.TextField(
-                blank=True,
-                help_text="Internal notes about the job. Not shown on the invoice.",
-                null=True,
-            ),
-        ),
-        migrations.AddField(
-            model_name="job",
-            name="notes",
-            field=models.TextField(
-                blank=True,
-                help_text="Internal notes about the job. Not shown on the invoice.",
-                null=True,
-            ),
-        ),
-    ]
+    operations = []

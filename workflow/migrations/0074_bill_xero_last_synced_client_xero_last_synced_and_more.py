@@ -11,39 +11,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="bill",
-            name="xero_last_synced",
-            field=models.DateTimeField(
-                blank=True, default=django.utils.timezone.now, null=True
-            ),
-        ),
-        migrations.AddField(
-            model_name="client",
-            name="xero_last_synced",
-            field=models.DateTimeField(
-                blank=True, default=django.utils.timezone.now, null=True
-            ),
-        ),
-        migrations.AddField(
-            model_name="creditnote",
-            name="xero_last_synced",
-            field=models.DateTimeField(
-                blank=True, default=django.utils.timezone.now, null=True
-            ),
-        ),
-        migrations.AddField(
-            model_name="invoice",
-            name="xero_last_synced",
-            field=models.DateTimeField(
-                blank=True, default=django.utils.timezone.now, null=True
-            ),
-        ),
-        migrations.AddField(
-            model_name="xerojournal",
-            name="xero_last_synced",
-            field=models.DateTimeField(
-                blank=True, default=django.utils.timezone.now, null=True
-            ),
-        ),
     ]
