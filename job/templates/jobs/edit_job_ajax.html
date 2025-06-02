@@ -51,8 +51,8 @@
         <div>
             <label for="pricingTypeDropdown" class="form-label fw-bold">Pricing type:</label>
             <select id="pricingTypeDropdown" class="form-select">
-              <option value="time_materials" {% if pricing_type == 'time_materials' %}selected{% endif %}>Not Quoted</option>
-              <option value="fixed_price" {% if pricing_type == 'fixed_price' %}selected{% endif %}>Quoted</option>
+              <option value="time_materials" {% if pricing_methodology == 'time_materials' %}selected{% endif %}>Not Quoted</option>
+              <option value="fixed_price" {% if pricing_methodology == 'fixed_price' %}selected{% endif %}>Quoted</option>
             </select>
         </div>
     </div>
@@ -76,14 +76,14 @@
         </div>
         <div id="simpleEstimateTotalsTable" class="ag-theme-alpine price-entry-table hover-lift totals-table"></div>
 
-        <button id="copyEstimateToQuote" class="btn btn-primary mt-3 {% if pricing_type == 'time_materials' %}d-none{% endif %}">
+        <button id="copyEstimateToQuote" class="btn btn-primary mt-3 {% if pricing_methodology == 'time_materials' %}d-none{% endif %}">
             <i class="bi bi-copy me-2"></i>Copy Estimate to Quote
         </button>
     </div>
 
     <div id="estimate" class="alert-container"></div>
 
-    <div class="job-grid-section {% if pricing_type == 'time_materials' %}d-none{% endif %}" id="quoteGrid">
+    <div class="job-grid-section {% if pricing_methodology == 'time_materials' %}d-none{% endif %}" id="quoteGrid">
         <h2>Quote</h2>
 
         <!-- Advanced Tables -->

@@ -12,43 +12,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="purchase",
-            name="created_at",
-            field=models.DateTimeField(
-                auto_now_add=True, default=django.utils.timezone.now
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="purchase",
-            name="updated_at",
-            field=models.DateTimeField(auto_now=True),
-        ),
-        migrations.AddField(
-            model_name="purchaseorder",
-            name="created_at",
-            field=models.DateTimeField(
-                auto_now_add=True, default=django.utils.timezone.now
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="purchaseorder",
-            name="job",
-            field=models.ForeignKey(
-                blank=True,
-                help_text="Primary job this PO is for",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                to="workflow.job",
-            ),
-        ),
-        migrations.AddField(
-            model_name="purchaseorder",
-            name="updated_at",
-            field=models.DateTimeField(auto_now=True),
-        ),
         migrations.AlterField(
             model_name="purchaseline",
             name="purchase",

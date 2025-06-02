@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
             state_operations=[
                 migrations.AlterField(
                     model_name="historicaljob",
-                    name="pricing_type",
+                    name="pricing_methodology",
                     field=models.CharField(
                         choices=[
                             ("time_materials", "Time and Materials"),
@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                 ),
                 migrations.AlterField(
                     model_name="job",
-                    name="pricing_type",
+                    name="pricing_methodology",
                     field=models.CharField(
                         choices=[
                             ("time_materials", "Time and Materials"),

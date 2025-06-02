@@ -11,34 +11,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="historicaljob",
-            name="client_name",
-        ),
-        migrations.RemoveField(
-            model_name="job",
-            name="client_name",
-        ),
-        migrations.AddField(
-            model_name="historicaljob",
-            name="client",
-            field=models.ForeignKey(
-                blank=True,
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.DO_NOTHING,
-                related_name="+",
-                to="workflow.client",
-            ),
-        ),
-        migrations.AddField(
-            model_name="job",
-            name="client",
-            field=models.ForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="jobs",
-                to="workflow.client",
-            ),
-        ),
     ]

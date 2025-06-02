@@ -9,33 +9,4 @@ class Migration(migrations.Migration):
         ("workflow", "0079_merge_20250207_1950"),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name="historicaljob",
-            name="complex_job",
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name="job",
-            name="complex_job",
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AlterField(
-            model_name="historicaljob",
-            name="material_gauge_quantity",
-            field=models.TextField(
-                blank=True,
-                help_text="Internal notes such as the material to use. Not shown on the invoice",
-                null=True,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="material_gauge_quantity",
-            field=models.TextField(
-                blank=True,
-                help_text="Internal notes such as the material to use. Not shown on the invoice",
-                null=True,
-            ),
-        ),
-    ]
+    operations = []

@@ -12,10 +12,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterModelOptions(
-            name="adjustmententry",
-            options={"ordering": ["created_at"]},
-        ),
-        migrations.AlterModelOptions(
             name="bill",
             options={
                 "ordering": ["-date", "number"],
@@ -35,58 +31,11 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "Invoices",
             },
         ),
-        migrations.AlterModelOptions(
-            name="job",
-            options={"ordering": ["job_number"]},
-        ),
-        migrations.AlterModelOptions(
-            name="materialentry",
-            options={"ordering": ["created_at"]},
-        ),
-        migrations.AlterModelOptions(
-            name="staff",
-            options={"ordering": ["first_name", "last_name"]},
-        ),
-        migrations.AlterModelOptions(
-            name="timeentry",
-            options={"ordering": ["created_at"]},
-        ),
         migrations.RenameField(
             model_name="client",
             old_name="last_modified",
             new_name="django_updated_at",
         ),
-        migrations.RenameField(
-            model_name="historicaljob",
-            old_name="last_updated",
-            new_name="updated_at",
-        ),
-        migrations.RenameField(
-            model_name="job",
-            old_name="last_updated",
-            new_name="updated_at",
-        ),
-        migrations.RemoveField(
-            model_name="historicaljob",
-            name="date_created",
-        ),
-        migrations.RemoveField(
-            model_name="job",
-            name="date_created",
-        ),
-        migrations.AddField(
-            model_name="adjustmententry",
-            name="created_at",
-            field=models.DateTimeField(
-                auto_now_add=True, default=django.utils.timezone.now
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="adjustmententry",
-            name="updated_at",
-            field=models.DateTimeField(auto_now=True),
-        ),
         migrations.AddField(
             model_name="bill",
             name="django_created_at",
@@ -109,30 +58,6 @@ class Migration(migrations.Migration):
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name="historicaljob",
-            name="created_at",
-            field=models.DateTimeField(
-                blank=True, default=django.utils.timezone.now, editable=False
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="historicalstaff",
-            name="created_at",
-            field=models.DateTimeField(
-                blank=True, default=django.utils.timezone.now, editable=False
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="historicalstaff",
-            name="updated_at",
-            field=models.DateTimeField(
-                blank=True, default=django.utils.timezone.now, editable=False
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
             model_name="invoice",
             name="django_created_at",
             field=models.DateTimeField(
@@ -143,53 +68,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="invoice",
             name="django_updated_at",
-            field=models.DateTimeField(auto_now=True),
-        ),
-        migrations.AddField(
-            model_name="job",
-            name="created_at",
-            field=models.DateTimeField(
-                auto_now_add=True, default=django.utils.timezone.now
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="materialentry",
-            name="created_at",
-            field=models.DateTimeField(
-                auto_now_add=True, default=django.utils.timezone.now
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="materialentry",
-            name="updated_at",
-            field=models.DateTimeField(auto_now=True),
-        ),
-        migrations.AddField(
-            model_name="staff",
-            name="created_at",
-            field=models.DateTimeField(
-                auto_now_add=True, default=django.utils.timezone.now
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="staff",
-            name="updated_at",
-            field=models.DateTimeField(auto_now=True),
-        ),
-        migrations.AddField(
-            model_name="timeentry",
-            name="created_at",
-            field=models.DateTimeField(
-                auto_now_add=True, default=django.utils.timezone.now
-            ),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="timeentry",
-            name="updated_at",
             field=models.DateTimeField(auto_now=True),
         ),
         migrations.AddField(

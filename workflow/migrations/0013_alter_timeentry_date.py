@@ -10,9 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="timeentry",
-            name="date",
-            field=models.DateField(blank=True, null=True),
-        ),
     ]

@@ -10,25 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="timeentry",
-            name="minutes",
-        ),
-        migrations.AddField(
-            model_name="timeentry",
-            name="description",
-            field=models.TextField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name="timeentry",
-            name="items",
-            field=models.IntegerField(default=1),
-        ),
-        migrations.AddField(
-            model_name="timeentry",
-            name="mins_per_item",
-            field=models.DecimalField(
-                blank=True, decimal_places=2, max_digits=5, null=True
-            ),
-        ),
     ]

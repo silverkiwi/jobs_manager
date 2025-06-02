@@ -11,7 +11,7 @@ class JobPricingStage(models.TextChoices):
     REALITY = 'reality', 'Reality'
 
 
-class JobPricingType(models.TextChoices):
+class JobPricingMethodology(models.TextChoices):
     """
     Define the pricing methodology used for a job
     """

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from rest_framework import serializers
 from rest_framework.test import APITestCase
 
-from job.enums import JobPricingType
+from job.enums import JobPricingMethodology
 
 from job.models import Job, JobFile, MaterialEntry, AdjustmentEntry
 
@@ -150,7 +150,7 @@ class JobApiTests(TestCase):
         self.job = Job.objects.create()
 
         # Set the job's pricing type
-        self.job.pricing_type = JobPricingType.FIXED_PRICE
+        self.job.pricing_methodology = JobPricingMethodology.FIXED_PRICE
         self.job.save()
 
         # Store references to the job's pricings for testing

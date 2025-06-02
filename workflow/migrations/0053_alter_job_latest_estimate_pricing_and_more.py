@@ -10,44 +10,4 @@ class Migration(migrations.Migration):
         ("workflow", "0052_alter_jobpricing_job"),
     ]
 
-    operations = [
-        migrations.AlterField(
-            model_name="job",
-            name="latest_estimate_pricing",
-            field=models.OneToOneField(
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="latest_estimate_for_job",
-                to="workflow.jobpricing",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="latest_quote_pricing",
-            field=models.OneToOneField(
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="latest_quote_for_job",
-                to="workflow.jobpricing",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="latest_reality_pricing",
-            field=models.OneToOneField(
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="latest_reality_for_job",
-                to="workflow.jobpricing",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="jobpricing",
-            name="job",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="pricings",
-                to="workflow.job",
-            ),
-        ),
-    ]
+    operations = []

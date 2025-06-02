@@ -9,15 +9,4 @@ class Migration(migrations.Migration):
         ("workflow", "0040_alter_historicaljob_charge_out_rate_and_more"),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name="timeentry",
-            name="wage_rate_multiplier",
-            field=models.DecimalField(
-                decimal_places=2,
-                default=1,
-                help_text="Set to 2 for double time, etc.  Do not set to 0 unless you want the staff member to work for free.",
-                max_digits=5,
-            ),
-        ),
-    ]
+    operations = []

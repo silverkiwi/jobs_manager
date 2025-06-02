@@ -11,26 +11,4 @@ class Migration(migrations.Migration):
         ("workflow", "0098_alter_historicalstaff_ims_payroll_id_and_more"),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name="historicaljob",
-            name="created_by",
-            field=models.ForeignKey(
-                blank=True,
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.DO_NOTHING,
-                related_name="+",
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AddField(
-            model_name="job",
-            name="created_by",
-            field=models.ForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-    ]
+    operations = []

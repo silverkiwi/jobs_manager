@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("workflow", "0002_jobpricing_job_pricing_number"),
+        ("workflow", "0001_initial"),
     ]
 
     operations = [
@@ -52,6 +52,7 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "Company Defaults",
                 "verbose_name_plural": "Company Defaults",
+                "db_table": "workflow_companydefaults",
             },
         ),
         migrations.AlterField(

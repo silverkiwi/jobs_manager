@@ -200,7 +200,7 @@ export function togglePricingType(event) {
     },
     body: JSON.stringify({
       job_id: jobId,
-      pricing_type: newType,
+      pricing_methodology: newType,
     }),
   })
     .then((response) => response.json())

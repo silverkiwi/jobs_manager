@@ -10,15 +10,4 @@ class Migration(migrations.Migration):
         ("workflow", "0050_alter_historicalstaff_created_at_and_more"),
     ]
 
-    operations = [
-        migrations.AlterField(
-            model_name="historicalstaff",
-            name="updated_at",
-            field=models.DateTimeField(default=django.utils.timezone.now),
-        ),
-        migrations.AlterField(
-            model_name="staff",
-            name="updated_at",
-            field=models.DateTimeField(default=django.utils.timezone.now),
-        ),
-    ]
+    operations = []

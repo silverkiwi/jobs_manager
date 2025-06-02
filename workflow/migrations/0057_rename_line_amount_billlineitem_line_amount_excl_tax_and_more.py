@@ -10,20 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name="billlineitem",
-            old_name="line_amount",
-            new_name="line_amount_excl_tax",
-        ),
-        migrations.RemoveField(
-            model_name="invoicelineitem",
-            name="tax",
-        ),
-        migrations.AddField(
-            model_name="billlineitem",
-            name="line_amount_incl_tax",
-            field=models.DecimalField(
-                blank=True, decimal_places=2, max_digits=10, null=True
-            ),
-        ),
     ]

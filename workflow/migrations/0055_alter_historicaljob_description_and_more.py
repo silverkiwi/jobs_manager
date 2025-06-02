@@ -10,40 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="historicaljob",
-            name="description",
-            field=models.TextField(
-                blank=True,
-                help_text="This becomes the first line item on the invoice",
-                null=True,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="historicaljob",
-            name="material_gauge_quantity",
-            field=models.TextField(
-                blank=True,
-                help_text="Internal notes such as the material to use.  Not shown on the invoice",
-                null=True,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="description",
-            field=models.TextField(
-                blank=True,
-                help_text="This becomes the first line item on the invoice",
-                null=True,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="material_gauge_quantity",
-            field=models.TextField(
-                blank=True,
-                help_text="Internal notes such as the material to use.  Not shown on the invoice",
-                null=True,
-            ),
-        ),
     ]

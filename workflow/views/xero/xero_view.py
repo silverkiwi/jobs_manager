@@ -49,7 +49,7 @@ from workflow.api.xero.xero import (
     get_valid_token,
     refresh_token,
 )
-from workflow.enums import InvoiceStatus, JobPricingType, QuoteStatus # Keep if needed
+from workflow.enums import InvoiceStatus, JobPricingMethodology, QuoteStatus # Keep if needed
 from workflow.models import Invoice, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults, PurchaseOrder, Quote
 from job.models import Job, JobFile, JobEvent, JobPricing
 from workflow.utils import extract_messages

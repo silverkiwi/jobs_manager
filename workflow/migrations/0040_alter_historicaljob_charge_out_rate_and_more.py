@@ -9,17 +9,4 @@ class Migration(migrations.Migration):
         ("workflow", "0039_historicaljob_charge_out_rate_job_charge_out_rate"),
     ]
 
-    operations = [
-        migrations.AlterField(
-            model_name="historicaljob",
-            name="charge_out_rate",
-            field=models.DecimalField(decimal_places=2, default=0, max_digits=10),
-            preserve_default=False,
-        ),
-        migrations.AlterField(
-            model_name="job",
-            name="charge_out_rate",
-            field=models.DecimalField(decimal_places=2, default=0, max_digits=10),
-            preserve_default=False,
-        ),
-    ]
+    operations = []

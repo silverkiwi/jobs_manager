@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("workflow", "0140_remove_staff_groups_remove_staff_user_permissions_and_more"),
+        ("job", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -85,7 +85,7 @@ class Migration(migrations.Migration):
                             models.ForeignKey(
                                 on_delete=django.db.models.deletion.CASCADE,
                                 related_name="time_entries",
-                                to="workflow.jobpricing",
+                                to="job.jobpricing",
                             ),
                         ),
                         (

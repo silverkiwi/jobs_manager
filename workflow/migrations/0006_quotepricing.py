@@ -8,27 +8,8 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("workflow", "0005_remove_companydefaults_id_and_more"),
+        ("job", "0001_initial"),
     ]
 
     operations = [
-        migrations.CreateModel(
-            name="QuotePricing",
-            fields=[
-                (
-                    "jobpricing_ptr",
-                    models.OneToOneField(
-                        auto_created=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        parent_link=True,
-                        primary_key=True,
-                        serialize=False,
-                        to="workflow.jobpricing",
-                    ),
-                ),
-                ("quote_is_finished", models.BooleanField(default=False)),
-                ("date_quote_submitted", models.DateField(blank=True, null=True)),
-                ("quote_number", models.IntegerField(unique=True)),
-            ],
-            bases=("workflow.jobpricing",),
-        ),
     ]

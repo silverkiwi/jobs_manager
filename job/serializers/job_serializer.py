@@ -53,7 +53,7 @@ class JobSerializer(serializers.ModelSerializer):
             "job_is_valid",
             "job_files",
             "charge_out_rate",
-            "pricing_type",
+            "pricing_methodology",
         ]
 
     def validate(self, attrs):
@@ -133,20 +133,20 @@ class JobSerializer(serializers.ModelSerializer):
             ]:
                 setattr(instance, attr, value)
 
-        pricing_types = {
+        pricing_methodologys = {
             "latest_estimate_pricing": instance.latest_estimate_pricing,
             "latest_quote_pricing": instance.latest_quote_pricing,
             "latest_reality_pricing": instance.latest_reality_pricing,
         }
 
-        for pricing_type, pricing_instance in pricing_types.items():
-            pricing_data = validated_data.get(pricing_type)
+        for pricing_methodology, pricing_instance in pricing_methodologys.items():
+            pricing_data = validated_data.get(pricing_methodology)
             if pricing_data:
                 if DEBUG_SERIALIZER:
                     logger.debug(
                         "Creating %(type)s serializer with data: %(data)s",
                         {
-                            "type": pricing_type,
+                            "type": pricing_methodology,
                             "data": pricing_data,
                         },
                     )
@@ -158,18 +158,18 @@ class JobSerializer(serializers.ModelSerializer):
                 )
 
                 if pricing_serializer.is_valid():
-                    logger.debug(f"{pricing_type} serializer is valid")
+                    logger.debug(f"{pricing_methodology} serializer is valid")
                     pricing_serializer.save()
                 else:
                     logger.error(
                         "%(type)s serializer validation failed: %(errors)s",
                         {
-                            "type": pricing_type,
+                            "type": pricing_methodology,
                             "errors": pricing_serializer.errors,
                         },
                     )
                     raise serializers.ValidationError(
-                        {pricing_type: pricing_serializer.errors}
+                        {pricing_methodology: pricing_serializer.errors}
                     )
 
         staff = self.context["request"].user if "request" in self.context else None

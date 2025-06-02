@@ -10,9 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name="jobevent",
-            old_name="user",
-            new_name="staff",
-        ),
     ]

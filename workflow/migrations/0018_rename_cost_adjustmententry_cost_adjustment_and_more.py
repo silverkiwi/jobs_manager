@@ -10,19 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name="adjustmententry",
-            old_name="cost",
-            new_name="cost_adjustment",
-        ),
-        migrations.RenameField(
-            model_name="adjustmententry",
-            old_name="revenue",
-            new_name="price_adjustment",
-        ),
-        migrations.AddField(
-            model_name="adjustmententry",
-            name="comments",
-            field=models.CharField(blank=True, max_length=200, null=True),
-        ),
     ]

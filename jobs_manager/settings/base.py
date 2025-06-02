@@ -31,7 +31,8 @@ INSTALLED_APPS = [
     "workflow",
     "accounts",
     "timesheet",
-    "job"
+    "job",
+    "quoting"
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"

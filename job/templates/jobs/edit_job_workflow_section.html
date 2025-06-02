@@ -35,7 +35,7 @@
     <div class="workflow-actions mt-4 mb-4 border-top border-bottom border-light">
         <div class="d-flex flex-wrap gap-2">
             <!-- Accept Quote Button -->
-            {% if pricing_type == "fixed_price" %}
+            {% if pricing_methodology == "fixed_price" %}
             <button id="acceptQuoteButton" class="btn btn-success" {% if job.latest_quote_pricing.total_cost|floatformat:"2" == "0.00" %}disabled{% endif %}>
                 <i class="bi bi-check-circle me-2"></i>Accept Quote
             </button>
@@ -62,7 +62,7 @@
     <div class="form-group mt-4">
         <h4>Job Status Tracking</h4>
         <div class="d-flex flex-column gap-3">
-            <div class="form-check form-check-lg {% if pricing_type == 'time_materials' %}d-none{% endif %}"
+            <div class="form-check form-check-lg {% if pricing_methodology == 'time_materials' %}d-none{% endif %}"
                 id="quoteCheckbox">
                 <input type="checkbox" class="form-check-input" style="width: 1.5em; height: 1.5em;"
                     id="quoted_checkbox" name="quoted" {% if quoted %} checked {% else %} disabled {% endif %}>
