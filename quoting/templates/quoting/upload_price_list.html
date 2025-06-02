@@ -18,6 +18,9 @@
                         <input type="file" id="priceListFile" name="price_list_file" accept=".pdf,.jpg,.jpeg,.png" class="d-none">
                     </label>
                 </form>
+                <div id="loadingSpinner" class="spinner-border text-primary" role="status" style="display: none;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
         </div>
     </div>
@@ -62,7 +65,11 @@
 <script type="module">
     document.getElementById('priceListFile').addEventListener('change', function() {
         const form = document.getElementById('priceListUploadForm');
+        const loadingSpinner = document.getElementById('loadingSpinner');
         const formData = new FormData(form);
+
+        // Show the loading spinner
+        loadingSpinner.style.display = 'block';
 
         fetch(form.action, {
             method: 'POST',
@@ -85,6 +92,10 @@
         .catch(error => {
             console.error('Fetch error:', error);
             alert('An error occurred during upload.');
+        })
+        .finally(() => {
+            // Hide the loading spinner regardless of success or failure
+            loadingSpinner.style.display = 'none';
         });
     });
 </script>

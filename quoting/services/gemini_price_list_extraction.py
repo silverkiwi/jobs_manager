@@ -6,7 +6,7 @@ import mimetypes
 from typing import Optional, Tuple
 import requests
 
-from google import genai
+import google.generativeai as genai
 
 from django.conf import settings
 
@@ -166,33 +166,20 @@ def extract_data_from_supplier_price_list_gemini(file_path: str, content_type: O
         if not gemini_api_key:
             return None, "Gemini API key not configured for the active AI provider. Please add it in company settings."
 
-        genai_client = genai.Client(api_key=gemini_api_key)
-        model = genai_client.GenerativeModel('gemini-1.5-flash')
+        genai.configure(api_key=gemini_api_key)
 
-        file_content = read_file_content(file_path)
-        if file_content is None:
-            return None, f"Failed to read file: {file_path}"
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
-        # Determine media type for Gemini
-        if content_type:
-            media_type = content_type
-        else:
-            media_type, _ = mimetypes.guess_type(file_path)
-            if not media_type:
-                media_type = "application/octet-stream" # Default to generic binary
-
-        # Prepare the file as a Part for Gemini
-        file_part = {
-            "mime_type": media_type,
-            "data": file_content
-        }
+        uploaded_file = genai.upload_file(file_path)
+        if uploaded_file is None:
+            return None, f"Failed to upload file to Gemini: {file_path}"
 
         valid_metal_types = [choice[0] for choice in MetalType.choices]
         prompt = create_concise_prompt(valid_metal_types)
 
         contents = [
             prompt,
-            file_part
+            uploaded_file
         ]
 
         logger.info(f"Calling Gemini API for price list extraction: {file_path}")
@@ -208,10 +195,7 @@ def extract_data_from_supplier_price_list_gemini(file_path: str, content_type: O
             return None, "Gemini API returned no candidates."
 
         # Extract JSON from response
-        json_text = ""
-        for part in response.candidates[0].content.parts:
-            if hasattr(part, 'text'):
-                json_text += part.text
+        json_text = response.text
 
         price_list_data = json.loads(clean_json_response(json_text))
 
