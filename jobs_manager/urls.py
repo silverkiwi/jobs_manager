@@ -28,6 +28,7 @@ urlpatterns = [
     path("", include("job.urls", namespace="jobs")),  # Include job app URLs
     path("accounts/", include("accounts.urls")),
     path("timesheets/", include("timesheet.urls")),
+    path("quoting/", include("quoting.urls")),
 ]
 
 if settings.DEBUG:
