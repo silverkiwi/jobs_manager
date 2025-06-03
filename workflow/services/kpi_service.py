@@ -260,7 +260,7 @@ class KPIService:
 
             if is_holiday:
                 base_data["holiday_name"] = holiday_dates[current_date]
-                calendar_data[date_key] = base_data
+                calendar_data[date_key] = base_data 
                 current_date += timedelta(days=1)
                 continue
 

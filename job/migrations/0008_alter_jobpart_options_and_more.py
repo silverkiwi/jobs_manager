@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("job", "0006_add_material_adjustment_jobpart_models"),
+        ("job", "0007_fix_jobpart_state"),
     ]
 
     operations = [
@@ -20,10 +20,11 @@ class Migration(migrations.Migration):
             old_name="revenue_adjustment",
             new_name="price_adjustment",
         ),
-        migrations.RemoveField(
-            model_name="jobpart",
-            name="job",
-        ),
+        # This is extremely problematic for some reason. In a clean db, I couldn't fix it to work, it kept failing to "KeyError: 'job'".
+        # migrations.RemoveField(
+        #     model_name="jobpart",
+        #     name="job",
+        # ),
         migrations.AddField(
             model_name="jobpart",
             name="job_pricing",
