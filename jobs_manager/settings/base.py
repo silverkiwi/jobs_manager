@@ -16,6 +16,7 @@ AUTH_USER_MODEL = "accounts.Staff"
 INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
+    "django_apscheduler",
     "django_node_assets",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -32,7 +33,7 @@ INSTALLED_APPS = [
     "accounts",
     "timesheet",
     "job",
-    "quoting"
+    "quoting",
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -154,6 +155,14 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
         },
+        "scheduler_file": {
+            "level": "INFO",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/scheduler.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
     },
     "loggers": {
         # your SQL logger only writes to sql_file, and bubbles up to root
@@ -183,6 +192,11 @@ LOGGING = {
             "handlers": ["purchase_file"],
             "level": "DEBUG",
             "propagate": True,
+        },
+        "django_apscheduler": {
+            "handlers": ["console", "scheduler_file"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
     "root": {
