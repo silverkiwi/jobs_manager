@@ -101,6 +101,11 @@ urlpatterns = [
         name="workshop-pdf",
     ),
     path(
+        "job/<uuid:job_id>/reorder/",
+        kanban_view.reorder_job,
+        name="reorder_job",
+    ),
+    path(
         "job/archive-complete",
         ArchiveCompleteJobsViews.ArchiveCompleteJobsTemplateView.as_view(),
         name="archive_complete_jobs",
