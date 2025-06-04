@@ -4,7 +4,7 @@
  * Handles fetching and updating metal type values
  */
 
-import { fetchEnumChoices } from "/static/enum-utils.js";
+import { fetchEnumChoices } from "/static/js/enum-utils.js";
 import { getState, updateState } from "./purchase_order_state.js";
 
 /**
