@@ -51,35 +51,16 @@ from apps.workflow.views.kpi_view import KPICalendarViews
 from apps.workflow.views.xero import xero_view
 from apps.workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 from apps.workflow.views import password_views, stock_view, use_stock_view
-from apps.workflow.views.purchase_order_view import (
-    PurchaseOrderEmailView,
-    PurchaseOrderListView,
-    PurchaseOrderCreateView,
-    autosave_purchase_order_view,
-    delete_purchase_order_view,
-    extract_supplier_quote_data_view,
-)
 from apps.workflow.views.delivery_receipt_view import (
     DeliveryReceiptListView,
     DeliveryReceiptCreateView,
 )
-from apps.workflow.views.purchase_order_pdf_view import PurchaseOrderPDFView
 
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
     
     # API Endpoints
-    path(
-        "api/autosave-purchase-order/",
-        autosave_purchase_order_view,
-        name="autosave_purchase_order_api",
-    ),
-    path(
-        "api/extract-supplier-quote/",
-        extract_supplier_quote_data_view,
-        name="extract_supplier_quote_data",
-    ),
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
         submit_quote_view.generate_quote_pdf,
@@ -177,16 +158,6 @@ urlpatterns = [
         xero_view.start_xero_sync,
         name="synchronise_xero_data",
     ),
-    path(
-        "api/purchase-orders/<uuid:purchase_order_id>/pdf/",
-        PurchaseOrderPDFView.as_view(),
-        name="purchase-order-pdf",
-    ),
-    path(
-        "api/purchase-orders/<uuid:purchase_order_id>/email/",
-        PurchaseOrderEmailView.as_view(),
-        name="purchase-order-email",
-    ),
     
     path("reports/", ReportsIndexView.as_view(), name="reports_index"),
     path(
@@ -204,27 +175,6 @@ urlpatterns = [
         "xero/sync-progress/",
         xero_view.xero_sync_progress_page,
         name="xero_sync_progress",
-    ),
-    # Purchase Order URLs with purchases prefix
-    path(
-        "purchases/purchase-orders/",
-        PurchaseOrderListView.as_view(),
-        name="purchase_orders",
-    ),
-    path(
-        "purchases/purchase-orders/new/",
-        PurchaseOrderCreateView.as_view(),
-        name="new_purchase_order",
-    ),
-    path(
-        "purchases/purchase-orders/<uuid:pk>/",
-        PurchaseOrderCreateView.as_view(),
-        name="edit_purchase_order",
-    ),
-    path(
-        "purchases/purchase-orders/delete/<uuid:pk>/",
-        delete_purchase_order_view,
-        name="delete_purchase_order",
     ),
     # Delivery Receipt URLs with purchases prefix
     path(

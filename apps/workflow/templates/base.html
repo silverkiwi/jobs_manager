@@ -35,9 +35,8 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {% if '/purchase-orders/' in request.path %}active{% endif %}" href="#" id="purchasesMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 Purchases
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="purchasesMenu">
-                                <li><a class="dropdown-item" href="{% url 'purchase_orders' %}">Purchase Orders</a></li>
+                            </a>                            <ul class="dropdown-menu" aria-labelledby="purchasesMenu">
+                                <li><a class="dropdown-item" href="{% url 'purchasing:purchase_orders_list' %}">Purchase Orders</a></li>
                                 <li><a class="dropdown-item" href="{% url 'delivery_receipts' %}">Delivery Receipts</a></li>
                                 <li><a class="dropdown-item" href="{% url 'use_stock' %}">Use Stock</a></li>
                                 <li><a class="dropdown-item" href="{% url 'upload_supplier_pricing' %}">Upload Supplier Pricing</a></li>

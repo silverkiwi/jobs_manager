@@ -4,8 +4,6 @@ from .dashboard_view import DashboardView
 from .delivery_receipt_view import DeliveryReceiptListView, DeliveryReceiptCreateView
 from .kpi_view import KPICalendarViews
 from .password_views import SecurityPasswordChangeView
-from .purchase_order_pdf_view import PurchaseOrderPDFView
-from .purchase_order_view import PurchaseOrderListView, PurchaseOrderCreateView, PurchaseOrderEmailView
 from .report_view import ReportsIndexView, CompanyProfitAndLossView
 
 __all__ = [
@@ -14,10 +12,6 @@ __all__ = [
     'DeliveryReceiptCreateView',
     'KPICalendarViews',
     'SecurityPasswordChangeView',
-    'PurchaseOrderPDFView',
-    'PurchaseOrderListView',
-    'PurchaseOrderCreateView',
-    'PurchaseOrderEmailView',
     'ReportsIndexView',
     'CompanyProfitAndLossView',
 ]

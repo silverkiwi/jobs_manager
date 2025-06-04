@@ -163,7 +163,6 @@ export async function saveDataToServer(collectedData) {
     })),
     deleted_line_items: collectedData.deleted_line_items
   });
-
   return fetch("/purchasing/api/purchase-orders/autosave/", {
     method: "POST",
     headers: {

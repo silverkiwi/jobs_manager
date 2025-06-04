@@ -276,7 +276,7 @@ export function addLocalDeleteButton(id) {
         );
         
         setTimeout(() => {
-          window.location.href = "/purchases/purchase-orders/";
+          window.location.href = "/purchasing/purchase-orders/";
         }, 1000);
       })
       .catch(error => {
