@@ -48,8 +48,6 @@ class Migration(migrations.Migration):
                     },
                     bases=("purchasing.purchaseordersupplierquote",),
                 ),
-            ],
-            database_operations=[
                 migrations.RemoveField(
                     model_name="stock",
                     name="source_purchase_order_line",
@@ -66,6 +64,8 @@ class Migration(migrations.Migration):
                         to="purchasing.purchaseorderline",
                     ),
                 ),
+            ],
+            database_operations=[
             ],
         ),
     ]
