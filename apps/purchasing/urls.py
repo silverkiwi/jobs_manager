@@ -74,16 +74,6 @@ urlpatterns = [
     
     # Stock Management - REST endpoints
     path(
-        'stock/',
-        views.StockListView.as_view(),
-        name='stock_list'
-    ),
-    path(
-        'stock/create/',
-        views.StockCreateView.as_view(),
-        name='stock_create'
-    ),
-    path(
         'stock/use/',
         views.UseStockView.as_view(),
         name='stock_use'
