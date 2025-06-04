@@ -16,7 +16,7 @@ class Client(models.Model):
     )
     xero_tenant_id = models.CharField(
             max_length=255, null=True, blank=True
-    ) # For refrence only - we are not fully multi-tenant yet
+    ) # For reference only - we are not fully multi-tenant yet
     # Optional because not all prospects are synced to Xero
     name = models.CharField(max_length=255)
     email = models.EmailField(null=True, blank=True)
