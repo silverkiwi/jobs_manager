@@ -32,7 +32,7 @@
                             <td>{{ purchase_order.order_date }}</td>
                             <td>{{ purchase_order.get_status_display }}</td>
                             <td>
-                                <a href="{% url 'edit_delivery_receipt' purchase_order.id %}" class="btn btn-sm btn-primary">
+                                <a href="{% url 'purchasing:delivery_receipts_create' purchase_order.id %}" class="btn btn-sm btn-primary">
                                     <i class="bi bi-eye"></i>
                                 </a>
                             </td>
