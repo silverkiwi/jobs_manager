@@ -68,15 +68,10 @@ urlpatterns = [
     # Delivery Receipts - API endpoints
     path(
         'api/delivery-receipts/process/',
-        views.process_delivery_receipt_view,
+        views.process_delivery_receipt,
         name='delivery_receipts_process'
     ),
       # Stock Management - REST endpoints
-    path(
-        'stock/use/',
-        views.UseStockView.as_view(),
-        name='stock_use'
-    ),
     path(
         'use-stock/',
         views.use_stock_view,
