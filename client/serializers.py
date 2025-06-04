@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from workflow.models import Client
+from client.models import Client
 
 
 class ClientSerializer(serializers.ModelSerializer):

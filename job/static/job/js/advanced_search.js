@@ -49,7 +49,7 @@ export function setupAdvancedSearch() {
 
 function loadClientsDropdown() {
   if (Environment.isDebugMode()) console.log("Loading clients for dropdown...");
-  fetch("/api/clients/all")
+  fetch("/clients/api/all/")
     .then((response) => {
       if (Environment.isDebugMode())
         console.log("Clients API response status:", response.status);

@@ -1525,7 +1525,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    fetch(`/api/client/${clientId}/contact-persons/`)
+    fetch(`/clients/api/${clientId}/contact-persons/`)
       .then(response => {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
@@ -1646,7 +1646,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    fetch(`/api/client/${clientId}/phones/`)
+    fetch(`/clients/api/${clientId}/phones/`)
       .then(response => {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();

@@ -45,7 +45,6 @@ from workflow.api import server
 from workflow.api.reports.pnl import CompanyProfitAndLossReport
 from workflow.api.enums import get_enum_choices
 from workflow.views import (
-    client_view,
     submit_quote_view,
 )
 from workflow.views.kpi_view import KPICalendarViews
@@ -76,23 +75,6 @@ urlpatterns = [
         autosave_purchase_order_view,
         name="autosave_purchase_order_api",
     ),
-    path(
-        "api/client/<uuid:client_id>/contact-persons/",
-        client_view.get_client_contact_persons,
-        name="api_get_client_contact_persons",
-    ),
-    path(
-        "api/client/<uuid:client_id>/phones/", 
-        client_view.get_client_phones,
-        name="api_get_client_phones",
-    ),
-    path("api/clients/all/", client_view.get_all_clients_api, name="api_clients_all"),
-    path(
-        "api/client-search/",
-        client_view.ClientSearch,
-        name="client_search_api",
-    ),
-    path("api/client-detail/", client_view.client_detail, name="client_detail"),
     path(
         "api/extract-supplier-quote/",
         extract_supplier_quote_data_view,
@@ -207,18 +189,9 @@ urlpatterns = [
     ),
     
     # Other URL patterns
-    path("clients/", client_view.ClientListView.as_view(), name="list_clients"),
-    path(
-        "client/<uuid:pk>/",
-        client_view.ClientUpdateView.as_view(),
-        name="update_client",
-    ),
-    path("client/add/", client_view.AddClient, name="add_client"),
-    path(
-        "clients/unused/",
-        client_view.UnusedClientsView.as_view(),
-        name="unused_clients",
-    ),
+    path("clients/", include("client.urls")), # This line correctly includes all client URLs
+    path("jobs/", include("job.urls")),
+    
     path("reports/", ReportsIndexView.as_view(), name="reports_index"),
     path(
         "reports/company-profit-loss/",
@@ -235,11 +208,6 @@ urlpatterns = [
         "xero/sync-progress/",
         xero_view.xero_sync_progress_page,
         name="xero_sync_progress",
-    ),
-    path(
-        "xero/unused-clients/",
-        client_view.UnusedClientsView.as_view(),
-        name="xero_unused_clients",
     ),
     # Purchase Order URLs with purchases prefix
     path(

@@ -20,7 +20,7 @@ import django
 django.setup()
 
 from quoting.models import SupplierProduct
-from workflow.models import Client
+from client.models import Client
 from django.db import transaction, IntegrityError
 
 def validate_and_parse_csv(csv_file_path):

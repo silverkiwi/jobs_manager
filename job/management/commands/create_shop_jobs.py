@@ -1,6 +1,8 @@
 from django.core.management.base import BaseCommand
 
-from workflow.models import Client, CompanyDefaults
+from workflow.models import CompanyDefaults
+
+from client.models import Client
 
 from job.models import Job
 

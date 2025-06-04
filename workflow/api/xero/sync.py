@@ -22,10 +22,12 @@ from workflow.api.xero.reprocess_xero import (
 )
 from workflow.api.xero.xero import api_client, get_tenant_id, get_token
 from workflow.models import XeroJournal, Quote
-from workflow.models.client import Client
 from workflow.models.invoice import Bill, CreditNote, Invoice
 from workflow.models.xero_account import XeroAccount
 from workflow.models.purchase import PurchaseOrder, PurchaseOrderLine
+
+from client.models import Client
+
 logger = logging.getLogger("xero")
 
 

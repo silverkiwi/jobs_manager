@@ -6,7 +6,7 @@
     <h1>Unused Xero Clients</h1>
     <p class="text-muted">Total unused clients: {{ total_count }}</p>
 
-    <form id="deleteForm" method="post">
+    <form id="deleteForm" method="post" action="{% url 'clients:xero_unused_clients' %}">
         {% csrf_token %}
         <button type="submit" id="deleteButton" class="btn btn-danger mb-3" disabled>
             Delete Selected (<span id="selectedCount">0</span>)
@@ -52,6 +52,7 @@
             {% endif %}
 
             {% for i in page_obj.paginator.page_range %}
+            {% comment %} The base URL for pagination is handled by the current request's path {% endcomment %}
             <li class="page-item {% if page_obj.number == i %}active{% endif %}">
                 <a class="page-link" href="?page={{ i }}">{{ i }}</a>
             </li>
@@ -69,5 +70,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/unused_clients.js' %}"></script>
-{% endblock %} 
+{% comment %} Assuming unused_clients.js is now in client app's static folder {% endcomment %}
+<script src="{% static 'client/js/unused_clients.js' %}"></script>
+{% endblock %}

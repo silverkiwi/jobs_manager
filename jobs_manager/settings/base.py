@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "timesheet",
     "job",
     "quoting",
+    "client",
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -221,6 +222,7 @@ TEMPLATES = [
             os.path.join(BASE_DIR, "accounts/templates"),
             os.path.join(BASE_DIR, "timesheet/templates"),
             os.path.join(BASE_DIR, "job/templates"),
+            os.path.join(BASE_DIR, "client/templates")
         ],
         "APP_DIRS": True,
         "OPTIONS": {
