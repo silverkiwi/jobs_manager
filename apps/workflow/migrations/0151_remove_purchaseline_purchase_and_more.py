@@ -250,7 +250,6 @@ class Migration(migrations.Migration):
             name="date",
             field=models.DateTimeField(
                 default=django.utils.timezone.now,
-                
                 help_text="Date the stock item was created",
             ),
         ),
