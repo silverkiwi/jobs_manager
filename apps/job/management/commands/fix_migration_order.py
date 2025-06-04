@@ -27,10 +27,52 @@ class Command(BaseCommand):
             type=str,
             help='Specify child migration (format: app.migration_name)',
         )
+        parser.add_argument(
+            '--list-migrations',
+            type=str,
+            help='List all migrations for a specific app',
+        )
+
+    def list_migrations(self, app_label):
+        """Lists all migrations for a specific app and return them."""
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT app, name, applied FROM django_migrations WHERE app = %s ORDER BY applied",
+                [app_label]
+            )
+            migrations = cursor.fetchall()
+            
+            if not migrations:
+                self.stdout.write(self.style.ERROR(f"No migrations found for app '{app_label}'"))
+                return []
+                
+            self.stdout.write(self.style.SUCCESS(f"Found {len(migrations)} migrations for app '{app_label}':"))
+            for i, (app, name, applied) in enumerate(migrations, 1):
+                self.stdout.write(f"{i}. {app}.{name} ({applied})")
+                
+            return migrations
+    
+    def find_migration_by_prefix(self, app_label, name_prefix):
+        """Find a migration by name prefix (e.g., '0009_' will match '0009_something')."""
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT app, name, applied FROM django_migrations WHERE app = %s AND name LIKE %s ORDER BY applied",
+                [app_label, f"{name_prefix}%"]
+            )
+            migrations = cursor.fetchall()
+            
+            if migrations:
+                return migrations[0]  # Return the first match
+            return None
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
         force = options['force']
+        
+        # Check if we just want to list migrations
+        if options.get('list_migrations'):
+            self.list_migrations(options['list_migrations'])
+            return
         
         if dry_run:
             self.stdout.write(self.style.WARNING('Running in dry-run mode - no changes will be made'))
@@ -52,11 +94,29 @@ class Command(BaseCommand):
             )
             parent_record = cursor.fetchone()
             
+            # Try to find by prefix if exact match not found
             if not parent_record:
-                self.stdout.write(self.style.ERROR(
-                    f"Parent migration {parent_migration} not found in database!"
+                # Extract prefix (e.g., "0009_" from "0009_alter_jobpart_options_and_more")
+                prefix = parent_name.split('_')[0] + '_'
+                self.stdout.write(self.style.WARNING(
+                    f"Parent migration {parent_migration} not found, looking for alternatives with prefix '{prefix}'"
                 ))
-                return
+                
+                parent_record = self.find_migration_by_prefix(parent_app, prefix)
+                
+                if parent_record:
+                    self.stdout.write(self.style.SUCCESS(
+                        f"Found alternative parent migration: {parent_record[0]}.{parent_record[1]}"
+                    ))
+                    parent_app, parent_name = parent_record[0], parent_record[1]
+                    parent_migration = f"{parent_app}.{parent_name}"
+                else:
+                    # If still not found, show available migrations
+                    self.stdout.write(self.style.ERROR(
+                        f"Parent migration {parent_migration} not found! Showing available migrations:"
+                    ))
+                    self.list_migrations(parent_app)
+                    return
                 
             # Check child migration
             cursor.execute(
@@ -65,11 +125,27 @@ class Command(BaseCommand):
             )
             child_record = cursor.fetchone()
             
+            # Try to find by prefix if exact match not found
             if not child_record:
-                self.stdout.write(self.style.ERROR(
-                    f"Child migration {child_migration} not found in database!"
+                prefix = child_name.split('_')[0] + '_'
+                self.stdout.write(self.style.WARNING(
+                    f"Child migration {child_migration} not found, looking for alternatives with prefix '{prefix}'"
                 ))
-                return
+                
+                child_record = self.find_migration_by_prefix(child_app, prefix)
+                
+                if child_record:
+                    self.stdout.write(self.style.SUCCESS(
+                        f"Found alternative child migration: {child_record[0]}.{child_record[1]}"
+                    ))
+                    child_app, child_name = child_record[0], child_record[1]
+                    child_migration = f"{child_app}.{child_name}"
+                else:
+                    self.stdout.write(self.style.ERROR(
+                        f"Child migration {child_migration} not found! Showing available migrations:"
+                    ))
+                    self.list_migrations(child_app)
+                    return
             
             parent_applied = parent_record[2]  # the 'applied' field
             child_applied = child_record[2]
@@ -82,7 +158,7 @@ class Command(BaseCommand):
                 ))
                 
                 # Calculate new timestamps
-                # Make parent 5 minutes before child
+                # Make child 5 minutes after parent
                 new_child_timestamp = parent_applied + datetime.timedelta(minutes=5)
                 
                 self.stdout.write(self.style.WARNING(
