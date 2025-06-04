@@ -46,7 +46,8 @@ class Command(BaseCommand):
             node = graph.node_map[(app_label, migration_name)]
             
             # Check each dependency
-            for parent in graph.dependencies.get((app_label, migration_name), []):
+            # Correct way to get dependencies - use node.dependencies
+            for parent in node.dependencies:
                 parent_app, parent_name = parent
                 
                 # Skip if the parent migration is not applied yet
