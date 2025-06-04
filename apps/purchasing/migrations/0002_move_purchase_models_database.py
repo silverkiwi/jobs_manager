@@ -108,6 +108,9 @@ class Migration(migrations.Migration):
                             ),
                         ),
                     ],
+                    options={
+                        'db_table': 'workflow_purchaseorder',
+                    },
                 ),
                 migrations.CreateModel(
                     name="PurchaseOrderLine",
@@ -225,6 +228,9 @@ class Migration(migrations.Migration):
                             ),
                         ),
                     ],
+                    options={
+                        'db_table': 'workflow_purchaseorderline',
+                    },
                 ),
                 migrations.CreateModel(
                     name="PurchaseOrderSupplierQuote",
@@ -267,7 +273,11 @@ class Migration(migrations.Migration):
                             ),
                         ),
                     ],
+                    options={
+                        'db_table': 'workflow_purchaseordersupplierquote',
+                    },
                 ),
             ],
         )
     ]
+
