@@ -50,11 +50,7 @@ from apps.workflow.views import (
 from apps.workflow.views.kpi_view import KPICalendarViews
 from apps.workflow.views.xero import xero_view
 from apps.workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
-from apps.workflow.views import password_views, stock_view, use_stock_view
-from apps.workflow.views.delivery_receipt_view import (
-    DeliveryReceiptListView,
-    DeliveryReceiptCreateView,
-)
+from apps.workflow.views import password_views, stock_view
 
 urlpatterns = [
     # Redirect to Kanban board
@@ -170,25 +166,11 @@ urlpatterns = [
         KPICalendarViews.KPICalendarTemplateView.as_view(),
         name="kpi_calendar",
     ),
-    path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
-    path(
+    path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),    path(
         "xero/sync-progress/",
         xero_view.xero_sync_progress_page,
         name="xero_sync_progress",
     ),
-    # Delivery Receipt URLs with purchases prefix
-    path(
-        "purchases/delivery-receipts/",
-        DeliveryReceiptListView.as_view(),
-        name="delivery_receipts",
-    ),
-    path(
-        "purchases/delivery-receipts/<uuid:pk>/",
-        DeliveryReceiptCreateView.as_view(),
-        name="edit_delivery_receipt",
-    ),
-    # Stock Management URLs with purchases prefix
-    path("purchases/use-stock/", use_stock_view.use_stock_view, name="use_stock"),
     path("__debug__/", include(debug_toolbar.urls)),
 # End of URL patterns
 ]

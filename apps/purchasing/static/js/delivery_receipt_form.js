@@ -352,10 +352,8 @@ document.addEventListener("DOMContentLoaded", function () {
           headers: {
             "X-CSRFToken": csrfToken, // Use the retrieved token
           },
-        });
-
-        if (response.ok) {
-          window.location.href = "/purchases/delivery-receipts/";
+        });        if (response.ok) {
+          window.location.href = "/purchasing/delivery-receipts/";
         } else {
           const data = await response.json();
           alert(

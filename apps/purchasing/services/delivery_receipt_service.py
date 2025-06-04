@@ -3,7 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 import logging
 
-from apps.workflow.models.purchase import PurchaseOrder, PurchaseOrderLine
+from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
 from apps.workflow.models.stock import Stock
 from apps.job.models import Job, MaterialEntry
 

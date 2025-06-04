@@ -363,3 +363,87 @@ class PurchaseOrderEmailView(APIView):
                 "success": False,
                 "error": f"Failed to generate email: {str(e)}"
             }, status=500)
+
+
+class DeliveryReceiptListView(LoginRequiredMixin, ListView):
+    """View to list all purchase orders that can be received."""
+    
+    model = PurchaseOrder
+    template_name = 'purchasing/delivery_receipt_list.html'
+    context_object_name = 'purchase_orders'
+    
+    def get_queryset(self):
+        """Return purchase orders that are submitted or partially received."""
+        return PurchaseOrder.objects.filter(
+            status__in=['submitted', 'partially_received']
+        ).order_by('-order_date')
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Delivery Receipts'
+        return context
+
+
+class DeliveryReceiptCreateView(LoginRequiredMixin, TemplateView):
+    """View to create a delivery receipt for a purchase order."""
+    
+    template_name = 'purchasing/delivery_receipt_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        purchase_order = get_object_or_404(PurchaseOrder, pk=kwargs['pk'])
+        
+        if purchase_order.status not in ['submitted', 'partially_received']:
+            raise ValueError("This purchase order cannot be received")
+            
+        context['purchase_order'] = purchase_order
+        context['title'] = f'Delivery Receipt - {purchase_order.po_number}'
+        
+        # Get stock holding job info
+        from apps.job.models import Job
+        try:
+            stock_holding_job = Job.objects.get(is_stock_holding_job=True)
+            context['stock_holding_job_id'] = stock_holding_job.id
+            context['stock_holding_job_name'] = stock_holding_job.name
+        except Job.DoesNotExist:
+            context['stock_holding_job_id'] = ''
+            context['stock_holding_job_name'] = 'Stock Holding Job'
+            
+        return context
+
+
+@require_http_methods(["POST"])
+def process_delivery_receipt_view(request):
+    """Process a delivery receipt submission."""
+    try:
+        data = json.loads(request.body)
+        purchase_order_id = data.get('purchase_order_id')
+        line_allocations = data.get('line_allocations', {})
+        
+        if not purchase_order_id:
+            return JsonResponse({'success': False, 'error': 'Purchase order ID is required'})
+            
+        from .services.delivery_receipt_service import process_delivery_receipt
+        
+        with transaction.atomic():
+            success = process_delivery_receipt(purchase_order_id, line_allocations)
+            
+        if success:
+            return JsonResponse({'success': True, 'message': 'Delivery receipt processed successfully'})
+        else:
+            return JsonResponse({'success': False, 'error': 'Failed to process delivery receipt'})
+            
+    except Exception as e:
+        logger.error(f"Error processing delivery receipt: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+class UseStockView(LoginRequiredMixin, TemplateView):
+    """View for using stock items on jobs."""
+    
+    template_name = 'purchasing/use_stock.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Use Stock'
+        return context

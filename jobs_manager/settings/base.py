@@ -187,10 +187,9 @@ LOGGING = {
         # workflow writes to app_file, and bubbles up
         "workflow": {
             "handlers": ["app_file"],
-            "level": "DEBUG",
-            "propagate": True,
+            "level": "DEBUG",        "propagate": True,
         },
-        "workflow.views.purchase_order_view": {
+        "apps.purchasing.views": {
             "handlers": ["purchase_file"],
             "level": "DEBUG",
             "propagate": True,

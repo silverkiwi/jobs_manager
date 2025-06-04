@@ -19,8 +19,7 @@
         <div class="col">
             <h1>{{ title }}</h1>
         </div>
-        <div class="col-auto">
-            <a href="{% url 'delivery_receipts' %}" class="btn btn-secondary">
+        <div class="col-auto">            <a href="{% url 'purchasing:delivery_receipts_list' %}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left me-2"></i>Back to Delivery Receipts
             </a>
         </div>
@@ -205,7 +204,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/purchases/delivery_receipt_form.js' %}"></script>
+<script src="{% static 'js/delivery_receipt_form.js' %}"></script>
 <script id="job-list-data" type="application/json">
     {{ job_list_json|safe }}
 </script>

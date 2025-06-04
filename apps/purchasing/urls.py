@@ -52,4 +52,30 @@ urlpatterns = [
         views.extract_supplier_quote_data_view,
         name='supplier_quotes_extract'
     ),
+    
+    # Delivery Receipts - REST endpoints
+    path(
+        'delivery-receipts/',
+        views.DeliveryReceiptListView.as_view(),
+        name='delivery_receipts_list'
+    ),
+    path(
+        'delivery-receipts/<uuid:pk>/',
+        views.DeliveryReceiptCreateView.as_view(),
+        name='delivery_receipts_create'
+    ),
+    
+    # Delivery Receipts - API endpoints
+    path(
+        'api/delivery-receipts/process/',
+        views.process_delivery_receipt_view,
+        name='delivery_receipts_process'
+    ),
+    
+    # Stock Management
+    path(
+        'stock/use/',
+        views.UseStockView.as_view(),
+        name='stock_use'
+    ),
 ]
