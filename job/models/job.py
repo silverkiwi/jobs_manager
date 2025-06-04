@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime
 from typing import Dict, List
 
-from django.db import models
-from django.db.models import Max
+from django.db import models, transaction
+from django.db.models import Max, Index
 from simple_history.models import HistoricalRecords  # type: ignore
 
 from job.enums import JobPricingMethodology
@@ -90,6 +90,7 @@ class Job(models.Model):
     status: str = models.CharField(
         max_length=30, choices=JOB_STATUS_CHOICES, default="quoting"
     )  # type: ignore
+
     # Decided not to bother with parent for now since we don't have a hierarchy of jobs.
     # Can be restored.
     # Parent would provide an alternative to historical records for tracking changes.
@@ -168,11 +169,28 @@ class Job(models.Model):
 
     people = models.ManyToManyField(Staff, related_name="assigned_jobs")
 
+    PRIORITY_INCREMENT = 200
+
+    priority = models.IntegerField(
+        default=0,
+        help_text="Priority of the job, lower numbers are higher priority.",
+    )  # type: ignore
+
     class Meta:
         verbose_name = "Job"
         verbose_name_plural = "Jobs"
         ordering = ["job_number"]
         db_table = "workflow_job"
+        indexes = [
+            Index(fields=["status", "priority"], name="job_priority_status_idx"),
+        ]
+
+    @classmethod
+    def _calculate_next_priority_for_status(cls, status_value: str) -> int:
+        max_entry = cls.objects.filter(status=status_value).aggregate(
+            Max('priority')
+        )["priority__max"] or 0
+        return max_entry + cls.PRIORITY_INCREMENT
 
     @property
     def shop_job(self) -> bool:
@@ -251,42 +269,44 @@ class Job(models.Model):
             self.charge_out_rate = company_defaults.charge_out_rate
 
         if is_new:
-            # Creating a new job is tricky because of the circular reference.
-            # We first save the job to the DB without any associated pricings, then we
-            super(Job, self).save(*args, **kwargs)
+            # To assure all jobs have a priority
+            with transaction.atomic():
+                default_priority = self._calculate_next_priority_for_status(self.status)
+                self.priority = default_priority
 
-            # Lazy import JobPricing using Django's apps.get_model()
-            # We need to do this because of circular imports.  JobPricing imports Job
+                # Creating a new job is tricky because of the circular reference.
+                # We first save the job to the DB without any associated pricings, then we
+                super(Job, self).save(*args, **kwargs)
 
-            #  Create the initial JobPricing instances
-            logger.debug("Creating related JobPricing entries.")
-            self.latest_estimate_pricing = JobPricing.objects.create(
-                pricing_stage="estimate", job=self
-            )
-            self.latest_quote_pricing = JobPricing.objects.create(
-                pricing_stage="quote", job=self
-            )
-            self.latest_reality_pricing = JobPricing.objects.create(
-                pricing_stage="reality", job=self
-            )
-            logger.debug("Initial pricings created successfully.")
-
-            # Save the references back to the DB
-            super(Job, self).save(
-                update_fields=[
-                    "latest_estimate_pricing",
-                    "latest_quote_pricing",
-                    "latest_reality_pricing",
-                ]
-            )
-
-            if create_creation_event and staff:
-                JobEvent.objects.create(
-                    job=self,
-                    event_type="created",
-                    description=f"Job {self.name} created",
-                    staff=staff,
+                #  Create the initial JobPricing instances
+                logger.debug("Creating related JobPricing entries.")
+                self.latest_estimate_pricing = JobPricing.objects.create(
+                    pricing_stage="estimate", job=self
                 )
+                self.latest_quote_pricing = JobPricing.objects.create(
+                    pricing_stage="quote", job=self
+                )
+                self.latest_reality_pricing = JobPricing.objects.create(
+                    pricing_stage="reality", job=self
+                )
+                logger.debug("Initial pricings created successfully.")
+
+                # Save the references back to the DB
+                super(Job, self).save(
+                    update_fields=[
+                        "latest_estimate_pricing",
+                        "latest_quote_pricing",
+                        "latest_reality_pricing",
+                    ]
+                )
+
+                if create_creation_event and staff:
+                    JobEvent.objects.create(
+                        job=self,
+                        event_type="created",
+                        description=f"Job {self.name} created",
+                        staff=staff,
+                    )
 
         else:
             if original_status != self.status and staff:

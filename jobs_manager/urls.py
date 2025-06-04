@@ -25,10 +25,11 @@ from django.urls import include, path
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("workflow.urls")),
-    path("", include("job.urls", namespace="jobs")),  # Include job app URLs
+    path("", include("job.urls", namespace="jobs")),
     path("accounts/", include("accounts.urls")),
     path("timesheets/", include("timesheet.urls")),
     path("quoting/", include("quoting.urls")),
+    path("clients/", include("client.urls", namespace="clients")),
 ]
 
 if settings.DEBUG:

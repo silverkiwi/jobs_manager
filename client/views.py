@@ -27,12 +27,12 @@ from workflow.api.xero.sync import (
     archive_clients_in_xero,
 )
 from workflow.api.xero.xero import get_valid_token, api_client, get_tenant_id
-from workflow.forms import ClientForm
-from workflow.models import Client, Invoice, Bill
+from workflow.models import Invoice, Bill
+
+from client.models import Client
+from client.forms import ClientForm
 
 from job.models import Job
-
-# from workflow.tables import ClientTable
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ def get_client_contact_persons(request, client_id):
         
     except Exception as e:
         logger.error(f"Error fetching contact persons for client {client_id} from model: {str(e)}", exc_info=True)
-        return JsonResponse({"success": false, "message": "Failed to retrieve contact persons", "details": str(e)}, status=500)
+        return JsonResponse({"success": False, "message": "Failed to retrieve contact persons", "details": str(e)}, status=500)
 
 
 def get_client_phones(request, client_id):
@@ -255,7 +255,7 @@ def AddClient(request):
         
         name = request.GET.get("name", "")
         form = ClientForm(initial={"name": name}) if name else ClientForm()
-        return render(request, "clients/add_client.html", {"form": form})
+        return render(request, "client/add_client.html", {"form": form})
 
     elif request.method == "POST":
         form = ClientForm(request.POST)

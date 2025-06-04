@@ -2,8 +2,6 @@ import logging
 import os
 from django.apps import AppConfig
 from django.conf import settings
-from django.core.management import call_command
-from apscheduler.schedulers.background import BackgroundScheduler
 from django.db import close_old_connections
 
 logger = logging.getLogger(__name__)
@@ -13,6 +11,12 @@ class QuotingConfig(AppConfig):
     name = "quoting"
 
     def ready(self):
+        # Import scheduler-related modules here, when apps are ready
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from django_apscheduler.jobstores import DjangoJobStore
+        # Import the standalone job functions
+        from quoting.scheduler_jobs import run_all_scrapers_job, delete_old_job_executions
+
         # Ensure Django is ready before starting the scheduler
         # This check prevents the scheduler from starting multiple times
         # or before the Django app registry is fully populated.
@@ -31,9 +35,6 @@ class QuotingConfig(AppConfig):
             self.scraper_scheduler_started = True
             logger.info("Starting APScheduler for scraper jobs...")
             
-            from django_apscheduler.jobstores import DjangoJobStore
-            from django_apscheduler.models import DjangoJobExecution
-            
             scheduler = BackgroundScheduler(timezone=settings.TIME_ZONE)
             scheduler.add_jobstore(DjangoJobStore(), "default")
 
@@ -42,7 +43,7 @@ class QuotingConfig(AppConfig):
 
             # Schedule the scraper job to run every Sunday at 3 PM NZT
             scheduler.add_job(
-                self.run_all_scrapers_job,
+                run_all_scrapers_job,  # Now using standalone function
                 trigger='cron',
                 day_of_week='sun',
                 hour=15, # 3 PM
@@ -57,7 +58,7 @@ class QuotingConfig(AppConfig):
 
             # Add a job to clean up old job executions
             scheduler.add_job(
-                self.delete_old_job_executions,
+                delete_old_job_executions,  # Now using standalone function
                 trigger='interval',
                 days=1,
                 id='delete_old_job_executions',
@@ -73,23 +74,3 @@ class QuotingConfig(AppConfig):
                 logger.info("APScheduler started successfully for scraper jobs.")
             except Exception as e:
                 logger.error(f"Error starting APScheduler for scraper jobs: {e}", exc_info=True)
-
-    def run_all_scrapers_job(self):
-        """
-        This job runs the Django management command to execute all scrapers.
-        """
-        logger.info("Attempting to run all scrapers via scheduled job.")
-        try:
-            close_old_connections() # Close old DB connections to prevent issues
-            call_command('run_scrapers') # This calls the existing quoting/management/commands/run_scrapers.py
-            logger.info("Successfully completed scheduled scraper run.")
-        except Exception as e:
-            logger.error(f"Error during scheduled scraper run: {e}", exc_info=True)
-
-    def delete_old_job_executions(self, max_age_days=7):
-        """
-        This job deletes entries from the DjangoJobExecution table that are older than `max_age_days`.
-        It helps keep the table clean.
-        """
-        logger.info(f"Deleting old job executions older than {max_age_days} days.")
-        DjangoJobExecution.objects.delete_old_job_executions(max_age_days)

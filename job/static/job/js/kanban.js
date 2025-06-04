@@ -214,28 +214,77 @@ function initializeDragAndDrop() {
       },
       onEnd: function (evt) {
         const itemEl = evt.item;
-        const oldStatus = evt.from.closest(".kanban-column").id;
-        const newStatus = evt.to.closest(".kanban-column").id;
-        const jobId = itemEl.getAttribute("data-id");
+        const oldCol = evt.from.closest(".kanban-column");
+        const newCol = evt.to.closest(".kanban-column");
+        const oldStatus = oldCol.id;
+        const newStatus = newCol.id;
+        const jobId = itemEl.dataset.id;
 
-        // Remove potential destiny class
-        document.querySelectorAll(".kanban-column").forEach((col) => {
-          col.classList.remove("drop-target-potential");
-        });
+        document
+          .querySelectorAll(".kanban-column")
+          .forEach((c) => c.classList.remove("drop-target-potential"));
 
-        if (!oldStatus || !newStatus || oldStatus === newStatus) {
-          return;
+        // collect cards in the dest column
+        let cards = Array.from(newCol.querySelectorAll(".job-card"));
+        if (cards.length === 0) cards = [itemEl];      // column was empty
+
+        const total = cards.length;
+        let index = evt.newIndex;
+        if (index >= total) index = total - 1; // clamp
+        if (index < 0) index = 0;
+
+        let beforeId = null;
+        let afterId = null;
+
+        switch (true) {
+          // top
+          case index === 0:               
+            afterId = cards[1] ? cards[1].dataset.id : null;
+            break;
+            
+          // bottom
+          case index === total - 1:      
+            beforeId = cards[total - 2] ? cards[total - 2].dataset.id : null;
+            break;
+
+          // middle
+          default:                        
+            beforeId = cards[index - 1].dataset.id;
+            afterId = cards[index + 1].dataset.id;
+            break;
         }
 
-        console.log(`Job ${jobId} moved from ${oldStatus} to ${newStatus}`);
+        const payload = {
+          before_id: beforeId,
+          after_id: afterId,
+          status: newStatus
+        };
 
-        updateJobStatus(jobId, newStatus);
-
-        // Update affected column counters
-        updateColumnHeader(oldStatus);
-        updateColumnHeader(newStatus);
-
-        updateColumnCounts();
+        fetch(`/job/${jobId}/reorder/`, {              
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken")
+          },
+          body: JSON.stringify(payload)
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (!data.success) {
+              console.error("reorder failed:", data.error);
+              refreshAllColumns();
+              alert("Could not reorder job: " + (data.error || "Unknown error"));
+              return;
+            }
+            itemEl.dataset.priority = data.priority;
+            loadJobs(oldStatus);
+            if (newStatus !== oldStatus) loadJobs(newStatus);
+          })
+          .catch((err) => {
+            console.error("network error:", err);
+            refreshAllColumns();
+            alert("Network error. Please reload.");
+          });
       },
     });
   });
@@ -491,7 +540,7 @@ function initializeStaffDragAndDrop() {
         onAdd: function (evt) {
           const staffId = evt.item.getAttribute("data-staff-id");
           const jobId = evt.to.closest(".job-card").getAttribute("data-id");
-          
+
           const fromStaffPool = evt.from.isEqualNode(staffPanelList);
 
           console.log(`Staff ${staffId} added/moved to job ${jobId}. From pool: ${fromStaffPool}`);
@@ -584,7 +633,7 @@ function applyStaffFilters() {
       card.style.display = "";
     });
     // Ensure the main search filter is reapplied if it exists
-    filterJobs(); 
+    filterJobs();
     updateColumnCounts();
     return;
   }
@@ -604,10 +653,10 @@ function applyStaffFilters() {
 
     // A job is visible if any of the active staff filters match an assigned staff member
     // OR if any of the active staff filters match the creator of the job.
-    const isAssignedToActiveStaff = assignedStaffIds.some(staffId => 
+    const isAssignedToActiveStaff = assignedStaffIds.some(staffId =>
       activeStaffFilters.includes(staffId)
     );
-    
+
     const isCreatedByActiveStaff = createdById ? activeStaffFilters.includes(createdById.toString()) : false;
 
     // Card should be visible if it matches the general search term (if any)
@@ -621,7 +670,7 @@ function applyStaffFilters() {
     ]
       .join(" ")
       .toLowerCase();
-    
+
     const matchesGeneralSearch = searchTerm ? combinedText.includes(searchTerm) : true;
 
     if (matchesGeneralSearch && (isAssignedToActiveStaff || isCreatedByActiveStaff)) {

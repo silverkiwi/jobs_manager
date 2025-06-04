@@ -53,7 +53,7 @@
                                 {% get_xero_action as xero_action %}
                                 <li><a class="dropdown-item" href="{% url 'xero_sync_progress' %}">Refresh Xero Data</a></li>
                                 <li><a class="dropdown-item" href="{% url xero_action.url_name %}">{{ xero_action.action_text }}</a></li>
-                                <li><a class="dropdown-item" href="{% url 'xero_unused_clients' %}">Manage Unused Clients</a></li>
+                                <li><a class="dropdown-item" href="{% url 'clients:xero_unused_clients' %}">Manage Unused Clients</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">

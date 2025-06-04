@@ -12,7 +12,7 @@
  * Shared component for consistency across the application.
  */
 
-import { debouncedAutosave } from "./edit_job_form_autosave.js";
+import { debouncedAutosave } from "/static/job/js/edit_job_form_autosave.js";
 
 document.addEventListener("DOMContentLoaded", function () {
   const clientInput = document.getElementById("client_name");
@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.dispatchEvent(new CustomEvent('jobClientCleared'));
 
     if (query.length > 2) {
-      fetch(`/api/client-search/?q=${encodeURIComponent(query)}`, {
+      fetch(`/clients/api/search/?q=${encodeURIComponent(query)}`, {
         method: "GET",
         headers: {
           "X-CSRFToken": getCsrfToken(),
@@ -216,7 +216,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const currentClientName = clientInput.value.trim(); // Get current name from input
       const newWindow = window.open(
         // Pass current name to the add client form
-        `/client/add/?name=${encodeURIComponent(currentClientName)}`,
+        `/clients/add/?name=${encodeURIComponent(currentClientName)}`, // MODIFIED URL for adding new client
         "_blank",
       );
       if (newWindow) {

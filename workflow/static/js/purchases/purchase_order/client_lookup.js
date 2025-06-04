@@ -103,7 +103,7 @@ export function initializeClientLookup() {
    * @param {string} query - Search query
    */
   function fetchClientSuggestions(query) {
-    fetch(`/api/client-search/?q=${encodeURIComponent(query)}`, {
+    fetch(`/clients/api/search/?q=${encodeURIComponent(query)}`, {
       method: "GET",
       headers: {
         "X-CSRFToken": getCsrfToken(),
@@ -188,7 +188,7 @@ export function initializeClientLookup() {
     addNewOption.textContent = `Add new client "${query}"`;
     addNewOption.addEventListener("click", function() {
       const newWindow = window.open(
-        `/client/add/?name=${encodeURIComponent(query)}`,
+        `/clients/add/?name=${encodeURIComponent(query)}`,
         "_blank",
       );
       if (newWindow) {

@@ -673,6 +673,22 @@ argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
 
 [[package]]
+name = "django-apscheduler"
+version = "0.7.0"
+description = "APScheduler for Django"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "django_apscheduler-0.7.0-py3-none-any.whl", hash = "sha256:869d489775420245c9455d55e35f663c856a33ebfc996d92938f786ffb8730ce"},
+    {file = "django_apscheduler-0.7.0.tar.gz", hash = "sha256:30d61a2ba98615922fc2c9782f84bba342ec0c5ed63384d686d71ea90a1a4318"},
+]
+
+[package.dependencies]
+apscheduler = ">=3.2,<4.0"
+django = ">=4.2"
+
+[[package]]
 name = "django-crispy-forms"
 version = "2.3"
 description = "Best way to have Django DRY forms"
@@ -3214,4 +3230,4 @@ urllib3 = "*"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "6ab7d4d918d35f6899c6732884adde9382e9302dcad7a1da597eee8cb4e63558"
+content-hash = "76341ef90bdcef2f7182d35d296ac132fe32491c9ad4a939b9a8a777cfcf9a68"
