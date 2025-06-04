@@ -22,7 +22,7 @@ def get_enum_choices(request, enum_name):
     try:
         # First check the job enums module
         try:
-            enums_module = importlib.import_module('job.enums')
+            enums_module = importlib.import_module('apps.job.enums')
             
             if hasattr(enums_module, enum_name):
                 enum_class = getattr(enums_module, enum_name)
@@ -36,7 +36,7 @@ def get_enum_choices(request, enum_name):
             pass
             
         # Fall back to workflow.enums if not found in job.enums
-        enums_module = importlib.import_module('workflow.enums')
+        enums_module = importlib.import_module('apps.workflow.enums')
         
         if hasattr(enums_module, enum_name):
             enum_class = getattr(enums_module, enum_name)
