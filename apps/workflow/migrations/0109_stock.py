@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 ('specifics', models.CharField(blank=True, help_text='Specific details (e.g., m8 countersunk socket screw)', max_length=255, null=True)),
                 ('is_active', models.BooleanField(db_index=True, default=True, help_text='False when quantity reaches zero or item is fully consumed/transformed')),
                 ('job', models.ForeignKey(blank=True, help_text='The job this stock item is assigned to', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='stock_items', to='job.job')),
-                ('source_purchase_order_line', models.ForeignKey(blank=True, help_text='The PO line this stock originated from (if source=\'purchase_order\')', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='stock_generated', to='purchasing.purchaseorderline')),
+                ('source_purchase_order_line', models.ForeignKey(blank=True, help_text='The PO line this stock originated from (if source=\'purchase_order\')', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='stock_generated', to='workflow.purchaseorderline')),
                 ('source_parent_stock', models.ForeignKey(blank=True, help_text='The parent stock item this was split from (if source=\'split_from_stock\')', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='child_stock_splits', to='workflow.stock')),
             ],
             options={
