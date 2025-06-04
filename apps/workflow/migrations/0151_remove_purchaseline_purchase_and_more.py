@@ -242,7 +242,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="po_lines",
-                to="workflow.purchaseorder",
+                to="purchasing.purchaseorder",
             ),
         ),
         migrations.AlterField(

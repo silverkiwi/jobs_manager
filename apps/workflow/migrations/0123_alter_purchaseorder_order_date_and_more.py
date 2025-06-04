@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
             field=models.OneToOneField(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="supplier_quote",
-                to="workflow.purchaseorder",
+                to="purchasing.purchaseorder",
             ),
         ),
     ]

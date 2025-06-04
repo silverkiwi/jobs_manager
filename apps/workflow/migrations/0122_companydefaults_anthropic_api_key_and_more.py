@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="quotes",
-                        to="workflow.purchaseorder",
+                        to="purchasing.purchaseorder",
                     ),
                 ),
             ],

@@ -40,7 +40,7 @@ class MaterialEntry(models.Model):
         help_text="The Stock item consumed to create this entry"
     )
     purchase_order_line = models.ForeignKey(
-        "workflow.PurchaseOrderLine",
+        "purchasing.purchaseorderline",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

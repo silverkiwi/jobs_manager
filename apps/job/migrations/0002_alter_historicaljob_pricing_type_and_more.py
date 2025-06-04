@@ -150,7 +150,7 @@ class Migration(migrations.Migration):
                                 null=True,
                                 on_delete=django.db.models.deletion.SET_NULL,
                                 related_name="material_entries",
-                                to="workflow.purchaseorderline",
+                                to="purchasing.purchaseorderline",
                             ),
                         ),
                         (

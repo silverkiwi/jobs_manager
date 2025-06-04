@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('job_pricing', models.ForeignKey(on_delete=models.deletion.CASCADE, related_name='material_entries', to='job.jobpricing')),
                 ('source_stock', models.ForeignKey(blank=True, help_text='The Stock item consumed to create this entry', null=True, on_delete=models.deletion.PROTECT, related_name='consumed_entries', to='workflow.stock')),
-                ('purchase_order_line', models.ForeignKey(blank=True, help_text='Convenience link to original PO line (derived via source_stock)', null=True, on_delete=models.deletion.SET_NULL, related_name='material_entries', to='workflow.purchaseorderline')),
+                ('purchase_order_line', models.ForeignKey(blank=True, help_text='Convenience link to original PO line (derived via source_stock)', null=True, on_delete=models.deletion.SET_NULL, related_name='material_entries', to='purchasing.purchaseorderline')),
             ],
             options={
                 'db_table': 'workflow_materialentry',
