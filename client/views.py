@@ -255,7 +255,7 @@ def AddClient(request):
         
         name = request.GET.get("name", "")
         form = ClientForm(initial={"name": name}) if name else ClientForm()
-        return render(request, "clients/add_client.html", {"form": form})
+        return render(request, "client/add_client.html", {"form": form})
 
     elif request.method == "POST":
         form = ClientForm(request.POST)
