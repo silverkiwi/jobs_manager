@@ -125,7 +125,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.PROTECT,
-                to="purchasing.purchaseorder",
+                to="workflow.purchaseorder",
             ),
         ),
         migrations.CreateModel(
@@ -158,7 +158,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="lines",
-                        to="purchasing.purchaseorder",
+                        to="workflow.purchaseorder",
                     ),
                 ),
             ],
@@ -169,7 +169,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.PROTECT,
                 related_name="received_lines",
-                to="purchasing.purchaseorderline",
+                to="workflow.purchaseorderline",
             ),
         ),
     ]
