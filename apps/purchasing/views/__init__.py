@@ -4,7 +4,7 @@ Centralized imports following Single Responsibility Principle.
 """
 
 # Purchase Order views
-from .purchase_order import (
+from .purchase_order_view import (
     PurchaseOrderListView,
     PurchaseOrderCreateView,
     autosave_purchase_order_view,
@@ -15,14 +15,14 @@ from .purchase_order import (
 )
 
 # Delivery Receipt views
-from .delivery_receipt import (
+from .delivery_receipt_view import (
     DeliveryReceiptListView,
     DeliveryReceiptCreateView,
     process_delivery_receipt_view,
 )
 
 # Stock Management views
-from .stock import (
+from .stock_view import (
     StockListView,
     StockCreateView,
     UseStockView,

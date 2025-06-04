@@ -37,7 +37,7 @@ class DeliveryReceiptListView(LoginRequiredMixin, ListView):
 class DeliveryReceiptCreateView(LoginRequiredMixin, TemplateView):
     """View to create a delivery receipt for a purchase order."""
     
-    template_name = 'purchases/delivery_receipt_form.html'
+    template_name = 'purchasing/delivery_receipt_form.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

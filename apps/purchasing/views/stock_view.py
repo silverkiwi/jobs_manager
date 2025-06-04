@@ -17,34 +17,6 @@ from apps.workflow.utils import get_active_jobs
 logger = logging.getLogger(__name__)
 
 
-class StockListView(LoginRequiredMixin, ListView):
-    """REST API view to list all active stock items."""
-    
-    model = Stock
-    template_name = 'purchasing/stock_list.html'
-    context_object_name = 'stock_items'
-    
-    def get_queryset(self):
-        """Return active stock items ordered by description."""
-        return Stock.objects.filter(is_active=True).order_by('description')
-        
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Stock Items'
-        return context
-
-
-class StockCreateView(LoginRequiredMixin, TemplateView):
-    """REST API view to create new stock items."""
-    
-    template_name = 'purchasing/stock_form.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Create Stock Item'
-        return context
-
-
 class UseStockView(LoginRequiredMixin, TemplateView):
     """View for using stock items on jobs."""
     

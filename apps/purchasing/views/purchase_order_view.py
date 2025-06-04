@@ -33,7 +33,7 @@ class PurchaseOrderListView(LoginRequiredMixin, ListView):
     """API view to list all purchase orders."""
     
     model = PurchaseOrder
-    template_name = 'purchases/purchase_order_list.html'
+    template_name = 'purchasing/purchase_order_list.html'
     context_object_name = 'purchase_orders'
     
     def get_queryset(self):
@@ -49,7 +49,7 @@ class PurchaseOrderListView(LoginRequiredMixin, ListView):
 class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
     """REST API view to create or edit a purchase order."""
     
-    template_name = 'purchases/purchase_order_form.html'
+    template_name = 'purchasing/purchase_order_form.html'
     
     def get(self, request, *args, **kwargs):
         # Check if we're editing an existing purchase order
