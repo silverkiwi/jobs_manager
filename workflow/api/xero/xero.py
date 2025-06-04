@@ -9,7 +9,6 @@ from django.conf import settings
 from django.core.cache import cache
 from xero_python.api_client import ApiClient, Configuration
 from xero_python.api_client.oauth2 import OAuth2Token, TokenApi
-from xero_python.api_client.exceptions import RateLimitException
 from xero_python.identity import IdentityApi
 from xero_python.accounting import AccountingApi
 
@@ -338,11 +337,6 @@ def get_xero_items(if_modified_since: Optional[datetime] = None) -> Any:
         )
         logger.info(f"Successfully fetched {len(items.items)} Xero Items.")
         return items.items
-    except RateLimitException as e:
-        logger.warning(f"Xero API Rate Limit Exceeded when fetching items: {e}")
-        # Depending on requirements, you might want to re-raise,
-        # or implement a retry mechanism with backoff.
-        raise
     except Exception as e:
         logger.error(f"Error fetching Xero Items: {e}", exc_info=True)
         raise

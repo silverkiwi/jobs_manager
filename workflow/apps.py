@@ -5,9 +5,6 @@ from django.apps import AppConfig
 from django.conf import settings
 from django.db import close_old_connections
 from apscheduler.schedulers.background import BackgroundScheduler
-from django_apscheduler.jobstores import DjangoJobStore
-from workflow.models.xero_token import XeroToken
-from workflow.services.xero_sync_service import XeroSyncService
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +22,9 @@ class WorkflowConfig(AppConfig):
 
         # Only start the scheduler if it hasn't been started already
         if not hasattr(self, 'xero_scheduler_started'):
+            from django_apscheduler.jobstores import DjangoJobStore
+            from workflow.models.xero_token import XeroToken
+            from workflow.services.xero_sync_service import XeroSyncService
             self.xero_scheduler_started = True
             logger.info("Starting APScheduler for Xero-related jobs...")
 
