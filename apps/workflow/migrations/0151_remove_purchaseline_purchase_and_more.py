@@ -10,7 +10,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("job", "0008_alter_jobpart_options_and_more"),
+        ("job", "0009_alter_jobpart_options_and_more"),
         ("workflow", "0150_client_all_phones"),
     ]
 

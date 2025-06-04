@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("job", "0006_add_material_adjustment_jobpart_models"),
+        ("job", "0007_add_materialentry_add_adjustmententry"),
     ]
 
     operations = [
