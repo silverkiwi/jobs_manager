@@ -500,24 +500,34 @@ def log_token_usage(usage, api_name):
     )
 
 
-def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optional[str] = None) -> Tuple[Optional[dict], Optional[str]]:
+def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optional[str] = None, ai_provider: Optional[AIProvider] = None) -> Tuple[Optional[dict], Optional[str]]:
     """
     Extract data from a supplier quote file using Gemini,
     
     Args:
         quote_path: Path to the quote file
         content_type: MIME type of the file (optional)
+        ai_provider: Optional AI provider to use, will get active one if not provided
     
     Returns:
         Tuple containing (quote_data, error_message)
     """
-    company_defaults = get_company_defaults()
-    gemini_api_key = company_defaults.gemini_api_key
-
-    if not gemini_api_key:
-        return None, "Gemini API key not configured. Please add it in company settings."
-
     try:
+        if not ai_provider:
+            company_defaults = get_company_defaults()
+            ai_provider = company_defaults.get_active_ai_provider()
+
+        if not ai_provider:
+            return None, "No active AI provider configured. Please set one in company settings."
+
+        if ai_provider.provider_type != AIProviderTypes.GOOGLE:
+            return None, f"Configured AI provider is {ai_provider.provider_type}, but this function requires Google (Gemini)."
+
+        gemini_api_key = ai_provider.api_key
+
+        if not gemini_api_key:
+            return None, "Gemini API key not configured for the active AI provider. Please add it in company settings."
+
         client = genai.Client(api_key=gemini_api_key)
         
         with open(quote_path, 'rb') as file:
@@ -607,7 +617,7 @@ def create_po_from_quote(
         case AIProviderTypes.GOOGLE:
             logger.info(f"Using Gemini for quote extraction: {quote.filename}")
             quote_data, error = extract_data_from_supplier_quote_gemini(
-                quote_path, quote.mime_type
+                quote_path, quote.mime_type, ai_provider=ai_provider
             )
         case AIProviderTypes.ANTHROPIC:
             logger.info(f"Using Claude for quote extraction: {quote.filename}")

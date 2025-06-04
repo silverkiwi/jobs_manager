@@ -342,7 +342,13 @@ def extract_supplier_quote_data_view(request):
 
         ai_provider = CompanyDefaults.get_instance().get_active_ai_provider()
         
-        logger.info(f"Processing quote with {ai_provider} AI provider")
+        if not ai_provider:
+            return JsonResponse({
+                "success": False,
+                "error": "No active AI provider configured. Please set one in company settings."
+            }, status=400)
+        
+        logger.info(f"Processing quote with {ai_provider.provider_type} AI provider")
         
         purchase_order = PurchaseOrder.objects.create(
             status="draft",
