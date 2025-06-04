@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "apps.job.apps.JobConfig",
     "apps.quoting.apps.QuotingConfig",
     "apps.client.apps.ClientConfig",
+    "apps.purchasing.apps.PurchasingConfig",
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -222,7 +223,8 @@ TEMPLATES = [
             os.path.join(BASE_DIR, "apps/accounts/templates"),
             os.path.join(BASE_DIR, "apps/timesheet/templates"),
             os.path.join(BASE_DIR, "apps/job/templates"),
-            os.path.join(BASE_DIR, "apps/client/templates")
+            os.path.join(BASE_DIR, "apps/client/templates"),
+            os.path.join(BASE_DIR, "apps/purchasing/templates"),
         ],
         "APP_DIRS": True,
         "OPTIONS": {

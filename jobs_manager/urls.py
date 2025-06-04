@@ -30,6 +30,7 @@ urlpatterns = [
     path("timesheets/", include("apps.timesheet.urls")),
     path("quoting/", include("apps.quoting.urls")),
     path("clients/", include("apps.client.urls", namespace="clients")),
+    path("purchasing/", include("apps.purchasing.urls", namespace="purchasing")),
 ]
 
 if settings.DEBUG:
