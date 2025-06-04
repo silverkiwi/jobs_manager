@@ -24,12 +24,12 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("workflow.urls")),
-    path("", include("job.urls", namespace="jobs")),
-    path("accounts/", include("accounts.urls")),
-    path("timesheets/", include("timesheet.urls")),
-    path("quoting/", include("quoting.urls")),
-    path("clients/", include("client.urls", namespace="clients")),
+    path("", include("apps.workflow.urls")),
+    path("", include("apps.job.urls", namespace="jobs")),
+    path("accounts/", include("apps.accounts.urls")),
+    path("timesheets/", include("apps.timesheet.urls")),
+    path("quoting/", include("apps.quoting.urls")),
+    path("clients/", include("apps.client.urls", namespace="clients")),
 ]
 
 if settings.DEBUG:
