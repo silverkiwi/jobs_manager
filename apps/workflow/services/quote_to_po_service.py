@@ -572,7 +572,7 @@ def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optio
                 return None, f"Failed to process file: {str(e)}"
         
         response = client.models.generate_content(
-            model='gemini-2.5-pro-exp-03-25',
+            model='gemini-2.5-pro-preview-05-06',
             contents=contents,
             config={
                 "max_output_tokens": 4000,
