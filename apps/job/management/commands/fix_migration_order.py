@@ -1,96 +1,117 @@
 import datetime
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction
-from django.db.migrations.loader import MigrationLoader
-from django.db.migrations.recorder import MigrationRecorder
 
 
 class Command(BaseCommand):
-    help = 'Fixes the order of migrations in django_migrations table by adjusting timestamps'
+    help = 'Fixes migration order by updating timestamps to resolve dependency inconsistencies'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--dry-run',
+            action='store_true',
+            help='Show what would be done without making changes'
+        )
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Skip confirmation and execute immediately'
+        )
+        parser.add_argument(
+            '--parent',
+            type=str,
+            help='Specify parent migration (format: app.migration_name)',
+        )
+        parser.add_argument(
+            '--child',
+            type=str,
+            help='Specify child migration (format: app.migration_name)',
+        )
 
     def handle(self, *args, **options):
-        self.stdout.write('Loading migration graph...')
+        dry_run = options['dry_run']
+        force = options['force']
         
-        # Load the migration graph
-        loader = MigrationLoader(connection)
-        graph = loader.graph
-        recorder = MigrationRecorder(connection)
+        if dry_run:
+            self.stdout.write(self.style.WARNING('Running in dry-run mode - no changes will be made'))
         
-        # Get all applied migrations
-        applied_migrations = recorder.applied_migrations()
+        # Default specific migrations if not provided
+        parent_migration = options.get('parent') or 'job.0009_alter_jobpart_options_and_more' 
+        child_migration = options.get('child') or 'workflow.0151_remove_purchaseline_purchase_and_more'
         
-        # Map of (app_label, migration_name) to Migration object
-        migration_dict = {}
+        # Split into app and name
+        parent_app, parent_name = parent_migration.split('.')
+        child_app, child_name = child_migration.split('.')
         
-        # Build lookup dictionary from recorder data
+        # Check migrations exist in database
         with connection.cursor() as cursor:
-            cursor.execute("SELECT app, name, applied FROM django_migrations ORDER BY applied")
-            rows = cursor.fetchall()
-            for app, name, applied in rows:
-                migration_dict[(app, name)] = {
-                    'applied': applied,
-                    'key': (app, name)
-                }
-        
-        self.stdout.write(f'Found {len(migration_dict)} applied migrations')
-        
-        # Identify inconsistencies
-        inconsistencies = []
-        for app_label, migration_name in migration_dict.keys():
-            if (app_label, migration_name) not in graph.nodes:
-                self.stdout.write(self.style.WARNING(
-                    f"Migration {app_label}.{migration_name} exists in database but not in files. Skipping."
+            # Check parent migration
+            cursor.execute(
+                "SELECT app, name, applied FROM django_migrations WHERE app = %s AND name = %s",
+                [parent_app, parent_name]
+            )
+            parent_record = cursor.fetchone()
+            
+            if not parent_record:
+                self.stdout.write(self.style.ERROR(
+                    f"Parent migration {parent_migration} not found in database!"
                 ))
-                continue
+                return
                 
-            node = graph.node_map[(app_label, migration_name)]
+            # Check child migration
+            cursor.execute(
+                "SELECT app, name, applied FROM django_migrations WHERE app = %s AND name = %s",
+                [child_app, child_name]
+            )
+            child_record = cursor.fetchone()
             
-            # Check each dependency
-            # Correct way to get dependencies - use node.dependencies
-            for parent in node.dependencies:
-                parent_app, parent_name = parent
+            if not child_record:
+                self.stdout.write(self.style.ERROR(
+                    f"Child migration {child_migration} not found in database!"
+                ))
+                return
+            
+            parent_applied = parent_record[2]  # the 'applied' field
+            child_applied = child_record[2]
+            
+            # Check if there's already a problem
+            if child_applied <= parent_applied:
+                self.stdout.write(self.style.WARNING(
+                    f"Inconsistency detected! Child {child_migration} ({child_applied}) "
+                    f"is applied before parent {parent_migration} ({parent_applied})"
+                ))
                 
-                # Skip if the parent migration is not applied yet
-                if (parent_app, parent_name) not in migration_dict:
-                    continue
+                # Calculate new timestamps
+                # Make parent 5 minutes before child
+                new_child_timestamp = parent_applied + datetime.timedelta(minutes=5)
                 
-                # Compare timestamps - dependency should be applied before
-                if migration_dict[(app_label, migration_name)]['applied'] <= migration_dict[(parent_app, parent_name)]['applied']:
-                    inconsistencies.append({
-                        'child': (app_label, migration_name),
-                        'parent': (parent_app, parent_name),
-                    })
-        
-        if not inconsistencies:
-            self.stdout.write(self.style.SUCCESS('No inconsistencies found!'))
-            return
-            
-        self.stdout.write(f'Found {len(inconsistencies)} inconsistencies to fix')
-        
-        # Fix inconsistencies
-        with transaction.atomic():
-            # Sort the graph to get correct order
-            sorted_nodes = list(graph.forwards_plan(graph.leaf_nodes()))
-            
-            # Apply a time offset to each migration based on its position in the sorted graph
-            base_time = datetime.datetime.now() - datetime.timedelta(days=1)
-            time_increment = datetime.timedelta(seconds=10)
-            
-            # Create mapping of node to new timestamp
-            new_timestamps = {}
-            for i, node_key in enumerate(sorted_nodes):
-                if node_key in migration_dict:
-                    new_timestamps[node_key] = base_time + (time_increment * i)
-            
-            # Apply new timestamps
-            with connection.cursor() as cursor:
-                for node_key, timestamp in new_timestamps.items():
-                    app, name = node_key
-                    cursor.execute(
-                        "UPDATE django_migrations SET applied = %s WHERE app = %s AND name = %s",
-                        [timestamp, app, name]
-                    )
-                    self.stdout.write(f"Updated {app}.{name} timestamp to {timestamp}")
-            
-            self.stdout.write(self.style.SUCCESS('Migration timestamps updated successfully!'))
-            
+                self.stdout.write(self.style.WARNING(
+                    f"Will update {child_migration} timestamp to: {new_child_timestamp}"
+                ))
+                
+                # Ask for confirmation
+                if not force and not dry_run:
+                    confirm = input('Do you want to proceed with these changes? [y/N]: ')
+                    if confirm.lower() != 'y':
+                        self.stdout.write(self.style.WARNING('Operation cancelled'))
+                        return
+                
+                # Apply changes
+                if not dry_run:
+                    try:
+                        with transaction.atomic():
+                            cursor.execute(
+                                "UPDATE django_migrations SET applied = %s WHERE app = %s AND name = %s",
+                                [new_child_timestamp, child_app, child_name]
+                            )
+                            self.stdout.write(self.style.SUCCESS(
+                                f"Successfully updated {child_migration} timestamp to {new_child_timestamp}"
+                            ))
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f"Error updating migration timestamps: {str(e)}"))
+            else:
+                self.stdout.write(self.style.SUCCESS(
+                    f"No inconsistency found! Child {child_migration} ({child_applied}) "
+                    f"is already applied after parent {parent_migration} ({parent_applied})"
+                ))
+                
