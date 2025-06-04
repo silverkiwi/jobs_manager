@@ -3,25 +3,37 @@ Purchase Order views for the purchasing app.
 RESTful API design with proper separation of concerns.
 """
 
+import base64
 import json
 import logging
+import os
+import tempfile
+import uuid
+
 from datetime import datetime
 from django.urls import reverse
-from django.views.generic import ListView, TemplateView
+from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView
+from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse, FileResponse, Http404
+from django.shortcuts import render, redirect, get_object_or_404
+from django.forms import inlineformset_factory, Form
+from django.http import HttpResponseRedirect, JsonResponse, Http404
+from django.contrib import messages
 from django.views.decorators.http import require_http_methods
-from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.db import transaction, IntegrityError
+from django.utils import timezone
 
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
+from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote
 from apps.client.models import Client
 from apps.job.models import Job
 from apps.purchasing.forms import PurchaseOrderForm, PurchaseOrderLineForm
+from apps.workflow.models.company_defaults import CompanyDefaults
 from apps.purchasing.services.purchase_order_pdf_service import create_purchase_order_pdf
+from apps.workflow.utils import extract_messages
 from apps.purchasing.services.quote_to_po_service import save_quote_file, create_po_from_quote, extract_data_from_supplier_quote
 from apps.purchasing.services.purchase_order_email_service import create_purchase_order_email
 from apps.workflow.views.xero.xero_po_manager import XeroPurchaseOrder, XeroPurchaseOrderManager
@@ -55,18 +67,33 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
         # Check if we're editing an existing purchase order
         purchase_order_id = self.kwargs.get('pk')
         if not purchase_order_id:
-            # Implementation for creating new PO
-            pass
+            # Check if we have a quote_id in query params for creating PO from quote
+            quote_id = request.GET.get('quote_id')
+            if quote_id:
+                try:
+                    quote = get_object_or_404(PurchaseOrderSupplierQuote, id=quote_id)
+                    # Create PO from quote
+                    po = create_po_from_quote(quote)
+                    return redirect(reverse('purchasing:purchase_order_edit', kwargs={'pk': po.id}))
+                except Exception as e:
+                    messages.error(request, f'Error creating PO from quote: {str(e)}')
+                    return redirect(reverse('purchasing:purchase_order_list'))
         return super().get(request, *args, **kwargs)
-
+    
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
         
-        # Since we've redirected if no pk, we can assume pk exists
+        # Check if we're editing an existing purchase order or creating a new one
         purchase_order_id = self.kwargs.get('pk')
-        purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)
-        context['title'] = f'Purchase Order {purchase_order.po_number}'
-        context['purchase_order_id'] = str(purchase_order.id)
+        if purchase_order_id:
+            # Editing existing purchase order
+            purchase_order = get_object_or_404(PurchaseOrder, id=purchase_order_id)
+            context['title'] = f'Purchase Order {purchase_order.po_number}'
+            context['purchase_order_id'] = str(purchase_order.id)
+        else:
+            # Creating new purchase order
+            purchase_order = None
+            context['title'] = 'New Purchase Order'
+            context['purchase_order_id'] = None
 
         # Add supplier quote to context (it's a OneToOneField, not a collection)
         try:

@@ -24,6 +24,7 @@ from .delivery_receipt import (
 # Stock Management views
 from .stock import (
     UseStockView,
+    use_stock_view,
     consume_stock_api_view,
     create_stock_api_view,
     search_available_stock_api,
@@ -44,9 +45,9 @@ __all__ = [
     'DeliveryReceiptListView',
     'DeliveryReceiptCreateView',
     'process_delivery_receipt_view',
-    
-    # Stock Management views
+      # Stock Management views
     'UseStockView',
+    'use_stock_view',
     'consume_stock_api_view',
     'create_stock_api_view',
     'search_available_stock_api',
