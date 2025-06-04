@@ -4,8 +4,6 @@ from django.apps import AppConfig
 from django.conf import settings
 from django.core.management import call_command
 from apscheduler.schedulers.background import BackgroundScheduler
-from django_apscheduler.jobstores import DjangoJobStore
-from django_apscheduler.models import DjangoJobExecution
 from django.db import close_old_connections
 
 logger = logging.getLogger(__name__)
@@ -32,6 +30,9 @@ class QuotingConfig(AppConfig):
         if not hasattr(self, 'scraper_scheduler_started'):
             self.scraper_scheduler_started = True
             logger.info("Starting APScheduler for scraper jobs...")
+            
+            from django_apscheduler.jobstores import DjangoJobStore
+            from django_apscheduler.models import DjangoJobExecution
             
             scheduler = BackgroundScheduler(timezone=settings.TIME_ZONE)
             scheduler.add_jobstore(DjangoJobStore(), "default")
