@@ -84,16 +84,6 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "(DEPRECATED) LLM Integration",
-            {
-                "fields": (
-                    "anthropic_api_key",
-                    "gemini_api_key"
-                ),
-                "description": "API keys for Large Language Model integrations.",
-            },
-        ),
-        (
             "AI Providers",
             {
                 "fields": (),
