@@ -7,7 +7,9 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from workflow.models import BillLineItem, XeroJournal, XeroJournalLineItem
-from workflow.models.client import Client
+
+from client.models import Client
+
 from workflow.models.invoice import (
     Bill,
     CreditNote,

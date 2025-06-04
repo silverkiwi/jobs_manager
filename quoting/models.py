@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
-from workflow.models import Client
+
+from client.models import Client
 
 class SupplierProduct(models.Model):
     """

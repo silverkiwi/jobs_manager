@@ -13,7 +13,8 @@ from django.utils import timezone
 
 # Import models used in type hints or logic
 from job.models import Job
-from workflow.models import Client
+
+from client.models import Client
 
 # Type hints will use string literals to avoid circular imports
 # from .xero_invoice_manager import XeroInvoiceManager

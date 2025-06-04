@@ -2,8 +2,10 @@ import logging
 
 from rest_framework import serializers
 
-from workflow.models import Client
+from client.models import Client
+
 from job.models import Job, JobFile
+
 from .job_file_serializer import JobFileSerializer
 from .job_pricing_serializer import JobPricingSerializer
 

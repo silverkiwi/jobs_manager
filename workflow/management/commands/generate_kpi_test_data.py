@@ -14,9 +14,15 @@ from workflow.models import (
     AdjustmentEntry,
     CompanyDefaults
 )
-from job.models import Job, JobPricing, TimeEntry
+
 from workflow.enums import JobPricingStage
-from workflow.models.client import Client
+
+from job.models import Job, JobPricing
+
+from timesheet.models import TimeEntry
+
+from client.models import Client
+
 from workflow.utils import get_nz_tz
 
 from accounts.models import Staff
@@ -240,7 +246,8 @@ class Command(BaseCommand):
         
         try:
             # Import models here to avoid circular imports
-            from workflow.models import Client, Job
+            from job.models import Job
+            from client.models import Client
             
             # Create company defaults if needed
             if not CompanyDefaults.objects.exists():
