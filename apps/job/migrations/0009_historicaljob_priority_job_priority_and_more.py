@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("job", "0009_alter_jobpart_options_and_more"),
+        ("job", "0008_alter_jobpart_options_and_more"),
         ("workflow", "0152_remove_companydefaults_anthropic_api_key_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

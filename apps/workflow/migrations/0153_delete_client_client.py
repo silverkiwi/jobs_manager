@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("client", "0001_initial"),
-        ("job", "0011_populate_priority_for_existing_jobs"),
+        ("job", "0010_populate_priority_for_existing_jobs"),
         ("quoting", "0002_supplierpricelist_supplierproduct_price_list"),
         ("workflow", "0152_remove_companydefaults_anthropic_api_key_and_more"),
     ]
