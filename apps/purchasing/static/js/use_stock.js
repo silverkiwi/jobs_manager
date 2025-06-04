@@ -338,9 +338,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       quantity_used: parseFloat(quantityUsedInput.value),
     };
 
-    try {
-      // Make API call
-      const response = await fetch("/api/stock/consume/", {
+    try {      // Make API call
+      const response = await fetch("/purchasing/api/stock/consume/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -403,9 +402,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       location: document.getElementById("newStockLocation").value,
     };
 
-    try {
-      // Make API call
-      const response = await fetch("/api/stock/create/", {
+    try {      // Make API call
+      const response = await fetch("/purchasing/api/stock/create/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -451,9 +449,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Prepare data for API call
     const stockId = deleteStockIdInput.value;
 
-    try {
-      // Make API call
-      const response = await fetch(`/api/stock/${stockId}/deactivate/`, {
+    try {      // Make API call
+      const response = await fetch(`/purchasing/api/stock/${stockId}/deactivate/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
