@@ -1,4 +1,4 @@
-import { populateSelectWithEnum } from '../../../workflow/static/js/enum-utils.js';
+import { populateSelectWithEnum } from '/static/js/enum-utils.js';
 
 document.addEventListener("DOMContentLoaded", async function () {
   // DOM elements
