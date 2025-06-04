@@ -242,7 +242,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="po_lines",
-                to="purchasing.purchaseorder",
+                to="workflow.purchaseorder",
             ),
         ),
         migrations.AlterField(
@@ -250,6 +250,7 @@ class Migration(migrations.Migration):
             name="date",
             field=models.DateTimeField(
                 default=django.utils.timezone.now,
+                
                 help_text="Date the stock item was created",
             ),
         ),
