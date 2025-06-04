@@ -66,7 +66,7 @@ class Stock(models.Model):
     )
         
     source_purchase_order_line = models.ForeignKey(
-        'PurchaseOrderLine',
+        'purchasing.PurchaseOrderLine',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
