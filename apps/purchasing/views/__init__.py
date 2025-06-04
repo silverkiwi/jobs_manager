@@ -18,12 +18,11 @@ from .purchase_order import (
 from .delivery_receipt import (
     DeliveryReceiptListView,
     DeliveryReceiptCreateView,
-    process_delivery_receipt_view,
+    process_delivery_receipt
 )
 
 # Stock Management views
 from .stock import (
-    UseStockView,
     use_stock_view,
     consume_stock_api_view,
     create_stock_api_view,
@@ -44,9 +43,8 @@ __all__ = [
     # Delivery Receipt views
     'DeliveryReceiptListView',
     'DeliveryReceiptCreateView',
-    'process_delivery_receipt_view',
-      # Stock Management views
-    'UseStockView',
+    'process_delivery_receipt',
+    # Stock Management views
     'use_stock_view',
     'consume_stock_api_view',
     'create_stock_api_view',
