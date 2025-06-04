@@ -50,12 +50,10 @@ from apps.workflow.views import (
 from apps.workflow.views.kpi_view import KPICalendarViews
 from apps.workflow.views.xero import xero_view
 from apps.workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
-from apps.workflow.views import password_views, stock_view
 
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
-    
     # API Endpoints
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
@@ -78,26 +76,6 @@ urlpatterns = [
         "api/reports/calendar/",
         KPICalendarViews.KPICalendarAPIView.as_view(),
         name="api_kpi_calendar",
-    ),    
-    # Stock APIs
-    path(
-        "api/stock/consume/",
-        stock_view.consume_stock_api_view,
-        name="consume_stock_api",
-    ),
-    path(
-        "api/stock/create/", stock_view.create_stock_api_view, name="create_stock_api"
-    ),
-    path(
-        "api/stock/<uuid:stock_id>/deactivate/",
-        stock_view.deactivate_stock_api_view,
-        name="deactivate_stock_api",
-    ),
-    # Stock Search API (for autocomplete)
-    path(
-        "api/stock/search/",
-        stock_view.search_available_stock_api,
-        name="search_stock_api",
     ),
     path(
         "api/xero/authenticate/",
@@ -154,7 +132,6 @@ urlpatterns = [
         xero_view.start_xero_sync,
         name="synchronise_xero_data",
     ),
-    
     path("reports/", ReportsIndexView.as_view(), name="reports_index"),
     path(
         "reports/company-profit-loss/",
@@ -166,11 +143,12 @@ urlpatterns = [
         KPICalendarViews.KPICalendarTemplateView.as_view(),
         name="kpi_calendar",
     ),
-    path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),    path(
+    path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
+    path(
         "xero/sync-progress/",
         xero_view.xero_sync_progress_page,
         name="xero_sync_progress",
     ),
     path("__debug__/", include(debug_toolbar.urls)),
-# End of URL patterns
+    # End of URL patterns
 ]

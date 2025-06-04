@@ -72,10 +72,42 @@ urlpatterns = [
         name='delivery_receipts_process'
     ),
     
-    # Stock Management
+    # Stock Management - REST endpoints
+    path(
+        'stock/',
+        views.StockListView.as_view(),
+        name='stock_list'
+    ),
+    path(
+        'stock/create/',
+        views.StockCreateView.as_view(),
+        name='stock_create'
+    ),
     path(
         'stock/use/',
         views.UseStockView.as_view(),
         name='stock_use'
+    ),
+    
+    # Stock Management - API endpoints
+    path(
+        'api/stock/create/',
+        views.create_stock_api_view,
+        name='stock_create_api'
+    ),
+    path(
+        'api/stock/consume/',
+        views.consume_stock_api_view,
+        name='stock_consume_api'
+    ),
+    path(
+        'api/stock/<uuid:stock_id>/deactivate/',
+        views.deactivate_stock_api_view,
+        name='stock_deactivate_api'
+    ),
+    path(
+        'api/stock/search/',
+        views.search_available_stock_api,
+        name='stock_search_api'
     ),
 ]
