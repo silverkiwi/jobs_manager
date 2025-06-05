@@ -242,9 +242,7 @@ class Job(models.Model):
         company_defaults: CompanyDefaults = get_company_defaults()
         starting_number: int = company_defaults.starting_job_number
         highest_job: int = Job.objects.all().aggregate(Max('job_number'))['job_number__max'] or 0
-        logger.info(f"generate_job_number: starting_number={starting_number}, highest_job={highest_job}")
         next_job_number = max(starting_number, highest_job + 1)
-        logger.info(f"generate_job_number: generated next_job_number={next_job_number}")
         return next_job_number
 
     def save(self, *args, **kwargs):
