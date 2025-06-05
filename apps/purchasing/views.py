@@ -41,7 +41,7 @@ from apps.purchasing.services.purchase_order_email_service import create_purchas
 from apps.workflow.views.xero.xero_po_manager import XeroPurchaseOrder, XeroPurchaseOrderManager
 
 # Add stock-related imports
-from apps.workflow.models.stock import Stock
+from apps.purchasing.models import Stock
 from apps.job.models import JobPricing, MaterialEntry
 from apps.workflow.enums import JobPricingStage
 from apps.workflow.utils import get_active_jobs

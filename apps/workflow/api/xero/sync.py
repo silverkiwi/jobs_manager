@@ -24,7 +24,8 @@ from apps.workflow.api.xero.xero import api_client, get_tenant_id, get_token
 from apps.workflow.models import XeroJournal, Quote
 from apps.workflow.models.invoice import Bill, CreditNote, Invoice
 from apps.workflow.models.xero_account import XeroAccount
-from apps.workflow.models.purchase import PurchaseOrder, PurchaseOrderLine
+
+from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
 
 from apps.client.models import Client
 

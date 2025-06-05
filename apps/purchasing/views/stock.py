@@ -8,7 +8,8 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 
-from apps.workflow.models import Stock, CompanyDefaults
+from apps.workflow.models import CompanyDefaults
+from apps.purchasing.models import Stock
 from apps.job.models import Job, JobPricing, MaterialEntry
 from apps.workflow.enums import JobPricingStage
 from apps.workflow.utils import get_active_jobs

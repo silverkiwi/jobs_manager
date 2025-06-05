@@ -4,7 +4,6 @@ from .ai_provider import AIProvider
 from .client import Client, Supplier
 from .company_defaults import CompanyDefaults
 from .invoice import BaseXeroInvoiceDocument, BaseLineItem, Invoice, Bill, CreditNote, InvoiceLineItem, BillLineItem, CreditNoteLineItem
-from .purchase import PurchaseOrder, PurchaseOrderLine, PurchaseOrderSupplierQuote
 from .quote import Quote
 from .stock import Stock
 from .xero_account import XeroAccount
@@ -24,9 +23,6 @@ __all__ = [
     'InvoiceLineItem',
     'BillLineItem',
     'CreditNoteLineItem',
-    'PurchaseOrder',
-    'PurchaseOrderLine',
-    'PurchaseOrderSupplierQuote',
     'Quote',
     'Stock',
     'XeroAccount',

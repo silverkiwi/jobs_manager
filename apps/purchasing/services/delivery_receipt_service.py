@@ -4,7 +4,7 @@ from django.utils import timezone
 import logging
 
 from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
-from apps.workflow.models.stock import Stock
+from apps.purchasing.models import Stock
 from apps.job.models import Job, MaterialEntry
 
 logger = logging.getLogger(__name__)
