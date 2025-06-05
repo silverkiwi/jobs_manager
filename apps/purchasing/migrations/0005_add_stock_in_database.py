@@ -172,14 +172,15 @@ class Migration(migrations.Migration):
                         to="purchasing.purchaseorderline",
                     ),
                 ),
-            ],
-            options={
+            ],            options={
                 "db_table": "workflow_stock",
             },
         ),
     ]
 
-    migrations.SeparateDatabaseAndState(
-        state_operations=[],
-        database_operations=database_operations
-    )
+    operations = [
+        migrations.SeparateDatabaseAndState(
+            state_operations=database_operations,  # Add the model to Django's migration state
+            database_operations=database_operations
+        )
+    ]

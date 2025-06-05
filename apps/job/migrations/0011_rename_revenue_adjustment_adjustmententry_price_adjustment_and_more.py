@@ -10,6 +10,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RenameField(
+            model_name="adjustmententry",
+            old_name="revenue_adjustment",
+            new_name="price_adjustment",
+        ),
         migrations.AlterModelTable(
             name="jobpart",
             table="workflow_part",

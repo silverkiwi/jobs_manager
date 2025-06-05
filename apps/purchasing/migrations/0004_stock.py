@@ -174,7 +174,9 @@ class Migration(migrations.Migration):
         ),
     ]
 
-    migrations.SeparateDatabaseAndState(
-        state_operations=state_operations,
-        database_operations=[],
-    )
+    operations = [
+        migrations.SeparateDatabaseAndState(
+            state_operations=state_operations,
+            database_operations=[],
+        )
+    ]

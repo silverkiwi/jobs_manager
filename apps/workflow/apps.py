@@ -4,7 +4,7 @@ from django.apps import AppConfig
 from django.conf import settings
 
 # Import standalone job functions
-from workflow.scheduler_jobs import xero_heartbeat_job, xero_regular_sync_job, xero_30_day_sync_job
+from apps.workflow.scheduler_jobs import xero_heartbeat_job, xero_regular_sync_job, xero_30_day_sync_job
 
 logger = logging.getLogger(__name__)
 
