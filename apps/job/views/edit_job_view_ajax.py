@@ -194,7 +194,7 @@ def edit_job_view_ajax(request, job_id=None):
             po_url = None
             if entry.purchase_order_line and entry.purchase_order_line.purchase_order:
                 try:
-                    po_url = reverse('edit_purchase_order', kwargs={'pk': entry.purchase_order_line.purchase_order.id})
+                    po_url = reverse('purchasing:edit_purchase_order', kwargs={'pk': entry.purchase_order_line.purchase_order.id})
                 except Exception as e:
                     logger.error(f"Error generating PO URL for material entry {entry.id}: {e}")
             
