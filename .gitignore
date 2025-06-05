@@ -40,7 +40,7 @@ share/python-wheels/
 *.log.?
 local_settings.py
 db.sqlite3
-media/
+mediafiles/
 staticfiles/
 
 # Flask
@@ -95,7 +95,7 @@ dmypy.json
 *.swp
 *.swo
 *~
-# /workflow/fixtures/ # I am adding fixtures to git now I've anonymised them
+
 /.__debug_sql.lock
 /node_modules/
 .github/
@@ -104,4 +104,7 @@ dmypy.json
 .yaml
 Dockerfile
 logs/.*.lock
-*.json
+
+# For images
+**/*.png
+**/*.jpg

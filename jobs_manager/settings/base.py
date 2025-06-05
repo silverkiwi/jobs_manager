@@ -29,12 +29,13 @@ INSTALLED_APPS = [
     "django_tables2",
     "rest_framework",
     "simple_history",
-    "workflow",
-    "accounts",
-    "timesheet",
-    "job",
-    "quoting",
-    "client",
+    "apps.workflow.apps.WorkflowConfig",
+    "apps.accounts.apps.AccountsConfig",
+    "apps.timesheet.apps.TimesheetConfig",
+    "apps.job.apps.JobConfig",
+    "apps.quoting.apps.QuotingConfig",
+    "apps.client.apps.ClientConfig",
+    "apps.purchasing.apps.PurchasingConfig",
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -48,8 +49,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
-    "workflow.middleware.LoginRequiredMiddleware",
-    "workflow.middleware.PasswordStrengthMiddleware",
+    "apps.workflow.middleware.LoginRequiredMiddleware",
+    "apps.workflow.middleware.PasswordStrengthMiddleware",
 ]
 
 # JWT/general authentication settings
@@ -186,10 +187,9 @@ LOGGING = {
         # workflow writes to app_file, and bubbles up
         "workflow": {
             "handlers": ["app_file"],
-            "level": "DEBUG",
-            "propagate": True,
+            "level": "DEBUG",        "propagate": True,
         },
-        "workflow.views.purchase_order_view": {
+        "apps.purchasing.views": {
             "handlers": ["purchase_file"],
             "level": "DEBUG",
             "propagate": True,
@@ -218,11 +218,12 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
             
-            os.path.join(BASE_DIR, "workflow/templates"),
-            os.path.join(BASE_DIR, "accounts/templates"),
-            os.path.join(BASE_DIR, "timesheet/templates"),
-            os.path.join(BASE_DIR, "job/templates"),
-            os.path.join(BASE_DIR, "client/templates")
+            os.path.join(BASE_DIR, "apps/workflow/templates"),
+            os.path.join(BASE_DIR, "apps/accounts/templates"),
+            os.path.join(BASE_DIR, "apps/timesheet/templates"),
+            os.path.join(BASE_DIR, "apps/job/templates"),
+            os.path.join(BASE_DIR, "apps/client/templates"),
+            os.path.join(BASE_DIR, "apps/purchasing/templates"),
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -231,7 +232,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "workflow.context_processors.debug_mode",
+                "apps.workflow.context_processors.debug_mode",
             ],
         },
     },
