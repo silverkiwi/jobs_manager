@@ -9,15 +9,11 @@ from django.db import transaction
 from django.utils import timezone
 from django.db.models import Q
 
-from apps.workflow.models import (
-    MaterialEntry,
-    AdjustmentEntry,
-    CompanyDefaults
-)
+from apps.workflow.models import CompanyDefaults
 
 from apps.job.enums import JobPricingStage
 
-from apps.job.models import Job, JobPricing
+from apps.job.models import Job, JobPricing, AdjustmentEntry, MaterialEntry
 
 from apps.timesheet.models import TimeEntry
 

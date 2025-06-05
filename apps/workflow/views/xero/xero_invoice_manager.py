@@ -5,16 +5,15 @@ from decimal import Decimal
 from datetime import timedelta
 
 from django.http import JsonResponse
-from django.utils import timezone
-
-from apps.workflow.models.xero_account import XeroAccount
+from django.utils import timezone 
 
 # Import base class and helpers
 from .xero_base_manager import XeroDocumentManager
 from .xero_helpers import format_date, parse_xero_api_error_message # Assuming format_date is needed
 
 # Import models
-from apps.workflow.models import Invoice, Client
+from apps.workflow.models import Invoice
+from apps.client.models import Client
 from apps.job.models import Job
 from apps.job.enums import InvoiceStatus, JobPricingMethodology
 from xero_python.accounting.models import LineItem, Invoice as XeroInvoice

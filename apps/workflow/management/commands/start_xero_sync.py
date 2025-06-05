@@ -8,7 +8,6 @@ from apps.workflow.api.xero.xero import refresh_token
 
 import logging
 
-from apps.workflow.models.xero_token import XeroToken
 from apps.workflow.services.xero_sync_service import XeroSyncService
 from apps.workflow.api.xero.sync import synchronise_xero_data
 

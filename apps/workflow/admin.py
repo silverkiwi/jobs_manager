@@ -5,7 +5,7 @@ from django.contrib.auth.admin import UserAdmin
 from simple_history.admin import SimpleHistoryAdmin
 
 from apps.workflow.models import CompanyDefaults
-from apps.workflow.models.ai_provider import AIProvider
+from apps.workflow.models import AIProvider
 
 
 class AIProviderInline(admin.TabularInline):

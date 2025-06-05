@@ -21,7 +21,7 @@ from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, \
 from apps.client.models import Client
 from apps.workflow.helpers import get_company_defaults
 from apps.job.enums import MetalType
-from apps.workflow.models.ai_provider import AIProvider
+from apps.workflow.models import AIProvider
 from apps.workflow.enums import AIProviderTypes
 
 logger = logging.getLogger(__name__)

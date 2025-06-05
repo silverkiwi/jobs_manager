@@ -12,7 +12,7 @@ from xero_python.api_client.oauth2 import OAuth2Token, TokenApi
 from xero_python.identity import IdentityApi
 from xero_python.accounting import AccountingApi
 
-from apps.workflow.models.xero_token import XeroToken
+from apps.workflow.models import XeroToken
 from apps.workflow.models import CompanyDefaults
 
 logger = logging.getLogger("xero")

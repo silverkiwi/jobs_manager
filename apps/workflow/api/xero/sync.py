@@ -21,9 +21,8 @@ from apps.workflow.api.xero.reprocess_xero import (
     set_journal_fields,
 )
 from apps.workflow.api.xero.xero import api_client, get_tenant_id, get_token, get_xero_items
-from apps.workflow.models import XeroJournal, Quote
-from apps.workflow.models.invoice import Bill, CreditNote, Invoice
-from apps.workflow.models.xero_account import XeroAccount
+from apps.workflow.models import XeroJournal, XeroAccount, Quote, Bill, CreditNote, Invoice
+
 from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, Stock
 
 from apps.client.models import Client

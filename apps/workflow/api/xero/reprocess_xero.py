@@ -10,14 +10,14 @@ from apps.workflow.models import BillLineItem, XeroJournal, XeroJournalLineItem
 
 from apps.client.models import Client
 
-from apps.workflow.models.invoice import (
+from apps.workflow.models import (
     Bill,
     CreditNote,
     CreditNoteLineItem,
     Invoice,
     InvoiceLineItem,
 )
-from apps.workflow.models.xero_account import XeroAccount
+from apps.workflow.models import XeroAccount
 
 logger = logging.getLogger("xero")
 
@@ -477,7 +477,7 @@ def reprocess_journals():
     Iterate over all XeroJournal records and re-run the set_journal_fields().
     Useful if we've tweaked mapping logic and want to re-derive fields from stored raw_json.
     """
-    from apps.workflow.models.xero_journal import XeroJournal
+    from apps.workflow.models import XeroJournal
 
     for jrnl in XeroJournal.objects.all():
         try:

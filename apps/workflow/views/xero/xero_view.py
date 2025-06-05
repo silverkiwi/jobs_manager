@@ -40,19 +40,20 @@ from django.conf import settings
 from apps.workflow.templatetags.xero_tags import XERO_ENTITIES
 from apps.workflow.api.xero.sync import synchronise_xero_data, delete_clients_from_xero, get_last_modified_time
 from apps.workflow.api.xero.xero import (
-    api_client, # Keep if needed elsewhere
+    api_client,
     exchange_code_for_token,
     get_authentication_url,
-    get_tenant_id, # Keep if needed elsewhere
+    get_tenant_id,
     get_tenant_id_from_connections,
     get_token,
     get_valid_token,
     refresh_token,
 )
-from apps.job.enums import InvoiceStatus, JobPricingMethodology, QuoteStatus # Keep if needed
-from apps.workflow.models import Invoice, XeroToken, Client, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults, Quote
+from apps.job.enums import InvoiceStatus, JobPricingMethodology, QuoteStatus
+from apps.workflow.models import Invoice, XeroToken, Bill, CreditNote, XeroAccount, XeroJournal, CompanyDefaults, Quote
 from apps.purchasing.models import PurchaseOrder
 from apps.job.models import Job, JobFile, JobEvent, JobPricing
+from apps.client.models import Client
 from apps.workflow.utils import extract_messages
 from apps.workflow.services.xero_sync_service import XeroSyncService
 

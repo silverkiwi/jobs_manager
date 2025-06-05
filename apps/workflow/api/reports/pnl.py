@@ -7,7 +7,7 @@ from django.db.models import Sum
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.workflow.models.xero_journal import XeroJournalLineItem
+from apps.workflow.models import XeroJournalLineItem
 
 
 class CompanyProfitAndLossReport(APIView):
