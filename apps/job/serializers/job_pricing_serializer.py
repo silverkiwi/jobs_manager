@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.workflow.enums import JobPricingStage
+from apps.job.enums import JobPricingStage
 from apps.job.models import JobPricing
 from .adjustment_entry_serializer import AdjustmentEntrySerializer
 from .material_entry_serializer import MaterialEntrySerializer

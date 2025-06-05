@@ -15,17 +15,17 @@ from apps.workflow.models import (
     CompanyDefaults
 )
 
-from apps.workflow.enums import JobPricingStage
+from apps.job.enums import JobPricingStage
 
 from apps.job.models import Job, JobPricing
 
-from apps.timesheet..models import TimeEntry
+from apps.timesheet.models import TimeEntry
 
 from apps.client.models import Client
 
 from apps.workflow.utils import get_nz_tz
 
-from app.accounts.models import Staff
+from apps.accounts.models import Staff
 
 
 class Command(BaseCommand):

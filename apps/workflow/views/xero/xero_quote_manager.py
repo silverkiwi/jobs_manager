@@ -14,7 +14,7 @@ from .xero_helpers import format_date, parse_xero_api_error_message # Assuming f
 # Import models
 from apps.workflow.models import Quote, Client
 from apps.job.models import Job
-from apps.workflow.enums import QuoteStatus
+from apps.job.enums import QuoteStatus
 from xero_python.accounting.models import LineItem, Quote as XeroQuote
 from xero_python.exceptions import AccountingBadRequestException, ApiException # If specific exceptions handled
 

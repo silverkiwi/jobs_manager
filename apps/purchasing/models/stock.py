@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 
-from apps.workflow.enums import MetalType
+from apps.job.enums import MetalType
 from apps.job.models import Job
 
 logger = logging.getLogger(__name__)

@@ -16,7 +16,7 @@ def xero_heartbeat_job():
     try:
         close_old_connections()
         # Import models/services here to avoid AppRegistryNotReady errors during Django startup
-        from workflow.api.xero.xero import refresh_token
+        from apps.workflow.api.xero.xero import refresh_token
         refresh_token()
         scheduler_logger.info("Xero API token refreshed successfully.")
     except Exception as e:
@@ -30,7 +30,7 @@ def xero_regular_sync_job():
     try:
         close_old_connections()
         # Import models/services here to avoid AppRegistryNotReady errors during Django startup
-        from workflow.services.xero_sync_service import XeroSyncService
+        from apps.workflow.services.xero_sync_service import XeroSyncService
         XeroSyncService.start_sync()
         logger.info("Xero regular sync completed successfully.")
     except Exception as e:
@@ -44,7 +44,7 @@ def xero_30_day_sync_job():
     try:
         close_old_connections()
         # Import models/services here to avoid AppRegistryNotReady errors during Django startup
-        from workflow.services.xero_sync_service import XeroSyncService
+        from apps.workflow.services.xero_sync_service import XeroSyncService
         XeroSyncService.start_sync()
         logger.info("Xero 30-day sync completed successfully.")
     except Exception as e:

@@ -16,7 +16,7 @@ from .xero_helpers import format_date, parse_xero_api_error_message # Assuming f
 # Import models
 from apps.workflow.models import Invoice, Client
 from apps.job.models import Job
-from apps.workflow.enums import InvoiceStatus, JobPricingMethodology
+from apps.job.enums import InvoiceStatus, JobPricingMethodology
 from xero_python.accounting.models import LineItem, Invoice as XeroInvoice
 from xero_python.exceptions import AccountingBadRequestException, ApiException # If specific exceptions handled
 

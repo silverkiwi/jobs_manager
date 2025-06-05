@@ -11,8 +11,8 @@ from django.contrib.auth.decorators import login_required
 from apps.workflow.models import CompanyDefaults
 from apps.purchasing.models import Stock
 from apps.job.models import Job, JobPricing, MaterialEntry
-from apps.workflow.enums import JobPricingStage
-from apps.workflow.utils import get_active_jobs
+from apps.job.enums import JobPricingStage
+from apps.job.utils import get_active_jobs
 
 logger = logging.getLogger(__name__)
 

@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
 from apps.job.models import Job
 from apps.purchasing.services.delivery_receipt_service import process_delivery_receipt
-from apps.workflow.utils import get_active_jobs
+from apps.job.utils import get_active_jobs
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 
-from apps.workflow.enums import MetalType
+from apps.job.enums import MetalType
 
 
 class PurchaseOrderLine(models.Model):

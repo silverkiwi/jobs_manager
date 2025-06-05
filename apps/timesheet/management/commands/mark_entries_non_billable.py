@@ -5,6 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
     help = 'Marks all Shop jobs time entries as non-billable (sets is_billable=False)'
 

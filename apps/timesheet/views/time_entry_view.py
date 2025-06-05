@@ -17,8 +17,9 @@ from django.views.generic import TemplateView
 
 from apps.job.enums import RateType
 from apps.job.models import Job
+from apps.job.utils import get_active_jobs, get_jobs_data
 
-from apps.workflow.utils import extract_messages, get_jobs_data, get_active_jobs
+from apps.workflow.utils import extract_messages
 
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff

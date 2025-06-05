@@ -11,7 +11,7 @@ import google.generativeai as genai
 from django.conf import settings
 
 from apps.workflow.helpers import get_company_defaults
-from apps.workflow.enums import MetalType, AIProviderTypes
+from apps.job.enums import MetalType, AIProviderTypes
 
 logger = logging.getLogger(__name__)
 

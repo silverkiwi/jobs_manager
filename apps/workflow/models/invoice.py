@@ -8,7 +8,7 @@ from django.db import models
 
 from django.utils import timezone
 
-from apps.workflow.enums import InvoiceStatus
+from apps.job.enums import InvoiceStatus
 
 
 class BaseXeroInvoiceDocument(models.Model):
