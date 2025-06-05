@@ -46,15 +46,17 @@ def get_client_contact_persons(request, client_id):
     try:
         client = get_object_or_404(Client, id=client_id)
         contact_persons_data = []
-        processed_contacts = set() # To avoid duplicates
+        processed_contacts = set()  # To avoid duplicates
 
-        logger.debug(f"Fetching contact persons for client ID: {client_id} from model fields.")
+        logger.debug(
+            f"Fetching contact persons for client ID: {client_id} from model fields."
+        )
 
         # Add primary contact if available
         if client.primary_contact_name:
             primary_contact = {
                 "name": client.primary_contact_name,
-                "email": client.primary_contact_email or ""
+                "email": client.primary_contact_email or "",
             }
             contact_tuple = (primary_contact["name"], primary_contact["email"])
             if contact_tuple not in processed_contacts:
@@ -63,14 +65,19 @@ def get_client_contact_persons(request, client_id):
                 logger.debug(f"Added primary contact: {primary_contact}")
 
         # Add additional contact persons
-        if client.additional_contact_persons and isinstance(client.additional_contact_persons, list):
+        if client.additional_contact_persons and isinstance(
+            client.additional_contact_persons, list
+        ):
             for person_dict in client.additional_contact_persons:
                 if isinstance(person_dict, dict) and person_dict.get("name"):
                     additional_contact = {
                         "name": person_dict["name"],
-                        "email": person_dict.get("email", "")
+                        "email": person_dict.get("email", ""),
                     }
-                    contact_tuple = (additional_contact["name"], additional_contact["email"])
+                    contact_tuple = (
+                        additional_contact["name"],
+                        additional_contact["email"],
+                    )
                     # Only add if it's not the same as the primary contact already added
                     # or if it's a distinct additional contact.
                     if contact_tuple not in processed_contacts:
@@ -78,14 +85,28 @@ def get_client_contact_persons(request, client_id):
                         processed_contacts.add(contact_tuple)
                         logger.debug(f"Added additional contact: {additional_contact}")
                 else:
-                    logger.warning(f"Skipping invalid item in additional_contact_persons for client {client_id}: {person_dict}")
-        
-        logger.info(f"Successfully retrieved {len(contact_persons_data)} contact persons for client {client_id} from model.")
+                    logger.warning(
+                        f"Skipping invalid item in additional_contact_persons for client {client_id}: {person_dict}"
+                    )
+
+        logger.info(
+            f"Successfully retrieved {len(contact_persons_data)} contact persons for client {client_id} from model."
+        )
         return JsonResponse(contact_persons_data, safe=False)
-        
+
     except Exception as e:
-        logger.error(f"Error fetching contact persons for client {client_id} from model: {str(e)}", exc_info=True)
-        return JsonResponse({"success": False, "message": "Failed to retrieve contact persons", "details": str(e)}, status=500)
+        logger.error(
+            f"Error fetching contact persons for client {client_id} from model: {str(e)}",
+            exc_info=True,
+        )
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Failed to retrieve contact persons",
+                "details": str(e),
+            },
+            status=500,
+        )
 
 
 def get_client_phones(request, client_id):
@@ -97,25 +118,36 @@ def get_client_phones(request, client_id):
         client = get_object_or_404(Client, id=client_id)
         phones_data = []
 
-        logger.debug(f"Fetching phone numbers for client ID: {client_id} from model field 'all_phones'.")
+        logger.debug(
+            f"Fetching phone numbers for client ID: {client_id} from model field 'all_phones'."
+        )
 
         if client.all_phones and isinstance(client.all_phones, list):
             for phone_entry in client.all_phones:
                 if isinstance(phone_entry, dict) and phone_entry.get("number"):
-                    phones_data.append({
-                        "type": phone_entry.get("type", "N/A"),
-                        "number": phone_entry["number"]
-                    })
-        
+                    phones_data.append(
+                        {
+                            "type": phone_entry.get("type", "N/A"),
+                            "number": phone_entry["number"],
+                        }
+                    )
+
         # Optionally, add the main client.phone if it's not already in all_phones
         # For simplicity, we'll assume all_phones is comprehensive for now.
 
-        logger.info(f"Successfully retrieved {len(phones_data)} phone numbers for client {client_id} from model.")
+        logger.info(
+            f"Successfully retrieved {len(phones_data)} phone numbers for client {client_id} from model."
+        )
         return JsonResponse(phones_data, safe=False)
-        
+
     except Exception as e:
-        logger.error(f"Error fetching phone numbers for client {client_id} from model: {str(e)}", exc_info=True)
-        return JsonResponse({"error": "Failed to retrieve phone numbers", "details": str(e)}, status=500)
+        logger.error(
+            f"Error fetching phone numbers for client {client_id} from model: {str(e)}",
+            exc_info=True,
+        )
+        return JsonResponse(
+            {"error": "Failed to retrieve phone numbers", "details": str(e)}, status=500
+        )
 
 
 def get_all_clients_api(request):
@@ -124,20 +156,24 @@ def get_all_clients_api(request):
     Returns a list of clients with their ID and name.
     """
     try:
-        clients = Client.objects.all().order_by('name')
+        clients = Client.objects.all().order_by("name")
         clients_data = []
         for client in clients:
-            clients_data.append({
-                "id": str(client.id), # Convert UUID to string
-                "name": client.name,
-                "xero_contact_id": client.xero_contact_id, # Might be useful
-            })
+            clients_data.append(
+                {
+                    "id": str(client.id),  # Convert UUID to string
+                    "name": client.name,
+                    "xero_contact_id": client.xero_contact_id,  # Might be useful
+                }
+            )
         logger.info(f"Successfully retrieved {len(clients_data)} clients for API.")
         return JsonResponse(clients_data, safe=False)
     except Exception as e:
         logger.error(f"Error fetching all clients for API: {str(e)}", exc_info=True)
-        return JsonResponse({"error": "Failed to retrieve clients", "details": str(e)}, status=500)
-    
+        return JsonResponse(
+            {"error": "Failed to retrieve clients", "details": str(e)}, status=500
+        )
+
 
 class ClientListView(SingleTableView):
     model = Client
@@ -179,18 +215,25 @@ def ClientSearch(request):
     query = request.GET.get("q", "")
     if query and len(query) >= 3:  # Only search when the query is 3+ characters
         clients = Client.objects.filter(Q(name__icontains=query))[:10]
-        results = [{
-            "id": client.id,
-            "name": client.name,
-            "email": client.email or "",
-            "phone": client.phone or "",
-            "address": client.address or "",
-            "is_account_customer": client.is_account_customer,
-            "xero_contact_id": client.xero_contact_id or "",
-            "last_invoice_date": client.get_last_invoice_date().strftime('%d/%m/%Y') if client.get_last_invoice_date() else "",
-            "total_spend": f"${client.get_total_spend():,.2f}",
-            "raw_json": client.raw_json
-        } for client in clients]
+        results = [
+            {
+                "id": client.id,
+                "name": client.name,
+                "email": client.email or "",
+                "phone": client.phone or "",
+                "address": client.address or "",
+                "is_account_customer": client.is_account_customer,
+                "xero_contact_id": client.xero_contact_id or "",
+                "last_invoice_date": (
+                    client.get_last_invoice_date().strftime("%d/%m/%Y")
+                    if client.get_last_invoice_date()
+                    else ""
+                ),
+                "total_spend": f"${client.get_total_spend():,.2f}",
+                "raw_json": client.raw_json,
+            }
+            for client in clients
+        ]
     else:
         results = []
 
@@ -204,7 +247,7 @@ def client_detail(request):
     client_id = request.GET.get("id", "")
     if not client_id:
         return JsonResponse({"error": "Client ID is required"}, status=400)
-    
+
     try:
         client = Client.objects.get(id=client_id)
         client_data = {
@@ -215,7 +258,7 @@ def client_detail(request):
             "address": client.address or "",
             "is_account_customer": client.is_account_customer,
             "xero_contact_id": client.xero_contact_id or "",
-            "raw_json": client.raw_json
+            "raw_json": client.raw_json,
         }
         return JsonResponse({"client": client_data})
     except Client.DoesNotExist:
@@ -243,16 +286,18 @@ def AddClient(request):
             request,
             messages.WARNING,
             "Xero authentication required",
-            extra_tags='warning'
+            extra_tags="warning",
         )
         # Store the current URL with query parameters to return to after auth
-        return_url = f"{request.path}?{request.GET.urlencode()}" if request.GET else request.path
+        return_url = (
+            f"{request.path}?{request.GET.urlencode()}" if request.GET else request.path
+        )
         return redirect(f"{reverse_lazy('api_xero_authenticate')}?next={return_url}")
     if request.method == "GET":
         # Sync clients from Xero before displaying the form
         # Otherwise we try and create clients only to discover they already exist too much
         sync_xero_clients_only()
-        
+
         name = request.GET.get("name", "")
         form = ClientForm(initial={"name": name}) if name else ClientForm()
         return render(request, "client/add_client.html", {"form": form})
@@ -263,122 +308,152 @@ def AddClient(request):
             # Create in Xero first
             accounting_api = AccountingApi(api_client)
             xero_tenant_id = get_tenant_id()
-            
+
             try:
                 # Log the form data
                 logger.debug("Form cleaned data: %s", form.cleaned_data)
-                
+
                 # Check if contact already exists
                 existing_contacts = accounting_api.get_contacts(
-                    xero_tenant_id,
-                    where=f'Name="{form.cleaned_data["name"]}"'
+                    xero_tenant_id, where=f'Name="{form.cleaned_data["name"]}"'
                 )
-                
+
                 if existing_contacts and existing_contacts.contacts:
                     # Return error response for duplicate client
-                    logger.info("Found existing contact with name: %s", form.cleaned_data["name"])
-                    
+                    logger.info(
+                        "Found existing contact with name: %s",
+                        form.cleaned_data["name"],
+                    )
+
                     error_details = {
                         "error_type": "DuplicateClientError",
                         "name": form.cleaned_data["name"],
-                        "email": form.cleaned_data.get("email", "")
+                        "email": form.cleaned_data.get("email", ""),
                     }
-                    
+
                     # Get client info from existing contact
                     xero_client = existing_contacts.contacts[0]
                     xero_contact_id = getattr(xero_client, "contact_id", "")
-                    
+
                     # Return error with the existing client info
-                    return JsonResponse({
-                        "success": False,
-                        "error": f"Client '{form.cleaned_data['name']}' already exists in Xero",
-                        "error_details": error_details,
-                        "existing_client": {
-                            "name": form.cleaned_data["name"],
-                            "xero_contact_id": xero_contact_id
-                        }
-                    }, status=409)  # 409 Conflict status code
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": f"Client '{form.cleaned_data['name']}' already exists in Xero",
+                            "error_details": error_details,
+                            "existing_client": {
+                                "name": form.cleaned_data["name"],
+                                "xero_contact_id": xero_contact_id,
+                            },
+                        },
+                        status=409,
+                    )  # 409 Conflict status code
                 else:
                     # Create new contact in Xero
                     contact_data = {
                         "name": form.cleaned_data["name"],
                         "emailAddress": form.cleaned_data["email"] or "",
-                        "phones": [{"phoneType": "DEFAULT", "phoneNumber": form.cleaned_data["phone"] or ""}],
-                        "addresses": [{"addressType": "STREET", "addressLine1": form.cleaned_data["address"] or ""}],
-                        "isCustomer": form.cleaned_data["is_account_customer"]
+                        "phones": [
+                            {
+                                "phoneType": "DEFAULT",
+                                "phoneNumber": form.cleaned_data["phone"] or "",
+                            }
+                        ],
+                        "addresses": [
+                            {
+                                "addressType": "STREET",
+                                "addressLine1": form.cleaned_data["address"] or "",
+                            }
+                        ],
+                        "isCustomer": form.cleaned_data["is_account_customer"],
                     }
                     logger.debug("Xero contact data: %s", contact_data)
-                    
+
                     response = accounting_api.create_contacts(
-                        xero_tenant_id,
-                        contacts={
-                            "contacts": [contact_data]
-                        }
+                        xero_tenant_id, contacts={"contacts": [contact_data]}
                     )
-                
+
                 # Log and validate response
                 logger.debug("Xero API response: %s", response)
-                
+
                 if not response:
                     raise ValueError("No response received from Xero")
-                    
-                if not hasattr(response, 'contacts') or not response.contacts:
+
+                if not hasattr(response, "contacts") or not response.contacts:
                     raise ValueError("No contact data in Xero response")
-                    
+
                 if len(response.contacts) != 1:
-                    raise ValueError(f"Expected 1 contact in response, got {len(response.contacts)}")
-                
+                    raise ValueError(
+                        f"Expected 1 contact in response, got {len(response.contacts)}"
+                    )
+
                 # Use sync_clients to create local client from Xero data
                 client_instances = sync_clients(response.contacts)
                 if not client_instances:
                     raise ValueError("Failed to sync client from Xero")
-                
+
                 # Get the created client
                 created_client = client_instances[0]
-                
+
                 # Return JSON response with the created client data and success flag
-                return JsonResponse({
-                    "success": True,
-                    "client": {
-                        "id": str(created_client.id),
-                        "name": created_client.name,
-                        "xero_contact_id": created_client.xero_contact_id or ""
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "client": {
+                            "id": str(created_client.id),
+                            "name": created_client.name,
+                            "xero_contact_id": created_client.xero_contact_id or "",
+                        },
                     }
-                })
-                
+                )
+
             except Exception as e:
                 error_msg = f"Failed to create client in Xero: {str(e)}"
                 logger.error(error_msg, exc_info=True)
-                
+
                 # Create error details object
                 error_details = {
                     "error_type": type(e).__name__,
                     "name": form.cleaned_data.get("name", ""),
-                    "email": form.cleaned_data.get("email", "")
+                    "email": form.cleaned_data.get("email", ""),
                 }
-                
-                return JsonResponse({
-                    "success": False,
-                    "error": error_msg,
-                    "error_details": error_details
-                }, status=400)
+
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": error_msg,
+                        "error_details": error_details,
+                    },
+                    status=400,
+                )
         else:
             # Form is invalid
             errors = form.errors.as_json()
-            
+
             # Create error details for form validation errors
             error_details = {
                 "error_type": "FormValidationError",
-                "name": form.cleaned_data.get("name", "") if hasattr(form, "cleaned_data") else "",
-                "email": form.cleaned_data.get("email", "") if hasattr(form, "cleaned_data") else ""
+                "name": (
+                    form.cleaned_data.get("name", "")
+                    if hasattr(form, "cleaned_data")
+                    else ""
+                ),
+                "email": (
+                    form.cleaned_data.get("email", "")
+                    if hasattr(form, "cleaned_data")
+                    else ""
+                ),
             }
-            
-            return JsonResponse({
-                "success": False,
-                "error": "Form validation failed",
-                "form_errors": errors,
-                "error_details": error_details
-            }, status=400)
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Form validation failed",
+                    "form_errors": errors,
+                    "error_details": error_details,
+                },
+                status=400,
+            )
 
 
 class UnusedClientsView(TemplateView):
@@ -386,6 +461,7 @@ class UnusedClientsView(TemplateView):
     View for managing unused Xero clients.
     Lists and allows bulk deletion of clients that have no invoices or bills.
     """
+
     template_name = "xero/unused_clients.html"
     items_per_page = 50
 
@@ -394,56 +470,71 @@ class UnusedClientsView(TemplateView):
         Get queryset of clients with no jobs, invoices, or bills.
         Excludes clients that are already archived in Xero.
         Returns clients ordered by creation date.
-        
+
         Note: We use set operations instead of exclude(Q()) because:
         1. Foreign key fields (client_id) might contain NULL values
         2. SQL exclude with OR conditions can behave unexpectedly with NULLs
         3. Set operations on actual IDs are more reliable for this use case
         """
-        clients_with_invoices = set(Invoice.objects.values_list('client_id', flat=True).distinct())
-        clients_with_bills = set(Bill.objects.values_list('client_id', flat=True).distinct())
-        clients_with_jobs = set(Job.objects.values_list('client_id', flat=True).distinct())
-        
+        clients_with_invoices = set(
+            Invoice.objects.values_list("client_id", flat=True).distinct()
+        )
+        clients_with_bills = set(
+            Bill.objects.values_list("client_id", flat=True).distinct()
+        )
+        clients_with_jobs = set(
+            Job.objects.values_list("client_id", flat=True).distinct()
+        )
+
         logger.debug(f"Found {len(clients_with_invoices)} clients with invoices")
         logger.debug(f"Found {len(clients_with_bills)} clients with bills")
         logger.debug(f"Found {len(clients_with_jobs)} clients with jobs")
-        
+
         # Get all client IDs
-        all_client_ids = set(Client.objects.values_list('id', flat=True))
+        all_client_ids = set(Client.objects.values_list("id", flat=True))
         logger.debug(f"Total clients: {len(all_client_ids)}")
-        
+
         # Find clients that don't appear in any of the above sets
         used_client_ids = clients_with_invoices | clients_with_bills | clients_with_jobs
         unused_client_ids = all_client_ids - used_client_ids
         logger.debug(f"Found {len(unused_client_ids)} unused clients")
-        
-        return Client.objects.filter(id__in=unused_client_ids).order_by('django_created_at')
+
+        return Client.objects.filter(id__in=unused_client_ids).order_by(
+            "django_created_at"
+        )
 
     def get_context_data(self, **kwargs) -> Dict[str, Any]:
         """
         Add pagination and client data to the template context.
         """
         context = super().get_context_data(**kwargs)
-        page = self.request.GET.get('page', 1)
-        
+        page = self.request.GET.get("page", 1)
+
         unused_clients = self.get_unused_clients()
         paginator = Paginator(unused_clients, self.items_per_page)
         page_obj = paginator.get_page(page)
-        
-        unused_clients_data = [{
-            'id': client.id,
-            'name': client.name,
-            'created_at': timezone.localtime(client.django_created_at).strftime('%Y-%m-%d %H:%M:%S'),
-            'email': client.email or '',
-            'phone': client.phone or '',
-        } for client in page_obj]
-        
-        context.update({
-            'unused_clients': unused_clients_data,
-            'page_obj': page_obj,
-            'total_count': paginator.count,
-            'items_per_page': self.items_per_page,
-        })
+
+        unused_clients_data = [
+            {
+                "id": client.id,
+                "name": client.name,
+                "created_at": timezone.localtime(client.django_created_at).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+                "email": client.email or "",
+                "phone": client.phone or "",
+            }
+            for client in page_obj
+        ]
+
+        context.update(
+            {
+                "unused_clients": unused_clients_data,
+                "page_obj": page_obj,
+                "total_count": paginator.count,
+                "items_per_page": self.items_per_page,
+            }
+        )
         return context
 
     @method_decorator(require_POST)
@@ -453,42 +544,49 @@ class UnusedClientsView(TemplateView):
         Archives the contacts in Xero and deletes them from our database.
         """
         try:
-            client_ids = request.POST.getlist('client_ids[]')
+            client_ids = request.POST.getlist("client_ids[]")
             if not client_ids:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'No clients selected'
-                }, status=400)
+                return JsonResponse(
+                    {"success": False, "error": "No clients selected"}, status=400
+                )
 
             clients_to_delete = self.get_unused_clients().filter(id__in=client_ids)
             deletion_count = clients_to_delete.count()
-            
+
             with transaction.atomic():
                 try:
                     # Archive in Xero first
-                    success_count, error_count = archive_clients_in_xero(clients_to_delete)
+                    success_count, error_count = archive_clients_in_xero(
+                        clients_to_delete
+                    )
                     if error_count > 0:
-                        raise Exception(f"Failed to archive {error_count} clients in Xero")
-                    
+                        raise Exception(
+                            f"Failed to archive {error_count} clients in Xero"
+                        )
+
                     # If archiving succeeded, delete from our database
                     clients_to_delete.delete()
                 except Exception as e:
                     logger.error(f"Failed to archive/delete clients: {str(e)}")
-                    return JsonResponse({
-                        'success': False,
-                        'error': f'Failed to archive/delete clients: {str(e)}'
-                    }, status=500)
-            
-            logger.info(f"Successfully archived and deleted {deletion_count} unused clients")
-            return JsonResponse({
-                'success': True,
-                'message': f'Successfully archived and deleted {deletion_count} clients',
-                'deleted_count': deletion_count
-            })
-            
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": f"Failed to archive/delete clients: {str(e)}",
+                        },
+                        status=500,
+                    )
+
+            logger.info(
+                f"Successfully archived and deleted {deletion_count} unused clients"
+            )
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f"Successfully archived and deleted {deletion_count} clients",
+                    "deleted_count": deletion_count,
+                }
+            )
+
         except Exception as e:
             logger.error(f"Error in bulk client deletion: {str(e)}")
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            }, status=500)
+            return JsonResponse({"success": False, "error": str(e)}, status=500)

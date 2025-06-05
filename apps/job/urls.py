@@ -18,7 +18,7 @@ from apps.job.views import (
     job_management_view,
     ArchiveCompleteJobsViews,
     AssignJobView,
-    JobFileView
+    JobFileView,
 )
 
 app_name = "jobs"
@@ -91,7 +91,6 @@ urlpatterns = [
         edit_job_view_ajax.get_company_defaults_api,
         name="company_defaults_api",
     ),
-    
     # Job view endpoints
     path("job/", edit_job_view_ajax.create_job_view, name="create_job"),
     path("job/<uuid:job_id>/", edit_job_view_ajax.edit_job_view_ajax, name="edit_job"),

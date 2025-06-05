@@ -1,4 +1,4 @@
-import { populateSelectWithEnum } from '/static/js/enum-utils.js';
+import { populateSelectWithEnum } from "/static/js/enum-utils.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
   // DOM elements
@@ -246,9 +246,13 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // Initialize the MetalType dropdown using the enum API
   try {
-    await populateSelectWithEnum('newStockMetalType', 'MetalType', 'unspecified');
+    await populateSelectWithEnum(
+      "newStockMetalType",
+      "MetalType",
+      "unspecified",
+    );
   } catch (error) {
-    console.error('Failed to load MetalType enum:', error);
+    console.error("Failed to load MetalType enum:", error);
   }
 
   // Add Stock button click handler
@@ -264,7 +268,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (metalTypeSelect) {
       // Find the 'unspecified' option and select it
       for (let i = 0; i < metalTypeSelect.options.length; i++) {
-        if (metalTypeSelect.options[i].value === 'unspecified') {
+        if (metalTypeSelect.options[i].value === "unspecified") {
           metalTypeSelect.selectedIndex = i;
           break;
         }
@@ -338,7 +342,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       quantity_used: parseFloat(quantityUsedInput.value),
     };
 
-    try {      // Make API call
+    try {
+      // Make API call
       const response = await fetch("/purchasing/api/stock/consume/", {
         method: "POST",
         headers: {
@@ -402,7 +407,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       location: document.getElementById("newStockLocation").value,
     };
 
-    try {      // Make API call
+    try {
+      // Make API call
       const response = await fetch("/purchasing/api/stock/create/", {
         method: "POST",
         headers: {
@@ -449,16 +455,20 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Prepare data for API call
     const stockId = deleteStockIdInput.value;
 
-    try {      // Make API call
-      const response = await fetch(`/purchasing/api/stock/${stockId}/deactivate/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken":
-            csrfToken ||
-            document.querySelector("input[name=csrfmiddlewaretoken]").value,
+    try {
+      // Make API call
+      const response = await fetch(
+        `/purchasing/api/stock/${stockId}/deactivate/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken":
+              csrfToken ||
+              document.querySelector("input[name=csrfmiddlewaretoken]").value,
+          },
         },
-      });
+      );
 
       if (response.ok) {
         const result = await response.json();

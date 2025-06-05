@@ -4,6 +4,7 @@ import re
 from datetime import date
 from typing import Any, Dict, List, Optional
 
+
 def clean_payload(payload):
     """Remove null fields from payload."""
     if isinstance(payload, dict):
@@ -30,26 +31,29 @@ def convert_to_pascal_case(obj):
         for key, value in obj.items():
             # Handle potential leading underscores before converting
             if key.startswith("_"):
-                 pascal_key = "_" + re.sub(r"(?:^|_)(.)", lambda x: x.group(1).upper(), key[1:])
+                pascal_key = "_" + re.sub(
+                    r"(?:^|_)(.)", lambda x: x.group(1).upper(), key[1:]
+                )
             else:
-                 pascal_key = re.sub(r"(?:^|_)(.)", lambda x: x.group(1).upper(), key)
+                pascal_key = re.sub(r"(?:^|_)(.)", lambda x: x.group(1).upper(), key)
             new_dict[pascal_key] = convert_to_pascal_case(value)
         return new_dict
     elif isinstance(obj, list):
         return [convert_to_pascal_case(item) for item in obj]
     else:
         return obj
-    
 
 
-def _get_messages_from_validation_errors(val_errors_list: Optional[List[Dict[str, Any]]]) -> List[str]:
+def _get_messages_from_validation_errors(
+    val_errors_list: Optional[List[Dict[str, Any]]]
+) -> List[str]:
     """
     Extracts 'Message' strings from a list of validation error dictionaries.
     """
     messages: List[str] = []
     if not isinstance(val_errors_list, list):
         return messages
-    
+
     for error in val_errors_list:
         match error:
             case {"Message": str(msg)} if msg:
@@ -58,7 +62,9 @@ def _get_messages_from_validation_errors(val_errors_list: Optional[List[Dict[str
     return messages
 
 
-def _extract_messages_from_elements(elements_list: Optional[List[Dict[str, Any]]]) -> List[str]:
+def _extract_messages_from_elements(
+    elements_list: Optional[List[Dict[str, Any]]]
+) -> List[str]:
     """
     Extracts all relevant messages from a list of 'Elements' dictionaries.
     It prioritizes messages from 'ValidationErrors' within each element,
@@ -67,7 +73,7 @@ def _extract_messages_from_elements(elements_list: Optional[List[Dict[str, Any]]
     all_messages: List[str] = []
     if not isinstance(elements_list, list):
         return all_messages
-    
+
     for element in elements_list:
         if not isinstance(element, dict):
             continue
@@ -81,29 +87,32 @@ def _extract_messages_from_elements(elements_list: Optional[List[Dict[str, Any]]
             message = element.get("Message")
             if isinstance(message, str) and message:
                 all_messages.append(message)
-    
+
     return all_messages
 
 
-def parse_xero_api_error_message(exception_body: str, default_message: str = "An unspecified error occurred with Xero.") -> str:
+def parse_xero_api_error_message(
+    exception_body: str,
+    default_message: str = "An unspecified error occurred with Xero.",
+) -> str:
     """
     Parses the JSON body of a Xero API exception to extract a more specific error message.
-    
+
     Args:
         exception_body (str): The JSON body of the exception as a string.
         default_message (str): The message to return if parsing fails.
-    
+
     Returns:
         A string containing the error message, or the default message if parsing fails.
     """
     if not exception_body:
         return default_message
-    
+
     try:
         error_data = json.loads(exception_body)
-        
+
         elements = error_data.get("Elements")
-        
+
         # Elements first
         if isinstance(elements, list) and elements:
             processed_messages = _extract_messages_from_elements(elements)
@@ -114,13 +123,13 @@ def parse_xero_api_error_message(exception_body: str, default_message: str = "An
         detail = error_data.get("Detail")
         if isinstance(detail, str) and detail:
             return detail
-        
+
         # Check for a top-level 'Message' (common in validation exceptions summary)
         message = error_data.get("Message")
         if isinstance(message, str) and message:
             return message
-        
-        # Check for a top-level 'Title' 
+
+        # Check for a top-level 'Title'
         title = error_data.get("Title")
         if isinstance(title, str) and title:
             return title
@@ -133,6 +142,6 @@ def parse_xero_api_error_message(exception_body: str, default_message: str = "An
         if len(exception_body) < 250 and not exception_body.startswith("<"):
             return exception_body
     except Exception:
-        pass # Just fall through to the default message
+        pass  # Just fall through to the default message
 
     return default_message

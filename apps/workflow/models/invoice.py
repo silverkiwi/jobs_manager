@@ -20,8 +20,8 @@ class BaseXeroInvoiceDocument(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     xero_id = models.UUIDField(unique=True)
     xero_tenant_id = models.CharField(
-            max_length=255, null=True, blank=True
-        ) # For reference only - we are not fully multi-tenant yet
+        max_length=255, null=True, blank=True
+    )  # For reference only - we are not fully multi-tenant yet
     number = models.CharField(max_length=255)
     client = models.ForeignKey("Client", on_delete=models.CASCADE)
     date = models.DateField()
@@ -100,7 +100,11 @@ class BaseLineItem(models.Model):
 
 class Invoice(BaseXeroInvoiceDocument):
     job = models.OneToOneField(
-        "job.Job", on_delete=models.CASCADE, related_name="invoice", null=True, blank=True
+        "job.Job",
+        on_delete=models.CASCADE,
+        related_name="invoice",
+        null=True,
+        blank=True,
     )
     online_url = models.URLField(null=True, blank=True)
 
@@ -111,14 +115,14 @@ class Invoice(BaseXeroInvoiceDocument):
 
     def get_line_items(self):
         return self.line_items.all()
-    
+
     @property
     def paid(self):
         """Computes whether this invoice was already paid based on the amount due value."""
         return (
-            (self.amount_due == self.total_incl_tax and self.total_incl_tax > 0) or
-            (self.amount_due == self.total_excl_tax and self.total_incl_tax == 0) or
-            (self.amount_due == self.total_amount)
+            (self.amount_due == self.total_incl_tax and self.total_incl_tax > 0)
+            or (self.amount_due == self.total_excl_tax and self.total_incl_tax == 0)
+            or (self.amount_due == self.total_amount)
         )
 
 

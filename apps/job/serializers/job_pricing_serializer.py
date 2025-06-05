@@ -130,7 +130,10 @@ class JobPricingSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # Update time entries
-        if "time_entries" in validated_data and instance.pricing_stage != JobPricingStage.REALITY:
+        if (
+            "time_entries" in validated_data
+            and instance.pricing_stage != JobPricingStage.REALITY
+        ):
             # Delete existing entries
             instance.time_entries.all().delete()
             # Create new entries using serializer
@@ -145,11 +148,10 @@ class JobPricingSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {"time_entries": time_entry_serializer.errors}
                     )
-                
+
         # Remove time entries if the pricing stage is REALITY
         if "time_entries" in validated_data:
             validated_data.pop("time_entries")
-
 
         # Update material entries
         if "material_entries" in validated_data:

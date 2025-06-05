@@ -32,9 +32,7 @@ class JobPricing(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    is_historical = models.BooleanField(
-        default=False
-    )  
+    is_historical = models.BooleanField(default=False)
 
     default_part = models.OneToOneField(
         "JobPart",
@@ -42,7 +40,7 @@ class JobPricing(models.Model):
         null=True,
         blank=True,
         related_name="default_for_job_pricing",
-        help_text="The default 'Main Work' part associated with this JobPricing instance. This part typically holds general time and material entries for the given pricing type."
+        help_text="The default 'Main Work' part associated with this JobPricing instance. This part typically holds general time and material entries for the given pricing type.",
     )
 
     class Meta:
@@ -116,7 +114,7 @@ class JobPricing(models.Model):
             + self.total_material_revenue
             + self.total_adjustment_revenue
         )
-    
+
     def save(self, *args, **kwargs):
         if self._state.adding:
             self.revision_number = 1
@@ -128,11 +126,13 @@ class JobPricing(models.Model):
                 self.default_part = JobPart.objects.create(
                     job_pricing=self,
                     name="Main Work",
-                    description="Default part for time entries"
+                    description="Default part for time entries",
                 )
                 # Save again to update the default_part reference
-                super().save(update_fields=['default_part'])
-                logger.debug(f"JobPricing {self.id} default_part created and linked: {self.default_part.id}")
+                super().save(update_fields=["default_part"])
+                logger.debug(
+                    f"JobPricing {self.id} default_part created and linked: {self.default_part.id}"
+                )
 
         else:
             # Normal save for existing instances

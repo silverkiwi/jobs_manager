@@ -1,13 +1,20 @@
 /**
  * Purchase Order Grid Management
- * 
+ *
  * Handles AG Grid initialization and management
  */
 
 import { ActiveJobCellEditor } from "./job_cell_editor.js";
 import { renderMessages } from "./messages.js";
-import { getState, updateState, getStatusDisplay } from "./purchase_order_state.js";
-import { debouncedAutosave, markLineItemAsDeleted } from "./purchase_order_autosave.js";
+import {
+  getState,
+  updateState,
+  getStatusDisplay,
+} from "./purchase_order_state.js";
+import {
+  debouncedAutosave,
+  markLineItemAsDeleted,
+} from "./purchase_order_autosave.js";
 import { updateJobSummary } from "./purchase_order_summary.js";
 import { fetchMetalTypes } from "./purchase_order_metal_types.js";
 
@@ -49,19 +56,19 @@ export function adjustGridHeight() {
   const headerHeight = 32;
   const padding = 5;
   const minHeight = 500;
-  
+
   // Maximum height with scrolling beyond this point (same as timesheet)
   const maxVisibleRows = 10; // Show up to 10 rows before scrolling
   const maxHeight = Math.min(
     Math.max(rowCount * rowHeight + headerHeight + padding, minHeight),
-    maxVisibleRows * rowHeight + headerHeight + padding
+    maxVisibleRows * rowHeight + headerHeight + padding,
   );
 
   // Set max height instead of fixed height to enable scrolling
   gridElement.style.maxHeight = `${maxHeight}px`;
-  
+
   // Ensure the grid has proper overflow settings
-  gridElement.style.overflowY = 'auto';
+  gridElement.style.overflowY = "auto";
 }
 
 /**
@@ -70,7 +77,7 @@ export function adjustGridHeight() {
  */
 export function createNewRowShortcut(api) {
   const state = getState();
-  
+
   // Check if purchase order is in draft status
   if (
     state.purchaseData.purchaseOrder &&
@@ -116,7 +123,7 @@ export function createNewRowShortcut(api) {
  */
 export function deleteRow(api, node) {
   const state = getState();
-  
+
   // Check if purchase order is in draft status
   if (
     state.purchaseData.purchaseOrder &&
@@ -164,7 +171,7 @@ export function deleteRow(api, node) {
  */
 function onCellValueChanged(params) {
   const state = getState();
-  
+
   // If this is the last row and contains data, add a new empty row
   const isLastRow =
     params.node.rowIndex === params.api.getDisplayedRowCount() - 1;
@@ -263,20 +270,20 @@ function onCellValueChanged(params) {
  */
 export function configureMetalTypeColumn(options, columnDef) {
   columnDef.cellEditorParams = {
-    values: options.map(opt => opt.value),
+    values: options.map((opt) => opt.value),
     valueFormatter: (params) => {
-      const option = options.find(opt => opt.value === params.value);
+      const option = options.find((opt) => opt.value === params.value);
       return option ? option.label : params.value;
     },
     cellRenderer: "agSelectCellRenderer",
-    cellClass: "metal-type-cell"
-  }
+    cellClass: "metal-type-cell",
+  };
 
   columnDef.valueFormatter = (params) => {
-    if (!params.value) return '';
-    const option = options.find(opt => opt.value === params.value);
+    if (!params.value) return "";
+    const option = options.find((opt) => opt.value === params.value);
     return option ? option.label : params.value;
-  }
+  };
 }
 
 /**
@@ -290,9 +297,9 @@ export function initializeGrid() {
     console.error("Grid container not found");
     return Promise.reject(new Error("Grid container not found"));
   }
-  
+
   const state = getState();
-  
+
   // Define column definitions
   const columnDefs = [
     {
@@ -312,14 +319,12 @@ export function initializeGrid() {
       wrapText: true,
       valueFormatter: (params) => {
         if (!params.value) return "";
-        const job = state.purchaseData.jobs.find(
-          (j) => j.id === params.value,
-        );
+        const job = state.purchaseData.jobs.find((j) => j.id === params.value);
         return job ? job.job_display_name : "";
       },
       cellStyle: {
-        'white-space': 'normal',
-        'line-height': '1.2',
+        "white-space": "normal",
+        "line-height": "1.2",
       },
     },
     {
@@ -331,8 +336,8 @@ export function initializeGrid() {
       autoHeight: true,
       wrapText: true,
       cellStyle: {
-        'white-space': 'normal',
-        'line-height': '1.2',
+        "white-space": "normal",
+        "line-height": "1.2",
       },
     },
     {
@@ -414,7 +419,6 @@ export function initializeGrid() {
         if (newValue) {
           params.node.setDataValue("unit_cost", null);
         }
-        
 
         // Refresh the unit_cost cell to update editability
         params.api.refreshCells({
@@ -452,8 +456,7 @@ export function initializeGrid() {
         return `$${Number(params.value).toFixed(2)}`;
       },
       cellRenderer: (params) => {
-        if (params.data.price_tbc)
-          return `<span class="text-muted">TBC</span>`;
+        if (params.data.price_tbc) return `<span class="text-muted">TBC</span>`;
         if (params.value === null) return "";
         return `$${Number(params.value).toFixed(2)}`;
       },
@@ -474,11 +477,7 @@ export function initializeGrid() {
       },
       cellStyle: (params) => {
         // Skip validation if job is empty (new row) or price is TBC
-        if (
-          !params.data.job ||
-          params.data.price_tbc ||
-          params.value === "TBC"
-        )
+        if (!params.data.job || params.data.price_tbc || params.value === "TBC")
           return null;
 
         const jobId = params.data.job;
@@ -599,11 +598,12 @@ export function initializeGrid() {
   // Initial adjustment
   adjustGridHeight();
 
-  fetchMetalTypes()
-  .then(options => {
-    const metalTypeColumn = columnDefs.find(col => col.field === "metal_type");
+  fetchMetalTypes().then((options) => {
+    const metalTypeColumn = columnDefs.find(
+      (col) => col.field === "metal_type",
+    );
     configureMetalTypeColumn(options, metalTypeColumn);
-    grid.api.setGridOption('columnDefs', columnDefs);
+    grid.api.setGridOption("columnDefs", columnDefs);
     grid.api.refreshCells({ columns: ["metal_type"] });
   });
 
@@ -619,45 +619,49 @@ export function updateGridEditability() {
     console.error("Grid not initialized");
     return;
   }
-  
+
   // Determine if grid should be readonly based on global state or purchase order status
-  const isReadOnly = state.isReadOnly ||
+  const isReadOnly =
+    state.isReadOnly ||
     (state.purchaseData.purchaseOrder &&
-     state.purchaseData.purchaseOrder.status &&
-     state.purchaseData.purchaseOrder.status !== "draft");
-  
+      state.purchaseData.purchaseOrder.status &&
+      state.purchaseData.purchaseOrder.status !== "draft");
+
   // Update column definitions to respect editable state
   const columnDefs = state.grid.api.getColumnDefs();
   columnDefs.forEach((col) => {
-    if (col.field !== "total") { // Total is calculated, not editable
+    if (col.field !== "total") {
+      // Total is calculated, not editable
       if (col.field === "unit_cost") {
         // Special case for unit_cost which depends on price_tbc
-        col.editable = params => !isReadOnly && !params.data.price_tbc;
+        col.editable = (params) => !isReadOnly && !params.data.price_tbc;
       } else {
         col.editable = !isReadOnly;
       }
     }
   });
-  
+
   // Set suppressClickEdit for the entire grid
   state.grid.api.setGridOption("suppressClickEdit", isReadOnly);
-  
+
   // Apply updated column definitions
   state.grid.api.setGridOption("columnDefs", columnDefs);
-  
+
   // Update visual appearance
-  const gridContainer = document.querySelector('.ag-theme-alpine');
+  const gridContainer = document.querySelector(".ag-theme-alpine");
   if (gridContainer) {
-    gridContainer.style.opacity = isReadOnly ? '0.8' : '1';
-    gridContainer.style.pointerEvents = isReadOnly ? 'none' : 'auto';
+    gridContainer.style.opacity = isReadOnly ? "0.8" : "1";
+    gridContainer.style.pointerEvents = isReadOnly ? "none" : "auto";
   }
-  
+
   // Display appropriate message
   if (isReadOnly) {
-    const statusMessage = state.purchaseData.purchaseOrder && state.purchaseData.purchaseOrder.status 
-      ? `Purchase order is in ${getStatusDisplay(state.purchaseData.purchaseOrder.status)} status.`
-      : "Purchase order is in read-only mode.";
-      
+    const statusMessage =
+      state.purchaseData.purchaseOrder &&
+      state.purchaseData.purchaseOrder.status
+        ? `Purchase order is in ${getStatusDisplay(state.purchaseData.purchaseOrder.status)} status.`
+        : "Purchase order is in read-only mode.";
+
     renderMessages(
       [
         {
@@ -665,7 +669,7 @@ export function updateGridEditability() {
           message: `${statusMessage} Line items cannot be edited.`,
         },
       ],
-      "purchase-order"
+      "purchase-order",
     );
   } else {
     renderMessages(
@@ -675,10 +679,10 @@ export function updateGridEditability() {
           message: "Purchase order is editable. You can modify the line items.",
         },
       ],
-      "purchase-order"
+      "purchase-order",
     );
   }
-  
+
   // Refresh all cells to apply the changes
   state.grid.api.refreshCells({ force: true });
 }

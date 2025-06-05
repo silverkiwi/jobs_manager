@@ -6,6 +6,7 @@ from django.db.models import Q
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
 
+
 class PaidAbsenceForm(forms.Form):
     LEAVE_CHOICES = [
         ("annual", "Annual Leave"),

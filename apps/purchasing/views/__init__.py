@@ -18,7 +18,7 @@ from .purchase_order import (
 from .delivery_receipt import (
     DeliveryReceiptListView,
     DeliveryReceiptCreateView,
-    process_delivery_receipt
+    process_delivery_receipt,
 )
 
 # Stock Management views
@@ -32,22 +32,21 @@ from .stock import (
 
 __all__ = [
     # Purchase Order views
-    'PurchaseOrderListView',
-    'PurchaseOrderCreateView', 
-    'autosave_purchase_order_view',
-    'delete_purchase_order_view',
-    'extract_supplier_quote_data_view',
-    'PurchaseOrderPDFView',
-    'PurchaseOrderEmailView',
-    
+    "PurchaseOrderListView",
+    "PurchaseOrderCreateView",
+    "autosave_purchase_order_view",
+    "delete_purchase_order_view",
+    "extract_supplier_quote_data_view",
+    "PurchaseOrderPDFView",
+    "PurchaseOrderEmailView",
     # Delivery Receipt views
-    'DeliveryReceiptListView',
-    'DeliveryReceiptCreateView',
-    'process_delivery_receipt',
+    "DeliveryReceiptListView",
+    "DeliveryReceiptCreateView",
+    "process_delivery_receipt",
     # Stock Management views
-    'use_stock_view',
-    'consume_stock_api_view',
-    'create_stock_api_view',
-    'search_available_stock_api',
-    'deactivate_stock_api_view',
+    "use_stock_view",
+    "consume_stock_api_view",
+    "create_stock_api_view",
+    "search_available_stock_api",
+    "deactivate_stock_api_view",
 ]

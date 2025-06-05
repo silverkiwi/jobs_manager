@@ -14,19 +14,21 @@ from simple_history.models import HistoricalRecords
 
 
 class Staff(AbstractBaseUser, PermissionsMixin):
-    id = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False
-    )  
-    icon = models.ImageField(upload_to='staff_icons/', null=True, blank=True)  
-    password_needs_reset: bool = models.BooleanField(default=False)  
-    email: str = models.EmailField(unique=True)  
-    first_name: str = models.CharField(max_length=30)  
-    last_name: str = models.CharField(max_length=30)  
-    preferred_name: Optional[str] = models.CharField(max_length=30, blank=True, null=True)  
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    icon = models.ImageField(upload_to="staff_icons/", null=True, blank=True)
+    password_needs_reset: bool = models.BooleanField(default=False)
+    email: str = models.EmailField(unique=True)
+    first_name: str = models.CharField(max_length=30)
+    last_name: str = models.CharField(max_length=30)
+    preferred_name: Optional[str] = models.CharField(
+        max_length=30, blank=True, null=True
+    )
     wage_rate: float = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    ims_payroll_id: str = models.CharField(max_length=100, unique=True, null=True, blank=True)  
-    raw_ims_data = models.JSONField(null=True, blank=True, default=dict)  
-    is_active: bool = models.BooleanField(default=True)  
+    ims_payroll_id: str = models.CharField(
+        max_length=100, unique=True, null=True, blank=True
+    )
+    raw_ims_data = models.JSONField(null=True, blank=True, default=dict)
+    is_active: bool = models.BooleanField(default=True)
     is_staff: bool = models.BooleanField(default=False)
     date_joined: datetime = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(default=timezone.now)
@@ -75,7 +77,9 @@ class Staff(AbstractBaseUser, PermissionsMixin):
         help_text="Standard hours for Sunday, 0 for non-working day",
     )
 
-    history: HistoricalRecords = HistoricalRecords(table_name="workflow_historicalstaff")  
+    history: HistoricalRecords = HistoricalRecords(
+        table_name="workflow_historicalstaff"
+    )
 
     objects = StaffManager()
 

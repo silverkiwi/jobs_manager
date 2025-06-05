@@ -30,13 +30,18 @@ class PurchaseOrder(models.Model):
         help_text="Primary job this PO is for",
     )
     po_number = models.CharField(max_length=50, unique=True)
-    reference = models.CharField(max_length=100, blank=True, null=True, help_text="Optional reference for the purchase order")
+    reference = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Optional reference for the purchase order",
+    )
     order_date = models.DateField(default=timezone.now)
     expected_delivery = models.DateField(null=True, blank=True)
     xero_id = models.UUIDField(unique=True, null=True, blank=True)
     xero_tenant_id = models.CharField(
-            max_length=255, null=True, blank=True
-        ) # For reference only - we are not fully multi-tenant yet
+        max_length=255, null=True, blank=True
+    )  # For reference only - we are not fully multi-tenant yet
     status = models.CharField(
         max_length=20,
         choices=[
@@ -58,7 +63,7 @@ class PurchaseOrder(models.Model):
         """Generate the next sequential PO number based on the configured prefix."""
         defaults = get_company_defaults()
         start = defaults.starting_po_number
-        po_prefix = defaults.po_prefix # Get prefix from CompanyDefaults
+        po_prefix = defaults.po_prefix  # Get prefix from CompanyDefaults
 
         prefix_len = len(po_prefix)
 
@@ -66,15 +71,14 @@ class PurchaseOrder(models.Model):
         # 2) Strip off "<prefix>" (first prefix_len chars), cast the rest to int
         # 3) Take the MAX of that numeric part
         agg = (
-            PurchaseOrder.objects
-                .filter(po_number__regex=rf"^{po_prefix}\d+$")
-                .annotate(num=Cast(Substr("po_number", prefix_len + 1), IntegerField()))
-                .aggregate(max_num=Max("num"))
+            PurchaseOrder.objects.filter(po_number__regex=rf"^{po_prefix}\d+$")
+            .annotate(num=Cast(Substr("po_number", prefix_len + 1), IntegerField()))
+            .aggregate(max_num=Max("num"))
         )
         max_existing = agg["max_num"] or 0
 
         nxt = max(start, max_existing + 1)
-        return f"{po_prefix}{nxt:04d}" # Use the dynamic prefix
+        return f"{po_prefix}{nxt:04d}"  # Use the dynamic prefix
 
     def save(self, *args, **kwargs):
         """Save the model and auto-generate PO number if none exists."""
@@ -99,4 +103,4 @@ class PurchaseOrder(models.Model):
         return "Reconciled"
 
     class Meta:
-        db_table = 'workflow_purchaseorder'
+        db_table = "workflow_purchaseorder"

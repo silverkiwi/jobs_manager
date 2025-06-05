@@ -11,8 +11,8 @@ from .purchase_order_supplier_quote import PurchaseOrderSupplierQuote
 from .stock import Stock
 
 __all__ = [
-    'PurchaseOrder',
-    'PurchaseOrderLine', 
-    'PurchaseOrderSupplierQuote',
-    'Stock',
+    "PurchaseOrder",
+    "PurchaseOrderLine",
+    "PurchaseOrderSupplierQuote",
+    "Stock",
 ]

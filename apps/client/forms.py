@@ -60,4 +60,3 @@ class ClientForm(forms.ModelForm):
         cleaned_data = super().clean()
         # logger.debug(f"ClientForm cleaned data: {cleaned_data}")
         return cleaned_data
-    

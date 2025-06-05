@@ -5,7 +5,7 @@ from .kpi_service import KPIService
 from .xero_sync_service import XeroSyncService
 
 __all__ = [
-    'GoogleSheetsService',
-    'KPIService',
-    'XeroSyncService',
+    "GoogleSheetsService",
+    "KPIService",
+    "XeroSyncService",
 ]

@@ -7,10 +7,10 @@ from .job_serializer import JobSerializer, CompleteJobSerializer
 from .material_entry_serializer import MaterialEntrySerializer
 
 __all__ = [
-    'AdjustmentEntrySerializer',
-    'JobFileSerializer',
-    'JobPricingSerializer',
-    'JobSerializer',
-    'CompleteJobSerializer',
-    'MaterialEntrySerializer',
+    "AdjustmentEntrySerializer",
+    "JobFileSerializer",
+    "JobPricingSerializer",
+    "JobSerializer",
+    "CompleteJobSerializer",
+    "MaterialEntrySerializer",
 ]

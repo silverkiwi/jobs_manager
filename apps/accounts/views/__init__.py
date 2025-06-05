@@ -3,15 +3,15 @@ from .staff_views import (
     StaffCreateView,
     StaffUpdateView,
     StaffListAPIView,
-    get_staff_rates
+    get_staff_rates,
 )
 from .password_views import SecurityPasswordChangeView
 
 __all__ = [
-    'StaffListView',
-    'StaffCreateView',
-    'StaffUpdateView',
-    'StaffListAPIView',
-    'get_staff_rates',
-    'SecurityPasswordChangeView',
+    "StaffListView",
+    "StaffCreateView",
+    "StaffUpdateView",
+    "StaffListAPIView",
+    "get_staff_rates",
+    "SecurityPasswordChangeView",
 ]

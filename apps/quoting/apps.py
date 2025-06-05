@@ -6,6 +6,7 @@ from django.db import close_old_connections
 
 logger = logging.getLogger(__name__)
 
+
 class QuotingConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.quoting"
@@ -21,13 +22,17 @@ class QuotingConfig(AppConfig):
         # might not be fully loaded when apps.py is initially processed.
         from apscheduler.schedulers.background import BackgroundScheduler
         from django_apscheduler.jobstores import DjangoJobStore
+
         # Import the standalone job functions
-        from apps.quoting.scheduler_jobs import run_all_scrapers_job, delete_old_job_executions
+        from apps.quoting.scheduler_jobs import (
+            run_all_scrapers_job,
+            delete_old_job_executions,
+        )
 
         # Ensure Django is ready before starting the scheduler
         # This check prevents the scheduler from starting multiple times
         # or before the Django app registry is fully populated.
-        if settings.DEBUG and os.environ.get('RUN_MAIN') != 'true':
+        if settings.DEBUG and os.environ.get("RUN_MAIN") != "true":
             # In debug mode, Django's runserver often reloads code,
             # causing ready() to be called multiple times.
             # RUN_MAIN is a flag set by Django to indicate the main process.
@@ -38,10 +43,10 @@ class QuotingConfig(AppConfig):
         # Only start the scheduler if it hasn't been started already
         # This is a simple check to prevent multiple scheduler instances
         # in production environments where ready() might still be called more than once.
-        if not hasattr(self, 'scraper_scheduler_started'):
+        if not hasattr(self, "scraper_scheduler_started"):
             self.scraper_scheduler_started = True
             logger.info("Starting APScheduler for scraper jobs...")
-            
+
             scheduler = BackgroundScheduler(timezone=settings.TIME_ZONE)
             scheduler.add_jobstore(DjangoJobStore(), "default")
 
@@ -51,27 +56,27 @@ class QuotingConfig(AppConfig):
             # Schedule the scraper job to run every Sunday at 3 PM NZT
             scheduler.add_job(
                 run_all_scrapers_job,  # Now using standalone function
-                trigger='cron',
-                day_of_week='sun',
-                hour=15, # 3 PM
+                trigger="cron",
+                day_of_week="sun",
+                hour=15,  # 3 PM
                 minute=0,
-                id='run_all_scrapers_weekly',
+                id="run_all_scrapers_weekly",
                 max_instances=1,
                 replace_existing=True,
-                misfire_grace_time=60*60, # 1 hour grace time for missed runs
-                coalesce=True, # Only run once if multiple triggers fire
+                misfire_grace_time=60 * 60,  # 1 hour grace time for missed runs
+                coalesce=True,  # Only run once if multiple triggers fire
             )
             logger.info("Added 'run_all_scrapers_weekly' job to scheduler.")
 
             # Add a job to clean up old job executions
             scheduler.add_job(
                 delete_old_job_executions,  # Now using standalone function
-                trigger='interval',
+                trigger="interval",
                 days=1,
-                id='delete_old_job_executions',
+                id="delete_old_job_executions",
                 max_instances=1,
                 replace_existing=True,
-                misfire_grace_time=60*60,
+                misfire_grace_time=60 * 60,
                 coalesce=True,
             )
             logger.info("Added 'delete_old_job_executions' job to scheduler.")
@@ -80,4 +85,6 @@ class QuotingConfig(AppConfig):
                 scheduler.start()
                 logger.info("APScheduler started successfully for scraper jobs.")
             except Exception as e:
-                logger.error(f"Error starting APScheduler for scraper jobs: {e}", exc_info=True)
+                logger.error(
+                    f"Error starting APScheduler for scraper jobs: {e}", exc_info=True
+                )

@@ -16,6 +16,7 @@ from apps.workflow.enums import AIProviderTypes
 
 logger = logging.getLogger(__name__)
 
+
 def read_file_content(file_path: str) -> Optional[bytes]:
     """Read file content in binary mode."""
     try:
@@ -25,10 +26,12 @@ def read_file_content(file_path: str) -> Optional[bytes]:
         logger.error(f"Failed to read file {file_path}: {e}")
         return None
 
+
 def create_concise_prompt(metal_types: list[str]) -> str:
     """Generates a concise prompt for Supplier Price List data extraction."""
     metal_types_str = ", ".join(metal_types)
     return f"Extract supplier price list data for {metal_types_str} and return it in JSON format."
+
 
 def create_supplier_extraction_prompt() -> str:
     """Generates a comprehensive prompt for supplier price list data extraction."""
@@ -116,6 +119,7 @@ def create_supplier_extraction_prompt() -> str:
         Extract every single product from all pages. Return only the JSON object."""
     return s
 
+
 def clean_json_response(text: str) -> str:
     """Clean up JSON response by removing markdown code blocks."""
     text = text.strip()
@@ -129,6 +133,7 @@ def clean_json_response(text: str) -> str:
 
     return text.strip()
 
+
 def log_token_usage(usage, api_name):
     """Log token usage from AI API response."""
     input_tokens = getattr(usage, "input_tokens", 0)
@@ -140,7 +145,10 @@ def log_token_usage(usage, api_name):
         f"Input: {input_tokens}, Output: {output_tokens}, Total: {total_tokens}"
     )
 
-def extract_data_from_supplier_price_list_gemini(file_path: str, content_type: Optional[str] = None) -> Tuple[Optional[dict], Optional[str]]:
+
+def extract_data_from_supplier_price_list_gemini(
+    file_path: str, content_type: Optional[str] = None
+) -> Tuple[Optional[dict], Optional[str]]:
     """
     Extract data from a supplier price list file using Gemini.
 
@@ -157,19 +165,28 @@ def extract_data_from_supplier_price_list_gemini(file_path: str, content_type: O
         active_ai_provider = company_defaults.get_active_ai_provider()
 
         if not active_ai_provider:
-            return None, "No active AI provider configured. Please set one in company settings."
+            return (
+                None,
+                "No active AI provider configured. Please set one in company settings.",
+            )
 
         if active_ai_provider.provider_type != AIProviderTypes.GOOGLE:
-            return None, f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Google (Gemini)."
+            return (
+                None,
+                f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Google (Gemini).",
+            )
 
         gemini_api_key = active_ai_provider.api_key
 
         if not gemini_api_key:
-            return None, "Gemini API key not configured for the active AI provider. Please add it in company settings."
+            return (
+                None,
+                "Gemini API key not configured for the active AI provider. Please add it in company settings.",
+            )
 
         genai.configure(api_key=gemini_api_key)
 
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         uploaded_file = genai.upload_file(file_path)
         if uploaded_file is None:
@@ -178,10 +195,7 @@ def extract_data_from_supplier_price_list_gemini(file_path: str, content_type: O
         valid_metal_types = [choice[0] for choice in MetalType.choices]
         prompt = create_concise_prompt(valid_metal_types)
 
-        contents = [
-            prompt,
-            uploaded_file
-        ]
+        contents = [prompt, uploaded_file]
 
         logger.info(f"Calling Gemini API for price list extraction: {file_path}")
         response = model.generate_content(contents)
@@ -209,5 +223,7 @@ def extract_data_from_supplier_price_list_gemini(file_path: str, content_type: O
         logger.error(f"Gemini response was not valid JSON: {json_text}. Error: {e}")
         return None, f"Gemini returned invalid JSON: {e}"
     except Exception as e:
-        logger.exception(f"Error extracting data from supplier price list with Gemini: {e}")
+        logger.exception(
+            f"Error extracting data from supplier price list with Gemini: {e}"
+        )
         return None, str(e)

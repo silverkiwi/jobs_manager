@@ -12,12 +12,13 @@ class JobPart(models.Model):
     For example, a job's "Estimate Pricing" might have parts like "Fabrication",
     "Installation", "Finishing", etc., each with its own associated entries.
     """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     job_pricing = models.ForeignKey(
         "JobPricing",
         on_delete=models.CASCADE,
         related_name="parts",
-        null=True,          # NOTE: ONLY NULL DURING MIGRATION
+        null=True,  # NOTE: ONLY NULL DURING MIGRATION
         blank=True,
     )
     name = models.CharField(max_length=100, null=False, blank=False)
@@ -30,5 +31,9 @@ class JobPart(models.Model):
         db_table = "workflow_jobpart"
 
     def __str__(self):
-        job_name = self.job_pricing.job.name if self.job_pricing and self.job_pricing.job else "No Job"
+        job_name = (
+            self.job_pricing.job.name
+            if self.job_pricing and self.job_pricing.job
+            else "No Job"
+        )
         return f"{self.name} - {job_name}"

@@ -18,7 +18,7 @@ def create_purchase_order_email(purchase_order: PurchaseOrder) -> dict:
     """
     if not purchase_order.supplier or not purchase_order.supplier.email:
         raise ValueError("Purchase order supplier has no email")
-    
+
     email = purchase_order.supplier.email
 
     subject = f"Purchase Order {purchase_order.po_number}"
@@ -38,5 +38,5 @@ def create_purchase_order_email(purchase_order: PurchaseOrder) -> dict:
         "mailto_url": mailto_url,
         "email": email,
         "subject": subject,
-        "body": body
+        "body": body,
     }

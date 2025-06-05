@@ -23,7 +23,7 @@ urlpatterns = [
         name="api_get_client_contact_persons",
     ),
     path(
-        "api/<uuid:client_id>/phones/", 
+        "api/<uuid:client_id>/phones/",
         client_view.get_client_phones,
         name="api_get_client_phones",
     ),
@@ -34,7 +34,6 @@ urlpatterns = [
         name="client_search_api",
     ),
     path("api/detail/", client_view.client_detail, name="client_detail"),
-    
     # Client view endpoints
     path("", client_view.ClientListView.as_view(), name="list_clients"),
     path(

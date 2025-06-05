@@ -149,12 +149,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const originalPoLineJobName = row.dataset.lineJobName || "";
     const description = row.dataset.lineDescription;
     const unitCost = row.dataset.unitCost || "0.00";
-    
+
     const metalType = row.dataset.metalType || "unspecified";
     const alloy = row.dataset.alloy || "";
     const specifics = row.dataset.specifics || "";
     const location = row.dataset.location || "";
-    
+
     newRow.dataset.metalType = metalType;
     newRow.dataset.alloy = alloy;
     newRow.dataset.specifics = specifics;
@@ -240,11 +240,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const lineAllocationsData = {};
 
     allLineIds.forEach((lineId) => {
-      const receivedRow = document.querySelector(`#receivedItems tr[data-line-id="${lineId}"]`);
+      const receivedRow = document.querySelector(
+        `#receivedItems tr[data-line-id="${lineId}"]`,
+      );
 
       if (receivedRow) {
-        const totalReceivedInput = receivedRow.querySelector(".total-received-qty");
-        const jobAllocationInput = receivedRow.querySelector(".job-allocation-qty");
+        const totalReceivedInput = receivedRow.querySelector(
+          ".total-received-qty",
+        );
+        const jobAllocationInput = receivedRow.querySelector(
+          ".job-allocation-qty",
+        );
         const retailRateInput = receivedRow.querySelector(".retail-rate");
         const totalReceived = parseFloat(totalReceivedInput.value || 0);
         const jobAllocation = parseFloat(jobAllocationInput.value || 0);
@@ -273,14 +279,14 @@ document.addEventListener("DOMContentLoaded", function () {
           specifics: specifics,
           location: location,
           description: description,
-          unit_cost: unitCost
+          unit_cost: unitCost,
         };
       } else {
         lineAllocationsData[lineId] = {
           total_received: 0,
           job_allocation: 0,
           stock_allocation: 0,
-          retail_rate: 20 
+          retail_rate: 20,
         };
       }
     });
@@ -344,7 +350,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const formAction = form.action || window.location.href;
         console.log("Sending data:", {
           fieldName: hiddenInput.name,
-          value: hiddenInput.value
+          value: hiddenInput.value,
         });
         const response = await fetch(formAction, {
           method: "POST",
@@ -352,13 +358,14 @@ document.addEventListener("DOMContentLoaded", function () {
           headers: {
             "X-CSRFToken": csrfToken, // Use the retrieved token
           },
-        });        if (response.ok) {
+        });
+        if (response.ok) {
           window.location.href = "/purchasing/delivery-receipts/";
         } else {
           const data = await response.json();
           alert(
             data.error ||
-            "An error occurred while saving the delivery receipt.",
+              "An error occurred while saving the delivery receipt.",
           );
         }
       } catch (error) {

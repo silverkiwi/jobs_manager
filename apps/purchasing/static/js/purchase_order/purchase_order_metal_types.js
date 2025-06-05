@@ -1,6 +1,6 @@
 /**
  * Purchase Order Metal Types Management
- * 
+ *
  * Handles fetching and updating metal type values
  */
 
@@ -13,19 +13,19 @@ import { getState, updateState } from "./purchase_order_state.js";
  */
 export function fetchMetalTypes() {
   return fetchEnumChoices("MetalType")
-    .then(choices => {
-      const metalTypeValues = choices.map(choice => ({
+    .then((choices) => {
+      const metalTypeValues = choices.map((choice) => ({
         value: choice.value,
-        label: formatMetalTypeLabel(choice.value, choice.display_name)
+        label: formatMetalTypeLabel(choice.value, choice.display_name),
       }));
       console.log("Fetched metal type values:", metalTypeValues);
-      
+
       // Update state with new values
       updateState({ metalTypeValues });
-      
+
       return metalTypeValues;
     })
-    .catch(error => {
+    .catch((error) => {
       console.error("Error fetching metal type values:", error);
       return getState().metalTypeValues || []; // Return default values if API fails
     });
@@ -41,7 +41,7 @@ export function updateMetalTypeValues(values) {
     console.error("Grid not initialized, cannot update metal type values");
     return;
   }
-  
+
   try {
     const column = state.grid.api.getColumnDef("metal_type");
     column.cellEditorParams.values = values;
@@ -61,6 +61,6 @@ function formatMetalTypeLabel(value, displayName) {
   if (displayName) return displayName;
 
   return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, letter => letter.toUpperCase());
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

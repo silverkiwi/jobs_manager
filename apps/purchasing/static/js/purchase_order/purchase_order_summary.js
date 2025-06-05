@@ -1,6 +1,6 @@
 /**
  * Purchase Order Summary Management
- * 
+ *
  * Handles updating the job summary section
  */
 

@@ -30,8 +30,9 @@ api_client = ApiClient(
 token_api = TokenApi(
     api_client,
     client_id=settings.XERO_CLIENT_ID,
-    client_secret=settings.XERO_CLIENT_SECRET
+    client_secret=settings.XERO_CLIENT_SECRET,
 )
+
 
 # Helper function for pretty printing JSON/dict objects
 def pretty_print(obj):
@@ -64,7 +65,9 @@ def get_token() -> Optional[Dict[str, Any]]:
         "token_type": db_token.token_type,
         "expires_at": db_token.expires_at.timestamp(),
         "scope": db_token.scope,
-        "expires_in": int((db_token.expires_at - datetime.now(timezone.utc)).total_seconds())
+        "expires_in": int(
+            (db_token.expires_at - datetime.now(timezone.utc)).total_seconds()
+        ),
     }
 
     # Only cache if not expired
@@ -72,7 +75,7 @@ def get_token() -> Optional[Dict[str, Any]]:
         cache.set("xero_token", token, timeout=token["expires_in"])
         logger.debug("Retrieved valid token from database and cached it")
         return token
-    
+
     logger.debug("Token in database is expired")
     return None
 
@@ -89,7 +92,7 @@ def store_token(token: Dict[str, Any]) -> None:
         "refresh_token": token.get("refresh_token"),
         "expires_in": token.get("expires_in"),
         "token_type": token.get("token_type"),
-        "scope": token.get("scope")  # Use scope from token response
+        "scope": token.get("scope"),  # Use scope from token response
     }
 
     # Get expiry time from Xero's response
@@ -117,12 +120,12 @@ def store_token(token: Dict[str, Any]) -> None:
         xero_token = XeroToken.objects.first()
         if not xero_token:
             xero_token = XeroToken()
-        
+
         # Only update refresh token if one is provided
         if token_data.get("refresh_token"):
             xero_token.refresh_token = token_data["refresh_token"]
             logger.info("Updated refresh token in database")
-        
+
         xero_token.access_token = token_data["access_token"]
         xero_token.token_type = token_data["token_type"]
         xero_token.expires_at = expires_at
@@ -130,7 +133,9 @@ def store_token(token: Dict[str, Any]) -> None:
         if tenant_id:
             xero_token.tenant_id = tenant_id
         xero_token.save()
-        logger.info(f"Token stored in database with expiry at {expires_at.isoformat() if expires_at else 'None'}")
+        logger.info(
+            f"Token stored in database with expiry at {expires_at.isoformat() if expires_at else 'None'}"
+        )
     except Exception as e:
         logger.error(f"Failed to store token in database: {e}")
         # Don't raise - we still have the token in cache
@@ -141,15 +146,15 @@ def store_token(token: Dict[str, Any]) -> None:
 def refresh_token() -> Optional[Dict[str, Any]]:
     """Refresh the Xero OAuth token."""
     logger.debug("Starting token refresh")
-    
+
     token = get_token()
     if not token:
         logger.debug("No token found to refresh")
         return None
 
     # Log the current token state
-    current_expiry = datetime.fromtimestamp(token['expires_at'], tz=timezone.utc)
-    current_token = token['access_token'][:10] + "..."
+    current_expiry = datetime.fromtimestamp(token["expires_at"], tz=timezone.utc)
+    current_token = token["access_token"][:10] + "..."
     logger.debug(f"Current token before refresh:")
     logger.debug(f"  Access token: {current_token}")
     logger.debug(f"  Expires at: {current_expiry}")
@@ -159,20 +164,24 @@ def refresh_token() -> Optional[Dict[str, Any]]:
         token_api = TokenApi(
             api_client,
             client_id=settings.XERO_CLIENT_ID,
-            client_secret=settings.XERO_CLIENT_SECRET
+            client_secret=settings.XERO_CLIENT_SECRET,
         )
-        
+
         # Refresh the token
-        refreshed_token = token_api.refresh_token(token['refresh_token'], token['scope'])
-        
+        refreshed_token = token_api.refresh_token(
+            token["refresh_token"], token["scope"]
+        )
+
         # Log the new token state
-        new_expiry = datetime.now(timezone.utc) + timedelta(seconds=refreshed_token["expires_in"])
-        new_token_start = refreshed_token['access_token'][:10] + "..."
-        
+        new_expiry = datetime.now(timezone.utc) + timedelta(
+            seconds=refreshed_token["expires_in"]
+        )
+        new_token_start = refreshed_token["access_token"][:10] + "..."
+
         logger.debug("Token refresh completed:")
         logger.debug(f"  New access token: {new_token_start}")
         logger.debug(f"  New expiry: {new_expiry}")
-        
+
         # Explicitly log whether the token changed
         if current_token != new_token_start:
             logger.debug("Token was CHANGED during refresh")
@@ -181,7 +190,7 @@ def refresh_token() -> Optional[Dict[str, Any]]:
 
         # Save the refreshed token
         store_token(refreshed_token)
-        
+
         return refreshed_token
     except Exception as e:
         logger.error(f"Token refresh failed: {str(e)}")
@@ -201,12 +210,16 @@ def get_valid_token() -> Optional[Dict[str, Any]]:
         expires_at_datetime = datetime.fromtimestamp(expires_at, tz=timezone.utc)
         # Refresh token if it expires in less than 5 minutes
         if datetime.now(timezone.utc) > expires_at_datetime - timedelta(minutes=5):
-            logger.info(f"Xero token expiring soon at {expires_at_datetime.isoformat()}, refreshing...")
+            logger.info(
+                f"Xero token expiring soon at {expires_at_datetime.isoformat()}, refreshing..."
+            )
             try:
                 token = refresh_token()
                 logger.info("Successfully refreshed Xero token")
             except Exception as e:
-                logger.error(f"Token refresh failed, re-authentication required: {str(e)}")
+                logger.error(
+                    f"Token refresh failed, re-authentication required: {str(e)}"
+                )
                 return None
     logger.debug("Returning valid token!")
     return token
@@ -232,7 +245,7 @@ def get_tenant_id_from_connections() -> str:
     logger.debug("Getting tenant ID from connections")
     identity_api = IdentityApi(api_client)
     connections = identity_api.get_connections()
-    
+
     if not connections:
         logger.debug("No Xero tenants found")
         raise Exception("No Xero tenants found.")
@@ -240,12 +253,16 @@ def get_tenant_id_from_connections() -> str:
     # Get company defaults
     company_defaults = CompanyDefaults.get_instance()
     if not company_defaults.xero_tenant_id:
-        raise Exception("No Xero tenant ID configured in company defaults. Please set this up first.")
+        raise Exception(
+            "No Xero tenant ID configured in company defaults. Please set this up first."
+        )
 
     # Verify the configured tenant ID is still valid
     available_tenant_ids = [conn.tenant_id for conn in connections]
     if company_defaults.xero_tenant_id not in available_tenant_ids:
-        raise Exception("Configured Xero tenant ID is no longer valid. Please check your company defaults configuration.")
+        raise Exception(
+            "Configured Xero tenant ID is no longer valid. Please check your company defaults configuration."
+        )
 
     return company_defaults.xero_tenant_id
 
@@ -329,11 +346,10 @@ def get_xero_items(if_modified_since: Optional[datetime] = None) -> Any:
     logger.info(f"Fetching Xero Items. If modified since: {if_modified_since}")
     tenant_id = get_tenant_id()
     accounting_api = AccountingApi(api_client)
-    
+
     try:
         items = accounting_api.get_items(
-            xero_tenant_id=tenant_id,
-            if_modified_since=if_modified_since
+            xero_tenant_id=tenant_id, if_modified_since=if_modified_since
         )
         logger.info(f"Successfully fetched {len(items.items)} Xero Items.")
         return items.items

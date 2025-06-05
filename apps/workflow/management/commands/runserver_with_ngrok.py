@@ -28,4 +28,4 @@ class Command(BaseCommand):
         # self.stdout.write(
         #     self.style.SUCCESS(f"Starting Django server on port {django_port}...")
         # )
-        #os.system(f"python manage.py runserver {django_port}")
+        # os.system(f"python manage.py runserver {django_port}")

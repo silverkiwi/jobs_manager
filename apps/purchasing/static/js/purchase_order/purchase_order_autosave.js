@@ -104,10 +104,10 @@ function validatePurchaseOrderData(data) {
   const defaultRow = createNewRow();
 
   // Filter out rows that exactly match the default empty row (excluding row_id)
-  data.line_items = data.line_items.filter(item => {
+  data.line_items = data.line_items.filter((item) => {
     // Check if any field differs from the default
     for (const key in defaultRow) {
-      if (key === 'row_id') continue; // Skip row_id comparison
+      if (key === "row_id") continue; // Skip row_id comparison
       if (item[key] !== defaultRow[key]) {
         return true; // Keep if any field differs
       }
@@ -154,14 +154,14 @@ export async function saveDataToServer(collectedData) {
 
   console.log("Full data being sent to backend:", {
     purchase_order: collectedData.purchase_order,
-    line_items: collectedData.line_items.map(item => ({
+    line_items: collectedData.line_items.map((item) => ({
       id: item.id,
       description: item.description,
       unit_cost: item.unit_cost,
       price_tbc: item.price_tbc,
-      valid: item.description && (item.price_tbc || item.unit_cost !== null)
+      valid: item.description && (item.price_tbc || item.unit_cost !== null),
     })),
-    deleted_line_items: collectedData.deleted_line_items
+    deleted_line_items: collectedData.deleted_line_items,
   });
   return fetch("/purchasing/api/purchase-orders/autosave/", {
     method: "POST",
@@ -174,22 +174,22 @@ export async function saveDataToServer(collectedData) {
     .then(async (response) => {
       if (!response.ok) {
         // Try to extract error message from response
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
           // Handle JSON error response
           const errorData = await response.json();
           throw new Error(
-            errorData.message || 
-            errorData.error || 
-            errorData.detail || 
-            `Server responded with status ${response.status}`
+            errorData.message ||
+              errorData.error ||
+              errorData.detail ||
+              `Server responded with status ${response.status}`,
           );
         } else {
           // Handle text error response (like Django's debug error page)
           const text = await response.text();
           // Look for common error patterns in text response
-          if (text.includes('Exception:')) {
-            throw new Error(text.split('Exception:')[1].split('\n')[0].trim());
+          if (text.includes("Exception:")) {
+            throw new Error(text.split("Exception:")[1].split("\n")[0].trim());
           }
           throw new Error(`Server responded with status ${response.status}`);
         }
@@ -200,7 +200,10 @@ export async function saveDataToServer(collectedData) {
       if (!data.success) {
         // Handle validation failures differently from actual sync errors
         if (data.is_incomplete_po) {
-          console.warn("Xero sync validation failed - not yet ready:", data.error);
+          console.warn(
+            "Xero sync validation failed - not yet ready:",
+            data.error,
+          );
           return true; // Don't show error to user for validation cases
         }
 

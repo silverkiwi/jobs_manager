@@ -5,7 +5,9 @@ from apps.accounts.models import Staff
 
 
 class JobEvent(models.Model):
-    job = models.ForeignKey("Job", on_delete=models.CASCADE, related_name="events", null=True, blank=True)
+    job = models.ForeignKey(
+        "Job", on_delete=models.CASCADE, related_name="events", null=True, blank=True
+    )
     timestamp = models.DateTimeField(default=now)
     staff = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, blank=True)
     event_type = models.CharField(
@@ -15,7 +17,7 @@ class JobEvent(models.Model):
 
     def __str__(self):
         return f"{self.timestamp}: {self.event_type} for {self.job.name}"
-    
+
     class Meta:
         db_table = "workflow_jobevent"
         ordering = ["-timestamp"]
