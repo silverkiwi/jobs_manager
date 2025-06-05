@@ -19,7 +19,7 @@ from django.utils import timezone
 from logging import getLogger
 
 from apps.workflow.models import CompanyDefaults
-from apps.workflow.utils import get_nz_tz
+from apps.accounting.utils import get_nz_tz
 
 from apps.accounts.utils import get_excluded_staff
 

@@ -37,35 +37,18 @@ Follow these patterns when adding new URLs to maintain consistency.
 """
 
 import debug_toolbar
-from django.contrib.auth import views as auth_views
 from django.urls import include, path
 from django.views.generic import RedirectView
 
 from apps.workflow.api import server
-from apps.workflow.api.reports.pnl import CompanyProfitAndLossReport
 from apps.workflow.api.enums import get_enum_choices
-from apps.workflow.views import (
-    submit_quote_view,
-)
-from apps.workflow.views.kpi_view import KPICalendarViews
 from apps.workflow.views.xero import xero_view
-from apps.workflow.views.report_view import CompanyProfitAndLossView, ReportsIndexView
 
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
     path("api/get-env-variable/", server.get_env_variable, name="get_env_variable"),
     path("api/enums/<str:enum_name>/", get_enum_choices, name="get_enum_choices"),
-    path(
-        "api/reports/company-profit-loss/",
-        CompanyProfitAndLossReport.as_view(),
-        name="api-company-profit-loss",
-    ),
-    path(
-        "api/reports/calendar/",
-        KPICalendarViews.KPICalendarAPIView.as_view(),
-        name="api_kpi_calendar",
-    ),
     path(
         "api/xero/authenticate/",
         xero_view.xero_authenticate,
@@ -120,17 +103,6 @@ urlpatterns = [
         "api/xero/sync/",
         xero_view.start_xero_sync,
         name="synchronise_xero_data",
-    ),
-    path("reports/", ReportsIndexView.as_view(), name="reports_index"),
-    path(
-        "reports/company-profit-loss/",
-        CompanyProfitAndLossView.as_view(),
-        name="company-profit-loss-report",
-    ),
-    path(
-        "reports/calendar/",
-        KPICalendarViews.KPICalendarTemplateView.as_view(),
-        name="kpi_calendar",
     ),
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
     path(

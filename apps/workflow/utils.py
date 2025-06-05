@@ -1,6 +1,5 @@
-from datetime import timezone
 import uuid
-from zoneinfo import ZoneInfo
+
 from django.contrib.messages import get_messages
 import logging
 
@@ -36,25 +35,6 @@ def is_valid_uuid(value: str) -> bool:
         return True
     except (ValueError, TypeError):
         return False
-
-
-def get_nz_tz() -> timezone | ZoneInfo:
-    """
-    Gets the New Zealand timezone object using either zoneinfo or pytz.
-
-    Returns:
-        timezone | ZoneInfo: A timezone object for Pacific/Auckland,
-        using ZoneInfo if available (Python 3.9+) or falling back to pytz
-    """
-    try:
-        from zoneinfo import ZoneInfo
-
-        nz_timezone = ZoneInfo("Pacific/Auckland")
-    except ImportError:
-        import pytz
-
-        nz_timezone = pytz.timezone("Pacific/Auckland")
-    return nz_timezone
 
 
 def get_machine_id(path="/etc/machine-id"):

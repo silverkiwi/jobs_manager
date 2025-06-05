@@ -1,13 +1,12 @@
 import random
 import calendar
 import datetime
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
-from django.db.models import Q
 
 from apps.workflow.models import CompanyDefaults
 
@@ -19,7 +18,7 @@ from apps.timesheet.models import TimeEntry
 
 from apps.client.models import Client
 
-from apps.workflow.utils import get_nz_tz
+from apps.accounting.utils import get_nz_tz
 
 from apps.accounts.models import Staff
 

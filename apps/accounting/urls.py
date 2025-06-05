@@ -1,18 +1,30 @@
 from django.urls import path
 
-import apps.accounting.views as submit_quote_view
+from apps.accounting.views import generate_quote_pdf, send_quote_email
+from apps.accounting.views.kpi_view import KPICalendarTemplateView, KPICalendarAPIView
 
 app_name = "accounting"
+
 
 urlpatterns = [
     path(
         "api/quote/<uuid:job_id>/pdf-preview/",
-        submit_quote_view.generate_quote_pdf,
+        generate_quote_pdf,
         name="generate_quote_pdf",
     ),
     path(
         "api/quote/<uuid:job_id>/send-email/",
-        submit_quote_view.send_quote_email,
+        send_quote_email,
         name="send_quote_email",
+    ),
+    path(
+        "api/reports/calendar/",
+        KPICalendarAPIView.as_view(),
+        name="api_kpi_calendar",
+    ),
+    path(
+        "reports/calendar/",
+        KPICalendarTemplateView.as_view(),
+        name="kpi_calendar",
     ),
 ]
