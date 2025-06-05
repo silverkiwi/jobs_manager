@@ -191,18 +191,29 @@ export function calculateSimpleTotals() {
 }
 
 // Added some aux functions
-function processTimeGrid(section, isRealitySection, simpleTotals) {
-  const timeGridKey = isRealitySection
+function processTimeGrid(section, useComplex, simpleTotals) {
+  // For time grids, we need to distinguish between:
+  // 1. Grid naming logic (reality vs estimate/quote)
+  // 2. Processing logic (complex vs simple)
+  const isRealitySection = section === "reality";
+  const useComplexProcessing = useComplex; // This is the actual logic flag
+  
+  const timeGridKey = useComplexProcessing
     ? `${section}TimeTable`
     : `simple${capitalize(section)}TimeTable`;
 
   const timeApi = window.grids?.[timeGridKey]?.api;
-  if (!timeApi) return;
+  if (!timeApi) {
+    if (Environment.isDebugMode()) {
+      console.log(`Time grid not found: ${timeGridKey}`);
+    }
+    return;
+  }
 
   const updatedTimeRows = [];
 
   timeApi.forEachNode((node) => {
-    if (isRealitySection) {
+    if (useComplexProcessing) {
       processComplexTimeRow(node.data, section, simpleTotals);
       return;
     }
@@ -211,13 +222,13 @@ function processTimeGrid(section, isRealitySection, simpleTotals) {
     processSimpleTimeRow(node.data, section, simpleTotals, updatedTimeRows);
   });
 
-  // Update only for simple
-  if (!isRealitySection && updatedTimeRows.length > 0) {
+  // Update only for simple grids
+  if (!useComplexProcessing && updatedTimeRows.length > 0) {
     timeApi.applyTransaction({ update: updatedTimeRows });
   }
 
   if (Environment.isDebugMode()) {
-    console.log(`Time totals for ${section}:`, {
+    console.log(`Time totals for ${section} (useComplex: ${useComplexProcessing}):`, {
       cost: simpleTotals[section].cost,
       retail: simpleTotals[section].retail,
     });
@@ -225,13 +236,25 @@ function processTimeGrid(section, isRealitySection, simpleTotals) {
 }
 
 function processComplexTimeRow(data, section, simpleTotals) {
-  const totalMinutes = parseFloat(data.total_minutes) || 0;
+  // Handle total_minutes which might be stored as "120 (2.0 hours)" or just "120"
+  let totalMinutes = 0;
+  if (typeof data.total_minutes === 'string') {
+    // Extract numeric part from strings like "120 (2.0 hours)"
+    const match = data.total_minutes.match(/^(\d+(?:\.\d+)?)/);
+    totalMinutes = match ? parseFloat(match[1]) : 0;
+  } else {
+    totalMinutes = parseFloat(data.total_minutes) || 0;
+  }
+  
   const wage = parseFloat(data.wage_rate) || 0;
   const charge = parseFloat(data.charge_out_rate) || 0;
   const hours = totalMinutes / 60;
 
   const cost = hours * wage;
-  const retail = parseFloat(data.revenue) || 0;
+  // For complex time grids, calculate revenue from hours and charge rate
+  // Some grids might have a 'revenue' field, others calculate from total_minutes and charge_out_rate
+  const retail = parseFloat(data.revenue) || (hours * charge);
+  
   simpleTotals[section].cost += cost;
   simpleTotals[section].retail += retail;
 }
