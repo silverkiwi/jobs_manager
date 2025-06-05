@@ -41,6 +41,7 @@ export async function sendQuoteEmail(
       window.open(emailUrl, "_blank");
     } else if (!data.success) {
       console.error("Error sending email:", data.error);
+      throw new Error(data.error || "Failed to send email.");
     }
 
     return data;
