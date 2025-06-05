@@ -319,7 +319,8 @@ export function createCommonGridOptions() {
       }
 
       // Continue with the rest of the switch statement logic
-      switch (gridType) {
+      switch (gridType) {        
+        
         case "TimeTable":
           if (["mins_per_item", "items"].includes(event.column.colId)) {
             const totalMinutes = event.data.items * event.data.mins_per_item;
@@ -331,6 +332,7 @@ export function createCommonGridOptions() {
               force: true,
             });
           }
+          calculateSimpleTotals();
           break;
 
         case "MaterialsTable":
