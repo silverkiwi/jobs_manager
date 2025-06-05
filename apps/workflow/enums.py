@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 # Re-export job-related enums from apps.job.enums for backward compatibility
 from apps.job.enums import (
     JobPricingMethodology,
