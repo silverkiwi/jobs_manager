@@ -5,7 +5,7 @@ from apps.accounts.models import Staff
 
 
 class JobEvent(models.Model):
-    job = models.ForeignKey("Job", on_delete=models.CASCADE, related_name="events")
+    job = models.ForeignKey("Job", on_delete=models.CASCADE, related_name="events", null=True, blank=True)
     timestamp = models.DateTimeField(default=now)
     staff = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, blank=True)
     event_type = models.CharField(

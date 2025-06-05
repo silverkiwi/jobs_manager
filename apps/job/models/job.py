@@ -241,10 +241,9 @@ class Job(models.Model):
 
         company_defaults: CompanyDefaults = get_company_defaults()
         starting_number: int = company_defaults.starting_job_number
-
         highest_job: int = Job.objects.all().aggregate(Max('job_number'))['job_number__max'] or 0
-        
-        return max(starting_number, highest_job + 1)
+        next_job_number = max(starting_number, highest_job + 1)
+        return next_job_number
 
     def save(self, *args, **kwargs):
         from apps.workflow.models import CompanyDefaults
@@ -259,16 +258,18 @@ class Job(models.Model):
             create_creation_event = True
             self.created_by = staff
 
-        # Step 1: Check if this is a new instance (based on `self._state.adding`)
-        if not self.job_number:
-            self.job_number = self.generate_job_number()
-            logger.debug(f"Saving job with job number: {self.job_number}")
-
         if self.charge_out_rate is None:
             company_defaults = CompanyDefaults.objects.first()
             self.charge_out_rate = company_defaults.charge_out_rate
 
         if is_new:
+            # Ensure job_number is generated for new instances before saving
+            self.job_number = self.generate_job_number()
+            if not self.job_number:
+                logger.error("Failed to generate a job number. Cannot save job.")
+                raise ValueError("Job number generation failed.")
+            logger.debug(f"Saving new job with job number: {self.job_number}")
+
             # To assure all jobs have a priority
             with transaction.atomic():
                 default_priority = self._calculate_next_priority_for_status(self.status)

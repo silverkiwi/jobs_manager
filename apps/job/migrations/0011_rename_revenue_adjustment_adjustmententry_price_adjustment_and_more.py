@@ -15,8 +15,4 @@ class Migration(migrations.Migration):
             old_name="revenue_adjustment",
             new_name="price_adjustment",
         ),
-        migrations.AlterModelTable(
-            name="jobpart",
-            table="workflow_part",
-        ),
     ]

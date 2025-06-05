@@ -10,6 +10,7 @@ import logging
 
 from apps.workflow.models.xero_token import XeroToken
 from apps.workflow.services.xero_sync_service import XeroSyncService
+from apps.workflow.api.xero.sync import synchronise_xero_data
 
 logger = logging.getLogger("xero")
 
@@ -26,12 +27,23 @@ class Command(BaseCommand):
         logger.setLevel(logging.INFO)
 
         logger.info("Attempting to start a manual Xero synchronization...")
-        task_id, is_new = XeroSyncService.start_sync()
+        logger.info("Starting manual Xero synchronization...")
+        try:
+            for message in synchronise_xero_data():
+                # Log messages from the sync process
+                severity = message.get('severity', 'info')
+                msg_text = message.get('message', 'No message')
+                entity = message.get('entity', 'N/A')
+                progress = message.get('progress', 'N/A')
+                
+                log_func = getattr(logger, severity, logger.info)
+                progress_display = "N/A" if not isinstance(progress, (int, float)) else f"{progress:.2f}"
+                log_func(f"Sync Progress ({entity}): {msg_text} (Progress: {progress_display})")
 
-        if is_new:
-            logger.info(f"Manual Xero sync initiated successfully: {task_id}")
-        else:
-            logger.info(f"Manual Xero sync skipped (already running or recently completed): {task_id}")
+            logger.info("Manual Xero synchronization completed successfully.")
+        except Exception as e:
+            logger.error(f"Error during manual Xero synchronization: {e}", exc_info=True)
+            self.stderr.write(self.style.ERROR(f"Xero sync failed: {e}")) 
 
         close_old_connections()
         logger.info("Manual Xero synchronization command finished.")

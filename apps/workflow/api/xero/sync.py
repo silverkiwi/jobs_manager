@@ -106,9 +106,13 @@ def sync_xero_data(
     current_batch_start = 0
 
     base_params = {
-        "xero_tenant_id": xero_tenant_id,
         "if_modified_since": last_modified_time,
+        "xero_tenant_id": xero_tenant_id
+
     }
+
+    if xero_api_fetch_function == get_xero_items:
+        base_params.pop("xero_tenant_id", None)  # Bug workaround: get_xero_items does not support tenant ID
 
     # Only add pagination parameters for supported endpoints
     if pagination_mode == "page" and xero_entity_type not in ["quotes", "accounts"]:
@@ -133,7 +137,13 @@ def sync_xero_data(
             if entities is None:
                 logger.error(f"API call returned None for {xero_entity_type}")
                 raise ValueError(f"API call returned None for {xero_entity_type}")
-            items = getattr(entities, xero_entity_type, [])  # Extract the relevant data.
+            # Extract the relevant data. For some entities (like 'items'), the API directly returns a list.
+            # For others (like 'accounts'), it returns an object with an attribute containing the list.
+            if isinstance(entities, list):
+                logger.warning("Xero entities is a list, using it directly! Workaround fo Xero Items")
+                items = entities
+            else:
+                items = getattr(entities, xero_entity_type)
 
             if not items:
                 logger.info("No items to sync.")
@@ -189,6 +199,16 @@ def sync_xero_data(
                         "progress": 0.0,
                         "totalItems": total_items
                     }
+                case "items":
+                    total_items = len(items)
+                    yield {
+                        "datetime": timezone.now().isoformat(),
+                        "entity": our_entity_type,
+                        "severity": "info",
+                        "message": f"Found {total_items} items to sync",
+                        "progress": 0.0,
+                        "totalItems": total_items
+                    }
                 case _:
                     raise ValueError(f"Unexpected entity type: {xero_entity_type}")
 
@@ -213,6 +233,8 @@ def sync_xero_data(
                         message = f"Processed {total_processed} of {total_items} quotes"
                     case "accounts":
                         message = f"Processed {total_processed} of {total_items} accounts"
+                    case "items":
+                        message = f"Processed {total_processed} of {total_items} items"
                     case _:
                         raise ValueError(f"Unexpected entity type: {xero_entity_type}")
                 
@@ -519,24 +541,26 @@ def sync_items(items_data):
         stock_item.description = getattr(item_data, "name", "") # Xero 'Name' to Stock 'description'
         stock_item.notes = getattr(item_data, "description", "") # Xero 'Description' to Stock 'notes'
 
+        # Xero Items API does not provide a direct 'quantity on hand'. Default to 0.
+        # Actual quantity will be managed through other Xero transactions.
+        stock_item.quantity = Decimal('0.00')
+
         # Handle PurchaseDetails and SalesDetails
         # For new items, prices must be present. For existing, only update if Xero provides a value.
         if item_data.purchase_details and item_data.purchase_details.unit_price is not None:
             stock_item.unit_cost = Decimal(str(item_data.purchase_details.unit_price))
         elif created:
-            # Fail early: New stock item must have a purchase price
-            error_msg = f"New Stock item (Xero ID: {xero_id}) is missing PurchaseDetails.UnitPrice. Aborting sync for this item."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
+            # New stock item is missing a purchase price, default to 0.00
+            logger.warning(f"New Stock item (Xero ID: {xero_id}) is missing PurchaseDetails.UnitPrice. Defaulting to 0.00.")
+            stock_item.unit_cost = Decimal('0.00')
         # Else: if not created and unit_price is None, do not update stock_item.unit_cost (preserve existing)
 
         if item_data.sales_details and item_data.sales_details.unit_price is not None:
             stock_item.retail_rate = Decimal(str(item_data.sales_details.unit_price))
         elif created:
-            # Fail early: New stock item must have a sale price
-            error_msg = f"New Stock item (Xero ID: {xero_id}) is missing SalesDetails.UnitPrice. Aborting sync for this item."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
+            # New stock item is missing a sale price, default to 0.00
+            logger.warning(f"New Stock item (Xero ID: {xero_id}) is missing SalesDetails.UnitPrice. Defaulting to 0.00.")
+            stock_item.retail_rate = Decimal('0.00')
         # Else: if not created and unit_price is None, do not update stock_item.retail_rate (preserve existing)
 
         # Store raw JSON and last modified date
@@ -1097,7 +1121,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             'journal': get_last_modified_time(XeroJournal),
             'quote': get_last_modified_time(Quote),
             'purchase_order': get_last_modified_time(PurchaseOrder),
-            'item': get_last_modified_time(Stock), # Add for Items
+            'stock': get_last_modified_time(Stock), # Add for Items
         }
     else:
         # Use fixed timestamp from days_back (covers both regular deep syncs, and the initial sync)
@@ -1112,6 +1136,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             'journal': older_time,
             'quote': older_time,
             'purchase_order': older_time,
+            'stock': older_time,
         }
 
     logger.info("Starting first sync_xero_data call for accounts")
@@ -1186,7 +1211,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
         our_entity_type="Stock",
         xero_api_fetch_function=get_xero_items,
         sync_function=sync_items,
-        last_modified_time=timestamps['item'],
+        last_modified_time=timestamps['stock'],
         pagination_mode="single",
     )
 

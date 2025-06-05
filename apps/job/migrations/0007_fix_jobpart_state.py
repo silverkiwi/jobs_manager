@@ -12,7 +12,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
-                migrations.RemoveField(model_name="jobpart", name="job"),
                 migrations.AddField(
                     model_name="jobpart",
                     name="job_pricing",
