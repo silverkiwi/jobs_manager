@@ -23,7 +23,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    'django.contrib.sites',
+    "django.contrib.sites",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "django_tables2",
@@ -62,7 +62,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
-    ]
+    ],
 }
 
 if ENABLE_JWT_AUTH:
@@ -103,7 +103,7 @@ LOGIN_EXEMPT_URLS = [
     "accounts:password_reset_done",
     "accounts:reset",
     "accounts:password_reset_confirm",
-    "accounts:password_reset_complete"
+    "accounts:password_reset_complete",
 ]
 
 LOGGING = {
@@ -187,7 +187,8 @@ LOGGING = {
         # workflow writes to app_file, and bubbles up
         "workflow": {
             "handlers": ["app_file"],
-            "level": "DEBUG",        "propagate": True,
+            "level": "DEBUG",
+            "propagate": True,
         },
         "apps.purchasing.views": {
             "handlers": ["purchase_file"],
@@ -217,7 +218,6 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            
             os.path.join(BASE_DIR, "apps/workflow/templates"),
             os.path.join(BASE_DIR, "apps/accounts/templates"),
             os.path.join(BASE_DIR, "apps/timesheet/templates"),
@@ -263,11 +263,11 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
         "OPTIONS": {
             "user_attributes": ["email", "first_name", "last_name", "preferred_name"],
-        }
+        },
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": { "min_length": 10 }
+        "OPTIONS": {"min_length": 10},
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -322,7 +322,7 @@ STATICFILES_DIRS = [
     ("fullcalendar-interaction", "node_modules/@fullcalendar/interaction"),
     ("fullcalendar-timegrid", "node_modules/@fullcalendar/timegrid"),
     # Chart.js (JS)
-    ("chart.js", "node_modules/chart.js/dist")
+    ("chart.js", "node_modules/chart.js/dist"),
 ]
 
 # Default primary key field type
@@ -340,17 +340,19 @@ XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID", "")
 XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET", "")
 XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI", "")
 # Default scopes if not specified in .env
-DEFAULT_XERO_SCOPES = " ".join([
-    "offline_access",
-    "openid",
-    "profile",
-    "email",
-    "accounting.contacts",
-    "accounting.transactions",
-    "accounting.reports.read",
-    "accounting.settings",
-    "accounting.journals.read",
-])
+DEFAULT_XERO_SCOPES = " ".join(
+    [
+        "offline_access",
+        "openid",
+        "profile",
+        "email",
+        "accounting.contacts",
+        "accounting.transactions",
+        "accounting.reports.read",
+        "accounting.settings",
+        "accounting.journals.read",
+    ]
+)
 XERO_SCOPES = os.getenv("XERO_SCOPES", DEFAULT_XERO_SCOPES).split()
 
 # Hardcoded production Xero tenant ID
@@ -362,7 +364,10 @@ PRODUCTION_XERO_TENANT_ID = "75e57cfd-302d-4f84-8734-8aae354e76a7"
 # If the server is ever replaced, edit this using /etc/machine-id
 PRODUCTION_MACHINE_ID = "19d6339c35f7416b9f41d9a35dba6111"
 
-DROPBOX_WORKFLOW_FOLDER = os.getenv('DROPBOX_WORKFLOW_FOLDER', os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow"))
+DROPBOX_WORKFLOW_FOLDER = os.getenv(
+    "DROPBOX_WORKFLOW_FOLDER",
+    os.path.join(os.path.expanduser("~"), "Dropbox/MSM Workflow"),
+)
 
 SITE_ID = 1
 
@@ -370,14 +375,15 @@ SITE_ID = 1
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 
+
 def validate_required_settings():
     """Validate that all required settings are properly configured."""
     required_settings = {
-        'SECRET_KEY': SECRET_KEY,
-        'DROPBOX_WORKFLOW_FOLDER': DROPBOX_WORKFLOW_FOLDER,
-        'XERO_CLIENT_ID': XERO_CLIENT_ID,
-        'XERO_CLIENT_SECRET': XERO_CLIENT_SECRET,
-        'XERO_REDIRECT_URI': XERO_REDIRECT_URI,
+        "SECRET_KEY": SECRET_KEY,
+        "DROPBOX_WORKFLOW_FOLDER": DROPBOX_WORKFLOW_FOLDER,
+        "XERO_CLIENT_ID": XERO_CLIENT_ID,
+        "XERO_CLIENT_SECRET": XERO_CLIENT_SECRET,
+        "XERO_REDIRECT_URI": XERO_REDIRECT_URI,
         # PRODUCTION_XERO_TENANT_ID and PRODUCTION_MACHINE_ID are hardcoded, no need to validate their presence in env
     }
 
@@ -388,6 +394,7 @@ def validate_required_settings():
             f"The following required settings are missing or empty: {', '.join(missing_settings)}\n"
             f"Please check your .env file and ensure all required settings are configured."
         )
+
 
 # Validate required settings after all settings are loaded
 validate_required_settings()

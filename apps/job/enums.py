@@ -6,23 +6,26 @@ class JobPricingStage(models.TextChoices):
     """
     Define the different stages of job pricing calculations
     """
-    ESTIMATE = 'estimate', 'Estimate'
-    QUOTE = 'quote', 'Quote'
-    REALITY = 'reality', 'Reality'
+
+    ESTIMATE = "estimate", "Estimate"
+    QUOTE = "quote", "Quote"
+    REALITY = "reality", "Reality"
 
 
 class JobPricingMethodology(models.TextChoices):
     """
     Define the pricing methodology used for a job
     """
-    TIME_AND_MATERIALS = 'time_materials', 'Time and Materials'
-    FIXED_PRICE = 'fixed_price', 'Fixed Price'
+
+    TIME_AND_MATERIALS = "time_materials", "Time and Materials"
+    FIXED_PRICE = "fixed_price", "Fixed Price"
 
 
 class QuoteStatus(models.TextChoices):
     """
     Status options for quotes
     """
+
     DRAFT = "DRAFT", "Draft"
     SENT = "SENT", "Sent"
     DECLINED = "DECLINED", "Declined"
@@ -35,6 +38,7 @@ class InvoiceStatus(models.TextChoices):
     """
     Status options for invoices
     """
+
     DRAFT = "DRAFT", "Draft"
     SUBMITTED = "SUBMITTED", "Submitted"
     AUTHORISED = "AUTHORISED", "Authorised"
@@ -47,6 +51,7 @@ class MetalType(models.TextChoices):
     """
     Types of metal used in jobs
     """
+
     STAINLESS_STEEL = "stainless_steel", "Stainless Steel"
     MILD_STEEL = "mild_steel", "Mild Steel"
     ALUMINUM = "aluminum", "Aluminum"
@@ -63,6 +68,7 @@ class RateType(models.TextChoices):
     """
     Types of pay rates for job time entries
     """
+
     ORDINARY = "Ord", "Ordinary Time"
     TIME_AND_HALF = "1.5", "Time and a Half"
     DOUBLE_TIME = "2.0", "Double Time"

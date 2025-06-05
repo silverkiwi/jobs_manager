@@ -14,12 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 def kanban_view(request: HttpRequest) -> HttpResponse:
-    active_jobs = Job.objects.filter(~Q(status="archived")).order_by("status", "priority")
+    active_jobs = Job.objects.filter(~Q(status="archived")).order_by(
+        "status", "priority"
+    )
 
     archived_jobs = Job.objects.filter(status="archived").order_by("-created_at")[:50]
 
-    active_status_choices = [(key, label) for key, label in Job.JOB_STATUS_CHOICES if key != "archived"]
-    active_status_tooltips = {key: Job.STATUS_TOOLTIPS[key] for key in Job.STATUS_TOOLTIPS if key != "archived"}
+    active_status_choices = [
+        (key, label) for key, label in Job.JOB_STATUS_CHOICES if key != "archived"
+    ]
+    active_status_tooltips = {
+        key: Job.STATUS_TOOLTIPS[key]
+        for key in Job.STATUS_TOOLTIPS
+        if key != "archived"
+    }
     context = {
         "jobs": active_jobs,
         "latest_archived_jobs": archived_jobs,
@@ -51,7 +59,9 @@ def update_job_status(request: HttpRequest, job_id: UUID) -> HttpResponse:
     return JsonResponse({"success": False, "error": "Invalid request method"})
 
 
-def _get_adjacent_priorities(before_id: str, after_id: str) -> tuple[int | None, int | None]:
+def _get_adjacent_priorities(
+    before_id: str, after_id: str
+) -> tuple[int | None, int | None]:
     """
     Return (before_priority, after_priority), fetching from DB if IDs are provided.
     If an ID is invalid or the job does not exist, raises Job.DoesNotExist.
@@ -81,7 +91,9 @@ def _rebalance_column(status: str) -> None:
             job.save(update_fields=["priority"])
 
 
-def _calculate_priority(before_prio: int | None, after_prio: int | None, status: str) -> int:
+def _calculate_priority(
+    before_prio: int | None, after_prio: int | None, status: str
+) -> int:
     """
     Determine the new priority given before_prio and after_prio.
     Cases:
@@ -95,7 +107,12 @@ def _calculate_priority(before_prio: int | None, after_prio: int | None, status:
     match (before_prio, after_prio):
         case (None, None):
             # No adjacent jobs; place at end
-            max_prio = Job.objects.filter(status=status).aggregate(Max("priority"))["priority__max"] or 0
+            max_prio = (
+                Job.objects.filter(status=status).aggregate(Max("priority"))[
+                    "priority__max"
+                ]
+                or 0
+            )
             return max_prio + increment
 
         case (None, after) if after is not None:
@@ -125,7 +142,12 @@ def _calculate_priority(before_prio: int | None, after_prio: int | None, status:
 
         case _:
             # Fallback: push to end if anything unexpected happens
-            max_prio = Job.objects.filter(status=status).aggregate(Max("priority"))["priority__max"] or 0
+            max_prio = (
+                Job.objects.filter(status=status).aggregate(Max("priority"))[
+                    "priority__max"
+                ]
+                or 0
+            )
             return max_prio + increment
 
 
@@ -157,7 +179,7 @@ def reorder_job(request: HttpRequest, job_id: UUID) -> HttpResponse:
     new_priority = _calculate_priority(before_prio, after_prio, job.status)
     job.priority = new_priority
 
-    old_status = job.status 
+    old_status = job.status
 
     if new_status and new_status != job.status:
         job.status = new_status
@@ -181,11 +203,11 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
             for term in search_terms:
                 # Each term should correspond to at least one field
                 term_query = (
-                    Q(name__icontains=term) |
-                    Q(description__icontains=term) |
-                    Q(client__name__icontains=term) |
-                    Q(contact_person__icontains=term) |
-                    Q(created_by__username__icontains=term)
+                    Q(name__icontains=term)
+                    | Q(description__icontains=term)
+                    | Q(client__name__icontains=term)
+                    | Q(contact_person__icontains=term)
+                    | Q(created_by__username__icontains=term)
                 )
                 query &= term_query
             jobs_query = jobs_query.filter(query)
@@ -193,13 +215,13 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
         jobs = jobs_query.order_by("priority", "-created_at")
 
         total_jobs = Job.objects.filter(status=status).count()
-        
+
         match status:
             case "archived":
                 jobs = jobs[:100]
             case _:
                 jobs = jobs[:200]
-            
+
         total_filtered = jobs.count()
 
         logger.info(f"Found {total_jobs} jobs, returning {total_filtered} jobs")
@@ -215,7 +237,11 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
                     {
                         "id": staff.id,
                         "display_name": staff.get_display_full_name(),
-                        "icon": request.build_absolute_uri(staff.icon.url) if staff.icon else None,
+                        "icon": (
+                            request.build_absolute_uri(staff.icon.url)
+                            if staff.icon
+                            else None
+                        ),
                     }
                     for staff in job.people.all()
                 ],
@@ -226,35 +252,37 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
             for job in jobs
         ]
 
-        return JsonResponse({
-            "success": True,
-            "jobs": job_data,
-            "total": total_jobs,
-            "filtered_count": total_filtered,
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "jobs": job_data,
+                "total": total_jobs,
+                "filtered_count": total_filtered,
+            }
+        )
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
-    
+
 
 def fetch_status_values(request: HttpRequest) -> JsonResponse:
     """Return available status values for Kanban"""
     try:
-        status_choices = {key: label for key, label in Job.JOB_STATUS_CHOICES if key != "archived"}
+        status_choices = {
+            key: label for key, label in Job.JOB_STATUS_CHOICES if key != "archived"
+        }
 
-        status_tooltips = {key: Job.STATUS_TOOLTIPS.get(key, "")
-                           for key in status_choices.keys() if key in Job.STATUS_TOOLTIPS}
-        
-        return JsonResponse({
-            "success": True,
-            "statuses": status_choices,
-            "tooltips": status_tooltips
-        })
+        status_tooltips = {
+            key: Job.STATUS_TOOLTIPS.get(key, "")
+            for key in status_choices.keys()
+            if key in Job.STATUS_TOOLTIPS
+        }
+
+        return JsonResponse(
+            {"success": True, "statuses": status_choices, "tooltips": status_tooltips}
+        )
     except Exception as e:
-        return JsonResponse({
-            "success": False,
-            "error": str(e)
-        })
-    
+        return JsonResponse({"success": False, "error": str(e)})
+
 
 def advanced_search(request: HttpRequest) -> JsonResponse:
     """Endpoint for advanced job search"""
@@ -277,7 +305,7 @@ def advanced_search(request: HttpRequest) -> JsonResponse:
 
         if name:
             jobs_query = jobs_query.filter(name__icontains=name)
-        
+
         if description:
             jobs_query = jobs_query.filter(description__icontains=description)
 
@@ -286,25 +314,25 @@ def advanced_search(request: HttpRequest) -> JsonResponse:
 
         if contact_person:
             jobs_query = jobs_query.filter(contact_person__icontains=contact_person)
-        
+
         if created_by:
             jobs_query = jobs_query.filter(events__staff=created_by)
-            
+
         if created_after:
             jobs_query = jobs_query.filter(created_at__gte=created_after)
-        
+
         if created_before:
             jobs_query = jobs_query.filter(created_at__lte=created_before)
 
         if statuses:
             jobs_query = jobs_query.filter(status__in=statuses)
-        
+
         match paid:
             case "true":
                 jobs_query = jobs_query.filter(paid=True)
             case "false":
                 jobs_query = jobs_query.filter(paid=False)
-        
+
         jobs = jobs_query.order_by("-created_at")
 
         job_data = [
@@ -314,25 +342,28 @@ def advanced_search(request: HttpRequest) -> JsonResponse:
                 "description": job.description,
                 "job_number": job.job_number,
                 "client_name": job.client.name if job.client else "",
-                "people": [(staff.get_display_name(), staff.icon) for staff in job.people.all()],
+                "people": [
+                    (staff.get_display_name(), staff.icon) for staff in job.people.all()
+                ],
                 "contact_person": job.contact_person,
                 "status": job.get_status_display(),
                 "status_key": job.status,
-                "created_by": job.created_by.get_display_name() if job.created_by else "",
+                "created_by": (
+                    job.created_by.get_display_name() if job.created_by else ""
+                ),
                 "created_at": job.created_at.strftime("%d/%m/%Y"),
                 "paid": job.paid,
             }
             for job in jobs
         ]
 
-        return JsonResponse({
-            "success": True,
-            "jobs": job_data,
-            "total": len(job_data),
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "jobs": job_data,
+                "total": len(job_data),
+            }
+        )
     except Exception as e:
         logger.error(f"Error in advanced search: {e}")
-        return JsonResponse({
-            "success": False,
-            "error": str(e)
-        })
+        return JsonResponse({"success": False, "error": str(e)})

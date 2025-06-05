@@ -1,11 +1,14 @@
 /**
  * Purchase Order Event Handlers
- * 
+ *
  * Sets up event listeners for the purchase order form
  */
 
 import { getState, updateState } from "./purchase_order_state.js";
-import { createNewRowShortcut, updateGridEditability } from "./purchase_order_grid.js";
+import {
+  createNewRowShortcut,
+  updateGridEditability,
+} from "./purchase_order_grid.js";
 import { debouncedAutosave } from "./purchase_order_autosave.js";
 import { deleteXeroPurchaseOrder } from "./purchase_order_xero_actions.js";
 import { renderMessages } from "./messages.js";
@@ -17,9 +20,9 @@ export function setupEventListeners() {
   const purchaseOrderId = getPurchaseOrderId();
 
   // Add event listener for the "Add Item" button
-  const addButton = document.getElementById('add-line-item');
+  const addButton = document.getElementById("add-line-item");
   if (addButton) {
-    addButton.addEventListener('click', function () {
+    addButton.addEventListener("click", function () {
       const state = getState();
       if (!state.grid || !state.grid.api) {
         console.error("Grid not initialized");
@@ -53,10 +56,11 @@ export function setupEventListeners() {
               [
                 {
                   level: "error",
-                  message: "Cannot change status from Draft: Supplier must be found in Xero first. Please select or create a supplier.",
+                  message:
+                    "Cannot change status from Draft: Supplier must be found in Xero first. Please select or create a supplier.",
                 },
               ],
-              "purchase-order"
+              "purchase-order",
             );
 
             // Reset the dropdown to draft
@@ -68,15 +72,17 @@ export function setupEventListeners() {
         // Only process if status actually changed
         if (oldStatus !== newStatus) {
           // Clean up any existing UI elements
-          document.querySelectorAll('.alert').forEach(notice => {
-            notice.style.display = 'none';
+          document.querySelectorAll(".alert").forEach((notice) => {
+            notice.style.display = "none";
           });
 
           // Reset all UI styles
-          document.querySelectorAll('.form-control-plaintext, .border-warning').forEach(el => {
-            el.classList.remove('form-control-plaintext', 'border-warning');
-            if (el.tagName === 'INPUT') el.classList.add('form-control');
-          });
+          document
+            .querySelectorAll(".form-control-plaintext, .border-warning")
+            .forEach((el) => {
+              el.classList.remove("form-control-plaintext", "border-warning");
+              if (el.tagName === "INPUT") el.classList.add("form-control");
+            });
 
           // Update state with new status
           updateState({
@@ -84,10 +90,10 @@ export function setupEventListeners() {
               ...state.purchaseData,
               purchaseOrder: {
                 ...state.purchaseData.purchaseOrder,
-                status: newStatus
-              }
+                status: newStatus,
+              },
             },
-            isReadOnly: newStatus !== "draft"
+            isReadOnly: newStatus !== "draft",
           });
 
           // Just update grid editability - the form will be refreshed with the autosave
@@ -106,13 +112,15 @@ export function setupEventListeners() {
     printButton.addEventListener("click", async () => {
       try {
         if (!purchaseOrderId) {
-          throw new Error('Purchase Order ID not found');
+          throw new Error("Purchase Order ID not found");
         }
 
-        const response = await fetch(`/purchasing/api/purchase-orders/${purchaseOrderId}/pdf`);
+        const response = await fetch(
+          `/purchasing/api/purchase-orders/${purchaseOrderId}/pdf`,
+        );
 
         if (!response.ok) {
-          throw new Error('Failed to generate Purchase Order PDF');
+          throw new Error("Failed to generate Purchase Order PDF");
         }
 
         const blob = await response.blob();
@@ -120,18 +128,23 @@ export function setupEventListeners() {
         const pdfWindow = window.open(url, "_blank");
 
         if (!pdfWindow) {
-          throw new Error('Popup blocked. Please allow popups to print the purchase order');
+          throw new Error(
+            "Popup blocked. Please allow popups to print the purchase order",
+          );
         }
 
         pdfWindow.print();
       } catch (error) {
-        console.error('Print error:', error);
-        renderMessages([
-          {
-            level: "error",
-            message: `Unable to print: ${error.message}`
-          }
-        ], "toast-container");
+        console.error("Print error:", error);
+        renderMessages(
+          [
+            {
+              level: "error",
+              message: `Unable to print: ${error.message}`,
+            },
+          ],
+          "toast-container",
+        );
       }
     });
   }
@@ -144,18 +157,23 @@ export function setupEventListeners() {
         const response = await fetch(endpoint, {
           method: "POST",
           headers: {
-            "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
-            "Content-Type": "application/json"
-          }
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+              .value,
+            "Content-Type": "application/json",
+          },
         });
         const data = await response.json();
 
         if (!data.success) {
-          throw new Error(`Error sending e-mail: ${data.error || 'contact the admin!'}`);
+          throw new Error(
+            `Error sending e-mail: ${data.error || "contact the admin!"}`,
+          );
         }
 
         if (!data.mailto_url) {
-          throw new Error(`Error sending e-mail: ${data.error || 'contact the admin!'}`);
+          throw new Error(
+            `Error sending e-mail: ${data.error || "contact the admin!"}`,
+          );
         }
 
         // If no PDF, then we can just open the e-mail directly
@@ -165,8 +183,8 @@ export function setupEventListeners() {
         }
 
         const pdfBlob = new Blob(
-          [Uint8Array.from(atob(data.pdf_content), c => c.charCodeAt(0))],
-          { type: 'application/pdf' }
+          [Uint8Array.from(atob(data.pdf_content), (c) => c.charCodeAt(0))],
+          { type: "application/pdf" },
         );
 
         const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -181,18 +199,23 @@ export function setupEventListeners() {
 
         document.body.removeChild(downloadLink);
 
-        const enhancedBody = decodeURIComponent(data.body) + "\n\n--- \n***⚠️Note for MSM Staff⚠️***: Please attach the Purchase Order PDF file that was just downloaded."
+        const enhancedBody =
+          decodeURIComponent(data.body) +
+          "\n\n--- \n***⚠️Note for MSM Staff⚠️***: Please attach the Purchase Order PDF file that was just downloaded.";
 
         const emailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${data.email}&su=${encodeURIComponent(data.subject)}&body=${encodeURIComponent(enhancedBody)}`;
         window.open(emailUrl, "_blank");
       } catch (error) {
-        console.error('Print error:', error);
-        renderMessages([
-          {
-            level: "error",
-            message: `Unable to print: ${error}`
-          }
-        ], "toast-container");
+        console.error("Print error:", error);
+        renderMessages(
+          [
+            {
+              level: "error",
+              message: `Unable to print: ${error}`,
+            },
+          ],
+          "toast-container",
+        );
       }
     });
   }
@@ -204,7 +227,9 @@ export function setupEventListeners() {
       if (purchaseOrderId) {
         deleteXeroPurchaseOrder(purchaseOrderId);
       } else {
-        console.error("Cannot delete Xero PO: Purchase Order ID not found in hidden input.");
+        console.error(
+          "Cannot delete Xero PO: Purchase Order ID not found in hidden input.",
+        );
         renderMessages(
           [
             {
@@ -212,7 +237,7 @@ export function setupEventListeners() {
               message: "Cannot delete Xero PO: Purchase Order ID not found.",
             },
           ],
-          "toast-container"
+          "toast-container",
         );
       }
     });
@@ -221,7 +246,7 @@ export function setupEventListeners() {
 
 /**
  * Gets the PO ID based on the input element present in the template.
- * 
+ *
  * @returns {String | null} The purchase order ID based on the input value, or null if the element is not found or if the value is blank.
  */
 function getPurchaseOrderId() {
@@ -231,5 +256,5 @@ function getPurchaseOrderId() {
     return null;
   }
 
-  return purchaseOrderIdInput.value !== '' ? purchaseOrderIdInput.value : null;
+  return purchaseOrderIdInput.value !== "" ? purchaseOrderIdInput.value : null;
 }

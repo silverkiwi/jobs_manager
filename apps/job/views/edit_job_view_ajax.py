@@ -78,18 +78,24 @@ def fetch_job_pricing_api(request):
     pricing_methodology = request.GET.get("pricing_methodology")
 
     if not job_id or not pricing_methodology:
-        return JsonResponse({"error": "Missing job_id or pricing_methodology"}, status=400)
+        return JsonResponse(
+            {"error": "Missing job_id or pricing_methodology"}, status=400
+        )
 
     try:
         # Retrieve the job with related pricings using the service function
         job = get_job_with_pricings(job_id)
 
         # Retrieve the pricing data by filtering the job pricings based on pricing_methodology
-        pricing_data = job.pricings.filter(pricing_methodology=pricing_methodology).values()
+        pricing_data = job.pricings.filter(
+            pricing_methodology=pricing_methodology
+        ).values()
 
         if not pricing_data.exists():
             return JsonResponse(
-                {"error": "No data found for the provided job_id and pricing_methodology"},
+                {
+                    "error": "No data found for the provided job_id and pricing_methodology"
+                },
                 status=404,
             )
 
@@ -137,55 +143,67 @@ def edit_job_view_ajax(request, job_id=None):
     for pricing in historical_job_pricings:
         # Create the base structure with FLAT prefixed fields
         pricing_data = {
-            'id': str(pricing.id),
-            'created_at': pricing.created_at.isoformat(),
+            "id": str(pricing.id),
+            "created_at": pricing.created_at.isoformat(),
         }
-        
+
         # Determine which pricing section this historical record belongs to
         section_prefix = pricing.pricing_stage
-        
+
         # Process time entries
         time_entries = []
         time_cost_total = 0
         time_revenue_total = 0
-        
+
         for entry in pricing.time_entries.all():
             # Calculate cost and revenue
-            cost = entry.wage_rate * entry.hours if hasattr(entry, 'wage_rate') and hasattr(entry, 'hours') else 0
-            revenue = entry.charge_out_rate * entry.hours if hasattr(entry, 'charge_out_rate') and hasattr(entry, 'hours') else 0
-            
+            cost = (
+                entry.wage_rate * entry.hours
+                if hasattr(entry, "wage_rate") and hasattr(entry, "hours")
+                else 0
+            )
+            revenue = (
+                entry.charge_out_rate * entry.hours
+                if hasattr(entry, "charge_out_rate") and hasattr(entry, "hours")
+                else 0
+            )
+
             # Add to totals
             time_cost_total += cost
             time_revenue_total += revenue
-            
+
             # Create entry object
-            time_entries.append({
-                'id': str(entry.id),
-                'description': entry.description if hasattr(entry, 'description') else '',
-                'hours': entry.hours if hasattr(entry, 'hours') else 0,
-                'cost': cost,
-                'revenue': revenue,
-            })
-        
+            time_entries.append(
+                {
+                    "id": str(entry.id),
+                    "description": (
+                        entry.description if hasattr(entry, "description") else ""
+                    ),
+                    "hours": entry.hours if hasattr(entry, "hours") else 0,
+                    "cost": cost,
+                    "revenue": revenue,
+                }
+            )
+
         # Assign with prefixed keys - THIS IS THE KEY CHANGE
-        pricing_data[f'{section_prefix}_time_entries'] = time_entries
-        pricing_data[f'{section_prefix}_time_cost'] = time_cost_total
-        pricing_data[f'{section_prefix}_time_revenue'] = time_revenue_total
-        
+        pricing_data[f"{section_prefix}_time_entries"] = time_entries
+        pricing_data[f"{section_prefix}_time_cost"] = time_cost_total
+        pricing_data[f"{section_prefix}_time_revenue"] = time_revenue_total
+
         # Process material entries
         material_entries = []
         material_cost_total = 0
         material_revenue_total = 0
-        
+
         for entry in pricing.material_entries.all():
             # Calculate cost and revenue
-            quantity = entry.quantity if hasattr(entry, 'quantity') else 0
-            unit_cost = entry.unit_cost if hasattr(entry, 'unit_cost') else 0
-            unit_revenue = entry.unit_revenue if hasattr(entry, 'unit_revenue') else 0
-            
+            quantity = entry.quantity if hasattr(entry, "quantity") else 0
+            unit_cost = entry.unit_cost if hasattr(entry, "unit_cost") else 0
+            unit_revenue = entry.unit_revenue if hasattr(entry, "unit_revenue") else 0
+
             cost = quantity * unit_cost
             revenue = quantity * unit_revenue
-            
+
             # Add to totals
             material_cost_total += cost
             material_revenue_total += revenue
@@ -194,67 +212,88 @@ def edit_job_view_ajax(request, job_id=None):
             po_url = None
             if entry.purchase_order_line and entry.purchase_order_line.purchase_order:
                 try:
-                    po_url = reverse('purchasing:purchase_orders_detail', kwargs={'pk': entry.purchase_order_line.purchase_order.id})
+                    po_url = reverse(
+                        "purchasing:purchase_orders_detail",
+                        kwargs={"pk": entry.purchase_order_line.purchase_order.id},
+                    )
                 except Exception as e:
-                    logger.error(f"Error generating PO URL for material entry {entry.id}: {e}")
-            
+                    logger.error(
+                        f"Error generating PO URL for material entry {entry.id}: {e}"
+                    )
+
             # Create entry object
-            material_entries.append({
-                'id': str(entry.id),
-                'description': entry.description if hasattr(entry, 'description') else '',
-                'quantity': quantity,
-                'cost': cost,
-                'revenue': revenue,
-                'unit_cost': unit_cost,
-                'unit_revenue': unit_revenue,
-                'po_url': po_url,  # <-- Add the PO URL here
-            })
-        
+            material_entries.append(
+                {
+                    "id": str(entry.id),
+                    "description": (
+                        entry.description if hasattr(entry, "description") else ""
+                    ),
+                    "quantity": quantity,
+                    "cost": cost,
+                    "revenue": revenue,
+                    "unit_cost": unit_cost,
+                    "unit_revenue": unit_revenue,
+                    "po_url": po_url,  # <-- Add the PO URL here
+                }
+            )
+
         # Assign with prefixed keys
-        pricing_data[f'{section_prefix}_material_entries'] = material_entries
-        pricing_data[f'{section_prefix}_material_cost'] = material_cost_total
-        pricing_data[f'{section_prefix}_material_revenue'] = material_revenue_total
-        
+        pricing_data[f"{section_prefix}_material_entries"] = material_entries
+        pricing_data[f"{section_prefix}_material_cost"] = material_cost_total
+        pricing_data[f"{section_prefix}_material_revenue"] = material_revenue_total
+
         # Process adjustment entries
         adjustment_entries = []
         adjustment_cost_total = 0
         adjustment_revenue_total = 0
-        
+
         for entry in pricing.adjustment_entries.all():
             # Get cost and revenue adjustments
-            cost_adjustment = entry.cost_adjustment if hasattr(entry, 'cost_adjustment') else 0
-            price_adjustment = entry.price_adjustment if hasattr(entry, 'price_adjustment') else 0
-            
+            cost_adjustment = (
+                entry.cost_adjustment if hasattr(entry, "cost_adjustment") else 0
+            )
+            price_adjustment = (
+                entry.price_adjustment if hasattr(entry, "price_adjustment") else 0
+            )
+
             # Add to totals
             adjustment_cost_total += cost_adjustment
             adjustment_revenue_total += price_adjustment
-            
+
             # Create entry object
-            adjustment_entries.append({
-                'id': str(entry.id),
-                'description': entry.description if hasattr(entry, 'description') else '',
-                'cost': cost_adjustment,
-                'revenue': price_adjustment,
-            })
-        
+            adjustment_entries.append(
+                {
+                    "id": str(entry.id),
+                    "description": (
+                        entry.description if hasattr(entry, "description") else ""
+                    ),
+                    "cost": cost_adjustment,
+                    "revenue": price_adjustment,
+                }
+            )
+
         # Assign with prefixed keys
-        pricing_data[f'{section_prefix}_adjustment_entries'] = adjustment_entries
-        pricing_data[f'{section_prefix}_adjustment_cost'] = adjustment_cost_total
-        pricing_data[f'{section_prefix}_adjustment_revenue'] = adjustment_revenue_total
-        
+        pricing_data[f"{section_prefix}_adjustment_entries"] = adjustment_entries
+        pricing_data[f"{section_prefix}_adjustment_cost"] = adjustment_cost_total
+        pricing_data[f"{section_prefix}_adjustment_revenue"] = adjustment_revenue_total
+
         # Calculate and assign total cost and revenue with prefixed keys
-        pricing_data[f'{section_prefix}_total_cost'] = time_cost_total + material_cost_total + adjustment_cost_total
-        pricing_data[f'{section_prefix}_total_revenue'] = time_revenue_total + material_revenue_total + adjustment_revenue_total
-        
+        pricing_data[f"{section_prefix}_total_cost"] = (
+            time_cost_total + material_cost_total + adjustment_cost_total
+        )
+        pricing_data[f"{section_prefix}_total_revenue"] = (
+            time_revenue_total + material_revenue_total + adjustment_revenue_total
+        )
+
         # Add this fully structured historical pricing record to the array
         historical_job_pricings_serialized.append(pricing_data)
-    
+
     # Fetch the Latest Revision for Each Pricing Stage
     latest_job_pricings = get_latest_job_pricings(job)
 
     sync_job_folder(job)
     job_files = job.files.all()
-    
+
     # Verify if there's only JobSummary.pdf
     has_only_summary = False
     if job_files.count() == 0:
@@ -478,7 +517,9 @@ def add_job_event(request, job_id):
                     "event_type": "manual_note",
                     "description": event.description,
                     "staff": (
-                        request.user.get_display_full_name() if request.user else "System"
+                        request.user.get_display_full_name()
+                        if request.user
+                        else "System"
                     ),
                 },
             },
@@ -531,8 +572,8 @@ def toggle_complex_job(request):
             valid_job: bool = False
             for pricing in job.pricings.all():
                 if pricing and (
-                    pricing.time_entries.count() > 1 
-                    or pricing.material_entries.count() > 1 
+                    pricing.time_entries.count() > 1
+                    or pricing.material_entries.count() > 1
                     or pricing.adjustment_entries.count() > 1
                 ):
                     valid_job = False
@@ -585,13 +626,12 @@ def toggle_pricing_methodology(request):
 
         if job_id is None or new_type is None:
             return JsonResponse(
-                {"error": "Missing required fields: job_id and pricing_methodology"}, status=400
+                {"error": "Missing required fields: job_id and pricing_methodology"},
+                status=400,
             )
 
         if new_type not in [choice[0] for choice in JobPricingMethodology.choices]:
-            return JsonResponse(
-                {"error": "Invalid pricing type value"}, status=400
-            )
+            return JsonResponse({"error": "Invalid pricing type value"}, status=400)
 
         job = get_object_or_404(Job.objects.select_for_update(), id=job_id)
 
@@ -601,9 +641,7 @@ def toggle_pricing_methodology(request):
             case JobPricingMethodology.FIXED_PRICE:
                 new_type = JobPricingMethodology.FIXED_PRICE
             case _:
-                return JsonResponse(
-                    {"error": "Invalid pricing type value"}, status=400
-                )
+                return JsonResponse({"error": "Invalid pricing type value"}, status=400)
 
         # Update job
         job.pricing_methodology = new_type
@@ -634,61 +672,74 @@ def delete_job(request, job_id):
     Deletes a job if it doesn't have any reality job pricing with actual data.
     """
     job = get_object_or_404(Job, id=job_id)
-    
+
     # Get the latest reality pricing record
-    reality_pricing = job.pricings.filter(pricing_stage=JobPricingStage.REALITY, is_historical=False).first()
-    
+    reality_pricing = job.pricings.filter(
+        pricing_stage=JobPricingStage.REALITY, is_historical=False
+    ).first()
+
     # If there's a reality pricing with a total above zero, it has real costs or revenue
-    if reality_pricing and (reality_pricing.total_revenue > 0 or reality_pricing.total_cost > 0):
-        return JsonResponse({
-            "success": False,
-            "message": "You can't delete this job because it has real costs or revenue."
-        }, status=400)
-    
+    if reality_pricing and (
+        reality_pricing.total_revenue > 0 or reality_pricing.total_cost > 0
+    ):
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "You can't delete this job because it has real costs or revenue.",
+            },
+            status=400,
+        )
+
     try:
         with transaction.atomic():
             # Job pricings and job files will be deleted automatically due to CASCADE
             job_number = job.job_number
             job_name = job.name
             job.delete()
-            
-            return JsonResponse({
-                "success": True,
-                "message": f"Job #{job_number} '{job_name}' has been permanently deleted."
-            })
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f"Job #{job_number} '{job_name}' has been permanently deleted.",
+                }
+            )
     except Exception as e:
         logger.error(f"Error deleting job {job_id}: {str(e)}")
-        return JsonResponse({
-            "success": False,
-            "message": f"An error occurred while deleting the job: {str(e)}"
-        }, status=500)
+        return JsonResponse(
+            {
+                "success": False,
+                "message": f"An error occurred while deleting the job: {str(e)}",
+            },
+            status=500,
+        )
+
 
 @require_http_methods(["POST"])
 def create_linked_quote_api(request, job_id):
     """
     Create a new linked quote from the master template for a job.
-    
+
     Args:
         request: The HTTP request
         job_id: The UUID of the job
-        
+
     Returns:
         JsonResponse with the URL of the newly created quote
     """
     try:
         # Get the job
         job = get_object_or_404(Job, id=job_id)
-        
+
         # Get the client name
         client_name = job.client.name if job.client else "No Client"
-        
+
         # Create a new quote from the template
         quote_url = create_quote_from_template(job.job_number, client_name)
-        
+
         # Update the job with the new quote URL
         job.linked_quote = quote_url
         job.save(staff=request.user)
-        
+
         # Create a job event to record this action
         JobEvent.objects.create(
             job=job,
@@ -696,26 +747,28 @@ def create_linked_quote_api(request, job_id):
             description=f"Created linked quote spreadsheet",
             staff=request.user,
         )
-        
+
         # Return the URL of the new quote
-        return JsonResponse({
-            "success": True,
-            "quote_url": quote_url,
-            "message": "Linked quote created successfully"
-        })
-        
+        return JsonResponse(
+            {
+                "success": True,
+                "quote_url": quote_url,
+                "message": "Linked quote created successfully",
+            }
+        )
+
     except ValueError as e:
         # This will catch the error if the master template URL is not set
         logger.error(f"Error creating linked quote: {str(e)}")
-        return JsonResponse({
-            "success": False,
-            "error": str(e)
-        }, status=400)
-        
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
     except Exception as e:
         # Catch all other exceptions
         logger.exception(f"Unexpected error creating linked quote: {str(e)}")
-        return JsonResponse({
-            "success": False,
-            "error": "An unexpected error occurred creating a linked quote."
-        }, status=500)
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "An unexpected error occurred creating a linked quote.",
+            },
+            status=500,
+        )

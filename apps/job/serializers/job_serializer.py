@@ -177,7 +177,7 @@ class JobSerializer(serializers.ModelSerializer):
         staff = self.context["request"].user if "request" in self.context else None
         instance.save(staff=staff)
         return instance
-    
+
 
 class CompleteJobSerializer(serializers.ModelSerializer):
     client_name = serializers.CharField(source="client.name", read_only=True)
@@ -185,11 +185,4 @@ class CompleteJobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = [
-            "id",
-            "job_number",
-            "name",
-            "client_name",
-            "updated_at",
-            "job_status"
-        ]
+        fields = ["id", "job_number", "name", "client_name", "updated_at", "job_status"]

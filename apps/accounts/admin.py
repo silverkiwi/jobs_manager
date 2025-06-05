@@ -12,9 +12,9 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
     add_form = StaffCreationForm
     form = StaffChangeForm
     model = Staff
-    
+
     list_display = (
-        "email", 
+        "email",
         "first_name",
         "last_name",
         "is_staff",

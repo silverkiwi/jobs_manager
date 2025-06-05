@@ -9,12 +9,12 @@ from .job_pricing import JobPricing, QuotePricing
 from .material_entry import MaterialEntry
 
 __all__ = [
-    'AdjustmentEntry',
-    'Job',
-    'JobEvent',
-    'JobFile',
-    'JobPart',
-    'JobPricing',
-    'QuotePricing',
-    'MaterialEntry',
+    "AdjustmentEntry",
+    "Job",
+    "JobEvent",
+    "JobFile",
+    "JobPart",
+    "JobPricing",
+    "QuotePricing",
+    "MaterialEntry",
 ]

@@ -6,9 +6,9 @@ from .password_views import SecurityPasswordChangeView
 from .report_view import ReportsIndexView, CompanyProfitAndLossView
 
 __all__ = [
-    'DashboardView',
-    'KPICalendarViews',
-    'SecurityPasswordChangeView',
-    'ReportsIndexView',
-    'CompanyProfitAndLossView',
+    "DashboardView",
+    "KPICalendarViews",
+    "SecurityPasswordChangeView",
+    "ReportsIndexView",
+    "CompanyProfitAndLossView",
 ]

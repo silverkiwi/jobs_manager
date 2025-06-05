@@ -33,7 +33,7 @@ class JobFileUploadView(APIView):
         os.makedirs(job_folder, exist_ok=True)
 
         os.chmod(job_folder, 0o2775)
- 
+
         # Save each uploaded file
         for file in files:
             file_path = os.path.join(job_folder, file.name)

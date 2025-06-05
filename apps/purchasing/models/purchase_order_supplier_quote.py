@@ -10,15 +10,17 @@ class PurchaseOrderSupplierQuote(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     purchase_order = models.OneToOneField(
-        "purchasing.PurchaseOrder", 
-        related_name="supplier_quote", 
-        on_delete=models.CASCADE
+        "purchasing.PurchaseOrder",
+        related_name="supplier_quote",
+        on_delete=models.CASCADE,
     )
     filename = models.CharField(max_length=255)
     file_path = models.CharField(max_length=500)
     mime_type = models.CharField(max_length=100, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    extracted_data = models.JSONField(null=True, blank=True, help_text="Extracted data from the quote")
+    extracted_data = models.JSONField(
+        null=True, blank=True, help_text="Extracted data from the quote"
+    )
     status = models.CharField(
         max_length=20,
         choices=[("active", "Active"), ("deleted", "Deleted")],
@@ -45,4 +47,4 @@ class PurchaseOrderSupplierQuote(models.Model):
         return os.path.getsize(file_path) if os.path.exists(file_path) else None
 
     class Meta:
-        db_table = 'workflow_purchaseordersupplierquote'
+        db_table = "workflow_purchaseordersupplierquote"

@@ -24,9 +24,7 @@ logger = logging.getLogger(__name__)
 class Job(models.Model):
     name = models.CharField(max_length=100, null=False, blank=False)
 
-    id = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False
-    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     JOB_STATUS_CHOICES: List[tuple[str, str]] = [
         ("quoting", "Quoting"),
@@ -58,13 +56,11 @@ class Job(models.Model):
         null=True,
         related_name="jobs",  # Allows reverse lookup of jobs for a client
     )
-    order_number = models.CharField(
-        max_length=100, null=True, blank=True
-    )
-    contact_person = models.CharField(
-        max_length=100, null=True, blank=True
-    )
-    contact_email = models.EmailField(null=True, blank=True)  # New field for contact's email
+    order_number = models.CharField(max_length=100, null=True, blank=True)
+    contact_person = models.CharField(max_length=100, null=True, blank=True)
+    contact_email = models.EmailField(
+        null=True, blank=True
+    )  # New field for contact's email
     contact_phone = models.CharField(
         max_length=150,
         null=True,
@@ -187,9 +183,12 @@ class Job(models.Model):
 
     @classmethod
     def _calculate_next_priority_for_status(cls, status_value: str) -> int:
-        max_entry = cls.objects.filter(status=status_value).aggregate(
-            Max('priority')
-        )["priority__max"] or 0
+        max_entry = (
+            cls.objects.filter(status=status_value).aggregate(Max("priority"))[
+                "priority__max"
+            ]
+            or 0
+        )
         return max_entry + cls.PRIORITY_INCREMENT
 
     @property
@@ -226,7 +225,7 @@ class Job(models.Model):
 
     def get_display_name(self) -> str:
         return f"Job: {self.job_number}"  # type: ignore
-        
+
     @property
     def job_display_name(self) -> str:
         """
@@ -235,13 +234,15 @@ class Job(models.Model):
         """
         client_name = self.client.name[:12] if self.client else "No Client"
         return f"{self.job_number} - {client_name}, {self.name}"
-    
+
     def generate_job_number(self) -> int:
         from apps.workflow.models import CompanyDefaults
 
         company_defaults: CompanyDefaults = get_company_defaults()
         starting_number: int = company_defaults.starting_job_number
-        highest_job: int = Job.objects.all().aggregate(Max('job_number'))['job_number__max'] or 0
+        highest_job: int = (
+            Job.objects.all().aggregate(Max("job_number"))["job_number__max"] or 0
+        )
         next_job_number = max(starting_number, highest_job + 1)
         return next_job_number
 

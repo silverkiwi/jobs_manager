@@ -40,20 +40,25 @@ def sanitize_decimal_input(raw_value, default=Decimal(0)):
     if raw_value is None:
         logger.warning(f"Sanitizing None to {default}.")
         return default
-    if isinstance(raw_value, float) and (math.isnan(raw_value) or math.isinf(raw_value)):
+    if isinstance(raw_value, float) and (
+        math.isnan(raw_value) or math.isinf(raw_value)
+    ):
         logger.warning(f"Sanitizing invalid float {raw_value} to {default}.")
         return default
     try:
         # Convert to string first to handle floats safely and allow Decimal to parse strings.
         val_str = str(raw_value)
-        d = decimal.Decimal(val_str) # Use decimal.Decimal to avoid conflict
+        d = decimal.Decimal(val_str)  # Use decimal.Decimal to avoid conflict
         if d.is_nan() or d.is_infinite():
             logger.warning(f"Sanitizing Decimal special value {d} to {default}.")
             return default
         return d
     except (decimal.InvalidOperation, TypeError, ValueError) as e:
-        logger.warning(f"Sanitizing invalid decimal input '{raw_value}' (type: {type(raw_value)}) to {default} due to {e}.")
+        logger.warning(
+            f"Sanitizing invalid decimal input '{raw_value}' (type: {type(raw_value)}) to {default} due to {e}."
+        )
         return default
+
 
 class TimesheetEntryView(TemplateView):
     """
@@ -200,9 +205,11 @@ class TimesheetEntryView(TemplateView):
         ]
 
         # Use the refactored utility function to get active jobs
-        open_jobs = get_active_jobs() # Already includes select_related('client')
+        open_jobs = get_active_jobs()  # Already includes select_related('client')
         # Add other select_related if needed specifically here
-        open_jobs = open_jobs.select_related("latest_estimate_pricing", "latest_reality_pricing")
+        open_jobs = open_jobs.select_related(
+            "latest_estimate_pricing", "latest_reality_pricing"
+        )
 
         jobs_data = [
             {
@@ -287,7 +294,7 @@ class TimesheetEntryView(TemplateView):
                         Value(" "),
                         "last_name",
                         output_field=CharField(),
-                    )
+                    ),
                 )
                 .order_by("last_name", "display_first_name")
             )
@@ -442,7 +449,9 @@ def autosave_timesheet_view(request):
                             try:
                                 staff = Staff.objects.get(id=staff_id)
                                 entry.staff = staff
-                                logger.info(f"Restored staff {staff.name} assignment for entry {entry.id}")
+                                logger.info(
+                                    f"Restored staff {staff.name} assignment for entry {entry.id}"
+                                )
                             except Staff.DoesNotExist:
                                 logger.error(f"Staff with ID {staff_id} not found")
                         else:
@@ -464,16 +473,22 @@ def autosave_timesheet_view(request):
                     entry.hours = hours
                     entry.is_billable = entry_data.get("is_billable", True)
                     entry.items = entry_data.get("items", entry.items)
-                    
-                    minutes_per_item_raw = entry_data.get("mins_per_item", entry.minutes_per_item)
-                    entry.minutes_per_item = sanitize_decimal_input(minutes_per_item_raw)
-                    
+
+                    minutes_per_item_raw = entry_data.get(
+                        "mins_per_item", entry.minutes_per_item
+                    )
+                    entry.minutes_per_item = sanitize_decimal_input(
+                        minutes_per_item_raw
+                    )
+
                     entry.note = entry_data.get("notes", "")
                     entry.wage_rate_multiplier = RateType(
                         entry_data.get("rate_type", "Ord")
                     ).multiplier
-                    
-                    charge_out_rate_raw = job_data.get("charge_out_rate", entry.charge_out_rate)
+
+                    charge_out_rate_raw = job_data.get(
+                        "charge_out_rate", entry.charge_out_rate
+                    )
                     entry.charge_out_rate = sanitize_decimal_input(charge_out_rate_raw)
 
                     related_jobs.add(job_id)
@@ -540,8 +555,12 @@ def autosave_timesheet_view(request):
                 date_str = entry_data.get("timesheet_date")
                 target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
-                minutes_per_item_val = sanitize_decimal_input(entry_data.get("mins_per_item", 0))
-                charge_out_rate_val = sanitize_decimal_input(job_data.get("charge_out_rate", 0))
+                minutes_per_item_val = sanitize_decimal_input(
+                    entry_data.get("mins_per_item", 0)
+                )
+                charge_out_rate_val = sanitize_decimal_input(
+                    job_data.get("charge_out_rate", 0)
+                )
 
                 entry = TimeEntry.objects.create(
                     job_pricing=job_pricing,

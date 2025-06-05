@@ -18,9 +18,7 @@ class Command(BaseCommand):
 
         # Start ngrok process
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Starting ngrok with command: '{ngrok_command}'..."
-            )
+            self.style.SUCCESS(f"Starting ngrok with command: '{ngrok_command}'...")
         )
         # We don't capture the process, just launch it.
         # It will run until manually stopped or the parent terminal closes.
@@ -45,6 +43,4 @@ class Command(BaseCommand):
                 )
             )
         except Exception as e:
-            self.stdout.write(
-                self.style.ERROR(f"Failed to launch ngrok process: {e}")
-            )
+            self.stdout.write(self.style.ERROR(f"Failed to launch ngrok process: {e}"))

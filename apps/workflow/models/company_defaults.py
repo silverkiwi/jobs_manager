@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
+
 class CompanyDefaults(models.Model):
     company_name = models.CharField(max_length=255, primary_key=True)
     is_primary = models.BooleanField(default=True, unique=True)
@@ -13,20 +14,33 @@ class CompanyDefaults(models.Model):
         max_digits=6, decimal_places=2, default=32.00
     )  # rate per hour
 
-    starting_job_number = models.IntegerField(default=1, help_text="Helper field to set the starting job number based on the latest paper job")
-    starting_po_number = models.IntegerField(default=1, help_text="Helper field to set the starting purchase order number")
-    po_prefix = models.CharField(max_length=10, default="PO-", help_text="Prefix for purchase order numbers (e.g., PO-, JO-)")
+    starting_job_number = models.IntegerField(
+        default=1,
+        help_text="Helper field to set the starting job number based on the latest paper job",
+    )
+    starting_po_number = models.IntegerField(
+        default=1, help_text="Helper field to set the starting purchase order number"
+    )
+    po_prefix = models.CharField(
+        max_length=10,
+        default="PO-",
+        help_text="Prefix for purchase order numbers (e.g., PO-, JO-)",
+    )
 
     # Quote templates
     master_quote_template_url = models.URLField(
         null=True,
         blank=True,
-        help_text="URL to the master Google Sheets quote template"
+        help_text="URL to the master Google Sheets quote template",
     )
 
     # Xero integration
-    xero_tenant_id = models.CharField(max_length=100, null=True, blank=True, help_text="The Xero tenant ID to use for this company")
-
+    xero_tenant_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="The Xero tenant ID to use for this company",
+    )
 
     # Default working hours (Mon-Fri, 7am - 3pm)
     mon_start = models.TimeField(default="07:00")
@@ -41,8 +55,14 @@ class CompanyDefaults(models.Model):
     fri_end = models.TimeField(default="15:00")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    last_xero_sync = models.DateTimeField(null=True, blank=True, help_text="The last time Xero data was synchronized")
-    last_xero_deep_sync = models.DateTimeField(null=True, blank=True, help_text="The last time a deep Xero sync was performed (looking back 90 days)")
+    last_xero_sync = models.DateTimeField(
+        null=True, blank=True, help_text="The last time Xero data was synchronized"
+    )
+    last_xero_deep_sync = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="The last time a deep Xero sync was performed (looking back 90 days)",
+    )
 
     # KPI thresholds
     billable_threshold_green = models.DecimalField(
@@ -50,28 +70,28 @@ class CompanyDefaults(models.Model):
         decimal_places=2,
         default=45.0,
         verbose_name="Green Threshold of Billable Hours",
-        help_text="Daily billable hours above this threshold are marked in green"
+        help_text="Daily billable hours above this threshold are marked in green",
     )
     billable_threshold_amber = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         default=30.0,
         verbose_name="Amber Threshold of Billable Hours",
-        help_text="Daily billable hours between this threshold and the green threshold are marked in amber"
+        help_text="Daily billable hours between this threshold and the green threshold are marked in amber",
     )
     daily_gp_target = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=1250.0,
         verbose_name="Daily Goal of Gross Profit",
-        help_text="Daily gross profit goal in dolars"
+        help_text="Daily gross profit goal in dolars",
     )
     shop_hours_target_percentage = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         default=20.0,
         verbose_name="Hours percentage goal in Shop Jobs",
-        help_text="Target percentage of hours worked in shop jobs"
+        help_text="Target percentage of hours worked in shop jobs",
     )
 
     class Meta:

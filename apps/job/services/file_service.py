@@ -23,7 +23,7 @@ def create_thumbnail(source_path, thumb_path, size=(400, 400)):
     Try to create a thumbnail if possible. Returns True if successful.
     Silently returns False if file type isn't supported or thumbnail fails.
     """
-    
+
     try:
         if source_path.lower().endswith(".pdf"):
             pages = convert_from_path(source_path, first_page=1, last_page=1)

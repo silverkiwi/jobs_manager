@@ -16,8 +16,11 @@ from google import genai
 from django.conf import settings
 from django.db.models import Q
 
-from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, \
-    PurchaseOrderSupplierQuote
+from apps.purchasing.models import (
+    PurchaseOrder,
+    PurchaseOrderLine,
+    PurchaseOrderSupplierQuote,
+)
 from apps.client.models import Client
 from apps.workflow.helpers import get_company_defaults
 from apps.job.enums import MetalType
@@ -34,8 +37,9 @@ def normalize(s):
     """Normalize a string for comparison."""
     if not s:
         return ""
-    return ' '.join(
-        s.lower().split())  # lower, remove extra whitespace, preserve everything else
+    return " ".join(
+        s.lower().split()
+    )  # lower, remove extra whitespace, preserve everything else
 
 
 def fuzzy_find_supplier(supplier_name):
@@ -72,9 +76,7 @@ def fuzzy_find_supplier(supplier_name):
         return None, supplier_name
 
     match, score, _ = process.extractOne(
-        norm_supplier,
-        norm_names,
-        scorer=fuzz.token_set_ratio
+        norm_supplier, norm_names, scorer=fuzz.token_set_ratio
     )
 
     # Use a threshold to ensure the match is good enough
@@ -86,7 +88,8 @@ def fuzzy_find_supplier(supplier_name):
     original_name = norm_map[match]
     matched_supplier = supplier_map[original_name]
     logger.info(
-        f"Found fuzzy supplier match: '{supplier_name}' -> '{original_name}' (score: {score})")
+        f"Found fuzzy supplier match: '{supplier_name}' -> '{original_name}' (score: {score})"
+    )
     return matched_supplier, supplier_name
 
 
@@ -117,8 +120,9 @@ def save_quote_file(purchase_order, file_obj):
     return quote
 
 
-def extract_data_from_supplier_quote(quote_path, content_type=None,
-                                     use_pdf_parser=USE_PDF_PARSER):
+def extract_data_from_supplier_quote(
+    quote_path, content_type=None, use_pdf_parser=USE_PDF_PARSER
+):
     """Extract data from a supplier quote file using Claude."""
     try:
         # Get the active AI provider and its API key
@@ -126,24 +130,34 @@ def extract_data_from_supplier_quote(quote_path, content_type=None,
         active_ai_provider = company_defaults.get_active_ai_provider()
 
         if not active_ai_provider:
-            return None, "No active AI provider configured. Please set one in company settings."
+            return (
+                None,
+                "No active AI provider configured. Please set one in company settings.",
+            )
 
         if active_ai_provider.provider_type != AIProviderTypes.ANTHROPIC:
-            return None, f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Anthropic (Claude)."
+            return (
+                None,
+                f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Anthropic (Claude).",
+            )
 
         api_key = active_ai_provider.api_key
 
         if not api_key:
-            return None, "Anthropic API key not configured for the active AI provider. Please add it in company settings."
+            return (
+                None,
+                "Anthropic API key not configured for the active AI provider. Please add it in company settings.",
+            )
 
         # Read and encode the file
-        with open(quote_path, 'rb') as file:
+        with open(quote_path, "rb") as file:
             file_content = file.read()
-        file_b64 = base64.b64encode(file_content).decode('utf-8')
+        file_b64 = base64.b64encode(file_content).decode("utf-8")
 
         # Determine if this is a PDF
-        is_pdf = content_type == 'application/pdf' or quote_path.lower().endswith(
-            '.pdf')
+        is_pdf = content_type == "application/pdf" or quote_path.lower().endswith(
+            ".pdf"
+        )
 
         # Extract text from PDF if requested
         extracted_text = None
@@ -160,7 +174,8 @@ def extract_data_from_supplier_quote(quote_path, content_type=None,
                 # Log a shorter version of the extracted text for debugging
                 preview_length = min(10000, len(extracted_text))
                 logger.info(
-                    f"PDF TEXT PREVIEW (first {preview_length} chars): {extracted_text[:preview_length]}")
+                    f"PDF TEXT PREVIEW (first {preview_length} chars): {extracted_text[:preview_length]}"
+                )
                 # Log the full text if needed for detailed debugging
                 logger.debug(f"FULL PDF EXTRACTED TEXT: {extracted_text}")
             except Exception as e:
@@ -172,7 +187,7 @@ def extract_data_from_supplier_quote(quote_path, content_type=None,
             # Send PDF directly
             api_content_type = "document"
             media_type = "application/pdf"
-        elif content_type and content_type.startswith('image/'):
+        elif content_type and content_type.startswith("image/"):
             # Send image directly
             api_content_type = "image"
             media_type = content_type
@@ -182,7 +197,8 @@ def extract_data_from_supplier_quote(quote_path, content_type=None,
             media_type = "text/plain"
 
         logger.info(
-            f"File type detection: path={quote_path}, content_type={content_type}, is_pdf={is_pdf}, use_pdf_parser={use_pdf_parser}")
+            f"File type detection: path={quote_path}, content_type={content_type}, is_pdf={is_pdf}, use_pdf_parser={use_pdf_parser}"
+        )
 
         # Get valid metal types for the prompt
         valid_metal_types = [choice[0] for choice in MetalType.choices]
@@ -253,7 +269,7 @@ def extract_data_from_supplier_quote(quote_path, content_type=None,
             headers={
                 "x-api-key": api_key,
                 "anthropic-version": "2023-06-01",
-                "content-type": "application/json"
+                "content-type": "application/json",
             },
             json={
                 "model": "claude-3-7-sonnet-20250219",
@@ -262,35 +278,44 @@ def extract_data_from_supplier_quote(quote_path, content_type=None,
                     {
                         "role": "user",
                         "content": [
-                                       {"type": "text", "text": prompt},
-                                   ] + (
-                                       # If we have extracted text, send it as text
-                                       [{"type": "text",
-                                         "text": extracted_text}] if extracted_text else
-                                       # Otherwise send the file
-                                       [{
-                                           "type": api_content_type,
-                                           "source": {
-                                               "type": "base64",
-                                               "media_type": media_type,
-                                               "data": file_b64
-                                           }
-                                       }]
-                                   )
+                            {"type": "text", "text": prompt},
+                        ]
+                        + (
+                            # If we have extracted text, send it as text
+                            [{"type": "text", "text": extracted_text}]
+                            if extracted_text
+                            else
+                            # Otherwise send the file
+                            [
+                                {
+                                    "type": api_content_type,
+                                    "source": {
+                                        "type": "base64",
+                                        "media_type": media_type,
+                                        "data": file_b64,
+                                    },
+                                }
+                            ]
+                        ),
                     }
-                ]
-            }
+                ],
+            },
         )
 
         if response.status_code != 200:
             try:
                 error_details = response.json()
-                error_message = error_details.get('error', {}).get('message',
-                                                                   'Unknown error')
+                error_message = error_details.get("error", {}).get(
+                    "message", "Unknown error"
+                )
                 logger.error(
-                    f"Anthropic API error: {response.status_code} - {error_message}")
+                    f"Anthropic API error: {response.status_code} - {error_message}"
+                )
                 logger.error(f"Full error response: {error_details}")
-                return None, f"Error from Anthropic API: {response.status_code} - {error_message}"
+                return (
+                    None,
+                    f"Error from Anthropic API: {response.status_code} - {error_message}",
+                )
             except Exception as e:
                 logger.error(f"Failed to parse Anthropic API error response: {e}")
                 logger.error(f"Raw response: {response.text}")
@@ -332,7 +357,8 @@ def extract_data_from_supplier_quote(quote_path, content_type=None,
         try:
             supplier_name_from_quote = quote_data["supplier"]["name"]
             matched_supplier, original_name = fuzzy_find_supplier(
-                supplier_name_from_quote)
+                supplier_name_from_quote
+            )
 
             # Add original and matched supplier info
             quote_data["supplier"]["original_name"] = original_name
@@ -342,7 +368,7 @@ def extract_data_from_supplier_quote(quote_path, content_type=None,
                 quote_data["matched_supplier"] = {
                     "id": str(matched_supplier.id),
                     "name": matched_supplier.name,
-                    "xero_id": getattr(matched_supplier, 'xero_id', None)
+                    "xero_id": getattr(matched_supplier, "xero_id", None),
                 }
         except (KeyError, TypeError):
             logging.warning("Supplier name not found in quote JSON")
@@ -400,6 +426,7 @@ def create_concise_prompt(metal_types: list[str]) -> str:
         5. Return ONLY a valid JSON object
         """
 
+
 def clean_json_response(text: str) -> str:
     """Clean up JSON response by removing markdown code blocks."""
     text = text.strip()
@@ -411,7 +438,7 @@ def clean_json_response(text: str) -> str:
     elif "```" in text:
         text = text.replace("```", "")
 
-    return text.strip() 
+    return text.strip()
 
 
 def process_supplier_data(quote_data: dict) -> dict:
@@ -427,21 +454,23 @@ def process_supplier_data(quote_data: dict) -> dict:
             quote_data["matched_supplier"] = {
                 "id": str(matched_supplier.id),
                 "name": matched_supplier.name,
-                "xero_id": getattr(matched_supplier, "xero_id", None)
+                "xero_id": getattr(matched_supplier, "xero_id", None),
             }
     except (KeyError, TypeError):
         logging.warning("Supplier name not found in quote JSON")
-    
+
     return quote_data
 
 
-def create_po_line_from_quote_item(purchase_order: PurchaseOrder, line_data: dict) -> Optional[PurchaseOrderLine]:
+def create_po_line_from_quote_item(
+    purchase_order: PurchaseOrder, line_data: dict
+) -> Optional[PurchaseOrderLine]:
     """Create a PO line from quote item data."""
     description = line_data.get("description", "")
     if not description:
         logger.warning("Skipping line item with no description")
         return None
-    
+
     quantity = safe_float(line_data.get("quantity", 1), 1)
     line_total = safe_float(line_data.get("line_total", 0), 0)
     unit_price = safe_float(line_data.get("unit_price"))
@@ -459,8 +488,9 @@ def create_po_line_from_quote_item(purchase_order: PurchaseOrder, line_data: dic
         alloy=line_data.get("alloy", ""),
         specifics=line_data.get("specifics", ""),
         dimensions=line_data.get("dimensions", ""),
-        raw_line_data=json.loads(json.dumps(line_data))
+        raw_line_data=json.loads(json.dumps(line_data)),
     )
+
 
 def safe_float(value, default=None):
     """Safely convert value to float with a default."""
@@ -471,7 +501,13 @@ def safe_float(value, default=None):
     except (ValueError, TypeError):
         return default
 
-def calculate_unit_cost(quantity: float, line_total: float, extracted_unit_price: Optional[float], description: str) -> Optional[float]:
+
+def calculate_unit_cost(
+    quantity: float,
+    line_total: float,
+    extracted_unit_price: Optional[float],
+    description: str,
+) -> Optional[float]:
     """Calculate unit cost from quantity and line total."""
     if not (line_total > 0 and quantity > 0):
         logger.warning(
@@ -479,16 +515,20 @@ def calculate_unit_cost(quantity: float, line_total: float, extracted_unit_price
             f"Line total: {line_total}, Quantity: {quantity}"
         )
         return None
-    
+
     unit_cost = line_total / quantity
 
-    if extracted_unit_price is not None and abs(unit_cost - extracted_unit_price) > 0.01:
+    if (
+        extracted_unit_price is not None
+        and abs(unit_cost - extracted_unit_price) > 0.01
+    ):
         logger.warning(
             f"Unit cost discrepancy for: '{description}', "
             f"Calculated: {unit_cost:.2f} vs. Extracted: {extracted_unit_price:.2f}. "
             f" Using calculated value."
         )
     return unit_cost
+
 
 def log_token_usage(usage, api_name):
     """Log token usage from AI API response."""
@@ -502,15 +542,19 @@ def log_token_usage(usage, api_name):
     )
 
 
-def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optional[str] = None, ai_provider: Optional[AIProvider] = None) -> Tuple[Optional[dict], Optional[str]]:
+def extract_data_from_supplier_quote_gemini(
+    quote_path: str,
+    content_type: Optional[str] = None,
+    ai_provider: Optional[AIProvider] = None,
+) -> Tuple[Optional[dict], Optional[str]]:
     """
     Extract data from a supplier quote file using Gemini,
-    
+
     Args:
         quote_path: Path to the quote file
         content_type: MIME type of the file (optional)
         ai_provider: Optional AI provider to use, will get active one if not provided
-    
+
     Returns:
         Tuple containing (quote_data, error_message)
     """
@@ -520,23 +564,34 @@ def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optio
             ai_provider = company_defaults.get_active_ai_provider()
 
         if not ai_provider:
-            return None, "No active AI provider configured. Please set one in company settings."
+            return (
+                None,
+                "No active AI provider configured. Please set one in company settings.",
+            )
 
         if ai_provider.provider_type != AIProviderTypes.GOOGLE:
-            return None, f"Configured AI provider is {ai_provider.provider_type}, but this function requires Google (Gemini)."
+            return (
+                None,
+                f"Configured AI provider is {ai_provider.provider_type}, but this function requires Google (Gemini).",
+            )
 
         gemini_api_key = ai_provider.api_key
 
         if not gemini_api_key:
-            return None, "Gemini API key not configured for the active AI provider. Please add it in company settings."
+            return (
+                None,
+                "Gemini API key not configured for the active AI provider. Please add it in company settings.",
+            )
 
         client = genai.Client(api_key=gemini_api_key)
-        
-        with open(quote_path, 'rb') as file:
+
+        with open(quote_path, "rb") as file:
             file_content = file.read()
-        
-        is_pdf = content_type == 'application/pdf' or quote_path.lower().endswith('.pdf')
-        is_image = content_type and content_type.startswith('image/')
+
+        is_pdf = content_type == "application/pdf" or quote_path.lower().endswith(
+            ".pdf"
+        )
+        is_image = content_type and content_type.startswith("image/")
 
         # I simplified the prompt to avoid overcooking the file.
         valid_metal_types = [choice[0] for choice in MetalType.choices]
@@ -544,54 +599,44 @@ def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optio
 
         contents = []
         contents.append({"text": prompt})
-        
+
         if is_pdf:
             mime_type = "application/pdf"
-            file_b64 = base64.b64encode(file_content).decode('utf-8')
-            contents.append({
-                "inline_data": {
-                    "mime_type": mime_type,
-                    "data": file_b64
-                }
-            })
-        
+            file_b64 = base64.b64encode(file_content).decode("utf-8")
+            contents.append({"inline_data": {"mime_type": mime_type, "data": file_b64}})
+
         if is_image:
             mime_type = content_type or "image/jpeg"
-            file_b64 = base64.b64encode(file_content).decode('utf-8')
-            contents.append({
-                "inline_data": {
-                    "mime_type": mime_type,
-                    "data": file_b64
-                }
-            })
-        
+            file_b64 = base64.b64encode(file_content).decode("utf-8")
+            contents.append({"inline_data": {"mime_type": mime_type, "data": file_b64}})
+
         if not is_image or not is_pdf:
             try:
-                text_content = file_content.decode('utf-8', errors='ignore')
+                text_content = file_content.decode("utf-8", errors="ignore")
                 contents.append({"text": text_content})
             except Exception as e:
                 logger.error(f"Failed to decode as text: {e}")
                 return None, f"Failed to process file: {str(e)}"
-        
+
         response = client.models.generate_content(
-            model='gemini-2.5-pro-preview-05-06',
+            model="gemini-2.5-pro-preview-05-06",
             contents=contents,
             config={
                 "max_output_tokens": 4000,
                 "temperature": 0.1,
-                "response_mime_type": "application/json"
-            }
+                "response_mime_type": "application/json",
+            },
         )
 
-        if hasattr(response, 'usage'):
-            log_token_usage(response.usage, 'Gemini')
-        
+        if hasattr(response, "usage"):
+            log_token_usage(response.usage, "Gemini")
+
         result_text = clean_json_response(response.text)
         quote_data = json.loads(result_text)
         quote_data = process_supplier_data(quote_data)
 
         return quote_data, None
-    
+
     except json.JSONDecodeError as e:
         logger.exception(f"Error decoding JSON from Gemini response: {e}")
         return None, f"Invalid JSON response from Gemini: {str(e)}"
@@ -601,13 +646,13 @@ def extract_data_from_supplier_quote_gemini(quote_path: str, content_type: Optio
 
 
 def create_po_from_quote(
-        purchase_order: PurchaseOrder, 
-        quote: PurchaseOrderSupplierQuote, 
-        ai_provider: AIProvider
-    ) -> Tuple[Optional[PurchaseOrder], Optional[str]]:
+    purchase_order: PurchaseOrder,
+    quote: PurchaseOrderSupplierQuote,
+    ai_provider: AIProvider,
+) -> Tuple[Optional[PurchaseOrder], Optional[str]]:
     """
     Create purchase order lines from a supplier quote.
-    
+
     Args:
         purchase_order: The purchase order to add lines to
         quote: The supplier quote to extract data from
@@ -630,20 +675,20 @@ def create_po_from_quote(
             err_msg = f"Invalid AI provider received: {ai_provider}."
             logger.error(err_msg)
             error = err_msg
-        
+
     if error:
         return None, error
-    
+
     quote.extracted_data = quote_data
     quote.save()
 
     items = quote_data.get("items", [])
     if not items:
         return purchase_order, "No items found in quote"
-    
+
     for line_data in items:
         po_line = create_po_line_from_quote_item(purchase_order, line_data)
         if po_line:
             logger.info(f"Created PO line: {po_line.description[:30]}...")
-    
+
     return purchase_order, None

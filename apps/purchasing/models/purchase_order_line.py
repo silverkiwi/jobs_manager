@@ -22,10 +22,22 @@ class PurchaseOrderLine(models.Model):
     )
     description = models.CharField(max_length=200)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    dimensions = models.CharField(max_length=255, blank=True, null=True, help_text="Dimensions such as length, width, height, etc.")
-    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    price_tbc = models.BooleanField(default=False, help_text="If true, the price is to be confirmed and unit cost will be None")
-    supplier_item_code = models.CharField(max_length=50, blank=True, null=True, help_text="Supplier's own item code/SKU")
+    dimensions = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Dimensions such as length, width, height, etc.",
+    )
+    unit_cost = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    price_tbc = models.BooleanField(
+        default=False,
+        help_text="If true, the price is to be confirmed and unit cost will be None",
+    )
+    supplier_item_code = models.CharField(
+        max_length=50, blank=True, null=True, help_text="Supplier's own item code/SKU"
+    )
     received_quantity = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -43,31 +55,31 @@ class PurchaseOrderLine(models.Model):
         max_length=50,
         blank=True,
         null=True,
-        help_text="Alloy specification (e.g., 304, 6061)"
+        help_text="Alloy specification (e.g., 304, 6061)",
     )
     specifics = models.CharField(
         max_length=255,
         blank=True,
         null=True,
-        help_text="Specific details (e.g., m8 countersunk socket screw)"
+        help_text="Specific details (e.g., m8 countersunk socket screw)",
     )
     location = models.CharField(
         max_length=255,
         blank=True,
         null=True,
-        help_text="Where this item will be stored"
+        help_text="Where this item will be stored",
     )
     dimensions = models.CharField(
         max_length=255,
         blank=True,
         null=True,
-        help_text="Dimensions such as length, width, height, etc."
+        help_text="Dimensions such as length, width, height, etc.",
     )
     raw_line_data = models.JSONField(
         null=True,
         blank=True,
-        help_text="Raw JSON data from the source system or document"
+        help_text="Raw JSON data from the source system or document",
     )
 
     class Meta:
-        db_table = 'workflow_purchaseorderline'
+        db_table = "workflow_purchaseorderline"

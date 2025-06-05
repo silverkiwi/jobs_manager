@@ -36,8 +36,8 @@ class MaterialEntry(models.Model):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name='consumed_entries',
-        help_text="The Stock item consumed to create this entry"
+        related_name="consumed_entries",
+        help_text="The Stock item consumed to create this entry",
     )
     purchase_order_line = models.ForeignKey(
         "purchasing.purchaseorderline",

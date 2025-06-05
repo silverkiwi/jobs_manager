@@ -15,8 +15,8 @@ class Client(models.Model):
         max_length=255, unique=True, null=True, blank=True
     )
     xero_tenant_id = models.CharField(
-            max_length=255, null=True, blank=True
-    ) # For reference only - we are not fully multi-tenant yet
+        max_length=255, null=True, blank=True
+    )  # For reference only - we are not fully multi-tenant yet
     # Optional because not all prospects are synced to Xero
     name = models.CharField(max_length=255)
     email = models.EmailField(null=True, blank=True)
@@ -30,17 +30,17 @@ class Client(models.Model):
     raw_json = models.JSONField(
         null=True, blank=True
     )  # For debugging, stores the raw JSON from Xero
-    
+
     # Fields for the primary contact person
     primary_contact_name = models.CharField(max_length=255, null=True, blank=True)
     primary_contact_email = models.EmailField(null=True, blank=True)
-    
+
     # Store all contact persons from the Xero ContactPersons list
     additional_contact_persons = models.JSONField(null=True, blank=True, default=list)
-    
+
     # Store all phone numbers from the Xero Phones list
     all_phones = models.JSONField(null=True, blank=True, default=list)
-    
+
     django_created_at = models.DateTimeField(auto_now_add=True)
     django_updated_at = models.DateTimeField(auto_now=True)
 
@@ -67,16 +67,16 @@ class Client(models.Model):
         """
         Get the date of the client's most recent invoice.
         """
-        last_invoice = self.invoice_set.order_by('-date').first()
+        last_invoice = self.invoice_set.order_by("-date").first()
         return last_invoice.date if last_invoice else None
 
     def get_total_spend(self):
         """
         Calculate the total amount spent by the client (sum of all invoice totals).
         """
-        return self.invoice_set.aggregate(
-            total=models.Sum('total_excl_tax')
-        )['total'] or 0
+        return (
+            self.invoice_set.aggregate(total=models.Sum("total_excl_tax"))["total"] or 0
+        )
 
     def get_client_for_xero(self):
         """

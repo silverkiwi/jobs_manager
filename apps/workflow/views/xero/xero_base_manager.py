@@ -22,9 +22,10 @@ from apps.client.models import Client
 # from .xero_po_manager import XeroPurchaseOrderManager
 
 from apps.workflow.api.xero.xero import api_client, get_tenant_id
-from .xero_helpers import clean_payload, convert_to_pascal_case # Import helpers
+from .xero_helpers import clean_payload, convert_to_pascal_case  # Import helpers
 
 logger = logging.getLogger("xero")
+
 
 class XeroDocumentManager(ABC):
     """
@@ -32,7 +33,7 @@ class XeroDocumentManager(ABC):
     Implements common logic and provides abstract methods for customization.
     """
 
-    job: Job | None # Job is optional now
+    job: Job | None  # Job is optional now
     client: Client
     xero_api: AccountingApi
     xero_tenant_id: str
@@ -48,9 +49,9 @@ class XeroDocumentManager(ABC):
                                  Not directly used for PurchaseOrder at this level.
         """
         if client is None:
-             raise ValueError("Client cannot be None for XeroDocumentManager")
+            raise ValueError("Client cannot be None for XeroDocumentManager")
         self.client = client
-        self.job = job # Optional job association
+        self.job = job  # Optional job association
         self.xero_api = AccountingApi(api_client)
         self.xero_tenant_id = get_tenant_id()
 
@@ -159,26 +160,30 @@ class XeroDocumentManager(ABC):
             from .xero_quote_manager import XeroQuoteManager
             from .xero_po_manager import XeroPurchaseOrderManager
 
-            if hasattr(self, '_is_invoice_manager'):
+            if hasattr(self, "_is_invoice_manager"):
                 api_payload = {"Invoices": [payload]}
                 api_method = self.xero_api.create_invoices
-                kwargs = {'invoices': api_payload}
-            elif hasattr(self, '_is_quote_manager'):
+                kwargs = {"invoices": api_payload}
+            elif hasattr(self, "_is_quote_manager"):
                 api_payload = {"Quotes": [payload]}
                 api_method = self.xero_api.create_quotes
-                kwargs = {'quotes': api_payload}
-            elif hasattr(self, '_is_po_manager'):
+                kwargs = {"quotes": api_payload}
+            elif hasattr(self, "_is_po_manager"):
                 api_payload = {"PurchaseOrders": [payload]}
                 api_method = self.xero_api.create_purchase_orders
-                kwargs = {'purchase_orders': api_payload}
+                kwargs = {"purchase_orders": api_payload}
             else:
-                raise ValueError("Unknown Xero document type for API payload structure.")
+                raise ValueError(
+                    "Unknown Xero document type for API payload structure."
+                )
 
             logger.debug(f"Final API payload: {json.dumps(api_payload, indent=4)}")
 
         except Exception as e:
-            logger.error(f"Error preparing payload for XeroDocument: {str(e)}", exc_info=True)
-            raise # Re-raise after logging
+            logger.error(
+                f"Error preparing payload for XeroDocument: {str(e)}", exc_info=True
+            )
+            raise  # Re-raise after logging
 
         try:
             logger.info(f"Attempting to call Xero API method: {api_method.__name__}")
@@ -192,12 +197,14 @@ class XeroDocumentManager(ABC):
 
         except Exception as e:
             # Log details before re-raising or handling in subclass
-            logger.error(f"Error calling Xero API method {api_method.__name__}: {str(e)}")
+            logger.error(
+                f"Error calling Xero API method {api_method.__name__}: {str(e)}"
+            )
             if hasattr(e, "body"):
                 logger.error(f"Xero API Response body: {e.body}")
-            raise # Re-raise for specific handling in view or subclass
+            raise  # Re-raise for specific handling in view or subclass
 
-        return response # Return the raw xero-python response object
+        return response  # Return the raw xero-python response object
 
     def delete_document(self):
         """
@@ -211,33 +218,42 @@ class XeroDocumentManager(ABC):
 
         try:
             payload = convert_to_pascal_case(clean_payload(xero_document.to_dict()))
-            logger.debug(f"Serialized payload for delete: {json.dumps(payload, indent=4)}")
+            logger.debug(
+                f"Serialized payload for delete: {json.dumps(payload, indent=4)}"
+            )
 
             # Determine the correct payload structure for the API call (similar to create)
             # Defer imports to avoid circular dependencies until files are created
 
-            if hasattr(self, '_is_invoice_manager'):
+            if hasattr(self, "_is_invoice_manager"):
                 api_payload = {"Invoices": [payload]}
                 # Deletion is often handled by POST/PUT with status=DELETED
                 api_method = self._get_xero_update_method()
-                kwargs = {'invoices': api_payload}
-            elif hasattr(self, '_is_quote_manager'):
+                kwargs = {"invoices": api_payload}
+            elif hasattr(self, "_is_quote_manager"):
                 api_payload = {"Quotes": [payload]}
                 api_method = self._get_xero_update_method()
-                kwargs = {'quotes': api_payload}
-            elif hasattr(self, '_is_po_manager'):
+                kwargs = {"quotes": api_payload}
+            elif hasattr(self, "_is_po_manager"):
                 api_payload = {"PurchaseOrders": [payload]}
                 api_method = self._get_xero_update_method()
-                kwargs = {'purchase_orders': api_payload}
+                kwargs = {"purchase_orders": api_payload}
             else:
-                raise ValueError("Unknown Xero document type for delete payload structure.")
+                raise ValueError(
+                    "Unknown Xero document type for delete payload structure."
+                )
 
         except Exception as e:
-            logger.error(f"Error preparing payload for Xero document deletion: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error preparing payload for Xero document deletion: {str(e)}",
+                exc_info=True,
+            )
             raise
 
         try:
-            logger.info(f"Attempting to call Xero API method for delete: {api_method.__name__}")
+            logger.info(
+                f"Attempting to call Xero API method for delete: {api_method.__name__}"
+            )
             response, http_status, http_headers = api_method(
                 self.xero_tenant_id, **kwargs, _return_http_data_only=False
             )
@@ -246,7 +262,9 @@ class XeroDocumentManager(ABC):
             logger.debug(f"Xero API Delete HTTP Status: {http_status}")
 
         except Exception as e:
-            logger.error(f"Error calling Xero API method {api_method.__name__} for delete: {str(e)}")
+            logger.error(
+                f"Error calling Xero API method {api_method.__name__} for delete: {str(e)}"
+            )
             if hasattr(e, "body"):
                 logger.error(f"Xero API Delete Response body: {e.body}")
             raise
@@ -261,7 +279,7 @@ class XeroDocumentManager(ABC):
         - Returns tuple of (sync_success: bool, action_taken: str)
         """
         self.validate_client()
-        
+
         xero_id = self.get_xero_id()
         if not xero_id:
             # Document doesn't exist in Xero yet - create it
@@ -276,24 +294,22 @@ class XeroDocumentManager(ABC):
             # Document exists - get latest from Xero
             api_method = self._get_xero_update_method()
             response = api_method(
-                self.xero_tenant_id,
-                xero_id,
-                _return_http_data_only=False
+                self.xero_tenant_id, xero_id, _return_http_data_only=False
             )
-            
+
             # Update local record with Xero data
             document_data = response[0]  # First element is the document data
             local_model = self.get_local_model()
             local_doc = local_model.objects.get(xero_id=xero_id)
-            
+
             # Update fields from Xero response
             local_doc.xero_last_synced = timezone.now()
-            local_doc.xero_last_modified = document_data.get('updated_date_utc')
-            local_doc.status = document_data.get('status')
+            local_doc.xero_last_modified = document_data.get("updated_date_utc")
+            local_doc.status = document_data.get("status")
             local_doc.save()
-            
+
             return (True, "synced")
-            
+
         except Exception as e:
             logger.error(f"Failed to sync document {xero_id}: {str(e)}")
             return (False, "sync_failed")

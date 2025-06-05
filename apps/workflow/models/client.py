@@ -5,6 +5,7 @@ class Client(BaseClient):
     class Meta:
         proxy = True
 
+
 class Supplier(BaseSupplier):
 
     class Meta:

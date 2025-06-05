@@ -1,1 +1,1 @@
-default_app_config = 'workflow.apps.WorkflowConfig'
+default_app_config = "workflow.apps.WorkflowConfig"

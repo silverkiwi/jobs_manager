@@ -1,6 +1,6 @@
 /**
  * Purchase Order State Management
- * 
+ *
  * Central state management for the purchase order form
  */
 
@@ -25,7 +25,7 @@ let state = { ...initialState };
  */
 export function initState() {
   state = { ...initialState };
-  
+
   // For backwards compatibility
   window.purchaseData = state.purchaseData;
 }
@@ -44,12 +44,12 @@ export function getState() {
  */
 export function updateState(newState) {
   state = { ...state, ...newState };
-  
+
   // Keep window.purchaseData in sync for backward compatibility
   if (newState.purchaseData) {
     window.purchaseData = state.purchaseData;
   }
-  
+
   // Keep window.grid in sync for backward compatibility
   if (newState.grid) {
     window.grid = state.grid;

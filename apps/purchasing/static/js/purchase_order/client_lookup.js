@@ -22,7 +22,9 @@ function getCsrfToken() {
  */
 export function initializeClientLookup() {
   const clientInput = document.getElementById("client_name");
-  const suggestionsContainer = document.getElementById("clientSuggestionsContainer");
+  const suggestionsContainer = document.getElementById(
+    "clientSuggestionsContainer",
+  );
 
   if (!clientInput || !suggestionsContainer) {
     console.error("Client input field or suggestions container not found.");
@@ -30,14 +32,14 @@ export function initializeClientLookup() {
   }
 
   // Clear Xero contact ID when client name is manually edited
-  clientInput.addEventListener("input", function() {
+  clientInput.addEventListener("input", function () {
     const clientXeroIdField = document.getElementById("client_xero_id");
     const clientIdField = document.getElementById("client_id");
     if (clientXeroIdField && clientIdField) {
       clientXeroIdField.value = "";
       clientIdField.value = "";
     }
-    
+
     const query = clientInput.value.trim();
     if (query.length > 2) {
       fetchClientSuggestions(query);
@@ -47,7 +49,7 @@ export function initializeClientLookup() {
   });
 
   // Add message event listener to handle client selection from child window
-  window.addEventListener("message", function(event) {
+  window.addEventListener("message", function (event) {
     console.log("Received message:", event.data);
 
     // Handle messages from client selection window
@@ -148,7 +150,7 @@ export function initializeClientLookup() {
         suggestionItem.textContent = client.name;
         suggestionItem.dataset.clientId = client.id;
 
-        suggestionItem.addEventListener("click", function() {
+        suggestionItem.addEventListener("click", function () {
           clientInput.value = client.name;
           const clientIdField = document.getElementById("client_id");
           const clientNameField = document.getElementById("client_name");
@@ -156,12 +158,10 @@ export function initializeClientLookup() {
 
           if (clientIdField) clientIdField.value = client.id;
           if (clientNameField) clientNameField.value = client.name;
-          if (clientXeroIdField) clientXeroIdField.value = client.xero_contact_id || "";
+          if (clientXeroIdField)
+            clientXeroIdField.value = client.xero_contact_id || "";
 
-          if (
-            !clientIdField?.value ||
-            !clientNameField?.value
-          ) {
+          if (!clientIdField?.value || !clientNameField?.value) {
             console.error("Failed to update client fields in the form.");
             renderMessages(
               [
@@ -186,7 +186,7 @@ export function initializeClientLookup() {
     const addNewOption = document.createElement("div");
     addNewOption.classList.add("suggestion-item", "add-new-client");
     addNewOption.textContent = `Add new client "${query}"`;
-    addNewOption.addEventListener("click", function() {
+    addNewOption.addEventListener("click", function () {
       const newWindow = window.open(
         `/clients/add/?name=${encodeURIComponent(query)}`,
         "_blank",
@@ -202,7 +202,7 @@ export function initializeClientLookup() {
   }
 
   // Global click event to close the dropdown
-  document.addEventListener("click", function(event) {
+  document.addEventListener("click", function (event) {
     const isClickInsideInput = clientInput.contains(event.target);
     const isClickInsideContainer = suggestionsContainer.contains(event.target);
 
@@ -212,7 +212,7 @@ export function initializeClientLookup() {
   });
 
   // Prevent click inside the suggestions container from propagating
-  suggestionsContainer.addEventListener("click", function(event) {
+  suggestionsContainer.addEventListener("click", function (event) {
     event.stopPropagation(); // Prevents global listener from triggering
   });
 }

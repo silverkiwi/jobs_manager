@@ -22,7 +22,7 @@ class StaffListAPIView(generics.ListAPIView):
         queryset = self.get_queryset()
         serializer = KanbanStaffSerializer(queryset, many=True)
         return JsonResponse(serializer.data, safe=False)
-    
+
     def get_queryset(self):
         header_value = self.request.headers.get("X-Actual-Users", "false").lower()
         actual_users = header_value == "true"
@@ -30,7 +30,7 @@ class StaffListAPIView(generics.ListAPIView):
             excluded_ids = get_excluded_staff()
             return Staff.objects.exclude(id__in=excluded_ids)
         return Staff.objects.all()
-    
+
     def get_serializer_context(self):
         return {"request": self.request}
 

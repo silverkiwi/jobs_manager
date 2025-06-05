@@ -4,14 +4,19 @@ from django.apps import AppConfig
 from django.conf import settings
 
 # Import standalone job functions
-from apps.workflow.scheduler_jobs import xero_heartbeat_job, xero_regular_sync_job, xero_30_day_sync_job
+from apps.workflow.scheduler_jobs import (
+    xero_heartbeat_job,
+    xero_regular_sync_job,
+    xero_30_day_sync_job,
+)
 
 logger = logging.getLogger(__name__)
 
+
 class WorkflowConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.workflow'
-    verbose_name = 'Workflow'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.workflow"
+    verbose_name = "Workflow"
 
     def ready(self):
         # This app (workflow) is responsible for scheduling Xero-related jobs.
@@ -21,7 +26,7 @@ class WorkflowConfig(AppConfig):
         # Prevent scheduler from running multiple times, especially during development
         # or when running management commands like runserver.
         # RUN_MAIN is set by Django in the main process.
-        if settings.DEBUG and os.environ.get('RUN_MAIN') != 'true':
+        if settings.DEBUG and os.environ.get("RUN_MAIN") != "true":
             logger.info("Skipping APScheduler setup in debug child process.")
             return
 
@@ -34,7 +39,7 @@ class WorkflowConfig(AppConfig):
         from apscheduler.schedulers.background import BackgroundScheduler
         from django_apscheduler.jobstores import DjangoJobStore
 
-        if not hasattr(self, 'xero_scheduler_started'):
+        if not hasattr(self, "xero_scheduler_started"):
             self.xero_scheduler_started = True
             logger.info("Starting APScheduler for Xero-related jobs...")
 
@@ -46,42 +51,42 @@ class WorkflowConfig(AppConfig):
 
             # Xero Heartbeat: Refresh Xero API token every 5 minutes
             scheduler.add_job(
-                xero_heartbeat_job, # Use standalone function
-                trigger='interval',
+                xero_heartbeat_job,  # Use standalone function
+                trigger="interval",
                 minutes=5,
-                id='xero_heartbeat',
+                id="xero_heartbeat",
                 max_instances=1,
                 replace_existing=True,
-                misfire_grace_time=60, # 1 minute grace time
+                misfire_grace_time=60,  # 1 minute grace time
                 coalesce=True,
             )
             logger.info("Added 'xero_heartbeat' job to scheduler.")
 
             # Xero Regular Sync: Perform full Xero synchronization every 1 hour
             scheduler.add_job(
-                xero_regular_sync_job, # Use standalone function
-                trigger='interval',
+                xero_regular_sync_job,  # Use standalone function
+                trigger="interval",
                 hours=1,
-                id='xero_regular_sync',
+                id="xero_regular_sync",
                 max_instances=1,
                 replace_existing=True,
-                misfire_grace_time=60*60, # 1 hour grace time
+                misfire_grace_time=60 * 60,  # 1 hour grace time
                 coalesce=True,
             )
             logger.info("Added 'xero_regular_sync' job to scheduler.")
 
             # Xero 30-Day Sync: Perform full Xero synchronization on a Saturday morning every ~30 days
             scheduler.add_job(
-                xero_30_day_sync_job, # Use standalone function
-                trigger='cron',
-                day_of_week='sat', # Saturday
-                hour=2, # 2 AM
+                xero_30_day_sync_job,  # Use standalone function
+                trigger="cron",
+                day_of_week="sat",  # Saturday
+                hour=2,  # 2 AM
                 minute=0,
-                timezone='Pacific/Auckland', # Explicitly set NZT
-                id='xero_30_day_sync',
+                timezone="Pacific/Auckland",  # Explicitly set NZT
+                id="xero_30_day_sync",
                 max_instances=1,
                 replace_existing=True,
-                misfire_grace_time=24*60*60, # 24 hour grace time
+                misfire_grace_time=24 * 60 * 60,  # 24 hour grace time
                 coalesce=True,
             )
             logger.info("Added 'xero_30_day_sync' job to scheduler (Saturday morning).")
@@ -90,4 +95,6 @@ class WorkflowConfig(AppConfig):
                 scheduler.start()
                 logger.info("APScheduler started successfully (for Xero related jobs).")
             except Exception as e:
-                logger.error(f"Error starting APScheduler for Xero jobs: {e}", exc_info=True)
+                logger.error(
+                    f"Error starting APScheduler for Xero jobs: {e}", exc_info=True
+                )

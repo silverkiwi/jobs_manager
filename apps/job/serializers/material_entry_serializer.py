@@ -20,7 +20,7 @@ class MaterialEntrySerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "item_code",
-            "description", 
+            "description",
             "quantity",
             "unit_cost",
             "unit_revenue",

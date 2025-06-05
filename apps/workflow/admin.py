@@ -10,17 +10,17 @@ from apps.workflow.models import AIProvider
 
 class AIProviderInline(admin.TabularInline):
     """Inline admin for AIProvider to allow adding multiple providers in CompanyDefaults."""
+
     model = AIProvider
     extra = 1
-    fields = ('name', 'provider_type', 'api_key', 'active')
+    fields = ("name", "provider_type", "api_key", "active")
 
     def save_model(self, request, obj, form, change):
         """Ensure only one provider is active by deactivating others when a new one is activated."""
         if obj.active:
-            AIProvider.objects.filter(
-                company=obj.company,
-                active=True
-            ).exclude(pk=obj.pk).update(active=False)
+            AIProvider.objects.filter(company=obj.company, active=True).exclude(
+                pk=obj.pk
+            ).update(active=False)
         super().save_model(request, obj, form, change)
 
 
@@ -28,12 +28,20 @@ class AIProviderInline(admin.TabularInline):
 class CompanyDefaultsAdmin(admin.ModelAdmin):
     def edit_link(self, obj):
         from django.utils.html import format_html
+
         return format_html('<a href="{}/change/">Edit defaults</a>', obj.pk)
-    
-    edit_link.short_description = 'Actions'
+
+    edit_link.short_description = "Actions"
     edit_link.allow_tags = True
 
-    list_display = ["edit_link", "charge_out_rate", "wage_rate", "time_markup", "materials_markup", "starting_job_number"]
+    list_display = [
+        "edit_link",
+        "charge_out_rate",
+        "wage_rate",
+        "time_markup",
+        "materials_markup",
+        "starting_job_number",
+    ]
     inlines = [AIProviderInline]
 
     fieldsets = (
@@ -45,7 +53,7 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
                     "materials_markup",
                     "charge_out_rate",
                     "wage_rate",
-                    "starting_job_number"
+                    "starting_job_number",
                 )
             },
         ),
@@ -58,7 +66,7 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
                     "daily_gp_target",
                     "shop_hours_target_percentage",
                 )
-            }
+            },
         ),
         (
             "Working Hours",
@@ -88,6 +96,6 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
             {
                 "fields": (),
                 "description": "LLM providers are managed in the section below. Only one provider can be active at a time.",
-            }
-        )
+            },
+        ),
     )

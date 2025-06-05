@@ -26,4 +26,3 @@ class KanbanStaffSerializer(serializers.ModelSerializer):
         model = Staff
         fields = ["id", "first_name", "last_name", "icon", "display_name"]
         read_only_fields = ["display_name"]
-        
