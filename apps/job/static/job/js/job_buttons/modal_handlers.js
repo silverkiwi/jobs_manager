@@ -24,7 +24,7 @@ export function showQuoteModal(jobId, provider = "gmail", contactOnly = false) {
     sendQuoteEmail(jobId, provider, true).catch((error) => {
       console.error("Error sending quote email:", error);
       renderMessages([
-        { level: "error", message: "Failed to send quote email." },
+        { level: "error", message: `Error: ${error.message}` },
       ]);
     });
     return;

@@ -49,6 +49,7 @@ export async function sendQuoteEmail(
     renderMessages(
       [{ level: "error", message: `Error sending email: ${error.message}` }],
       "email-alert-container",
+      false
     );
     console.error("Error sending email:", error);
     throw error;
