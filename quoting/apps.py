@@ -11,7 +11,14 @@ class QuotingConfig(AppConfig):
     name = "quoting"
 
     def ready(self):
+        # This app (quoting) is responsible for scheduling scraper jobs.
+        # The 'workflow' app handles its own scheduled jobs (e.g., Xero syncs).
+        # Both apps use the same DjangoJobStore for persistence.
+
         # Import scheduler-related modules here, when apps are ready
+        # These imports are placed here to avoid AppRegistryNotReady errors
+        # during Django management commands (like migrate) where the app registry
+        # might not be fully loaded when apps.py is initially processed.
         from apscheduler.schedulers.background import BackgroundScheduler
         from django_apscheduler.jobstores import DjangoJobStore
         # Import the standalone job functions

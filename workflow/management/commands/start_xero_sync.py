@@ -1,92 +1,42 @@
 from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
-from django.utils import timezone
-from workflow.api.xero.xero import refresh_token
-
 import logging
-import os
 
-from workflow.models.xero_token import XeroToken
-from workflow.services.xero_sync_service import XeroSyncService
+from workflow.api.xero.sync import synchronise_xero_data
 
 logger = logging.getLogger("xero")
-_scheduler = None
-
-def get_scheduler():
-    return _scheduler
 
 class Command(BaseCommand):
-    help = 'Starts the Xero sync scheduler with token refresh heartbeat'
+    help = 'Triggers a manual, one-off Xero synchronization.'
 
     def handle(self, *args, **options):
-        global _scheduler
-
-        # --- Logging setup ---
+        # Basic logging setup for a single execution command
         handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
+        handler.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-        logger.setLevel(logging.DEBUG)
-        logger.debug("Debug logging enabled for Xero sync process")
+        logger.setLevel(logging.INFO)
 
-        # --- Heartbeat job ---
-        def token_heartbeat():
-            try:
-                close_old_connections()
-                token = XeroToken.objects.first()
-                if not token:
-                    logger.debug("No Xero token found. Skipping refresh.")
-                    return
-                logger.debug("Running token heartbeat - refreshing Xero token")
-                # Only refresh token, not a full sync
-                refresh_token()
-                logger.debug("Token heartbeat completed")
-            except Exception as e:
-                logger.error(f"Error in token heartbeat: {e}")
-
-        # --- Sync job ---
-        def xero_sync_job():
-            task_id, is_new = XeroSyncService.start_sync()
-            if is_new:
-                logger.info(f"Started scheduled Xero sync: {task_id}")
-            else:
-                logger.info(f"Skipped scheduled Xero sync (already running): {task_id}")
-
-        # Interval configuration
-        sync_interval_hours = int(os.getenv('XERO_SYNC_INTERVAL_HOURS', '1'))
-        logger.info(f"Configuring Xero sync to run every {sync_interval_hours} hour(s)")
-
-        _scheduler = BackgroundScheduler()
-
-        _scheduler.add_job(
-            token_heartbeat,
-            trigger=IntervalTrigger(minutes=5),
-            id='xero_token_heartbeat',
-            name='Xero Token Heartbeat',
-            replace_existing=True,
-            max_instances=1,
-            next_run_time=timezone.now()
-        )
-
-        _scheduler.add_job(
-            xero_sync_job,
-            trigger=IntervalTrigger(hours=sync_interval_hours),
-            id='xero_sync_job',
-            name='Xero Sync Job',
-            replace_existing=True,
-            max_instances=1,
-            next_run_time=timezone.now()
-        )
-
-        _scheduler.start()
-        logger.info("Started Xero scheduler with token heartbeat")
-
+        logger.info("Attempting to start a manual Xero synchronization...")
+        logger.info("Starting manual Xero synchronization...")
         try:
-            while True:
-                pass
-        except (KeyboardInterrupt, SystemExit):
-            _scheduler.shutdown()
+            for message in synchronise_xero_data():
+                # Log messages from the sync process
+                severity = message.get('severity', 'info')
+                msg_text = message.get('message', 'No message')
+                entity = message.get('entity', 'N/A')
+                progress = message.get('progress', 'N/A')
+                
+                log_func = getattr(logger, severity, logger.info)
+                progress_display = "N/A" if not isinstance(progress, (int, float)) else f"{progress:.2f}"
+                log_func(f"Sync Progress ({entity}): {msg_text} (Progress: {progress_display})")
+
+            logger.info("Manual Xero synchronization completed successfully.")
+        except Exception as e:
+            logger.error(f"Error during manual Xero synchronization: {e}", exc_info=True)
+            self.stderr.write(self.style.ERROR(f"Xero sync failed: {e}")) 
+
+        close_old_connections()
+        logger.info("Manual Xero synchronization command finished.")

@@ -20,8 +20,8 @@ from workflow.api.xero.reprocess_xero import (
     set_invoice_or_bill_fields,
     set_journal_fields,
 )
-from workflow.api.xero.xero import api_client, get_tenant_id, get_token
-from workflow.models import XeroJournal, Quote
+from workflow.api.xero.xero import api_client, get_tenant_id, get_token, get_xero_items 
+from workflow.models import XeroJournal, Quote, Stock
 from workflow.models.invoice import Bill, CreditNote, Invoice
 from workflow.models.xero_account import XeroAccount
 from workflow.models.purchase import PurchaseOrder, PurchaseOrderLine
@@ -106,9 +106,13 @@ def sync_xero_data(
     current_batch_start = 0
 
     base_params = {
-        "xero_tenant_id": xero_tenant_id,
         "if_modified_since": last_modified_time,
+        "xero_tenant_id": xero_tenant_id
+
     }
+
+    if xero_api_fetch_function == get_xero_items:
+        base_params.pop("xero_tenant_id", None)  # Bug workaround: get_xero_items does not support tenant ID
 
     # Only add pagination parameters for supported endpoints
     if pagination_mode == "page" and xero_entity_type not in ["quotes", "accounts"]:
@@ -133,7 +137,13 @@ def sync_xero_data(
             if entities is None:
                 logger.error(f"API call returned None for {xero_entity_type}")
                 raise ValueError(f"API call returned None for {xero_entity_type}")
-            items = getattr(entities, xero_entity_type, [])  # Extract the relevant data.
+            # Extract the relevant data. For some entities (like 'items'), the API directly returns a list.
+            # For others (like 'accounts'), it returns an object with an attribute containing the list.
+            if isinstance(entities, list):
+                logger.warning("Xero entities is a list, using it directly! Workaround fo Xero Items")
+                items = entities
+            else:
+                items = getattr(entities, xero_entity_type)
 
             if not items:
                 logger.info("No items to sync.")
@@ -189,6 +199,16 @@ def sync_xero_data(
                         "progress": 0.0,
                         "totalItems": total_items
                     }
+                case "items":
+                    total_items = len(items)
+                    yield {
+                        "datetime": timezone.now().isoformat(),
+                        "entity": our_entity_type,
+                        "severity": "info",
+                        "message": f"Found {total_items} items to sync",
+                        "progress": 0.0,
+                        "totalItems": total_items
+                    }
                 case _:
                     raise ValueError(f"Unexpected entity type: {xero_entity_type}")
 
@@ -213,6 +233,8 @@ def sync_xero_data(
                         message = f"Processed {total_processed} of {total_items} quotes"
                     case "accounts":
                         message = f"Processed {total_processed} of {total_items} accounts"
+                    case "items":
+                        message = f"Processed {total_processed} of {total_items} items"
                     case _:
                         raise ValueError(f"Unexpected entity type: {xero_entity_type}")
                 
@@ -491,6 +513,83 @@ def sync_bills(bills):
             )
 
 
+
+
+def sync_items(items_data):
+    """Sync Xero Inventory Items to the Stock model."""
+    logger.info(f"Starting sync for {len(items_data)} Xero Items.")
+    for item_data in items_data:
+        xero_id = getattr(item_data, "item_id")
+        
+        dirty_raw_json = serialise_xero_object(item_data)
+        raw_json = clean_raw_json(dirty_raw_json)
+
+        try:
+            stock_item = Stock.objects.get(xero_id=xero_id)
+            created = False
+        except Stock.DoesNotExist:
+            stock_item = Stock(xero_id=xero_id)
+            created = True
+        except MultipleObjectsReturned:
+            # Fail early: Multiple objects for a unique Xero ID indicates a data integrity issue.
+            error_msg = f"Multiple Stock items found for Xero ID {xero_id}. This indicates a data integrity issue. Aborting sync for this item."
+            logger.error(error_msg)
+            raise ValueError(error_msg) # Fail early
+
+        # Map fields from Xero Item to Stock model
+        stock_item.item_code = getattr(item_data, "code", "") # Xero 'Code' to Stock 'item_code'
+        stock_item.description = getattr(item_data, "name", "") # Xero 'Name' to Stock 'description'
+        stock_item.notes = getattr(item_data, "description", "") # Xero 'Description' to Stock 'notes'
+
+        # Xero Items API does not provide a direct 'quantity on hand'. Default to 0.
+        # Actual quantity will be managed through other Xero transactions.
+        stock_item.quantity = Decimal('0.00')
+
+        # Handle PurchaseDetails and SalesDetails
+        # For new items, prices must be present. For existing, only update if Xero provides a value.
+        if item_data.purchase_details and item_data.purchase_details.unit_price is not None:
+            stock_item.unit_cost = Decimal(str(item_data.purchase_details.unit_price))
+        elif created:
+            # New stock item is missing a purchase price, default to 0.00
+            logger.warning(f"New Stock item (Xero ID: {xero_id}) is missing PurchaseDetails.UnitPrice. Defaulting to 0.00.")
+            stock_item.unit_cost = Decimal('0.00')
+        # Else: if not created and unit_price is None, do not update stock_item.unit_cost (preserve existing)
+
+        if item_data.sales_details and item_data.sales_details.unit_price is not None:
+            stock_item.retail_rate = Decimal(str(item_data.sales_details.unit_price))
+        elif created:
+            # New stock item is missing a sale price, default to 0.00
+            logger.warning(f"New Stock item (Xero ID: {xero_id}) is missing SalesDetails.UnitPrice. Defaulting to 0.00.")
+            stock_item.retail_rate = Decimal('0.00')
+        # Else: if not created and unit_price is None, do not update stock_item.retail_rate (preserve existing)
+
+        # Store raw JSON and last modified date
+        stock_item.raw_json = raw_json
+        if hasattr(item_data, "updated_date_utc") and item_data.updated_date_utc:
+            stock_item.xero_last_modified = item_data.updated_date_utc
+        else:
+            # Fail early: Xero items should always have an updated_date_utc for sync purposes
+            error_msg = f"Xero Item (Xero ID: {xero_id}) is missing updated_date_utc. Aborting sync for this item."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        try:
+            with transaction.atomic():
+                stock_item.save()
+                if created:
+                    logger.info(f"Created Stock item: {stock_item.description} (Xero ID: {xero_id})")
+                else:
+                    logger.info(f"Updated Stock item: {stock_item.description} (Xero ID: {xero_id})")
+        except IntegrityError as e:
+            logger.error(f"Integrity error saving Stock item {xero_id}: {e}")
+            raise # Re-raise to fail early
+        except Exception as e:
+            logger.error(f"Error saving Stock item {xero_id}: {e}", exc_info=True)
+            raise # Re-raise to fail early
+
+    logger.info("Finished syncing Xero Items.")
+
+
 def sync_credit_notes(notes):
     """Sync Xero credit notes."""
     for note_data in notes:
@@ -531,6 +630,7 @@ def sync_credit_notes(notes):
                 f"updated_at={note.xero_last_modified}"
             )
 
+    logger.info("Finished syncing Xero Credit Notes.")
 
 def sync_journals(journals):
     """Sync Xero journals."""
@@ -1021,6 +1121,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             'journal': get_last_modified_time(XeroJournal),
             'quote': get_last_modified_time(Quote),
             'purchase_order': get_last_modified_time(PurchaseOrder),
+            'stock': get_last_modified_time(Stock), # Add for Items
         }
     else:
         # Use fixed timestamp from days_back (covers both regular deep syncs, and the initial sync)
@@ -1035,6 +1136,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             'journal': older_time,
             'quote': older_time,
             'purchase_order': older_time,
+            'stock': older_time,
         }
 
     logger.info("Starting first sync_xero_data call for accounts")
@@ -1104,6 +1206,15 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
         pagination_mode="page",
     )
     
+    yield from sync_xero_data(
+        xero_entity_type="items",
+        our_entity_type="Stock",
+        xero_api_fetch_function=get_xero_items,
+        sync_function=sync_items,
+        last_modified_time=timestamps['stock'],
+        pagination_mode="single",
+    )
+
     yield from sync_xero_data(
         xero_entity_type="journals",
         our_entity_type="journals",
