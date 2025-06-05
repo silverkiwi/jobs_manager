@@ -54,17 +54,6 @@ from apps.workflow.views.report_view import CompanyProfitAndLossView, ReportsInd
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
-    # API Endpoints
-    path(
-        "api/quote/<uuid:job_id>/pdf-preview/",
-        submit_quote_view.generate_quote_pdf,
-        name="generate_quote_pdf",
-    ),
-    path(
-        "api/quote/<uuid:job_id>/send-email/",
-        submit_quote_view.send_quote_email,
-        name="send_quote_email",
-    ),
     path("api/get-env-variable/", server.get_env_variable, name="get_env_variable"),
     path("api/enums/<str:enum_name>/", get_enum_choices, name="get_enum_choices"),
     path(

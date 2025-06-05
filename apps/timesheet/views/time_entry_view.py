@@ -15,7 +15,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 
-from apps.job.enums import RateType
+from apps.timesheet.enums import RateType
 from apps.job.models import Job
 from apps.job.utils import get_active_jobs, get_jobs_data
 
