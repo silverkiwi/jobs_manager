@@ -4,6 +4,7 @@ from .adjustment_entry import AdjustmentEntry
 from .job import Job
 from .job_event import JobEvent
 from .job_file import JobFile
+from .job_part import JobPart
 from .job_pricing import JobPricing, QuotePricing
 from .material_entry import MaterialEntry
 
@@ -12,6 +13,7 @@ __all__ = [
     'Job',
     'JobEvent',
     'JobFile',
+    'JobPart',
     'JobPricing',
     'QuotePricing',
     'MaterialEntry',

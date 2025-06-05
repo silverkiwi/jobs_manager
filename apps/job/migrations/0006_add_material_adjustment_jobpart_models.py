@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('job', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='parts', to='job.job')),
             ],
             options={
-                'db_table': 'workflow_jobpart',
+                'db_table': 'workflow_part',
                 'ordering': ['name'],
             },
         ),
