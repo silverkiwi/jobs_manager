@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "simple_history",
     "apps.workflow.apps.WorkflowConfig",
+    "apps.accounting.apps.AccountingConfig",
     "apps.accounts.apps.AccountsConfig",
     "apps.timesheet.apps.TimesheetConfig",
     "apps.job.apps.JobConfig",

@@ -51,7 +51,7 @@ class Job(models.Model):
     }
 
     client = models.ForeignKey(
-        "workflow.Client",
+        "client.Client",
         on_delete=models.SET_NULL,  # Option to handle if a client is deleted
         null=True,
         related_name="jobs",  # Allows reverse lookup of jobs for a client
