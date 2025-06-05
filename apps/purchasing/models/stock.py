@@ -27,8 +27,15 @@ class Stock(models.Model):
         blank=True,
         related_name='stock_items',
         help_text="The job this stock item is assigned to"
-    )
+    )    
     
+    item_code = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Xero Item Code"
+    )
+
     description = models.CharField(
         max_length=255,
         help_text="Description of the stock item"
@@ -115,6 +122,24 @@ class Stock(models.Model):
         default=True, 
         db_index=True, 
         help_text="False when quantity reaches zero or item is fully consumed/transformed"
+    )
+
+    xero_id = models.CharField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Unique ID from Xero for this item"
+    )
+    xero_last_modified = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last modified date from Xero for this item"
+    )
+    raw_json = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Raw JSON data from Xero for this item"
     )
     
     # TODO: Add fields for:

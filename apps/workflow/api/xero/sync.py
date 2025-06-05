@@ -20,12 +20,11 @@ from apps.workflow.api.xero.reprocess_xero import (
     set_invoice_or_bill_fields,
     set_journal_fields,
 )
-from apps.workflow.api.xero.xero import api_client, get_tenant_id, get_token
+from apps.workflow.api.xero.xero import api_client, get_tenant_id, get_token, get_xero_items
 from apps.workflow.models import XeroJournal, Quote
 from apps.workflow.models.invoice import Bill, CreditNote, Invoice
 from apps.workflow.models.xero_account import XeroAccount
-
-from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
+from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, Stock
 
 from apps.client.models import Client
 
@@ -492,6 +491,81 @@ def sync_bills(bills):
             )
 
 
+
+
+def sync_items(items_data):
+    """Sync Xero Inventory Items to the Stock model."""
+    logger.info(f"Starting sync for {len(items_data)} Xero Items.")
+    for item_data in items_data:
+        xero_id = getattr(item_data, "item_id")
+        
+        dirty_raw_json = serialise_xero_object(item_data)
+        raw_json = clean_raw_json(dirty_raw_json)
+
+        try:
+            stock_item = Stock.objects.get(xero_id=xero_id)
+            created = False
+        except Stock.DoesNotExist:
+            stock_item = Stock(xero_id=xero_id)
+            created = True
+        except MultipleObjectsReturned:
+            # Fail early: Multiple objects for a unique Xero ID indicates a data integrity issue.
+            error_msg = f"Multiple Stock items found for Xero ID {xero_id}. This indicates a data integrity issue. Aborting sync for this item."
+            logger.error(error_msg)
+            raise ValueError(error_msg) # Fail early
+
+        # Map fields from Xero Item to Stock model
+        stock_item.item_code = getattr(item_data, "code", "") # Xero 'Code' to Stock 'item_code'
+        stock_item.description = getattr(item_data, "name", "") # Xero 'Name' to Stock 'description'
+        stock_item.notes = getattr(item_data, "description", "") # Xero 'Description' to Stock 'notes'
+
+        # Handle PurchaseDetails and SalesDetails
+        # For new items, prices must be present. For existing, only update if Xero provides a value.
+        if item_data.purchase_details and item_data.purchase_details.unit_price is not None:
+            stock_item.unit_cost = Decimal(str(item_data.purchase_details.unit_price))
+        elif created:
+            # Fail early: New stock item must have a purchase price
+            error_msg = f"New Stock item (Xero ID: {xero_id}) is missing PurchaseDetails.UnitPrice. Aborting sync for this item."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        # Else: if not created and unit_price is None, do not update stock_item.unit_cost (preserve existing)
+
+        if item_data.sales_details and item_data.sales_details.unit_price is not None:
+            stock_item.retail_rate = Decimal(str(item_data.sales_details.unit_price))
+        elif created:
+            # Fail early: New stock item must have a sale price
+            error_msg = f"New Stock item (Xero ID: {xero_id}) is missing SalesDetails.UnitPrice. Aborting sync for this item."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        # Else: if not created and unit_price is None, do not update stock_item.retail_rate (preserve existing)
+
+        # Store raw JSON and last modified date
+        stock_item.raw_json = raw_json
+        if hasattr(item_data, "updated_date_utc") and item_data.updated_date_utc:
+            stock_item.xero_last_modified = item_data.updated_date_utc
+        else:
+            # Fail early: Xero items should always have an updated_date_utc for sync purposes
+            error_msg = f"Xero Item (Xero ID: {xero_id}) is missing updated_date_utc. Aborting sync for this item."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        try:
+            with transaction.atomic():
+                stock_item.save()
+                if created:
+                    logger.info(f"Created Stock item: {stock_item.description} (Xero ID: {xero_id})")
+                else:
+                    logger.info(f"Updated Stock item: {stock_item.description} (Xero ID: {xero_id})")
+        except IntegrityError as e:
+            logger.error(f"Integrity error saving Stock item {xero_id}: {e}")
+            raise # Re-raise to fail early
+        except Exception as e:
+            logger.error(f"Error saving Stock item {xero_id}: {e}", exc_info=True)
+            raise # Re-raise to fail early
+
+    logger.info("Finished syncing Xero Items.")
+
+
 def sync_credit_notes(notes):
     """Sync Xero credit notes."""
     for note_data in notes:
@@ -532,6 +606,7 @@ def sync_credit_notes(notes):
                 f"updated_at={note.xero_last_modified}"
             )
 
+    logger.info("Finished syncing Xero Credit Notes.")
 
 def sync_journals(journals):
     """Sync Xero journals."""
@@ -1022,6 +1097,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             'journal': get_last_modified_time(XeroJournal),
             'quote': get_last_modified_time(Quote),
             'purchase_order': get_last_modified_time(PurchaseOrder),
+            'item': get_last_modified_time(Stock), # Add for Items
         }
     else:
         # Use fixed timestamp from days_back (covers both regular deep syncs, and the initial sync)
@@ -1105,6 +1181,15 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
         pagination_mode="page",
     )
     
+    yield from sync_xero_data(
+        xero_entity_type="items",
+        our_entity_type="Stock",
+        xero_api_fetch_function=get_xero_items,
+        sync_function=sync_items,
+        last_modified_time=timestamps['item'],
+        pagination_mode="single",
+    )
+
     yield from sync_xero_data(
         xero_entity_type="journals",
         our_entity_type="journals",

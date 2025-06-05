@@ -15,16 +15,6 @@ class Migration(migrations.Migration):
             name="jobpart",
             options={"ordering": ["created_at"]},
         ),
-        migrations.RenameField(
-            model_name="adjustmententry",
-            old_name="revenue_adjustment",
-            new_name="price_adjustment",
-        ),
-        # This is extremely problematic for some reason. In a clean db, I couldn't fix it to work, it kept failing to "KeyError: 'job'".
-        # migrations.RemoveField(
-        #     model_name="jobpart",
-        #     name="job",
-        # ),
         migrations.AddField(
             model_name="jobpart",
             name="job_pricing",
@@ -72,9 +62,5 @@ class Migration(migrations.Migration):
             model_name="jobpart",
             name="name",
             field=models.CharField(max_length=100),
-        ),
-        migrations.AlterModelTable(
-            name="jobpart",
-            table="workflow_part",
         ),
     ]

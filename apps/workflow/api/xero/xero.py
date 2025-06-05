@@ -10,6 +10,7 @@ from django.core.cache import cache
 from xero_python.api_client import ApiClient, Configuration
 from xero_python.api_client.oauth2 import OAuth2Token, TokenApi
 from xero_python.identity import IdentityApi
+from xero_python.accounting import AccountingApi
 
 from apps.workflow.models.xero_token import XeroToken
 from apps.workflow.models import CompanyDefaults
@@ -318,3 +319,24 @@ def get_tenant_id() -> str:
 
     logger.debug(f"Returning tenant ID: {tenant_id}")
     return tenant_id
+
+
+def get_xero_items(if_modified_since: Optional[datetime] = None) -> Any:
+    """
+    Fetches Xero Inventory Items using the Accounting API.
+    Handles rate limiting and other API errors.
+    """
+    logger.info(f"Fetching Xero Items. If modified since: {if_modified_since}")
+    tenant_id = get_tenant_id()
+    accounting_api = AccountingApi(api_client)
+    
+    try:
+        items = accounting_api.get_items(
+            xero_tenant_id=tenant_id,
+            if_modified_since=if_modified_since
+        )
+        logger.info(f"Successfully fetched {len(items.items)} Xero Items.")
+        return items.items
+    except Exception as e:
+        logger.error(f"Error fetching Xero Items: {e}", exc_info=True)
+        raise
