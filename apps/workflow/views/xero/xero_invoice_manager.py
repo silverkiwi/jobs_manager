@@ -15,7 +15,7 @@ from .xero_helpers import (
 )  # Assuming format_date is needed
 
 # Import models
-from apps.workflow.models import Invoice
+from apps.accounting.models import Invoice
 from apps.client.models import Client
 from apps.job.models import Job
 from apps.job.enums import InvoiceStatus, JobPricingMethodology
