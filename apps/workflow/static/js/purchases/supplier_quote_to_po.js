@@ -84,10 +84,9 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingIndicator.textContent = 'Processing quote...';
         loadingIndicator.id = 'loadingIndicator';
         document.querySelector('.container-fluid').appendChild(loadingIndicator);
-        
-        // Submit the form
-        console.log('Sending fetch request to /api/extract-supplier-quote/');
-        fetch('/api/extract-supplier-quote/', {
+          // Submit the form
+        console.log('Sending fetch request to /purchasing/api/supplier-quotes/extract/');
+        fetch('/purchasing/api/supplier-quotes/extract/', {
             method: 'POST',
             body: formData,
             redirect: 'follow'
