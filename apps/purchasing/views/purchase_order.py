@@ -73,7 +73,7 @@ class PurchaseOrderCreateView(LoginRequiredMixin, TemplateView):
             purchase_order = PurchaseOrder(status="draft", order_date=timezone.now().date())
             purchase_order.save()  # This will generate a unique PO number
             # Redirect to the URL with the new PO's ID
-            return redirect('purchasing:edit_purchase_order', pk=purchase_order.id)
+            return redirect('purchasing:purchase_orders_detail', pk=purchase_order.id)
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -268,7 +268,7 @@ def autosave_purchase_order_view(request):
             return JsonResponse({
                 "success": True,
                 "is_incomplete_po": True,
-                "redirect_url": reverse('purchasing:edit_purchase_order', kwargs={'pk': purchase_order.id})
+                "redirect_url": reverse('purchasing:purchase_orders_detail', kwargs={'pk': purchase_order.id})
             })
 
         logger.info(f"Syncing purchase order {purchase_order.id} to Xero")
@@ -287,7 +287,7 @@ def autosave_purchase_order_view(request):
                 "success": False,
                 "error": response.get('error', "Failed to sync with Xero"),
                 "exception_type": response.get('exception_type'),
-                "redirect_url": reverse('purchasing:edit_purchase_order', kwargs={'pk': purchase_order.id})
+                "redirect_url": reverse('purchasing:purchase_orders_detail', kwargs={'pk': purchase_order.id})
             })
 
         logger.info(f"Successfully synced PO {purchase_order.id} to Xero")
@@ -296,7 +296,7 @@ def autosave_purchase_order_view(request):
             "success": True,
             "xero_url": purchase_order.online_url,
             "xero_id": str(purchase_order.xero_id) if purchase_order.xero_id else None,
-            "redirect_url": reverse('purchasing:edit_purchase_order', kwargs={'pk': purchase_order.id})
+            "redirect_url": reverse('purchasing:purchase_orders_detail', kwargs={'pk': purchase_order.id})
         })
 
     except Exception as e:
@@ -373,7 +373,7 @@ def extract_supplier_quote_data_view(request):
             }, status=400)
 
         # Redirect to the PO form with the PO ID
-        redirect_url = reverse('purchasing:edit_purchase_order', kwargs={'pk': purchase_order.id})
+        redirect_url = reverse('purchasing:purchase_orders_detail', kwargs={'pk': purchase_order.id})
         return redirect(redirect_url)
 
     except Exception as e:

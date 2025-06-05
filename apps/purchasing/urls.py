@@ -18,7 +18,7 @@ urlpatterns = [
     path(
         'purchase-orders/new/',
         views.PurchaseOrderCreateView.as_view(),
-        name='edit_purchase_order'
+        name='purchase_orders_create'
     ),
     path(
         'purchase-orders/<uuid:pk>/',
