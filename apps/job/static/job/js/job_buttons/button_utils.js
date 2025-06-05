@@ -387,18 +387,17 @@ export function updateJobStatus(jobId) {
   })
     .then((response) => response.json())
     .then((data) => {
-      if (!data.success) {
-        renderMessages(
-          [{ level: "danger", message: data.error }],
-          "toast-container",
-        );
-        return;
-      }
-
-      document.getElementById("job_status").value = "approved";
-      renderMessages(
-        [{ level: "success", message: "Job status updated successfully" }],
+      if (!data.success) {      renderMessages(
+        [{ level: "danger", message: data.error }],
         "toast-container",
+      );
+      return;
+    }
+
+    document.getElementById("job_status").value = "accepted_quote";
+    renderMessages(
+      [{ level: "success", message: "Job status updated successfully" }],
+      "toast-container",
       );
       debouncedAutosave();
     })

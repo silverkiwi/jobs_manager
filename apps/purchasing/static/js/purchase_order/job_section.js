@@ -6,7 +6,7 @@
 function getStatusIcon(status) {
   const icons = {
     quoting: "📝",
-    approved: "✅",
+    accepted_quote: "✅",
     rejected: "❌",
     in_progress: "🚧",
     on_hold: "⏸️",
