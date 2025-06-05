@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 progress = message.get('progress', 'N/A')
                 
                 log_func = getattr(logger, severity, logger.info)
-                progress_display = f"{progress:.2f}" if progress is not None else "N/A"
+                progress_display = "N/A" if not isinstance(progress, (int, float)) else f"{progress:.2f}"
                 log_func(f"Sync Progress ({entity}): {msg_text} (Progress: {progress_display})")
 
             logger.info("Manual Xero synchronization completed successfully.")

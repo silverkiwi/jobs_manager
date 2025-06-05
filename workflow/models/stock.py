@@ -133,6 +133,11 @@ class Stock(models.Model):
         help_text="Raw JSON data from Xero for this item"
     )
     
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['xero_id'], name='unique_xero_id_stock')
+        ]
+
     # TODO: Add fields for:
     # - Location
     # - Minimum stock level

@@ -27,7 +27,7 @@ class JobPart(models.Model):
 
     class Meta:
         ordering = ["created_at"]
-        db_table = "workflow_part"
+        db_table = "workflow_jobpart"
 
     def __str__(self):
         job_name = self.job_pricing.job.name if self.job_pricing and self.job_pricing.job else "No Job"
