@@ -1,6 +1,43 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
 
 from apps.accounts.models import Staff
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Custom serializer that accepts username and maps it to email
+    """
+    username_field = 'username'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add username field instead of email
+        if 'username' not in self.fields:
+            self.fields['username'] = serializers.CharField()
+
+    def validate(self, attrs):
+        # Get username and password from request
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        if username and password:
+            # Since our User model uses email as USERNAME_FIELD,
+            # we assume username is actually an email
+            user = authenticate(request=self.context.get('request'), 
+                              username=username, password=password)
+
+            if user and user.is_active:
+                # Prepare data for parent class
+                attrs[self.username_field] = username
+                
+                # Call parent validate method
+                data = super().validate(attrs)
+                return data
+        
+        # If we get here, authentication failed
+        raise serializers.ValidationError('Invalid credentials')
 
 
 class StaffSerializer(serializers.ModelSerializer):

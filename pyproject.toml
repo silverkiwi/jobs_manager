@@ -37,13 +37,16 @@ APScheduler = "^3.10.4"
 pdf2image = "^1.17.0"
 gunicorn = "^23.0.0"
 pdfplumber = "^0.11.6"
-google-genai = "^1.18.0"
+google-genai = "^1.19.0"
 holidays = "^0.71"
 djangorestframework-simplejwt = "^5.5.0"
 beautifulsoup4 = "^4.13.4"
 selenium = "^4.21.0"
 lxml = "^5.4.0"
 django-apscheduler = "^0.7.0"
+google-api-python-client = "^2.171.0"
+google-generativeai = "^0.8.5"
+django-cors-headers = "^4.7.0"
 
 [tool.poetry.scripts]
 post-install = "scripts.post_install:install_system_deps"  # Script to install system dependencies like poppler-utils

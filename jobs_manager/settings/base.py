@@ -14,6 +14,7 @@ AUTH_USER_MODEL = "accounts.Staff"
 # Application definition
 
 INSTALLED_APPS = [
+    "corsheaders",
     "crispy_forms",
     "crispy_bootstrap5",
     "django_apscheduler",
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -105,6 +107,9 @@ LOGIN_EXEMPT_URLS = [
     "accounts:reset",
     "accounts:password_reset_confirm",
     "accounts:password_reset_complete",
+    "accounts:token_obtain_pair",
+    "accounts:token_refresh",
+    "accounts:token_verify",
 ]
 
 LOGGING = {
