@@ -101,7 +101,7 @@ LOGOUT_URL = "accounts:logout"
 LOGIN_REDIRECT_URL = "/"
 LOGIN_EXEMPT_URLS = [
     "accounts:login",
-    "accounts:logout",
+    "accounts:logout", 
     "accounts:password_reset",
     "accounts:password_reset_done",
     "accounts:reset",
@@ -110,6 +110,9 @@ LOGIN_EXEMPT_URLS = [
     "accounts:token_obtain_pair",
     "accounts:token_refresh",
     "accounts:token_verify",
+    "api/",  # Exempt all API endpoints from session authentication
+    "accounts/api/",  # Include accounts API endpoints
+    "accounts/me/",  # Include user info endpoint
 ]
 
 LOGGING = {

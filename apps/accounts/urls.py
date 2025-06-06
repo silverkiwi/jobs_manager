@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
+from rest_framework_simplejwt.views import TokenVerifyView
 
 from apps.accounts.views import (
     StaffListView,
@@ -10,10 +10,10 @@ from apps.accounts.views import (
     get_staff_rates,
     SecurityPasswordChangeView,
 )
-from apps.accounts.views.token_view import CustomTokenObtainPairView
+from apps.accounts.views.token_view import CustomTokenObtainPairView, CustomTokenRefreshView
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
+from rest_framework_simplejwt.views import TokenVerifyView
 from apps.accounts.views.password_views import SecurityPasswordChangeView
 
 app_name = "accounts"
@@ -33,10 +33,9 @@ urlpatterns = [
     path("staff/<uuid:pk>/", StaffUpdateView.as_view(), name="update_staff"),
     # Staff API
     path("api/staff/all/", StaffListAPIView.as_view(), name="api_staff_list"),
-    path("api/staff/rates/<uuid:staff_id>/", get_staff_rates, name="get_staff_rates"),
-    # JWT endpoints
+    path("api/staff/rates/<uuid:staff_id>/", get_staff_rates, name="get_staff_rates"),    # JWT endpoints
     path("api/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
     path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     # Authentication
     path(

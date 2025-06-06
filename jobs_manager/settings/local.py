@@ -102,6 +102,30 @@ MEDIA_URL = "/media/"
 
 MEDIA_ROOT = BASE_DIR / "mediafiles"
 
-# Enable JWT Authentication for API - Load from environment
+# Enable JWT Authentication for API - For pure API, disable dual authentication
 ENABLE_JWT_AUTH = os.getenv("ENABLE_JWT_AUTH", "True").lower() == "true"
-ENABLE_DUAL_AUTHENTICATION = os.getenv("ENABLE_DUAL_AUTHENTICATION", "True").lower() == "true"
+ENABLE_DUAL_AUTHENTICATION = os.getenv("ENABLE_DUAL_AUTHENTICATION", "False").lower() == "true"
+
+# JWT Cookie settings for local development
+# Override base.py settings to allow non-HTTPS cookies in development
+if ENABLE_JWT_AUTH:
+    from .base import SIMPLE_JWT as BASE_SIMPLE_JWT
+    
+    SIMPLE_JWT = BASE_SIMPLE_JWT.copy()
+    SIMPLE_JWT.update({
+        "AUTH_COOKIE_SECURE": False,  # Allow non-HTTPS cookies in development
+        "AUTH_COOKIE_HTTP_ONLY": True,  # Still use httpOnly for security
+        "AUTH_COOKIE_SAMESITE": "Lax",
+        "AUTH_COOKIE_DOMAIN": None,  # Allow localhost domains
+        "REFRESH_COOKIE": "refresh_token",
+        "REFRESH_COOKIE_SECURE": False,  # Allow non-HTTPS refresh cookies
+        "REFRESH_COOKIE_HTTP_ONLY": True,
+        "REFRESH_COOKIE_SAMESITE": "Lax",
+    })
+
+# Session cookie settings for development
+SESSION_COOKIE_SECURE = False  # Allow non-HTTPS session cookies
+SESSION_COOKIE_HTTPONLY = True  # Keep httpOnly for security
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = False  # Allow non-HTTPS CSRF cookies
+CSRF_COOKIE_HTTPONLY = False  # CSRF cookies need to be accessible to JS

@@ -13,7 +13,7 @@ from django.urls import path
 
 from apps.job.views import (
     edit_job_view_ajax,
-    kanban_view,
+    kanban_view_api,
     workshop_view,
     job_management_view,
     ArchiveCompleteJobsViews,
@@ -40,9 +40,6 @@ urlpatterns = [
         "api/fetch_status_values/",
         edit_job_view_ajax.api_fetch_status_values,
         name="fetch_status_values",
-    ),
-    path(
-        "api/job/advanced-search/", kanban_view.advanced_search, name="advanced-search"
     ),
     path(
         "api/job/<uuid:job_id>/delete/",
@@ -100,26 +97,40 @@ urlpatterns = [
         name="workshop-pdf",
     ),
     path(
-        "job/<uuid:job_id>/reorder/",
-        kanban_view.reorder_job,
-        name="reorder_job",
-    ),
-    path(
         "job/archive-complete",
         ArchiveCompleteJobsViews.ArchiveCompleteJobsTemplateView.as_view(),
         name="archive_complete_jobs",
     ),
-    path("month-end/", job_management_view.month_end_view, name="month_end"),
+    path("month-end/", job_management_view.month_end_view, name="month_end"),  
+    # New Kanban API endpoints
     path(
-        "jobs/<uuid:job_id>/update_status/",
-        kanban_view.update_job_status,
-        name="update_job_status",
+        "api/jobs/fetch-all/",
+        kanban_view_api.fetch_all_jobs,
+        name="api_fetch_all_jobs",
     ),
-    # Kanban views
-    path("kanban/", kanban_view.kanban_view, name="view_kanban"),
     path(
-        "kanban/fetch_jobs/<str:status>/",
-        kanban_view.fetch_jobs,
-        name="fetch_jobs",
+        "api/jobs/<str:job_id>/update-status/",
+        kanban_view_api.update_job_status,
+        name="api_update_job_status",
+    ),
+    path(
+        "api/jobs/<str:job_id>/reorder/",
+        kanban_view_api.reorder_job,
+        name="api_reorder_job",
+    ),
+    path(
+        "api/jobs/fetch/<str:status>/",
+        kanban_view_api.fetch_jobs,
+        name="api_fetch_jobs",
+    ),
+    path(
+        "api/jobs/status-values/",
+        kanban_view_api.fetch_status_values,
+        name="api_fetch_status_values",
+    ),
+    path(
+        "api/jobs/advanced-search/",
+        kanban_view_api.advanced_search,
+        name="api_advanced_search",
     ),
 ]
