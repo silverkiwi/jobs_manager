@@ -2,7 +2,7 @@ import { renderMessages } from "/static/timesheet/js/timesheet_entry/messages.js
 
 document.addEventListener("DOMContentLoaded", () => {
   try {
-    const dataService = new CalendarDataService("/api/reports/calendar");
+    const dataService = new CalendarDataService();
     const formatter = new EventFormatter(dataService);
     const view = new CalendarView("calendar", "calendarLoader", formatter);
 
