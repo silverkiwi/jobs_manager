@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
-from apps.job.enums import QuoteStatus
+from apps.accounting.enums import QuoteStatus
 
 
 class Quote(models.Model):

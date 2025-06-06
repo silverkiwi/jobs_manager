@@ -18,7 +18,8 @@ from .xero_helpers import (
 from apps.accounting.models import Invoice
 from apps.client.models import Client
 from apps.job.models import Job
-from apps.job.enums import InvoiceStatus, JobPricingMethodology
+from apps.job.enums import JobPricingMethodology
+from apps.accounting.enums import InvoiceStatus
 from xero_python.accounting.models import LineItem, Invoice as XeroInvoice
 from xero_python.exceptions import (
     AccountingBadRequestException,
