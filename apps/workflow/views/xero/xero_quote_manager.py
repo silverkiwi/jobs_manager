@@ -15,8 +15,8 @@ from .xero_helpers import (
 )  # Assuming format_date is needed
 
 # Import models
-from apps.workflow.models import Quote
-from apps.job.enums import QuoteStatus
+from apps.accounting.models import Quote
+from apps.accounting.enums import QuoteStatus
 from xero_python.accounting.models import LineItem, Quote as XeroQuote
 from xero_python.exceptions import (
     AccountingBadRequestException,

@@ -27,7 +27,7 @@ from apps.workflow.api.xero.sync import (
     archive_clients_in_xero,
 )
 from apps.workflow.api.xero.xero import get_valid_token, api_client, get_tenant_id
-from apps.workflow.models import Invoice, Bill
+from apps.accounting.models import Invoice, Bill
 
 from apps.client.models import Client
 from apps.client.forms import ClientForm
@@ -462,7 +462,7 @@ class UnusedClientsView(TemplateView):
     Lists and allows bulk deletion of clients that have no invoices or bills.
     """
 
-    template_name = "xero/unused_clients.html"
+    template_name = "client/unused_clients.html"
     items_per_page = 50
 
     def get_unused_clients(self):

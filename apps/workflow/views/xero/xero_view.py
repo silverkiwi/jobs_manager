@@ -1,16 +1,11 @@
 # workflow/views/xero_view.py
 import json
 import logging
-import re  # Keep re if used elsewhere, otherwise remove
-import traceback
-import threading
 import uuid
 import time
 
 # from abc import ABC, abstractmethod # No longer needed here
-from datetime import timedelta, timezone, datetime
-from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple, Union
+from datetime import timezone
 
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
@@ -18,57 +13,33 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.generic import TemplateView
 from django.contrib import messages
-from django.db.models import Q
-from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
-from django.utils.decorators import method_decorator
-from django.db import transaction
 
-# Remove direct imports of Xero models if only used in creators
-# from xero_python.accounting import AccountingApi
-# from xero_python.accounting.models import Contact
-# from xero_python.accounting.models import Invoice as XeroInvoice
-# from xero_python.accounting.models import LineItem
-# from xero_python.accounting.models import Quote as XeroQuote
-# from xero_python.accounting.models import PurchaseOrder as XeroPurchaseOrder
-# from xero_python.api_client import ApiClient
-# from xero_python.api_client.configuration import Configuration
-# from xero_python.api_client.oauth2 import OAuth2Token
-from xero_python.exceptions import (
-    AccountingBadRequestException,
-)  # Keep if handled in views
 from xero_python.identity import IdentityApi
 
-from django.conf import settings
-from apps.workflow.templatetags.xero_tags import XERO_ENTITIES
-from apps.workflow.api.xero.sync import (
-    synchronise_xero_data,
-    delete_clients_from_xero,
-    get_last_modified_time,
-)
 from apps.workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
     get_authentication_url,
-    get_tenant_id,
     get_tenant_id_from_connections,
-    get_token,
     get_valid_token,
     refresh_token,
 )
-from apps.job.enums import InvoiceStatus, JobPricingMethodology, QuoteStatus
-from apps.workflow.models import (
+from apps.accounting.models import (
     Invoice,
-    XeroToken,
     Bill,
     CreditNote,
-    XeroAccount,
-    XeroJournal,
-    CompanyDefaults,
     Quote,
 )
+
+from apps.workflow.models import (
+    XeroAccount,
+    XeroJournal,
+    XeroToken,
+)
+
 from apps.purchasing.models import PurchaseOrder
-from apps.job.models import Job, JobFile, JobEvent, JobPricing
+from apps.job.models import Job
 from apps.client.models import Client
 from apps.workflow.utils import extract_messages
 from apps.workflow.services.xero_sync_service import XeroSyncService
@@ -78,13 +49,7 @@ from .xero_po_manager import XeroPurchaseOrderManager
 from .xero_quote_manager import XeroQuoteManager
 from .xero_invoice_manager import XeroInvoiceManager
 
-# Import helpers if needed by remaining view functions
-# from .helpers import format_date, clean_payload, convert_to_pascal_case
-
 logger = logging.getLogger("xero")
-
-
-# --- Authentication and Sync Views (Unchanged) ---
 
 
 # Xero Authentication (Step 1: Redirect user to Xero OAuth2 login)

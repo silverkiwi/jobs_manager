@@ -15,7 +15,7 @@ export async function sendQuoteEmail(
   contactOnly = false,
 ) {
   try {
-    const endpoint = `/api/quote/${jobId}/send-email/?contact_only=${contactOnly}`;
+    const endpoint = `/accounting/api/quote/${jobId}/send-email/?contact_only=${contactOnly}`;
     const response = await fetch(endpoint, { method: "POST" });
     const data = await response.json();
 

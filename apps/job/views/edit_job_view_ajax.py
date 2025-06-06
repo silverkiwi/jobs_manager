@@ -10,7 +10,7 @@ from django.db import transaction
 
 from apps.job.enums import JobPricingMethodology, JobPricingStage
 from apps.job.helpers import DecimalEncoder, get_company_defaults
-from apps.workflow.models import Quote, Invoice
+from apps.accounting.models import Quote, Invoice
 from apps.job.serializers import JobPricingSerializer, JobSerializer
 
 from apps.job.models import Job, JobEvent

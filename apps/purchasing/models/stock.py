@@ -181,3 +181,6 @@ class Stock(models.Model):
 
     class Meta:
         db_table = "workflow_stock"
+        constraints = [
+            models.UniqueConstraint(fields=['xero_id'], name='unique_xero_id_stock')
+        ]

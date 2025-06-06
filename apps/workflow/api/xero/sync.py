@@ -28,11 +28,14 @@ from apps.workflow.api.xero.xero import (
 )
 from apps.workflow.models import (
     XeroJournal,
-    XeroAccount,
+    XeroAccount
+)
+
+from apps.accounting.models import (
     Quote,
     Bill,
     CreditNote,
-    Invoice,
+    Invoice
 )
 
 from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, Stock

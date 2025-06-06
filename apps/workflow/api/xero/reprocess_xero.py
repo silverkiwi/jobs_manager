@@ -6,11 +6,12 @@ from decimal import Decimal
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from apps.workflow.models import BillLineItem, XeroJournal, XeroJournalLineItem
+from apps.accounting.models import BillLineItem
+from apps.workflow.models import XeroJournal, XeroJournalLineItem
 
 from apps.client.models import Client
 
-from apps.workflow.models import (
+from apps.accounting.models import (
     Bill,
     CreditNote,
     CreditNoteLineItem,

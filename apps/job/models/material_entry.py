@@ -32,7 +32,7 @@ class MaterialEntry(models.Model):
         max_digits=10, decimal_places=2, null=False, default=0
     )
     source_stock = models.ForeignKey(
-        "workflow.Stock",
+        "purchasing.Stock",
         on_delete=models.PROTECT,
         null=True,
         blank=True,

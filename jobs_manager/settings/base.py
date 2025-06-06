@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "simple_history",
     "apps.workflow.apps.WorkflowConfig",
+    "apps.accounting.apps.AccountingConfig",
     "apps.accounts.apps.AccountsConfig",
     "apps.timesheet.apps.TimesheetConfig",
     "apps.job.apps.JobConfig",
@@ -224,6 +225,7 @@ TEMPLATES = [
             os.path.join(BASE_DIR, "apps/job/templates"),
             os.path.join(BASE_DIR, "apps/client/templates"),
             os.path.join(BASE_DIR, "apps/purchasing/templates"),
+            os.path.join(BASE_DIR, "apps/accounting/templates"),
         ],
         "APP_DIRS": True,
         "OPTIONS": {
