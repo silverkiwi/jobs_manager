@@ -577,7 +577,7 @@ class CalendarDataService {
    *
    * @param {String} apiBaseUrl
    */
-  constructor(apiBaseUrl = "/api/reports/calendar") {
+  constructor(apiBaseUrl = "accounting/api/reports/calendar") {
     this.apiBaseUrl = apiBaseUrl;
   }
 

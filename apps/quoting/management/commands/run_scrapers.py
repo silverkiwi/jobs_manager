@@ -4,7 +4,7 @@ import importlib
 import inspect
 import logging
 from django.core.management.base import BaseCommand
-from apps.workflow.models import Supplier
+from apps.client.models import Supplier
 
 logger = logging.getLogger(__name__)
 
