@@ -462,7 +462,7 @@ class UnusedClientsView(TemplateView):
     Lists and allows bulk deletion of clients that have no invoices or bills.
     """
 
-    template_name = "xero/unused_clients.html"
+    template_name = "client/unused_clients.html"
     items_per_page = 50
 
     def get_unused_clients(self):
