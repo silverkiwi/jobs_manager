@@ -341,9 +341,17 @@ def advanced_search(request: HttpRequest) -> JsonResponse:
                 "name": job.name,
                 "description": job.description,
                 "job_number": job.job_number,
-                "client_name": job.client.name if job.client else "",
-                "people": [
-                    (staff.get_display_name(), staff.icon) for staff in job.people.all()
+                "client_name": job.client.name if job.client else "",                "people": [
+                    {
+                        "id": staff.id,
+                        "display_name": staff.get_display_name(),
+                        "icon": (
+                            request.build_absolute_uri(staff.icon.url)
+                            if staff.icon
+                            else None
+                        ),
+                    }
+                    for staff in job.people.all()
                 ],
                 "contact_person": job.contact_person,
                 "status": job.get_status_display(),
