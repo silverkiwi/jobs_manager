@@ -87,23 +87,26 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 EMAIL_BCC = os.getenv("EMAIL_BCC", "").split(",")
 
-# CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://localhost:8080",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:8080",
-]
+# CORS Configuration - Load from environment variables
+cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if cors_origins_env:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+else:
+    # No fallback in production - must be explicitly set in .env
+    CORS_ALLOWED_ORIGINS = []
 
-# Add ngrok domains if needed
+# Add ngrok domain from environment if available
+ngrok_domain = os.getenv("NGROK_DOMAIN")
+if ngrok_domain and ngrok_domain not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(ngrok_domain)
+
+# Add regex patterns for ngrok domains - load from environment if needed
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.ngrok\.io$",
     r"^https://.*\.ngrok-free\.app$",
 ]
 
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "True").lower() == "true"
 
 CORS_ALLOWED_HEADERS = [
     'accept',
@@ -117,9 +120,9 @@ CORS_ALLOWED_HEADERS = [
     'x-requested-with',
 ]
 
-# Enable JWT Authentication
-ENABLE_JWT_AUTH = True
-ENABLE_DUAL_AUTHENTICATION = True
+# Enable JWT Authentication for API - Load from environment
+ENABLE_JWT_AUTH = os.getenv("ENABLE_JWT_AUTH", "True").lower() == "true"
+ENABLE_DUAL_AUTHENTICATION = os.getenv("ENABLE_DUAL_AUTHENTICATION", "True").lower() == "true"
 
 from django.apps import apps
 from django.db import ProgrammingError

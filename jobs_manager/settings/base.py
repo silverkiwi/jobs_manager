@@ -337,7 +337,13 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Load SECRET_KEY from environment - critical security requirement
 SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "SECRET_KEY environment variable must be set. "
+        "Generate one using: from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+    )
 
 # ===========================
 # CUSTOM SETTINGS
