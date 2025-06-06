@@ -63,3 +63,35 @@ class KanbanStaffSerializer(serializers.ModelSerializer):
         model = Staff
         fields = ["id", "first_name", "last_name", "icon", "display_name"]
         read_only_fields = ["display_name"]
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for user profile information returned by /accounts/me/"""
+    username = serializers.CharField(source='email', read_only=True)
+    fullName = serializers.SerializerMethodField()
+
+    def get_fullName(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
+
+    class Meta:
+        model = Staff
+        fields = [
+            'id', 
+            'username', 
+            'email', 
+            'first_name', 
+            'last_name', 
+            'fullName',
+            'is_active', 
+            'is_staff'
+        ]
+        read_only_fields = [
+            'id', 
+            'username', 
+            'email', 
+            'first_name', 
+            'last_name', 
+            'fullName',
+            'is_active', 
+            'is_staff'
+        ]

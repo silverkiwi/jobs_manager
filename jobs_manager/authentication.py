@@ -46,8 +46,7 @@ class JWTAuthentication(BaseJWTAuthentication):
                     f"User {user.email} authenticated via JWT but needs to reset password."
                 )
 
-            return result
-
+            return result        
         except (InvalidToken, TokenError) as e:
             if getattr(settings, "ENABLE_DUAL_AUTHENTICATION", False):
                 return None
@@ -58,7 +57,8 @@ class JWTAuthentication(BaseJWTAuthentication):
         """
         Extract raw token from httpOnly cookie.
         """
-        cookie_name = jwt_settings.AUTH_COOKIE
+        simple_jwt_settings = getattr(settings, 'SIMPLE_JWT', {})
+        cookie_name = simple_jwt_settings.get('AUTH_COOKIE', 'access_token')
         if cookie_name and cookie_name in request.COOKIES:
             return request.COOKIES[cookie_name].encode('utf-8')
         return None

@@ -122,7 +122,7 @@ CORS_ALLOWED_HEADERS = [
 
 # Enable JWT Authentication for API - Load from environment
 ENABLE_JWT_AUTH = os.getenv("ENABLE_JWT_AUTH", "True").lower() == "true"
-ENABLE_DUAL_AUTHENTICATION = os.getenv("ENABLE_DUAL_AUTHENTICATION", "True").lower() == "true"
+ENABLE_DUAL_AUTHENTICATION = os.getenv("ENABLE_DUAL_AUTHENTICATION", "False").lower() == "true"
 
 from django.apps import apps
 from django.db import ProgrammingError

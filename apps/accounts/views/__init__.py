@@ -6,6 +6,7 @@ from .staff_views import (
     get_staff_rates,
 )
 from .password_views import SecurityPasswordChangeView
+from .user_profile_view import get_current_user, logout_user
 
 __all__ = [
     "StaffListView",
@@ -14,4 +15,6 @@ __all__ = [
     "StaffListAPIView",
     "get_staff_rates",
     "SecurityPasswordChangeView",
+    "get_current_user",
+    "logout_user",
 ]
