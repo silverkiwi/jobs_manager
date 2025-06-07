@@ -51,7 +51,13 @@ python manage.py validate_jobs
 
 ### Xero Integration
 ```bash
-# Start Xero synchronization
+# Setup Xero for development (finds Demo Company and syncs)
+python manage.py setup_dev_xero
+
+# Setup Xero tenant ID only (skip initial sync)
+python manage.py setup_dev_xero --skip-sync
+
+# Start Xero synchronization manually
 python manage.py start_xero_sync
 
 # Get Xero tenant ID for setup

@@ -170,17 +170,19 @@ npm install
 2.  **Log In:** Use the default admin credentials (`defaultadmin@example.com` / `Default-admin-password`).
 3.  **Initiate Xero Connection:** Find the "Connect to Xero" or similar option (likely in Settings/Admin). Click it.
 4.  **Authorize in Xero:** You'll be redirected to Xero. Log in if needed. **Crucially, select and authorize the "Demo Company (Global)"**. Do *not* use your live company data for development.
-5.  **Obtain Xero Tenant ID:** After authorization, you need the ID of the Demo Company.
-    *   Go to the Xero API Explorer: [https://api-explorer.xero.com/accounting/organisation/getorganisations](https://api-explorer.xero.com/accounting/organisation/getorganisations)
-    *   Ensure you are logged into the Explorer with the same Xero account. Authorize the Explorer to use your app if prompted.
-    *   Click "Send request".
-    *   Find the "Demo Company (Global)" in the response JSON and copy its `OrganisationID`.
-6.  **Configure Tenant ID in App:**
-    *   Back in the Jobs Manager application (via the ngrok URL), go to "Admin > Edit Company Defaults" (or similar).
-    *   Paste the copied `OrganisationID` into the "Xero Tenant ID" field and save.
-7.  **Perform Initial Xero Data Sync:**
-    *   Navigate to the Xero section (e.g., "Xero > Refresh Xero Data").
-    *   Start the sync. This pulls initial data (like contacts) from the Demo Company.
+5.  **Setup Development Xero Connection:** After authorization, you can use the simplified development setup command:
+    ```bash
+    python manage.py setup_dev_xero
+    ```
+    This command will:
+    * Automatically find the Demo Company tenant ID
+    * Update your CompanyDefaults with the correct tenant ID
+    * Perform the initial Xero data sync
+
+    **Alternative Manual Setup:** If you prefer to do this manually:
+    * Get available tenant IDs: `python manage.py get_xero_tenant_id`
+    * Manually update CompanyDefaults in the admin interface
+    * Run sync manually: `python manage.py start_xero_sync`
 
 You now have a fully configured local development environment.
 
