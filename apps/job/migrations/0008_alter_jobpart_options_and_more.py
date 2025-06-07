@@ -11,21 +11,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelOptions(
-            name="jobpart",
-            options={"ordering": ["created_at"]},
-        ),
-        migrations.AddField(
-            model_name="jobpart",
-            name="job_pricing",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="parts",
-                to="job.jobpricing",
-            ),
-        ),
+        # JobPart options and job_pricing field already correct from creation
         migrations.AddField(
             model_name="jobpricing",
             name="default_part",
@@ -58,9 +44,5 @@ class Migration(migrations.Migration):
             name="updated_at",
             field=models.DateTimeField(blank=True, editable=False),
         ),
-        migrations.AlterField(
-            model_name="jobpart",
-            name="name",
-            field=models.CharField(max_length=100),
-        ),
+        # JobPart name field already correct from creation
     ]
