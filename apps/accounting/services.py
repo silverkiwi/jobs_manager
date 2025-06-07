@@ -26,6 +26,7 @@ from apps.accounts.utils import get_excluded_staff
 from apps.timesheet.models import TimeEntry
 
 from apps.job.models import AdjustmentEntry, MaterialEntry
+from apps.job.enums import JobPricingStage
 
 logger = getLogger(__name__)
 
@@ -180,10 +181,13 @@ class KPIService:
         }
 
         decimal_field = DecimalField(max_digits=10, decimal_places=2)
-        # Process data of the day
+        # Process data of the day - ONLY reality entries
         time_entries_by_date = {
             entry["date"]: entry
-            for entry in TimeEntry.objects.filter(date__range=[start_date, end_date])
+            for entry in TimeEntry.objects.filter(
+                date__range=[start_date, end_date],
+                job_pricing__pricing_stage=JobPricingStage.REALITY
+            )
             .exclude(staff_id__in=excluded_staff_ids)
             .values("date")
             .annotate(
@@ -221,7 +225,10 @@ class KPIService:
         )
 
         material_entries = (
-            MaterialEntry.objects.filter(created_at__range=[aware_start, aware_end])
+            MaterialEntry.objects.filter(
+                created_at__range=[aware_start, aware_end],
+                job_pricing__pricing_stage=JobPricingStage.REALITY
+            )
             .annotate(local_date=TruncDate("created_at", tzinfo=cls.nz_timezone))
             .values("local_date")
             .annotate(
@@ -233,7 +240,10 @@ class KPIService:
         )
 
         adjustment_entries = (
-            AdjustmentEntry.objects.filter(created_at__range=[aware_start, aware_end])
+            AdjustmentEntry.objects.filter(
+                created_at__range=[aware_start, aware_end],
+                job_pricing__pricing_stage=JobPricingStage.REALITY
+            )
             .annotate(local_date=TruncDate("created_at", tzinfo=cls.nz_timezone))
             .values("local_date")
             .annotate(
