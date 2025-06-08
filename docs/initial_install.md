@@ -170,6 +170,20 @@ npm install
 2.  **Log In:** Use the default admin credentials (`defaultadmin@example.com` / `Default-admin-password`).
 3.  **Initiate Xero Connection:** Find the "Connect to Xero" or similar option (likely in Settings/Admin). Click it.
 4.  **Authorize in Xero:** You'll be redirected to Xero. Log in if needed. **Crucially, select and authorize the "Demo Company (Global)"**. Do *not* use your live company data for development.
+
+### Important: Create Demo Company Shop Contact
+
+**Before proceeding with the development setup, you must create a specific contact in Xero:**
+
+1. **Log into Xero Demo Company:** After authorization, log into your Xero Demo Company account at [https://go.xero.com/](https://go.xero.com/).
+2. **Create Shop Contact:** 
+   - Navigate to Contacts → Add Contact
+   - Name: `Demo Company Shop` (exactly this name - case sensitive)
+   - This contact represents internal shop work/maintenance jobs
+   - Save the contact
+3. **Verify Creation:** Ensure the contact appears in your Xero contacts list as "Demo Company Shop"
+
+This contact is essential for proper shop hours tracking in KPI reports.
 5.  **Setup Development Xero Connection:** After authorization, you can use the simplified development setup command:
     ```bash
     python manage.py setup_dev_xero

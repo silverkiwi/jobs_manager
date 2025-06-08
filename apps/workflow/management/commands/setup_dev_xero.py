@@ -4,6 +4,7 @@ from xero_python.identity import IdentityApi
 from apps.workflow.api.xero.xero import api_client, get_valid_token
 from apps.workflow.models import CompanyDefaults
 from apps.workflow.api.xero.sync import synchronise_xero_data
+from apps.client.models import Client
 import logging
 
 logger = logging.getLogger("xero")
@@ -105,9 +106,70 @@ class Command(BaseCommand):
                         self.stdout.write(f"Sync Progress ({entity}): {msg_text} (Progress: {progress_display})")
 
                 self.stdout.write(self.style.SUCCESS("Initial Xero sync completed successfully."))
+                
+                # Fix shop client to have correct Xero ID
+                self._fix_shop_client_xero_id()
+                
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Xero sync failed: {e}"))
                 logger.error(f"Error during Xero sync: {e}", exc_info=True)
 
         close_old_connections()
         self.stdout.write(self.style.SUCCESS("Development Xero setup completed!"))
+
+    def _fix_shop_client_xero_id(self):
+        """
+        After Xero sync, find the Demo Company Shop client and update the
+        shop_client_id constant in services.py to match its UUID.
+        """
+        try:
+            # Find the client synced from Xero with name ending exactly with " Shop"
+            shop_client = Client.objects.filter(
+                name__endswith=' Shop',
+                xero_contact_id__isnull=False
+            ).first()
+            
+            if not shop_client:
+                self.stdout.write(self.style.WARNING("No client ending with ' Shop' found from Xero sync"))
+                return
+            
+            shop_client_uuid = str(shop_client.id)
+            
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Found shop client: {shop_client.name} with UUID: {shop_client_uuid}"
+                )
+            )
+            
+            # Update the shop_client_id constant in services.py
+            services_file_path = 'apps/accounting/services.py'
+            
+            try:
+                with open(services_file_path, 'r') as f:
+                    content = f.read()
+                
+                # Replace the old shop_client_id
+                old_line = 'shop_client_id: str = "00000000-0000-0000-0000-000000000001" # FIXME: This must be replaced with the actual shop client ID'
+                new_line = f'shop_client_id: str = "{shop_client_uuid}"  # Updated by setup_dev_xero'
+                
+                if old_line in content:
+                    content = content.replace(old_line, new_line)
+                    
+                    with open(services_file_path, 'w') as f:
+                        f.write(content)
+                    
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"Updated shop_client_id in services.py to: {shop_client_uuid}"
+                        )
+                    )
+                else:
+                    self.stdout.write(
+                        self.style.WARNING("Could not find shop_client_id line to update in services.py")
+                    )
+                    
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Error updating services.py: {e}"))
+            
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Error finding shop client: {e}"))
