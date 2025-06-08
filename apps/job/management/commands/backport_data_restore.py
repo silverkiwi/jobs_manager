@@ -66,8 +66,10 @@ class Command(BaseCommand):
         StaffModel = apps.get_model('accounts', 'Staff')
 
         # These will fail with appropriate errors if no records exist
-        ClientModel.objects.first()
-        StaffModel.objects.first()
+        if not ClientModel.objects.exists():
+            raise CommandError("No Client records exist in development database. Please create at least one Client first.")
+        if not StaffModel.objects.exists():
+            raise CommandError("No Staff records exist in development database. Please create at least one Staff first.")
 
         with open(backup_file_path, 'r') as f:
             raw_backup_data = json.load(f)
@@ -149,16 +151,28 @@ class Command(BaseCommand):
                 if 'client' in fields and fields['client'] is not None:
                     old_client_ids.add(fields['client'])
                 
-                # Collect Staff emails
+                # Collect Staff emails from various fields
                 if 'created_by' in fields and fields['created_by'] is not None:
                     old_staff_emails.add(fields['created_by'][0])
+                
+                # TimeEntry specific staff field
+                if model_label == 'timesheet.timeentry' and 'staff' in fields and fields['staff'] is not None:
+                    old_staff_emails.add(fields['staff'][0])
+                
+                # TimeEntry user field (if it exists as an alternative to staff)
+                if model_label == 'timesheet.timeentry' and 'user' in fields and fields['user'] is not None:
+                    if isinstance(fields['user'], list):
+                        old_staff_emails.add(fields['user'][0])
+                    else:
+                        # If it's just an ID, we'll need to handle this differently
+                        pass
                     
                 if model_label == 'job.job' and 'people' in fields:
                     for email_list in fields['people']:
                         old_staff_emails.add(email_list[0])
                 
-                # Collect Staff emails from TimeEntry and JobEvent staff field
-                if model_label in ['timesheet.timeentry', 'job.jobevent'] and 'staff' in fields and fields['staff'] is not None:
+                # JobEvent staff field
+                if model_label == 'job.jobevent' and 'staff' in fields and fields['staff'] is not None:
                     old_staff_emails.add(fields['staff'][0])
                 
                 # Collect PurchaseOrderLine IDs
@@ -180,27 +194,33 @@ class Command(BaseCommand):
 
         # Create random mappings for PurchaseOrderLines if they exist in dev
         if old_purchase_order_line_ids:
-            PurchaseOrderLineModel = apps.get_model('purchasing', 'PurchaseOrderLine')
-            existing_pol_ids = list(PurchaseOrderLineModel.objects.values_list('id', flat=True))
-            
-            if existing_pol_ids:
-                self.stdout.write(f"Creating random mappings for {len(old_purchase_order_line_ids)} purchase order lines...")
-                for old_pol_id in old_purchase_order_line_ids:
-                    self.purchase_order_line_mapping[old_pol_id] = random.choice(existing_pol_ids)
-            else:
-                self.stdout.write("No existing PurchaseOrderLines in dev - will set to None")
+            try:
+                PurchaseOrderLineModel = apps.get_model('purchasing', 'PurchaseOrderLine')
+                existing_pol_ids = list(PurchaseOrderLineModel.objects.values_list('id', flat=True))
+                
+                if existing_pol_ids:
+                    self.stdout.write(f"Creating random mappings for {len(old_purchase_order_line_ids)} purchase order lines...")
+                    for old_pol_id in old_purchase_order_line_ids:
+                        self.purchase_order_line_mapping[old_pol_id] = random.choice(existing_pol_ids)
+                else:
+                    self.stdout.write("No existing PurchaseOrderLines in dev - will set to None")
+            except LookupError:
+                self.stdout.write("PurchaseOrderLine model not found - will set to None")
         
         # Create random mappings for Stock if they exist in dev
         if old_stock_ids:
-            StockModel = apps.get_model('purchasing', 'Stock')
-            existing_stock_ids = list(StockModel.objects.values_list('id', flat=True))
-            
-            if existing_stock_ids:
-                self.stdout.write(f"Creating random mappings for {len(old_stock_ids)} stock items...")
-                for old_stock_id in old_stock_ids:
-                    self.stock_mapping[old_stock_id] = random.choice(existing_stock_ids)
-            else:
-                self.stdout.write("No existing Stock in dev - will set to None")
+            try:
+                StockModel = apps.get_model('purchasing', 'Stock')
+                existing_stock_ids = list(StockModel.objects.values_list('id', flat=True))
+                
+                if existing_stock_ids:
+                    self.stdout.write(f"Creating random mappings for {len(old_stock_ids)} stock items...")
+                    for old_stock_id in old_stock_ids:
+                        self.stock_mapping[old_stock_id] = random.choice(existing_stock_ids)
+                else:
+                    self.stdout.write("No existing Stock in dev - will set to None")
+            except LookupError:
+                self.stdout.write("Stock model not found - will set to None")
 
         self.stdout.write(self.style.SUCCESS('Random mappings created.'))
 
@@ -241,10 +261,28 @@ class Command(BaseCommand):
                     old_staff_email = fields['created_by'][0]
                     fields['created_by'] = StaffModel.objects.get(pk=self.staff_mapping[old_staff_email])
                 
-                # Handle Staff FK in JobEvent, TimeEntry
-                if model_label in ['job.jobevent', 'timesheet.timeentry'] and 'staff' in fields and fields['staff'] is not None:
+                # Handle Staff FK in JobEvent
+                if model_label == 'job.jobevent' and 'staff' in fields and fields['staff'] is not None:
                     old_staff_email = fields['staff'][0]
                     fields['staff'] = StaffModel.objects.get(pk=self.staff_mapping[old_staff_email])
+                
+                # Handle Staff FK in TimeEntry - this is the critical fix
+                if model_label == 'timesheet.timeentry':
+                    # Handle staff field
+                    if 'staff' in fields and fields['staff'] is not None:
+                        old_staff_email = fields['staff'][0]
+                        fields['staff'] = StaffModel.objects.get(pk=self.staff_mapping[old_staff_email])
+                    
+                    # Handle user field (alternative to staff in some TimeEntry models)
+                    if 'user' in fields and fields['user'] is not None:
+                        if isinstance(fields['user'], list):
+                            old_staff_email = fields['user'][0]
+                            fields['user'] = StaffModel.objects.get(pk=self.staff_mapping[old_staff_email])
+                        # If it's an ID reference, we might need to map it differently
+                        elif isinstance(fields['user'], (int, str)):
+                            # This would need adjustment based on your actual data format
+                            # For now, assign a random staff member
+                            fields['user'] = StaffModel.objects.get(pk=random.choice(list(StaffModel.objects.values_list('id', flat=True))))
                 
                 # Handle Job FK in JobPricing
                 if model_label == 'job.jobpricing' and 'job' in fields:
@@ -281,8 +319,11 @@ class Command(BaseCommand):
                 # Handle PurchaseOrderLine FK in MaterialEntry
                 if model_label == 'job.materialentry' and 'purchase_order_line' in fields and fields['purchase_order_line'] is not None:
                     if fields['purchase_order_line'] in self.purchase_order_line_mapping:
-                        pol_model = apps.get_model('purchasing', 'PurchaseOrderLine')
-                        fields['purchase_order_line'] = pol_model.objects.get(pk=self.purchase_order_line_mapping[fields['purchase_order_line']])
+                        try:
+                            pol_model = apps.get_model('purchasing', 'PurchaseOrderLine')
+                            fields['purchase_order_line'] = pol_model.objects.get(pk=self.purchase_order_line_mapping[fields['purchase_order_line']])
+                        except LookupError:
+                            fields['purchase_order_line'] = None
                     else:
                         # No POLs exist in dev, set to None
                         fields['purchase_order_line'] = None
@@ -290,8 +331,11 @@ class Command(BaseCommand):
                 # Handle Stock FK in MaterialEntry
                 if model_label == 'job.materialentry' and 'source_stock' in fields and fields['source_stock'] is not None:
                     if fields['source_stock'] in self.stock_mapping:
-                        stock_model = apps.get_model('purchasing', 'Stock')
-                        fields['source_stock'] = stock_model.objects.get(pk=self.stock_mapping[fields['source_stock']])
+                        try:
+                            stock_model = apps.get_model('purchasing', 'Stock')
+                            fields['source_stock'] = stock_model.objects.get(pk=self.stock_mapping[fields['source_stock']])
+                        except LookupError:
+                            fields['source_stock'] = None
                     else:
                         # No Stock exists in dev, set to None
                         fields['source_stock'] = None
@@ -322,7 +366,12 @@ class Command(BaseCommand):
                         self.job_pricing_updates.append(pricing_update)
 
                 # Create with original UUID
-                new_instance = model.objects.create(pk=old_id, **fields)
+                try:
+                    new_instance = model.objects.create(pk=old_id, **fields)
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"Error creating {model_label} with ID {old_id}: {e}"))
+                    self.stdout.write(f"Fields: {fields}")
+                    raise
 
                 # Handle M2M relationships
                 if m2m_data.get('people'):
@@ -347,6 +396,9 @@ class Command(BaseCommand):
         """
         Creates dummy physical files for JobFile instances.
         """
+        if not self.job_files_to_create:
+            return
+            
         self.stdout.write(self.style.MIGRATE_HEADING('Creating dummy physical files for JobFile instances...'))
 
         for job_file_info in self.job_files_to_create:
@@ -388,7 +440,16 @@ class Command(BaseCommand):
             
             # Update archived_pricings list (many-to-many field)
             if 'archived_pricings' in update:
-                job.archived_pricings.set(update['archived_pricings'])
+                # Convert list of UUIDs to JobPricing instances
+                JobPricingModel = apps.get_model('job', 'JobPricing')
+                pricing_instances = []
+                for pricing_id in update['archived_pricings']:
+                    try:
+                        pricing = JobPricingModel.objects.get(pk=pricing_id)
+                        pricing_instances.append(pricing)
+                    except JobPricingModel.DoesNotExist:
+                        self.stdout.write(self.style.WARNING(f"Warning: JobPricing {pricing_id} not found for archived_pricings"))
+                job.archived_pricings.set(pricing_instances)
             
             job.save()
         
