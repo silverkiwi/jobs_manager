@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Tuple
 
 from datetime import date, timedelta
 
-from django.db.models import Sum, Case, When, F, DecimalField, Value
+from django.db.models import Sum, Case, When, F, DecimalField, Value, Q
 
 from django.db.models.functions import TruncDate
 
@@ -39,7 +39,7 @@ class KPIService:
 
     nz_timezone = get_nz_tz()
 
-    shop_job_id: str = "00000000-0000-0000-0000-000000000001"
+    shop_client_id: str = "00000000-0000-0000-0000-000000000001" # FIXME: This must be replaced with the actual shop client ID
 
     @staticmethod
     def get_company_thresholds() -> Dict[str, float]:
@@ -196,7 +196,7 @@ class KPIService:
                     'adjustment_cost': 0,
                 }
             
-            if entry.is_billable and job.client_id != cls.shop_job_id:
+            if entry.is_billable and str(job.client_id) != cls.shop_client_id:
                 job_data[job_number]['labour_revenue'] += float(entry.hours * entry.charge_out_rate)
             job_data[job_number]['labour_cost'] += float(entry.hours * entry.wage_rate)
         
@@ -326,8 +326,10 @@ class KPIService:
                     Case(
                         When(
                             is_billable=True,
-                            job_pricing__job__client_id__ne=cls.shop_job_id,
-                            then="hours"
+                            then=Case(
+                                When(job_pricing__job__client_id=cls.shop_client_id, then=Value(0, output_field=decimal_field)),
+                                default="hours"
+                            )
                         ),
                         default=Value(0, output_field=decimal_field),
                     ),
@@ -337,8 +339,10 @@ class KPIService:
                     Case(
                         When(
                             is_billable=True,
-                            job_pricing__job__client_id__ne=cls.shop_job_id,
-                            then=F("hours") * F("charge_out_rate")
+                            then=Case(
+                                When(job_pricing__job__client_id=cls.shop_client_id, then=Value(0, output_field=decimal_field)),
+                                default=F("hours") * F("charge_out_rate")
+                            )
                         ),
                         default=Value(0, output_field=decimal_field),
                     ),
@@ -346,7 +350,7 @@ class KPIService:
                 ),
                 shop_hours=Sum(
                     Case(
-                        When(job_pricing__job__client_id=cls.shop_job_id, then="hours"),
+                        When(job_pricing__job__client_id=cls.shop_client_id, then="hours"),
                         default=Value(0, output_field=decimal_field),
                     ),
                     output_field=decimal_field,
@@ -416,16 +420,16 @@ class KPIService:
                 "holiday": is_holiday,
             }
 
+            # Count all weekdays (including holidays) as working days
+            monthly_totals["working_days"] += 1
+            if current_date <= current_date_system:
+                monthly_totals["elapsed_workdays"] += 1
+
             if is_holiday:
                 base_data["holiday_name"] = holiday_dates[current_date]
                 calendar_data[date_key] = base_data
                 current_date += timedelta(days=1)
                 continue
-
-            # Count commercial day
-            monthly_totals["working_days"] += 1
-            if current_date <= current_date_system:
-                monthly_totals["elapsed_workdays"] += 1
 
             logger.debug(f"Processing data for day: {current_date}")
 
