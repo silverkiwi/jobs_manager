@@ -117,6 +117,51 @@ class Client(models.Model):
         logger.debug(f"Serialized client data for Xero: {client_dict}")
         return client_dict
 
+    @classmethod
+    def get_shop_client_id(cls) -> str:
+        """
+        Get the shop client ID. Enforces singleton pattern - exactly one shop client must exist.
+        
+        Returns:
+            str: UUID of the shop client
+            
+        Raises:
+            ValueError: If zero or multiple shop clients found
+            RuntimeError: If CompanyDefaults singleton is violated
+        """
+        from apps.workflow.models import CompanyDefaults
+        
+        # Validate CompanyDefaults singleton
+        company_count = CompanyDefaults.objects.count()
+        if company_count == 0:
+            raise ValueError("No CompanyDefaults found - database not properly initialized")
+        elif company_count > 1:
+            raise RuntimeError(f"Multiple CompanyDefaults found ({company_count}) - singleton violated!")
+        
+        company_defaults = CompanyDefaults.objects.get()
+        
+        if not company_defaults.company_name:
+            raise ValueError("CompanyDefaults.company_name is empty")
+        
+        shop_name = f"{company_defaults.company_name} Shop"
+        
+        # Find shop clients with exact name match
+        shop_clients = cls.objects.filter(name=shop_name)
+        shop_count = shop_clients.count()
+        
+        if shop_count == 0:
+            raise ValueError(f"No shop client found with name '{shop_name}'")
+        elif shop_count > 1:
+            raise RuntimeError(f"Multiple shop clients found ({shop_count}) with name '{shop_name}' - singleton violated!")
+        
+        shop_client = shop_clients.get()
+        
+        # Validate the shop client has proper Xero integration
+        if not shop_client.xero_contact_id:
+            raise ValueError(f"Shop client '{shop_name}' has no Xero contact ID - not properly synced")
+        
+        return str(shop_client.id)
+
 
 class Supplier(Client):
     """

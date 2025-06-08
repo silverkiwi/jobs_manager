@@ -26,6 +26,7 @@ from apps.accounts.utils import get_excluded_staff
 from apps.timesheet.models import TimeEntry
 
 from apps.job.models import AdjustmentEntry, MaterialEntry
+from apps.client.models import Client
 from apps.job.enums import JobPricingStage
 
 logger = getLogger(__name__)
@@ -38,8 +39,13 @@ class KPIService:
     """
 
     nz_timezone = get_nz_tz()
+    shop_client_id: str = None  # Will be set on first access
 
-    shop_client_id: str = "00000000-0000-0000-0000-000000000001" # FIXME: This must be replaced with the actual shop client ID
+    @classmethod
+    def _ensure_shop_client_id(cls):
+        """Ensure shop_client_id is set, initialize if needed"""
+        if cls.shop_client_id is None:
+            cls.shop_client_id = Client.get_shop_client_id()
 
     @staticmethod
     def get_company_thresholds() -> Dict[str, float]:
@@ -151,8 +157,8 @@ class KPIService:
         """
         from apps.job.models import Job
         
+        cls._ensure_shop_client_id()
         excluded_staff_ids = get_excluded_staff()
-        
         # Get time entries for the date
         time_entries = TimeEntry.objects.filter(
             date=target_date,
@@ -272,6 +278,7 @@ class KPIService:
         """
         logger.info(f"Generating KPI calendar data for {year}-{month}")
 
+        cls._ensure_shop_client_id()
         thresholds = cls.get_company_thresholds()
         logger.debug(
             f"Using thresholds: green={thresholds['billable_threshold_green']}, amber={thresholds['billable_threshold_amber']}"
