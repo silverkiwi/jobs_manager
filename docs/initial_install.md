@@ -52,6 +52,11 @@ The application requires a dedicated database and user.
     FLUSH PRIVILEGES;
     EXIT;
     ```
+3.  **Install Timezone Data:** After creating the database, install timezone data into MySQL/MariaDB. This is required for Django's timezone-aware database functions to work correctly:
+    ```bash
+    # Install timezone data from system zoneinfo files
+    sudo mysql_tzinfo_to_sql /usr/share/zoneinfo | sudo mysql mysql
+    ```
     *   **Details to Record:** Database name (`<your-app-name>`), DB username (`<your-app-name>`), DB password (`your-strong-password`).
 
 ### Step 3: Set Up ngrok
@@ -234,14 +239,19 @@ To wipe the local database and start fresh:
     mariadb -u root -p -e "source scripts/reset_database.sql"
     ```
 
-3.  **Re-initialize Application:** (Activate `poetry shell` if needed)
+3.  **Re-install Timezone Data:** (Required for timezone-aware database functions)
+    ```bash
+    sudo mysql_tzinfo_to_sql /usr/share/zoneinfo | sudo mysql mysql
+    ```
+
+4.  **Re-initialize Application:** (Activate `poetry shell` if needed)
     ```bash
     python manage.py migrate
     python manage.py loaddata workflow/fixtures/initial_data.json
     python manage.py create_shop_jobs
     ```
 
-4.  **Re-Connect Xero:** After resetting, you **must** repeat **Steps 10.4 through 10.7** (Authorize Xero in the app, get Tenant ID via API Explorer, set Tenant ID in app, sync data).
+5.  **Re-Connect Xero:** After resetting, you **must** repeat **Steps 10.4 through 10.7** (Authorize Xero in the app, get Tenant ID via API Explorer, set Tenant ID in app, sync data).
 
 ## Troubleshooting
 
