@@ -6,7 +6,7 @@ import holidays
 
 from decimal import Decimal
 
-from typing import Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple
 
 from datetime import date, timedelta
 
