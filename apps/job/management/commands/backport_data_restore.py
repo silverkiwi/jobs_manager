@@ -157,6 +157,10 @@ class Command(BaseCommand):
                     for email_list in fields['people']:
                         old_staff_emails.add(email_list[0])
                 
+                # Collect Staff emails from TimeEntry and JobEvent staff field
+                if model_label in ['timesheet.timeentry', 'job.jobevent'] and 'staff' in fields and fields['staff'] is not None:
+                    old_staff_emails.add(fields['staff'][0])
+                
                 # Collect PurchaseOrderLine IDs
                 if model_label == 'job.materialentry' and 'purchase_order_line' in fields and fields['purchase_order_line'] is not None:
                     old_purchase_order_line_ids.add(fields['purchase_order_line'])
@@ -188,7 +192,7 @@ class Command(BaseCommand):
         
         # Create random mappings for Stock if they exist in dev
         if old_stock_ids:
-            StockModel = apps.get_model('inventory', 'Stock')
+            StockModel = apps.get_model('purchasing', 'Stock')
             existing_stock_ids = list(StockModel.objects.values_list('id', flat=True))
             
             if existing_stock_ids:
@@ -237,8 +241,8 @@ class Command(BaseCommand):
                     old_staff_email = fields['created_by'][0]
                     fields['created_by'] = StaffModel.objects.get(pk=self.staff_mapping[old_staff_email])
                 
-                # Handle Staff FK in JobEvent
-                if model_label == 'job.jobevent' and 'staff' in fields and fields['staff'] is not None:
+                # Handle Staff FK in JobEvent, TimeEntry
+                if model_label in ['job.jobevent', 'timesheet.timeentry'] and 'staff' in fields and fields['staff'] is not None:
                     old_staff_email = fields['staff'][0]
                     fields['staff'] = StaffModel.objects.get(pk=self.staff_mapping[old_staff_email])
                 
@@ -255,7 +259,7 @@ class Command(BaseCommand):
                         })
                 
                 # Handle Job FK in other models (but not JobPart which uses job_pricing)
-                if model_label in ['job.jobfile', 'timesheet.timeentry'] and 'job' in fields:
+                if model_label in ['job.jobfile', 'job.jobevent', 'timesheet.timeentry'] and 'job' in fields:
                     job_model = apps.get_model('job', 'Job')
                     fields['job'] = job_model.objects.get(pk=fields['job'])
                 
@@ -269,8 +273,8 @@ class Command(BaseCommand):
                     jobpart_model = apps.get_model('job', 'JobPart')
                     fields['job_part'] = jobpart_model.objects.get(pk=fields['job_part'])
                 
-                # Handle JobPricing FK in MaterialEntry, AdjustmentEntry, JobEvent
-                if model_label in ['job.materialentry', 'job.adjustmententry', 'job.jobevent'] and 'job_pricing' in fields and fields['job_pricing'] is not None:
+                # Handle JobPricing FK in MaterialEntry, AdjustmentEntry, JobEvent, TimeEntry
+                if model_label in ['job.materialentry', 'job.adjustmententry', 'job.jobevent', 'timesheet.timeentry'] and 'job_pricing' in fields and fields['job_pricing'] is not None:
                     jobpricing_model = apps.get_model('job', 'JobPricing')
                     fields['job_pricing'] = jobpricing_model.objects.get(pk=fields['job_pricing'])
                 
@@ -286,7 +290,7 @@ class Command(BaseCommand):
                 # Handle Stock FK in MaterialEntry
                 if model_label == 'job.materialentry' and 'source_stock' in fields and fields['source_stock'] is not None:
                     if fields['source_stock'] in self.stock_mapping:
-                        stock_model = apps.get_model('inventory', 'Stock')
+                        stock_model = apps.get_model('purchasing', 'Stock')
                         fields['source_stock'] = stock_model.objects.get(pk=self.stock_mapping[fields['source_stock']])
                     else:
                         # No Stock exists in dev, set to None
@@ -382,9 +386,9 @@ class Command(BaseCommand):
                 if field in update:
                     setattr(job, field + '_id', update[field])
             
-            # Update archived_pricings list
+            # Update archived_pricings list (many-to-many field)
             if 'archived_pricings' in update:
-                job.archived_pricings = update['archived_pricings']
+                job.archived_pricings.set(update['archived_pricings'])
             
             job.save()
         
