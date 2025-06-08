@@ -113,8 +113,8 @@ class CalendarView {
         ? this.formatter.formatNumber(monthlyTotals.avg_daily_gp, 2)
         : "0.00";
     
-    // Calculate profit surplus/deficit: (Total GP - (Elapsed workdays × $1,000))
-    const dailyProfitTarget = 1000; // Fixed at $1,000 per day
+    // Calculate profit surplus/deficit: (Total GP - (Elapsed workdays × daily target))
+    const dailyProfitTarget = thresholds?.daily_gp_target || 1250;
     const elapsedWorkdays = monthlyTotals.elapsed_workdays || 0;
     const targetTotal = elapsedWorkdays * dailyProfitTarget;
     const actualGP = monthlyTotals.gross_profit || 0;
@@ -191,26 +191,10 @@ class CalendarView {
         ` card-status-${materialsColorClass}`;
     }
 
-    const avgBillableHoursSoFar =
-      monthlyTotals.avg_billable_hours_so_far != null
-        ? this.formatter.formatNumber(
-            monthlyTotals.avg_billable_hours_so_far,
-            1,
-          )
-        : "0.0";
-    const avgDailyGpSoFar =
-      monthlyTotals.avg_daily_gp_so_far != null
-        ? this.formatter.formatCurrency(monthlyTotals.avg_daily_gp_so_far)
-        : "$0.00";
-
     document.getElementById("elapsedWorkdays").textContent =
       monthlyTotals.elapsed_workdays || 0;
     document.getElementById("remainingWorkdays").textContent =
       monthlyTotals.remaining_workdays || 0;
-
-    document.getElementById("avgBillableHoursSoFar").textContent =
-      avgBillableHoursSoFar;
-    document.getElementById("avgDailyGPSoFar").textContent = avgDailyGpSoFar;
   }
 
   /**
