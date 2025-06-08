@@ -112,6 +112,14 @@ class CalendarView {
       monthlyTotals.avg_daily_gp != null
         ? this.formatter.formatNumber(monthlyTotals.avg_daily_gp, 2)
         : "0.00";
+    
+    // Calculate profit surplus/deficit: (Total GP - (Elapsed workdays × $1,000))
+    const dailyProfitTarget = 1000; // Fixed at $1,000 per day
+    const elapsedWorkdays = monthlyTotals.elapsed_workdays || 0;
+    const targetTotal = elapsedWorkdays * dailyProfitTarget;
+    const actualGP = monthlyTotals.gross_profit || 0;
+    const profitSurplusDeficit = actualGP - targetTotal;
+    const profitSurplusDeficitFormatted = this.formatter.formatCurrency(profitSurplusDeficit);
     const shopPercentage =
       monthlyTotals.shop_percentage != null
         ? this.formatter.formatNumber(monthlyTotals.shop_percentage, 1)
@@ -120,32 +128,53 @@ class CalendarView {
     document.getElementById("totalBillableHours").textContent = billableHours;
     document.getElementById("billablePercentage").textContent =
       billablePercentage;
+    document.getElementById("profitSurplusDeficit").textContent = profitSurplusDeficitFormatted;
     document.getElementById("totalGrossProfit").textContent = grossProfit;
-    document.getElementById("avgDailyGPSoFar").textContent = avgDailyGP;
+    document.getElementById("targetDailyGP").textContent = this.formatter.formatCurrency(thresholds?.daily_gp_target || 1250);
     document.getElementById("shopPercentage").textContent = shopPercentage;
 
-    const shopTarget =
-      thresholds && thresholds.shop_hours_target != null
-        ? this.formatter.formatNumber(thresholds.shop_hours_target, 1)
-        : "0.0";
-    document.getElementById("shopTarget").textContent = shopTarget;
+    // Materials & Adjustments card data
+    const materialProfit =
+      monthlyTotals.material_profit != null
+        ? this.formatter.formatCurrency(monthlyTotals.material_profit)
+        : "$0.00";
+    const adjustmentProfit =
+      monthlyTotals.adjustment_profit != null
+        ? this.formatter.formatCurrency(monthlyTotals.adjustment_profit)
+        : "$0.00";
+    const totalNonLabourProfit = 
+      (monthlyTotals.material_profit || 0) + (monthlyTotals.adjustment_profit || 0);
+    const totalNonLabourProfitFormatted = this.formatter.formatCurrency(totalNonLabourProfit);
+    
+    document.getElementById("totalMaterialProfit").textContent = materialProfit;
+    document.getElementById("totalAdjustmentProfit").textContent = adjustmentProfit;
+    document.getElementById("totalNonLabourProfit").textContent = totalNonLabourProfitFormatted;
 
-    document.getElementById("greenDays").textContent =
-      monthlyTotals.days_green || 0;
-    document.getElementById("amberDays").textContent =
-      monthlyTotals.days_amber || 0;
-    document.getElementById("redDays").textContent =
-      monthlyTotals.days_red || 0;
-    document.getElementById("workingDays").textContent =
-      monthlyTotals.working_days || 0;
+    // Shop target is now hardcoded as "< 20%" in the template
+
+    // Separate labour and profit performance counts
+    document.getElementById("labourGreenDays").textContent =
+      monthlyTotals.labour_green_days || 0;
+    document.getElementById("labourAmberDays").textContent =
+      monthlyTotals.labour_amber_days || 0;
+    document.getElementById("labourRedDays").textContent =
+      monthlyTotals.labour_red_days || 0;
+    
+    document.getElementById("profitGreenDays").textContent =
+      monthlyTotals.profit_green_days || 0;
+    document.getElementById("profitAmberDays").textContent =
+      monthlyTotals.profit_amber_days || 0;
+    document.getElementById("profitRedDays").textContent =
+      monthlyTotals.profit_red_days || 0;
 
     const billableColorClass = monthlyTotals.color_hours || "neutral";
-    const gpColorClass = monthlyTotals.color_gp || "neutral";
+    // Color profit card based on surplus/deficit (green if positive, red if negative)
+    const gpColorClass = profitSurplusDeficit >= 0 ? "green" : "red";
     const shopColorClass = monthlyTotals.color_shop || "neutral";
 
-    const billableHoursCard = document.getElementById("billableHoursCard");
-    billableHoursCard.className =
-      billableHoursCard.className.replace(/card-status-\w+/g, "") +
+    const labourCard = document.getElementById("labourCard");
+    labourCard.className =
+      labourCard.className.replace(/card-status-\w+/g, "") +
       ` card-status-${billableColorClass}`;
 
     const gpCard = document.getElementById("grossProfitCard");
@@ -153,12 +182,13 @@ class CalendarView {
       gpCard.className.replace(/card-status-\w+/g, "") +
       ` card-status-${gpColorClass}`;
 
-    // Add shop card coloring
-    const shopCard = document.getElementById("shopJobsCard");
-    if (shopCard) {
-      shopCard.className =
-        shopCard.className.replace(/card-status-\w+/g, "") +
-        ` card-status-${shopColorClass}`;
+    // Materials & Adjustments card coloring (green if positive, red if negative)
+    const materialsCard = document.getElementById("materialsCard");
+    if (materialsCard) {
+      const materialsColorClass = totalNonLabourProfit >= 0 ? "green" : "red";
+      materialsCard.className =
+        materialsCard.className.replace(/card-status-\w+/g, "") +
+        ` card-status-${materialsColorClass}`;
     }
 
     const avgBillableHoursSoFar =
@@ -368,8 +398,8 @@ class CalendarView {
       return;
     }
 
-    // Create the donut chart to visualize profit breakdown
-    this.#createProfitDonutChart(dayData, totalProfit);
+    // Create the job breakdown table
+    this.#createJobBreakdownTable(dayData);
 
     const formattedDate = new Intl.DateTimeFormat("en-NZ", {
       weekday: "long",
@@ -508,6 +538,54 @@ class CalendarView {
             </li>`,
       )
       .join("");
+  }
+
+  /**
+   * Creates a table to show profit breakdown by job
+   *
+   * @param {Object} dayData - The data for the selected day containing job breakdown
+   * @private
+   */
+  #createJobBreakdownTable(dayData) {
+    const tableBody = document.getElementById("jobBreakdownTableBody");
+    
+    if (!tableBody) {
+      console.error("Job breakdown table body not found");
+      return;
+    }
+
+    if (!dayData.details?.job_breakdown || dayData.details.job_breakdown.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center text-muted">No job data available for this date</td>
+        </tr>
+      `;
+      return;
+    }
+
+    const jobBreakdown = dayData.details.job_breakdown;
+    
+    const rows = jobBreakdown.map(job => {
+      const labourProfit = this.formatter.formatCurrency(job.labour_profit);
+      const materialProfit = this.formatter.formatCurrency(job.material_profit);
+      const adjustmentProfit = this.formatter.formatCurrency(job.adjustment_profit);
+      const totalProfit = this.formatter.formatCurrency(job.total_profit);
+      
+      // Add row coloring based on total profit
+      const rowClass = job.total_profit >= 0 ? 'table-success' : 'table-danger';
+      
+      return `
+        <tr class="${rowClass}">
+          <td><strong>${job.job_number}</strong></td>
+          <td class="text-end">${labourProfit}</td>
+          <td class="text-end">${materialProfit}</td>
+          <td class="text-end">${adjustmentProfit}</td>
+          <td class="text-end"><strong>${totalProfit}</strong></td>
+        </tr>
+      `;
+    }).join('');
+
+    tableBody.innerHTML = rows;
   }
 
   /**

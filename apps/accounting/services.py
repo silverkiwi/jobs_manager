@@ -139,6 +139,126 @@ class KPIService:
         return "red"
 
     @classmethod
+    def get_job_breakdown_for_date(cls, target_date: date) -> List[Dict[str, Any]]:
+        """
+        Get job-level profit breakdown for a specific date
+        
+        Args:
+            target_date: The date to get job breakdown for
+            
+        Returns:
+            List of job breakdowns with profit details
+        """
+        from apps.job.models import Job
+        
+        excluded_staff_ids = get_excluded_staff()
+        
+        # Get time entries for the date
+        time_entries = TimeEntry.objects.filter(
+            date=target_date,
+            job_pricing__pricing_stage=JobPricingStage.REALITY
+        ).exclude(staff_id__in=excluded_staff_ids).select_related('job_pricing__job')
+        
+        # Get material entries for the date
+        aware_start = timezone.make_aware(
+            datetime.datetime.combine(target_date, datetime.time.min), cls.nz_timezone
+        )
+        aware_end = timezone.make_aware(
+            datetime.datetime.combine(target_date, datetime.time.max), cls.nz_timezone
+        )
+        
+        material_entries = MaterialEntry.objects.filter(
+            created_at__range=[aware_start, aware_end],
+            job_pricing__pricing_stage=JobPricingStage.REALITY
+        ).select_related('job_pricing__job')
+        
+        adjustment_entries = AdjustmentEntry.objects.filter(
+            created_at__range=[aware_start, aware_end],
+            job_pricing__pricing_stage=JobPricingStage.REALITY
+        ).select_related('job_pricing__job')
+        
+        # Group by job
+        job_data = {}
+        
+        # Process time entries
+        for entry in time_entries:
+            job = entry.job_pricing.job
+            job_number = job.job_number
+            
+            if job_number not in job_data:
+                job_data[job_number] = {
+                    'job_number': job_number,
+                    'labour_revenue': 0,
+                    'labour_cost': 0,
+                    'material_revenue': 0,
+                    'material_cost': 0,
+                    'adjustment_revenue': 0,
+                    'adjustment_cost': 0,
+                }
+            
+            if entry.is_billable and job.client_id != cls.shop_job_id:
+                job_data[job_number]['labour_revenue'] += float(entry.hours * entry.charge_out_rate)
+            job_data[job_number]['labour_cost'] += float(entry.hours * entry.wage_rate)
+        
+        # Process material entries
+        for entry in material_entries:
+            job = entry.job_pricing.job
+            job_number = job.job_number
+            
+            if job_number not in job_data:
+                job_data[job_number] = {
+                    'job_number': job_number,
+                    'labour_revenue': 0,
+                    'labour_cost': 0,
+                    'material_revenue': 0,
+                    'material_cost': 0,
+                    'adjustment_revenue': 0,
+                    'adjustment_cost': 0,
+                }
+            
+            job_data[job_number]['material_revenue'] += float(entry.unit_revenue * entry.quantity)
+            job_data[job_number]['material_cost'] += float(entry.unit_cost * entry.quantity)
+        
+        # Process adjustment entries
+        for entry in adjustment_entries:
+            job = entry.job_pricing.job
+            job_number = job.job_number
+            
+            if job_number not in job_data:
+                job_data[job_number] = {
+                    'job_number': job_number,
+                    'labour_revenue': 0,
+                    'labour_cost': 0,
+                    'material_revenue': 0,
+                    'material_cost': 0,
+                    'adjustment_revenue': 0,
+                    'adjustment_cost': 0,
+                }
+            
+            job_data[job_number]['adjustment_revenue'] += float(entry.price_adjustment or 0)
+            job_data[job_number]['adjustment_cost'] += float(entry.cost_adjustment or 0)
+        
+        # Calculate profits and return sorted list
+        result = []
+        for job_number, data in job_data.items():
+            labour_profit = data['labour_revenue'] - data['labour_cost']
+            material_profit = data['material_revenue'] - data['material_cost']
+            adjustment_profit = data['adjustment_revenue'] - data['adjustment_cost']
+            total_profit = labour_profit + material_profit + adjustment_profit
+            
+            result.append({
+                'job_number': job_number,
+                'labour_profit': labour_profit,
+                'material_profit': material_profit,
+                'adjustment_profit': adjustment_profit,
+                'total_profit': total_profit
+            })
+        
+        # Sort by total profit descending
+        result.sort(key=lambda x: x['total_profit'], reverse=True)
+        return result
+
+    @classmethod
     def get_calendar_data(cls, year: int, month: int) -> Dict[str, Any]:
         """
         Gets all KPI data for a specific month.
@@ -170,14 +290,24 @@ class KPIService:
             "days_green": 0,
             "days_amber": 0,
             "days_red": 0,
+            "labour_green_days": 0,
+            "labour_amber_days": 0,
+            "labour_red_days": 0,
+            "profit_green_days": 0,
+            "profit_amber_days": 0,
+            "profit_red_days": 0,
             "working_days": 0,
             "elapsed_workdays": 0,
             "remaining_workdays": 0,
             # The following are internal
             "time_revenue": 0,
             "material_revenue": 0,
+            "adjustment_revenue": 0,
             "staff_cost": 0,
             "material_cost": 0,
+            "adjustment_cost": 0,
+            "material_profit": 0,
+            "adjustment_profit": 0,
         }
 
         decimal_field = DecimalField(max_digits=10, decimal_places=2)
@@ -194,14 +324,22 @@ class KPIService:
                 total_hours=Sum("hours", output_field=decimal_field),
                 billable_hours=Sum(
                     Case(
-                        When(is_billable=True, then="hours"),
+                        When(
+                            is_billable=True,
+                            job_pricing__job__client_id__ne=cls.shop_job_id,
+                            then="hours"
+                        ),
                         default=Value(0, output_field=decimal_field),
                     ),
                     output_field=decimal_field,
                 ),
                 time_revenue=Sum(
                     Case(
-                        When(is_billable=True, then=F("hours") * F("charge_out_rate")),
+                        When(
+                            is_billable=True,
+                            job_pricing__job__client_id__ne=cls.shop_job_id,
+                            then=F("hours") * F("charge_out_rate")
+                        ),
                         default=Value(0, output_field=decimal_field),
                     ),
                     output_field=decimal_field,
@@ -348,6 +486,22 @@ class KPIService:
                 case _:
                     monthly_totals["days_red"] += 1
 
+            # Separate labour performance counting (≥45h green, ≥40h amber, <40h red)
+            if billable_hours >= 45:
+                monthly_totals["labour_green_days"] += 1
+            elif billable_hours >= 40:
+                monthly_totals["labour_amber_days"] += 1
+            else:
+                monthly_totals["labour_red_days"] += 1
+
+            # Separate profit performance counting (≥$1250 green, ≥$1000 amber, <$1000 red)
+            if gross_profit >= 1250:
+                monthly_totals["profit_green_days"] += 1
+            elif gross_profit >= 1000:
+                monthly_totals["profit_amber_days"] += 1
+            else:
+                monthly_totals["profit_red_days"] += 1
+
             full_data = base_data.copy()
             full_data.update(
                 {
@@ -386,6 +540,7 @@ class KPIService:
                                 adjustment_revenue - adjustment_cost
                             ),
                         },
+                        "job_breakdown": cls.get_job_breakdown_for_date(current_date),
                     },
                 }
             )
@@ -396,9 +551,13 @@ class KPIService:
             monthly_totals["shop_hours"] += shop_hours
             monthly_totals["gross_profit"] += gross_profit
             monthly_totals["material_revenue"] += material_revenue
+            monthly_totals["adjustment_revenue"] += adjustment_revenue
             monthly_totals["time_revenue"] += time_revenue
             monthly_totals["staff_cost"] += staff_cost
             monthly_totals["material_cost"] += material_cost
+            monthly_totals["adjustment_cost"] += adjustment_cost
+            monthly_totals["material_profit"] += (material_revenue - material_cost)
+            monthly_totals["adjustment_profit"] += (adjustment_revenue - adjustment_cost)
 
             # Advance to next day
             current_date += timedelta(days=1)

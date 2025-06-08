@@ -508,22 +508,43 @@
     <!-- KPI Summary Cards -->
     <div class="row mb-4" id="summaryCards">
         <div class="col-md-3 mb-3">
-            <div id="billableHoursCard" class="card card-enhanced h-100">
+            <div id="labourCard" class="card card-enhanced h-100">
                 <div class="card-body">
                     <div class="kpi-stat">
-                        <h3>Billable Hours</h3>
+                        <h3>Labour</h3>
                         <div class="value" id="totalBillableHours">
                             <div class="spinner-border spinner-border-sm" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
-                        <div class="subvalue"><span id="billablePercentage">--</span>% of total</div>
+                        <div class="subvalue"><span id="billablePercentage">--</span>% billable</div>
                         <div class="status-thresholds">
-                            <div class="threshold-current">Elapsed daily avg.: <span
-                                    id="avgBillableHoursSoFar">0.0</span>h</div>
+                            <div class="threshold-current">Shop work: <span id="shopPercentage">--</span>% (Target: < 20%)</div>
                             <div class="threshold-item">
                                 <span class="threshold-color threshold-green"></span>
-                                <span id="captionGreenHours">≥ 45</span>
+                                <span>≥ 45h billable daily</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div id="materialsCard" class="card card-enhanced h-100">
+                <div class="card-body">
+                    <div class="kpi-stat">
+                        <h3>Materials & Adjustments</h3>
+                        <div class="value" id="totalNonLabourProfit">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div class="subvalue">Total non-labour profit</div>
+                        <div class="status-thresholds">
+                            <div class="threshold-current">Materials: <span id="totalMaterialProfit">$0.00</span> | Adjustments: <span id="totalAdjustmentProfit">$0.00</span></div>
+                            <div class="threshold-item">
+                                <span class="threshold-color threshold-green"></span>
+                                <span>Positive margin</span>
                             </div>
                         </div>
                     </div>
@@ -534,35 +555,18 @@
             <div id="grossProfitCard" class="card card-enhanced h-100">
                 <div class="card-body">
                     <div class="kpi-stat">
-                        <h3>Gross Profit</h3>
-                        <div class="value" id="totalGrossProfit">
+                        <h3>Profit</h3>
+                        <div class="value" id="profitSurplusDeficit">
                             <div class="spinner-border spinner-border-sm" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
-                        <div class="subvalue">Elapsed daily avg.: <span id="avgDailyGPSoFar">$0.00</span></div>
+                        <div class="subvalue">Surplus/deficit vs target</div>
                         <div class="status-thresholds">
-                            <div class="threshold-current">Target daily avg.: <span id="targetDailyGP">$1,250</span></div>
+                            <div class="threshold-current">GP: <span id="totalGrossProfit">$0.00</span> | Target: <span id="targetDailyGP">$1,250</span>/day</div>
                             <div class="threshold-item">
                                 <span class="threshold-color threshold-green"></span>
-                                <span id="captionGreenThreshold">≥ $1,250</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div id="shopJobsCard" class="card card-enhanced h-100">
-                <div class="card-body">
-                    <div class="kpi-stat">
-                        <h3>Shop Jobs</h3>
-                        <div class="value"><span id="shopPercentage">--</span>%</div>
-                        <div class="subvalue">Target: <span id="shopTarget">--</span>%</div>
-                        <div class="status-thresholds">
-                            <div class="threshold-item">
-                                <span class="threshold-color threshold-green"></span>
-                                <span>< 20%</span>
+                                <span>Above target</span>
                             </div>
                         </div>
                     </div>
@@ -574,30 +578,43 @@
                 <div class="card-body">
                     <div class="kpi-stat">
                         <h3>Performance</h3>
-                        <div class="d-flex justify-content-center align-items-center mb-2">
-                            <div class="d-flex align-items-center me-3">
-                                <div
-                                    style="width: 12px; height: 12px; background-color: rgba(54, 177, 67, 0.5); border-radius: 50%; margin-right: 5px;">
+                        <div class="mb-2">
+                            <div class="subvalue mb-1">Labour (≥45h/≥40h/<40h)</div>
+                            <div class="d-flex justify-content-center align-items-center mb-2">
+                                <div class="d-flex align-items-center me-3">
+                                    <div style="width: 12px; height: 12px; background-color: rgba(54, 177, 67, 0.5); border-radius: 50%; margin-right: 5px;"></div>
+                                    <span id="labourGreenDays">--</span>
                                 </div>
-                                <span id="greenDays">--</span>
-                            </div>
-                            <div class="d-flex align-items-center me-3">
-                                <div
-                                    style="width: 12px; height: 12px; background-color: rgba(249, 199, 79, 0.5); border-radius: 50%; margin-right: 5px;">
+                                <div class="d-flex align-items-center me-3">
+                                    <div style="width: 12px; height: 12px; background-color: rgba(249, 199, 79, 0.5); border-radius: 50%; margin-right: 5px;"></div>
+                                    <span id="labourAmberDays">--</span>
                                 </div>
-                                <span id="amberDays">--</span>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <div
-                                    style="width: 12px; height: 12px; background-color: rgba(247, 37, 133, 0.5); border-radius: 50%; margin-right: 5px;">
+                                <div class="d-flex align-items-center">
+                                    <div style="width: 12px; height: 12px; background-color: rgba(247, 37, 133, 0.5); border-radius: 50%; margin-right: 5px;"></div>
+                                    <span id="labourRedDays">--</span>
                                 </div>
-                                <span id="redDays">--</span>
                             </div>
                         </div>
-                        <div class="subvalue">Working days: <span id="workingDays">--</span></div>
+                        <div class="mb-2">
+                            <div class="subvalue mb-1">Profit (≥$1250/≥$1000/<$1000)</div>
+                            <div class="d-flex justify-content-center align-items-center mb-2">
+                                <div class="d-flex align-items-center me-3">
+                                    <div style="width: 12px; height: 12px; background-color: rgba(54, 177, 67, 0.5); border-radius: 50%; margin-right: 5px;"></div>
+                                    <span id="profitGreenDays">--</span>
+                                </div>
+                                <div class="d-flex align-items-center me-3">
+                                    <div style="width: 12px; height: 12px; background-color: rgba(249, 199, 79, 0.5); border-radius: 50%; margin-right: 5px;"></div>
+                                    <span id="profitAmberDays">--</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div style="width: 12px; height: 12px; background-color: rgba(247, 37, 133, 0.5); border-radius: 50%; margin-right: 5px;"></div>
+                                    <span id="profitRedDays">--</span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="workdays-info mt-2">
                             <div class="d-flex justify-content-between">
-                                <div>Elapsed days: <span id="elapsedWorkdays">0</span></div>
+                                <div>Elapsed: <span id="elapsedWorkdays">0</span></div>
                                 <div>Remaining: <span id="remainingWorkdays">0</span></div>
                             </div>
                         </div>
@@ -747,9 +764,26 @@
                                     </tr>
                                 </table>
 
-                                <div class="profit-breakdown-container">
-                                    <canvas id="gpDonutChart" width="200" height="200"></canvas>
-                                    <ul id="gpLegend" class="list-inline mt-3"></ul>
+                                <div class="job-breakdown-container mt-3">
+                                    <h6>Profit by Job</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped" id="jobBreakdownTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Job #</th>
+                                                    <th class="text-end">Labour</th>
+                                                    <th class="text-end">Materials</th>
+                                                    <th class="text-end">Adjustments</th>
+                                                    <th class="text-end">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="jobBreakdownTableBody">
+                                                <tr>
+                                                    <td colspan="5" class="text-center text-muted">Loading...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
