@@ -17,6 +17,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("purchasing", "0004_stock"),
+        ("workflow", "0109_stock"),
     ]
 
     database_operations = [
@@ -180,7 +181,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            state_operations=database_operations,  # Add the model to Django's migration state
-            database_operations=database_operations
+            state_operations=[],  # No state operations - models already defined
+            database_operations=[]  # No database operations - table already exists from workflow migration
         )
     ]

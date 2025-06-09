@@ -1,7 +1,9 @@
 import uuid
 from decimal import Decimal
+from datetime import date
 
 from django.db import models
+from django.utils import timezone
 
 
 class MaterialEntry(models.Model):
@@ -48,6 +50,12 @@ class MaterialEntry(models.Model):
         help_text="Convenience link to original PO line (derived via source_stock)",
     )
 
+    accounting_date = models.DateField(
+        null=False,
+        blank=False,
+        default=timezone.now,  # Will use current date as default
+        help_text="Date for accounting purposes (when the material was used)",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

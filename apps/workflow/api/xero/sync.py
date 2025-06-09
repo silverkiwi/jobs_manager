@@ -1283,7 +1283,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
 
     yield from sync_xero_data(
         xero_entity_type="items",
-        our_entity_type="Stock",
+        our_entity_type="stock",
         xero_api_fetch_function=get_xero_items,
         sync_function=sync_items,
         last_modified_time=timestamps["stock"],

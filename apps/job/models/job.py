@@ -59,15 +59,15 @@ class Job(models.Model):
     order_number = models.CharField(max_length=100, null=True, blank=True)
     
     # Legacy contact fields - to be migrated to ClientContact
-    contact_person = models.CharField(max_length=100, null=True, blank=True)
+    contact_person = models.CharField(max_length=100, null=True, blank=True) # DEPRECATED: DO NOT USE
     contact_email = models.EmailField(
         null=True, blank=True
-    )  # New field for contact's email
+    )  # # DEPRECATED: DO NOT USE
     contact_phone = models.CharField(
         max_length=150,
         null=True,
         blank=True,
-    )
+    ) # DEPRECATED: DO NOT USE
     
     # New relationship to ClientContact
     contact = models.ForeignKey(
