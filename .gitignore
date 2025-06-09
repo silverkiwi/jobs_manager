@@ -109,3 +109,5 @@ logs/.*.lock
 **/*.png
 **/*.jpg
 django-integrations-*.json
+*.pdf
+restore/*.json

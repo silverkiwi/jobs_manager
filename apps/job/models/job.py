@@ -57,6 +57,8 @@ class Job(models.Model):
         related_name="jobs",  # Allows reverse lookup of jobs for a client
     )
     order_number = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Legacy contact fields - to be migrated to ClientContact
     contact_person = models.CharField(max_length=100, null=True, blank=True)
     contact_email = models.EmailField(
         null=True, blank=True
@@ -65,6 +67,16 @@ class Job(models.Model):
         max_length=150,
         null=True,
         blank=True,
+    )
+    
+    # New relationship to ClientContact
+    contact = models.ForeignKey(
+        "client.ClientContact",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="jobs",
+        help_text="The contact person for this job"
     )
     job_number = models.IntegerField(unique=True)  # Job 1234
     material_gauge_quantity = models.TextField(
