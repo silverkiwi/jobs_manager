@@ -108,17 +108,24 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "True").lower() == "true"
 
-CORS_ALLOWED_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
+# CORS Allowed Headers - read from environment or use defaults
+cors_headers_env = os.getenv("CORS_ALLOWED_HEADERS", "")
+if cors_headers_env:
+    CORS_ALLOWED_HEADERS = [header.strip() for header in cors_headers_env.split(",") if header.strip()]
+else:
+    CORS_ALLOWED_HEADERS = [
+        'accept',
+        'accept-encoding',
+        'authorization',
+        'content-type',
+        'dnt',
+        'origin',
+        'user-agent',
+        'x-csrftoken',
+        'x-requested-with',
+        'x-actual-users',  # Custom header for staff filtering - should be X-Actual-Users
+        'X-Actual-Users',  # Case sensitive version for proper CORS support
+    ]
 
 # Enable JWT Authentication for API - Load from environment
 ENABLE_JWT_AUTH = os.getenv("ENABLE_JWT_AUTH", "True").lower() == "true"

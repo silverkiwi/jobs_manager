@@ -6,7 +6,8 @@ import django.utils.timezone
 
 import uuid
 
-
+# !!!!!!!
+# WARNING: This migration is designed to move purchase models from the workflow app to the purchasing app. It should be faked in existing databases.
 class Migration(migrations.Migration):
 
     dependencies = [
