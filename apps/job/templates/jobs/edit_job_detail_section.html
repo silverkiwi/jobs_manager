@@ -41,11 +41,10 @@
             <select id="job_contact_select" class="form-select">
                 <option value="">--- Select a Client First ---</option>
             </select>
-            <!-- Hidden fields for autosave -->
-            <input type="hidden" id="contact_person_name_hidden" name="contact_person" class="autosave-input" value="{{ job.contact_person|default_if_none:'' }}">
+            <!-- Hidden fields for autosave -->            <input type="hidden" id="contact_person_name_hidden" name="contact_person" class="autosave-input" value="{{ job.contact_person|default_if_none:'' }}">
             <input type="hidden" id="contact_person_email_hidden" name="contact_email" class="autosave-input" value="{{ job.contact_email|default_if_none:'' }}">
             
-            <div class="d-none">
+            <div class="mt-2">
                 <button type="button" id="manage_xero_contact_persons_button" class="btn btn-sm btn-outline-secondary" style="display:none;">
                     Add/Edit Contact Persons in Xero
                 </button>
