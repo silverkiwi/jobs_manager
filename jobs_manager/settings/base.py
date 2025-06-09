@@ -113,6 +113,8 @@ LOGIN_EXEMPT_URLS = [
     "api/",  # Exempt all API endpoints from session authentication
     "accounts/api/",  # Include accounts API endpoints
     "accounts/me/",  # Include user info endpoint
+    "clients/rest/",  # Include client REST endpoints
+    "clients/api/",  # Include client API endpoints
 ]
 
 LOGGING = {

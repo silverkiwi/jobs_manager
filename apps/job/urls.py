@@ -20,6 +20,7 @@ from apps.job.views import (
     AssignJobView,
     JobFileView,
 )
+from apps.job.urls_rest import rest_urlpatterns
 
 app_name = "jobs"
 
@@ -127,10 +128,12 @@ urlpatterns = [
         "api/jobs/status-values/",
         kanban_view_api.fetch_status_values,
         name="api_fetch_status_values",
-    ),
-    path(
+    ),    path(
         "api/jobs/advanced-search/",
         kanban_view_api.advanced_search,
         name="api_advanced_search",
     ),
 ]
+
+# Incluir URLs REST
+urlpatterns += rest_urlpatterns
