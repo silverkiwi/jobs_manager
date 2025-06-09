@@ -34,7 +34,6 @@ document.addEventListener("DOMContentLoaded", function () {
       clientIdField.value = "";
     }
   });
-
   // Add message event listener to handle client selection from child window
   window.addEventListener("message", function (event) {
     console.log("Received message:", event.data);
@@ -69,17 +68,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Trigger autosave
       debouncedAutosave();
-
-      // Dispatch a custom event with client details for other listeners
-      const clientSelectedEvent = new CustomEvent('jobClientSelected', {
-        detail: {
-          clientId: event.data.clientId,
-          clientName: event.data.clientName,
-          xeroContactId: event.data.xeroContactId
-        }
-      });
-      console.log('Dispatching jobClientSelected (from window.message) with detail:', clientSelectedEvent.detail); // Added log
-      document.dispatchEvent(clientSelectedEvent);
     }
   });
 
@@ -95,14 +83,9 @@ document.addEventListener("DOMContentLoaded", function () {
   clientInput.addEventListener("input", function () {
     const query = clientInput.value.trim();
     const clientIdField = document.getElementById("client_id"); // Get client_id field
-    const clientXeroIdField = document.getElementById("client_xero_id"); // Get client_xero_id field
-
-    // Clear client_id and xero_contact_id when client_name is manually changed
+    const clientXeroIdField = document.getElementById("client_xero_id"); // Get client_xero_id field    // Clear client_id and xero_contact_id when client_name is manually changed
     if (clientIdField) clientIdField.value = "";
     if (clientXeroIdField) clientXeroIdField.value = "";
-
-    // Dispatch event to clear contact persons dropdown
-    document.dispatchEvent(new CustomEvent('jobClientCleared'));
 
     if (query.length > 2) {
       fetch(`/clients/api/search/?q=${encodeURIComponent(query)}`, {
@@ -188,21 +171,8 @@ document.addEventListener("DOMContentLoaded", function () {
               ],
               "job-details",
             );
-          }
-
-          debouncedAutosave();
+          }          debouncedAutosave();
           hideDropdown();
-
-          // Dispatch a custom event with client details for other listeners
-          const clientSelectedEvent = new CustomEvent('jobClientSelected', {
-            detail: {
-              clientId: client.id,
-              clientName: client.name,
-              xeroContactId: client.xero_contact_id
-            }
-          });
-          console.log('Dispatching jobClientSelected (from suggestion click) with detail:', clientSelectedEvent.detail); // Added log
-          document.dispatchEvent(clientSelectedEvent);
         });
 
         suggestionsContainer.appendChild(suggestionItem);
