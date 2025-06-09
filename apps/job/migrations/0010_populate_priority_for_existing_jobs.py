@@ -10,7 +10,7 @@ def populate_priority_for_existing_jobs(apps, schema_editor):
     statuses = Job.objects.values_list("status", flat=True).distinct()
 
     for status in statuses:
-        jobs = Job.objects.filter(status=status).order_by("job_number")
+        jobs = Job.objects.filter(status=status).order_by("-job_number")
         for i, job in enumerate(jobs, start=1):
             job.priority = i * PRIORITY_INCREMENT
             job.save(update_fields=["priority"])

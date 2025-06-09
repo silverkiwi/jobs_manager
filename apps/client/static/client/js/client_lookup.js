@@ -66,8 +66,16 @@ document.addEventListener("DOMContentLoaded", function () {
         clientXeroIdField ? clientXeroIdField.value : "field not found",
       );
 
-      // Trigger autosave
-      debouncedAutosave();
+      // Clear contact fields when client changes
+      clearContactFields();
+
+      // Trigger autosave and then refresh page to get contact people
+      debouncedAutosave().then(() => {
+        refreshPageAndSetDefaultContact(event.data.clientId);
+      }).catch(() => {
+        // If autosave fails, still refresh to get contacts
+        refreshPageAndSetDefaultContact(event.data.clientId);
+      });
     }
   });
 
@@ -171,7 +179,19 @@ document.addEventListener("DOMContentLoaded", function () {
               ],
               "job-details",
             );
-          }          debouncedAutosave();
+          }
+          
+          // Clear contact fields when client changes
+          clearContactFields();
+          
+          // Refresh page to get contact people for the new client and set default
+          debouncedAutosave().then(() => {
+            refreshPageAndSetDefaultContact(client.id);
+          }).catch(() => {
+            // If autosave fails, still refresh to get contacts
+            refreshPageAndSetDefaultContact(client.id);
+          });
+          
           hideDropdown();
         });
 
@@ -215,5 +235,43 @@ document.addEventListener("DOMContentLoaded", function () {
   function getCsrfToken() {
     const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
     return csrfToken ? csrfToken.value : "";
+  }
+
+  // Clear contact fields when client changes
+  function clearContactFields() {
+    const contactFields = [
+      'contact_id',
+      'contact_display', 
+      'contact_person',
+      'contact_phone',
+      'contact_email'
+    ];
+    
+    contactFields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.value = '';
+      }
+    });
+  }
+
+  // Refresh page and set default contact person for the client
+  async function refreshPageAndSetDefaultContact(clientId) {
+    try {
+      // Get current URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      // Add client_changed flag to indicate we need to set default contact
+      urlParams.set('client_changed', 'true');
+      urlParams.set('new_client_id', clientId);
+      
+      // Refresh the page with the new parameters
+      window.location.href = window.location.pathname + '?' + urlParams.toString();
+      
+    } catch (error) {
+      console.error('Error refreshing page:', error);
+      // Fallback: simple page refresh
+      window.location.reload();
+    }
   }
 });
