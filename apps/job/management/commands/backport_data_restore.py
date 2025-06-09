@@ -63,15 +63,13 @@ class Command(BaseCommand):
 
         # Pre-check for existing Client and Staff records in the development database
         ClientModel = apps.get_model('client', 'Client')
-        StaffModel = apps.get_model('accounts', 'Staff')
-
-        # These will fail with appropriate errors if no records exist
+        StaffModel = apps.get_model('accounts', 'Staff')        # These will fail with appropriate errors if no records exist
         if not ClientModel.objects.exists():
             raise CommandError("No Client records exist in development database. Please create at least one Client first.")
         if not StaffModel.objects.exists():
             raise CommandError("No Staff records exist in development database. Please create at least one Staff first.")
 
-        with open(backup_file_path, 'r') as f:
+        with open(backup_file_path, 'r', encoding='utf-8') as f:
             raw_backup_data = json.load(f)
 
         # Transform the list of raw data into a dictionary keyed by model label
@@ -391,12 +389,6 @@ class Command(BaseCommand):
         
         # Apply deferred JobPricing default_part updates
         self._update_jobpricing_defaultpart_fields()
-        
-        # Fix special jobs to be shop jobs
-        self._fix_special_jobs_as_shop_jobs()
-        
-        # Validate shop client setup
-        self._validate_shop_client_setup()
 
     def _create_dummy_job_files(self):
         """
@@ -480,90 +472,3 @@ class Command(BaseCommand):
             jobpricing.save()
         
         self.stdout.write(self.style.SUCCESS(f'Updated default_part fields on {len(self.jobpricing_defaultpart_updates)} JobPricing records.'))
-
-    def _fix_special_jobs_as_shop_jobs(self):
-        """
-        Updates all jobs with status 'special' to have the shop job client_id.
-        This ensures proper shop hour calculations in KPI reports.
-        """
-        self.stdout.write(self.style.MIGRATE_HEADING('Fixing special jobs to be shop jobs...'))
-        
-        JobModel = apps.get_model('job', 'Job')
-        ClientModel = apps.get_model('client', 'Client')
-        
-        shop_job_client_id = "00000000-0000-0000-0000-000000000001"
-        
-        # First, ensure the shop client exists
-        shop_client, created = ClientModel.objects.get_or_create(
-            id=shop_job_client_id,
-            defaults={
-                'name': 'Morris Sheetmetal (Shop)',
-                'primary_contact_email': 'shop@morrissheetmetal.co.nz',
-            }
-        )
-        
-        if created:
-            self.stdout.write(self.style.SUCCESS('Created shop client'))
-        
-        # Update all special jobs to use the shop client
-        special_jobs = JobModel.objects.filter(status='special')
-        count = special_jobs.update(client=shop_client)
-        
-        self.stdout.write(self.style.SUCCESS(f'Updated {count} special jobs to be shop jobs'))
-
-    def _validate_shop_client_setup(self):
-        """
-        Validates that a shop client exists and has a valid Xero contact ID.
-        Fails the restore process if not properly configured.
-        """
-        self.stdout.write(self.style.MIGRATE_HEADING('Validating shop client setup...'))
-        
-        ClientModel = apps.get_model('client', 'Client')
-        
-        try:
-            # Look for a client ending with " Shop" that has a Xero contact ID
-            shop_client = ClientModel.objects.filter(
-                name__endswith=' Shop',
-                xero_contact_id__isnull=False
-            ).first()
-            
-            if not shop_client:
-                raise CommandError(
-                    "CRITICAL: No shop client found with valid Xero contact ID!\n"
-                    "You must:\n"
-                    "1. Create 'Demo Company Shop' contact in Xero\n"
-                    "2. Run 'python manage.py setup_dev_xero' to sync and configure shop client\n"
-                    "3. Then re-run this restore command"
-                )
-            
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"✓ Shop client validated: {shop_client.name} "
-                    f"(ID: {shop_client.id}, Xero ID: {shop_client.xero_contact_id})"
-                )
-            )
-            
-            # Also validate that special jobs are using the shop client
-            JobModel = apps.get_model('job', 'Job')
-            special_jobs_count = JobModel.objects.filter(status='special').count()
-            shop_jobs_count = JobModel.objects.filter(
-                status='special',
-                client_id=shop_client.id
-            ).count()
-            
-            if special_jobs_count != shop_jobs_count:
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"Warning: {special_jobs_count - shop_jobs_count} special jobs "
-                        f"are not assigned to the shop client"
-                    )
-                )
-            else:
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"✓ All {special_jobs_count} special jobs are correctly assigned to shop client"
-                    )
-                )
-                
-        except Exception as e:
-            raise CommandError(f"Shop client validation failed: {str(e)}")

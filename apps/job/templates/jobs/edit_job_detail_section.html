@@ -33,35 +33,30 @@
             <input type="text" id="job_name" name="name" class="form-control autosave-input"
                 value="{{ job.name|default_if_none:'' }}" required placeholder="Enter job name...">
         </div>
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <label for="job_contact_select" class="form-label">Contact Person</label>
-            <select id="job_contact_select" class="form-select">
-                <option value="">--- Select a Client First ---</option>
-            </select>
-            <!-- Hidden fields for autosave -->
-            <input type="hidden" id="contact_person_name_hidden" name="contact_person" class="autosave-input" value="{{ job.contact_person|default_if_none:'' }}">
-            <input type="hidden" id="contact_person_email_hidden" name="contact_email" class="autosave-input" value="{{ job.contact_email|default_if_none:'' }}">
-            
-            <div class="d-none">
-                <button type="button" id="manage_xero_contact_persons_button" class="btn btn-sm btn-outline-secondary" style="display:none;">
-                    Add/Edit Contact Persons in Xero
+    </div>    <div class="row mb-3">
+        <div class="col-md-12">
+            <label for="contact_display" class="form-label">Contact Person</label>
+            <div class="d-flex gap-2">
+                <input type="text" id="contact_display" class="form-control" 
+                    value="{% if job.contact %}{{ job.contact.name }} - {{ job.contact.phone|default:'' }}{% else %}{{ job.contact_person|default_if_none:'' }}{% endif %}" 
+                    placeholder="No contact selected" readonly>
+                <input type="hidden" id="contact_id" name="contact_id" class="autosave-input" 
+                    value="{{ job.contact.id|default:'' }}">
+                <button type="button" class="btn btn-primary" id="manage_contact_btn" 
+                    data-bs-toggle="modal" data-bs-target="#contactModal">
+                    <i class="bi bi-person-plus"></i> Manage
                 </button>
             </div>
         </div>
-        <div class="col-md-6">
-            <label for="contact_phone" class="form-label">Contact Phone</label>
-            <div class="form-group">
-                <select id="job_contact_phone_select" name="contact_phone" class="form-select autosave-input">
-                    <option value="">--- Select a Client First ---</option>
-                    <!-- Options will be populated by JavaScript -->
-                </select>
-                <input type="hidden" id="initial_contact_phone" value="{{ job.contact_phone|default_if_none:'' }}">
-            </div>
-        </div>
     </div>
+    
+    <!-- Legacy contact fields - hidden but preserved for backward compatibility -->
+    <input type="hidden" id="contact_person" name="contact_person" class="autosave-input"
+        value="{{ job.contact_person|default_if_none:'' }}">
+    <input type="hidden" id="contact_phone" name="contact_phone" class="autosave-input"
+        value="{{ job.contact_phone|default_if_none:'' }}">
+    <input type="hidden" id="contact_email" name="contact_email" class="autosave-input"
+        value="{{ job.contact_email|default_if_none:'' }}">
 
     <div class="row mb-3">
         <div class="col-md-6">
@@ -101,4 +96,71 @@
     </div>
 
     <div id="job-details" class="alert-container"></div>
+</div>
+
+<!-- Contact Management Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalLabel">Manage Contact Person</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Client name display -->
+                <div class="mb-3">
+                    <strong>Client:</strong> <span id="modal_client_name">{{ job.client.name|default:'No client selected' }}</span>
+                </div>
+                
+                <!-- Existing contacts list -->
+                <div class="mb-4">
+                    <h6>Select Existing Contact:</h6>
+                    <div id="existing_contacts_list" class="list-group mb-3">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Add new contact form -->
+                <div class="border-top pt-3">
+                    <h6>Or Add New Contact:</h6>
+                    <form id="new_contact_form">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="new_contact_name" class="form-label">Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="new_contact_name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="new_contact_position" class="form-label">Position</label>
+                                <input type="text" class="form-control" id="new_contact_position">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="new_contact_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="new_contact_email">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="new_contact_phone" class="form-label">Phone</label>
+                                <input type="text" class="form-control" id="new_contact_phone">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_contact_notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="new_contact_notes" rows="2"></textarea>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="new_contact_primary">
+                            <label class="form-check-label" for="new_contact_primary">
+                                Set as primary contact for this client
+                            </label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save_contact_btn">Save Contact</button>
+            </div>
+        </div>
+    </div>
 </div>

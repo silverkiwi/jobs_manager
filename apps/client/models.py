@@ -163,6 +163,72 @@ class Client(models.Model):
         return str(shop_client.id)
 
 
+class ClientContact(models.Model):
+    """
+    Represents a contact person for a client.
+    This model stores contact information that was previously synced with Xero
+    but is now managed entirely within our application.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='contacts',
+        help_text="The client this contact belongs to"
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text="Full name of the contact person"
+    )
+    email = models.EmailField(
+        null=True,
+        blank=True,
+        help_text="Email address of the contact"
+    )
+    phone = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True,
+        help_text="Phone number of the contact"
+    )
+    position = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Job title if it's helpful - else leave blank"
+    )
+    is_primary = models.BooleanField(
+        default=False,
+        help_text="Indicates if this is the primary contact for the client"
+    )
+    notes = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Additional notes about this contact"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-is_primary', 'name']
+        db_table = 'client_contact'
+        verbose_name = 'Client Contact'
+        verbose_name_plural = 'Client Contacts'
+        
+    def __str__(self):
+        return f"{self.name} ({self.client.name})"
+    
+    def save(self, *args, **kwargs):
+        # If this contact is being set as primary, ensure no other contacts
+        # for this client are marked as primary
+        if self.is_primary:
+            ClientContact.objects.filter(
+                client=self.client,
+                is_primary=True
+            ).exclude(id=self.id).update(is_primary=False)
+        super().save(*args, **kwargs)
+
+
 class Supplier(Client):
     """
     A Supplier is simply a Client with additional semantics.

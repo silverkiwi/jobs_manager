@@ -174,12 +174,12 @@ class KPIService:
         )
         
         material_entries = MaterialEntry.objects.filter(
-            created_at__range=[aware_start, aware_end],
+            accounting_date=target_date,
             job_pricing__pricing_stage=JobPricingStage.REALITY
         ).select_related('job_pricing__job')
         
         adjustment_entries = AdjustmentEntry.objects.filter(
-            created_at__range=[aware_start, aware_end],
+            accounting_date=target_date,
             job_pricing__pricing_stage=JobPricingStage.REALITY
         ).select_related('job_pricing__job')
         
@@ -375,10 +375,10 @@ class KPIService:
 
         material_entries = (
             MaterialEntry.objects.filter(
-                created_at__range=[aware_start, aware_end],
+                accounting_date__range=[start_date, end_date],
                 job_pricing__pricing_stage=JobPricingStage.REALITY
             )
-            .annotate(local_date=TruncDate("created_at", tzinfo=cls.nz_timezone))
+            .annotate(local_date=F("accounting_date"))
             .values("local_date")
             .annotate(
                 revenue=Sum(
@@ -390,10 +390,10 @@ class KPIService:
 
         adjustment_entries = (
             AdjustmentEntry.objects.filter(
-                created_at__range=[aware_start, aware_end],
+                accounting_date__range=[start_date, end_date],
                 job_pricing__pricing_stage=JobPricingStage.REALITY
             )
-            .annotate(local_date=TruncDate("created_at", tzinfo=cls.nz_timezone))
+            .annotate(local_date=F("accounting_date"))
             .values("local_date")
             .annotate(
                 revenue=Sum(F("price_adjustment")), cost=Sum(F("cost_adjustment"))
