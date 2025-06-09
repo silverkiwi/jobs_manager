@@ -3,7 +3,7 @@ from django.db import connection
 
 
 class Command(BaseCommand):
-    help = "Removes the job_id constraint and column from workflow_part table"
+    help = "Removes the job_id constraint and column from workflow_jobpart table"
 
     def handle(self, *args, **options):
         with connection.cursor() as cursor:
@@ -18,11 +18,11 @@ class Command(BaseCommand):
 
                 if connection.vendor == "mysql":
                     cursor.execute(
-                        f"ALTER TABLE workflow_part DROP FOREIGN KEY {constraint_name};"
+                        f"ALTER TABLE workflow_jobpart DROP FOREIGN KEY {constraint_name};"
                     )
                 elif connection.vendor == "postgresql":
                     cursor.execute(
-                        f"ALTER TABLE workflow_part DROP CONSTRAINT {constraint_name};"
+                        f"ALTER TABLE workflow_jobpart DROP CONSTRAINT {constraint_name};"
                     )
                 elif connection.vendor == "sqlite":
                     self.stdout.write(
@@ -32,8 +32,8 @@ class Command(BaseCommand):
                     )
 
                 # Drop the column
-                self.stdout.write("Removing column job_id from workflow_part...")
-                cursor.execute("ALTER TABLE workflow_part DROP COLUMN job_id;")
+                self.stdout.write("Removing column job_id from workflow_jobpart...")
+                cursor.execute("ALTER TABLE workflow_jobpart DROP COLUMN job_id;")
 
                 self.stdout.write(
                     self.style.SUCCESS(

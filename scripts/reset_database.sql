@@ -6,7 +6,7 @@
 DROP DATABASE IF EXISTS msm_workflow;
 
 -- Recreate the database with the same character set and collation
-CREATE DATABASE msm_workflow DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;
+CREATE DATABASE msm_workflow CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Note: If you need to create the django_user, use the following commands
 -- (replace 'your_password' with the actual password from your .env file):
