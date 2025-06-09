@@ -63,15 +63,13 @@ class Command(BaseCommand):
 
         # Pre-check for existing Client and Staff records in the development database
         ClientModel = apps.get_model('client', 'Client')
-        StaffModel = apps.get_model('accounts', 'Staff')
-
-        # These will fail with appropriate errors if no records exist
+        StaffModel = apps.get_model('accounts', 'Staff')        # These will fail with appropriate errors if no records exist
         if not ClientModel.objects.exists():
             raise CommandError("No Client records exist in development database. Please create at least one Client first.")
         if not StaffModel.objects.exists():
             raise CommandError("No Staff records exist in development database. Please create at least one Staff first.")
 
-        with open(backup_file_path, 'r') as f:
+        with open(backup_file_path, 'r', encoding='utf-8') as f:
             raw_backup_data = json.load(f)
 
         # Transform the list of raw data into a dictionary keyed by model label

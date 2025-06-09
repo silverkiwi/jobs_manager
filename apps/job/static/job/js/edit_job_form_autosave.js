@@ -1390,8 +1390,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (closeButton) {
     closeButton.addEventListener("click", handleClose);
   }
-
-  // Attach change event listener to handle special input types like checkboxes
+  // Attach event listeners to all autosave-input elements
   autosaveInputs.forEach((fieldElement) => {
     fieldElement.addEventListener("blur", function () {
       console.log("Blur event fired for:", fieldElement);
@@ -1399,15 +1398,16 @@ document.addEventListener("DOMContentLoaded", function () {
       debouncedAutosave();
     });
 
-    if (fieldElement.type === "checkbox" || fieldElement.tagName === "SELECT") {
-      fieldElement.addEventListener("change", function () {
-        if (fieldElement.classList.contains("is-invalid")) {
-          fieldElement.classList.remove("is-invalid");
-        }
-        debouncedRemoveValidation(fieldElement);
-        debouncedAutosave();
-      });
-    }
+    // Add change event listener to all autosave-input elements
+    // This includes checkboxes, selects, and hidden inputs like contact_id
+    fieldElement.addEventListener("change", function () {
+      console.log("Change event fired for:", fieldElement);
+      if (fieldElement.classList.contains("is-invalid")) {
+        fieldElement.classList.remove("is-invalid");
+      }
+      debouncedRemoveValidation(fieldElement);
+      debouncedAutosave();
+    });
   });
   // Initialize historical navigation
   initHistoricalNavigation();
