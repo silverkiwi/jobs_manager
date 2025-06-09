@@ -124,35 +124,6 @@ def edit_job_view_ajax(request, job_id=None):
         # Fetch the existing Job along with pricings
         job = get_job_with_pricings(job_id)
         logger.debug(f"Editing existing job with ID: {job.id}")
-        
-        # Check if client was changed and we need to set default contact
-        client_changed = request.GET.get('client_changed', 'false').lower() == 'true'
-        new_client_id = request.GET.get('new_client_id')
-        
-        if client_changed and new_client_id and job.client_id == new_client_id:
-            from apps.client.models import ClientContact
-            # Get the primary contact for the new client
-            primary_contact = ClientContact.objects.filter(
-                client_id=new_client_id, 
-                is_primary=True
-            ).first()
-            
-            if primary_contact:
-                # Set the default contact person for this job
-                job.contact = primary_contact
-                job.contact_person = primary_contact.name
-                job.contact_phone = primary_contact.phone or ''
-                job.contact_email = primary_contact.email or ''
-                job.save(staff=request.user)
-                logger.info(f"Set default contact for job {job.id}: {primary_contact.name}")
-            else:
-                # If no primary contact, clear contact fields
-                job.contact = None
-                job.contact_person = ''
-                job.contact_phone = ''
-                job.contact_email = ''
-                job.save(staff=request.user)
-                logger.info(f"Cleared contact for job {job.id} - no primary contact found")
     else:
         raise ValueError("Job ID is required to edit a job")
 
