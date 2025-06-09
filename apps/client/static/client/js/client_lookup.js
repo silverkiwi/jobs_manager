@@ -69,13 +69,8 @@ document.addEventListener("DOMContentLoaded", function () {
       // Clear contact fields when client changes
       clearContactFields();
 
-      // Trigger autosave and then refresh page to get contact people
-      debouncedAutosave().then(() => {
-        refreshPageAndSetDefaultContact(event.data.clientId);
-      }).catch(() => {
-        // If autosave fails, still refresh to get contacts
-        refreshPageAndSetDefaultContact(event.data.clientId);
-      });
+      // Immediately refresh contacts and set default contact person
+      refreshContactsAndSetDefault(event.data.clientId);
     }
   });
 
@@ -184,13 +179,8 @@ document.addEventListener("DOMContentLoaded", function () {
           // Clear contact fields when client changes
           clearContactFields();
           
-          // Refresh page to get contact people for the new client and set default
-          debouncedAutosave().then(() => {
-            refreshPageAndSetDefaultContact(client.id);
-          }).catch(() => {
-            // If autosave fails, still refresh to get contacts
-            refreshPageAndSetDefaultContact(client.id);
-          });
+          // Immediately refresh contacts and set default contact person
+          refreshContactsAndSetDefault(client.id);
           
           hideDropdown();
         });
@@ -255,23 +245,65 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Refresh page and set default contact person for the client
-  async function refreshPageAndSetDefaultContact(clientId) {
+  // Refresh contacts via API and set default contact person for the client
+  async function refreshContactsAndSetDefault(clientId) {
     try {
-      // Get current URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
+      console.log(`Refreshing contacts for client ${clientId}`);
       
-      // Add client_changed flag to indicate we need to set default contact
-      urlParams.set('client_changed', 'true');
-      urlParams.set('new_client_id', clientId);
+      // Fetch contacts for the new client
+      const response = await fetch(`/clients/api/client/${clientId}/contacts/`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch contacts');
+      }
       
-      // Refresh the page with the new parameters
-      window.location.href = window.location.pathname + '?' + urlParams.toString();
+      const contacts = await response.json();
+      console.log(`Found ${contacts.length} contacts for client ${clientId}`);
+      
+      // Find the primary contact
+      const primaryContact = contacts.find(contact => contact.is_primary);
+      
+      if (primaryContact) {
+        console.log(`Setting primary contact: ${primaryContact.name}`);
+        
+        // Update job contact fields
+        const contactIdField = document.getElementById('contact_id');
+        const contactDisplayField = document.getElementById('contact_display');
+        const contactPersonField = document.getElementById('contact_person');
+        const contactPhoneField = document.getElementById('contact_phone');
+        const contactEmailField = document.getElementById('contact_email');
+        
+        if (contactIdField) contactIdField.value = primaryContact.id;
+        if (contactDisplayField) {
+          const displayValue = primaryContact.phone ? 
+            `${primaryContact.name} - ${primaryContact.phone}` : 
+            primaryContact.name;
+          contactDisplayField.value = displayValue;
+        }
+        if (contactPersonField) contactPersonField.value = primaryContact.name;
+        if (contactPhoneField) contactPhoneField.value = primaryContact.phone || '';
+        if (contactEmailField) contactEmailField.value = primaryContact.email || '';
+        
+        // Trigger autosave for the contact changes
+        if (contactIdField) {
+          const event = new Event('change', { bubbles: true });
+          contactIdField.dispatchEvent(event);
+        }
+        
+        console.log(`Successfully set default contact: ${primaryContact.name}`);
+      } else {
+        console.log('No primary contact found for this client');
+        // Contact fields are already cleared by clearContactFields()
+      }
       
     } catch (error) {
-      console.error('Error refreshing page:', error);
-      // Fallback: simple page refresh
-      window.location.reload();
+      console.error('Error refreshing contacts:', error);
+      // Show error message to user
+      if (typeof renderMessages === 'function') {
+        renderMessages([{
+          level: 'error',
+          message: 'Failed to load contacts for the selected client.'
+        }], 'job-details');
+      }
     }
   }
 });
