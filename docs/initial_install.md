@@ -131,16 +131,17 @@ npm install
     ```
 3.  Load essential initial data fixtures:
     ```bash
-    python manage.py loaddata workflow/fixtures/initial_data.json
+    python manage.py loaddata apps/workflow/fixtures/initial_data.json
     ```
     **Default Admin Credentials:**
     *   **Username:** `defaultadmin@example.com`
     *   **Password:** `Default-admin-password`
 
-4.  Load essential job data fixtures:
+4.  **(Optional) Restore production data:** If you have a production backup to work with:
     ```bash
-    python manage.py create_shop_jobs
+    python manage.py backport_data_restore restore/prod_backup_YYYYMMDD_HHMMSS.json
     ```
+    This loads production data (jobs, timesheets, etc.) while preserving local settings.
 
 ## Phase 3: Running the Application & Connecting Xero
 
@@ -189,14 +190,26 @@ npm install
 3. **Verify Creation:** Ensure the contact appears in your Xero contacts list as "Demo Company Shop"
 
 This contact is essential for proper shop hours tracking in KPI reports.
-5.  **Setup Development Xero Connection:** After authorization, you can use the simplified development setup command:
+5.  **Setup Development Xero Connection:** After authorization and creating the shop contact:
     ```bash
     python manage.py setup_dev_xero
     ```
     This command will:
     * Automatically find the Demo Company tenant ID
     * Update your CompanyDefaults with the correct tenant ID
-    * Perform the initial Xero data sync
+    * Sync the "Demo Company Shop" client to get its Xero contact ID
+    * Skip the full sync (default behavior - use --full-sync if you want to run it)
+
+6.  **Create shop jobs:** Create the special internal jobs for tracking shop work:
+Note - only do this if you chose not to restore from production!
+    ```bash
+    python manage.py create_shop_jobs
+    ```
+
+7.  **Run full Xero sync:** Now sync all data from Xero:
+    ```bash
+    python manage.py start_xero_sync
+    ```
 
     **Alternative Manual Setup:** If you prefer to do this manually:
     * Get available tenant IDs: `python manage.py get_xero_tenant_id`
@@ -247,11 +260,17 @@ To wipe the local database and start fresh:
 4.  **Re-initialize Application:** (Activate `poetry shell` if needed)
     ```bash
     python manage.py migrate
-    python manage.py loaddata workflow/fixtures/initial_data.json
-    python manage.py create_shop_jobs
+    python manage.py loaddata apps/workflow/fixtures/initial_data.json
+    # Optional: python manage.py backport_data_restore restore/prod_backup_YYYYMMDD_HHMMSS.json
     ```
 
-5.  **Re-Connect Xero:** After resetting, you **must** repeat **Steps 10.4 through 10.7** (Authorize Xero in the app, get Tenant ID via API Explorer, set Tenant ID in app, sync data).
+5.  **Re-Connect Xero and Setup:** After resetting, you **must** repeat the Xero connection steps:
+    * Log into the app and click "Connect to Xero"
+    * Authorize the Demo Company
+    * Create "Demo Company Shop" contact in Xero (if not already there)
+    * Run `python manage.py setup_dev_xero`
+    * Run `python manage.py create_shop_jobs` (only if you didn't restore from production)
+    * Run `python manage.py start_xero_sync`
 
 ## Troubleshooting
 

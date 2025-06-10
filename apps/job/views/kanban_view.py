@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def kanban_view(request: HttpRequest) -> HttpResponse:
     active_jobs = Job.objects.filter(~Q(status="archived")).order_by(
-        "status", "priority"
+        "status", "-priority"
     )
 
     archived_jobs = Job.objects.filter(status="archived").order_by("-created_at")[:50]
@@ -92,8 +92,8 @@ def _rebalance_column(status: str) -> None:
 
 
 def _calculate_priority(
-    before_prio: int | None, after_prio: int | None, status: str
-) -> int:
+    before_prio: float | None, after_prio: float | None, status: str
+) -> float:
     """
     Determine the new priority given before_prio and after_prio.
     Cases:
@@ -111,34 +111,35 @@ def _calculate_priority(
                 Job.objects.filter(status=status).aggregate(Max("priority"))[
                     "priority__max"
                 ]
-                or 0
+                or 0.0
             )
             return max_prio + increment
 
         case (None, after) if after is not None:
             # Insert at top: place just above the ‘after’ job
-            new_prio = after - increment
-            if new_prio <= 0:
-                _rebalance_column(status)
-                # Re-fetch after_prio after rebalance
-                after = Job.objects.get(priority=after, status=status).priority
-                return after - increment
+            new_prio = after + increment
             return new_prio
 
         case (before, None) if before is not None:
             # Insert at bottom: place just below the ‘before’ job
-            return before + increment
+            new_prio = before - increment
+            if new_prio <= 0:
+                _rebalance_column(status)
+                # Re-fetch before_prio after rebalance
+                before = Job.objects.get(priority=before, status=status).priority
+                return before - increment
+            return new_prio
 
         case (before, after) if before is not None and after is not None:
             # Internal insertion: try to take the average
-            gap = after - before
+            gap = before - after
             if gap > 1:
-                return (before + after) // 2
+                return (before + after) / 2
             # Gap too small → rebalance first, then recompute
             _rebalance_column(status)
             before = Job.objects.get(priority=before, status=status).priority
             after = Job.objects.get(priority=after, status=status).priority
-            return (before + after) // 2
+            return (before + after) / 2
 
         case _:
             # Fallback: push to end if anything unexpected happens
@@ -212,7 +213,7 @@ def fetch_jobs(request: HttpRequest, status: str) -> JsonResponse:
                 query &= term_query
             jobs_query = jobs_query.filter(query)
 
-        jobs = jobs_query.order_by("priority", "-created_at")
+        jobs = jobs_query.order_by("-priority", "-created_at")
 
         total_jobs = Job.objects.filter(status=status).count()
 
