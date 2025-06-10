@@ -125,16 +125,16 @@ class SteelAndTubeScraper(BaseScraper):
         if "login" in self.driver.current_url.lower() or "signin" in self.driver.current_url.lower():
             self.logger.info("Login required, attempting to login...")
             if not self.login():
-                self.logger.error("Login failed. Bailing out of product scraping.")
-                return []
+                self.logger.error("Login failed. Stopping entire scraping process.")
+                raise Exception("Login failed - cannot proceed with scraping")
             # Navigate back to product page after login
             self.driver.get(url)
             time.sleep(2)
             
             # Verify we're actually logged in by checking if we're still on login page
             if "login" in self.driver.current_url.lower() or "signin" in self.driver.current_url.lower():
-                self.logger.error("Still on login page after login attempt. Login failed.")
-                return []
+                self.logger.error("Still on login page after login attempt. Login failed. Stopping entire scraping process.")
+                raise Exception("Login verification failed - cannot proceed with scraping")
 
         try:
             # Check for page not found
