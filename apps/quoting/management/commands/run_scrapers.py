@@ -95,7 +95,7 @@ class Command(BaseCommand):
 
                 try:
                     # Import the module
-                    module = importlib.import_module(f"quoting.scrapers.{module_name}")
+                    module = importlib.import_module(f"apps.quoting.scrapers.{module_name}")
 
                     # Look for classes that end with 'Scraper' (except BaseScraper)
                     for name, obj in inspect.getmembers(module, inspect.isclass):
