@@ -12,11 +12,27 @@ from apps.client.views.client_rest_views import (
     ClientSearchRestView,
     ClientContactsRestView,
     ClientContactCreateRestView,
+    ClientListAllRestView,
+    ClientCreateRestView,
 )
 
 app_name = "clients_rest"
 
 urlpatterns = [
+    # Client list all REST endpoint
+    path(
+        "all/",
+        ClientListAllRestView.as_view(),
+        name="client_list_all_rest",
+    ),
+    
+    # Client creation REST endpoint
+    path(
+        "create/",
+        ClientCreateRestView.as_view(),
+        name="client_create_rest",
+    ),
+    
     # Client search REST endpoint
     path(
         "search/",

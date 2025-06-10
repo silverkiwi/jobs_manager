@@ -16,10 +16,14 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 from django.views import View
 from django.db.models import Q
+from django.db import transaction
 
-from apps.client.models import Client, ClientContact, ClientContact
+from apps.client.models import Client, ClientContact
+from apps.client.forms import ClientForm
+from apps.client.forms import ClientForm
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +47,57 @@ class BaseClientRestView(View):
             {'error': message, 'details': str(error)}, 
             status=500
         )
+
+
+class ClientListAllRestView(BaseClientRestView):
+    """
+    REST view for listing all clients.
+    Used by dropdowns and advanced search.
+    """
+    
+    def get(self, request) -> JsonResponse:
+        """
+        Lista todos os clientes seguindo early return pattern.
+        """
+        try:
+            # Busca todos os clientes ordenados por nome
+            clients = self._get_all_clients()
+            results = self._format_client_results(clients)
+            
+            return JsonResponse(results, safe=False)
+            
+        except Exception as e:
+            return self.handle_error(e, "Error fetching all clients")
+    
+    def _get_all_clients(self):
+        """
+        Executa busca de todos os clientes seguindo SRP.
+        """
+        return Client.objects.all().order_by('name')
+    
+    def _format_client_results(self, clients) -> list:
+        """
+        Formata resultados dos clientes seguindo SRP.
+        """
+        return [
+            {
+                "id": str(client.id),
+                "name": client.name,
+                "email": client.email or "",
+                "phone": client.phone or "",
+                "address": client.address or "",
+                "is_account_customer": client.is_account_customer,
+                "xero_contact_id": client.xero_contact_id or "",
+                "last_invoice_date": (
+                    client.get_last_invoice_date().strftime("%d/%m/%Y")
+                    if client.get_last_invoice_date()
+                    else ""
+                ),
+                "total_spend": f"${client.get_total_spend():,.2f}",
+                "raw_json": client.raw_json,
+            }
+            for client in clients
+        ]
 
 
 class ClientSearchRestView(BaseClientRestView):
@@ -243,3 +298,87 @@ class ClientContactCreateRestView(BaseClientRestView):
         )
         
         return contact
+
+
+class ClientCreateRestView(BaseClientRestView):
+    """
+    REST view for creating new clients.
+    Follows clean code principles and delegates to Django forms for validation.
+    """
+    
+    def post(self, request) -> JsonResponse:
+        """
+        Create a new client following early return pattern.
+        """
+        try:
+            # Parse JSON data with early return on error
+            data = self._parse_json_data(request)
+            
+            # Create client with validation
+            client = self._create_client(data)
+            
+            # Format successful response
+            return JsonResponse({
+                'success': True,
+                'client': self._format_client_data(client),
+                'message': f'Client "{client.name}" created successfully'
+            }, status=201)
+            
+        except ValueError as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+            
+        except Exception as e:
+            return self.handle_error(e, "Error creating client")
+    
+    def _parse_json_data(self, request) -> Dict[str, Any]:
+        """
+        Parse JSON data from request following SRP.
+        """
+        try:
+            return json.loads(request.body)
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON data")
+        
+    def _create_client(self, data: Dict[str, Any]) -> Client:
+        """
+        Create client using Django form validation.
+        """
+        # Use ClientForm for validation following Django best practices
+        form = ClientForm(data)
+        
+        # Guard clause - validate form
+        if not form.is_valid():
+            error_messages = []
+            for field, errors in form.errors.items():
+                error_messages.extend([f"{field}: {error}" for error in errors])
+            raise ValueError("; ".join(error_messages))
+        
+        # Create client with transaction for data integrity
+        with transaction.atomic():
+            client = form.save(commit=False)
+            
+            # Set required fields that aren't in the form
+            client.xero_last_modified = timezone.now()
+            client.xero_last_synced = timezone.now()
+            
+            client.save()
+            logger.info(f"Created client: {client.name} (ID: {client.id})")
+            
+        return client
+    
+    def _format_client_data(self, client: Client) -> Dict[str, Any]:
+        """
+        Format client data for response following SRP.
+        """
+        return {
+            "id": str(client.id),
+            "name": client.name,
+            "email": client.email or "",
+            "phone": client.phone or "",
+            "address": client.address or "",
+            "is_account_customer": client.is_account_customer,
+            "xero_contact_id": client.xero_contact_id or "",
+        }
