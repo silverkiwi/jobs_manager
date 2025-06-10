@@ -53,11 +53,6 @@ urlpatterns = [
         name="toggle_complex_job",
     ),
     path(
-        "api/job/toggle-pricing-type/",
-        edit_job_view_ajax.toggle_pricing_methodology,
-        name="toggle_pricing_methodology",
-    ),
-    path(
         "api/job/completed/",
         ArchiveCompleteJobsViews.ArchiveCompleteJobsListAPIView.as_view(),
         name="api_jobs_completed",

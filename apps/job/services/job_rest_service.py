@@ -1,8 +1,8 @@
 """
 Job REST Service Layer
 
-Seguindo os princípios do SRP (Single Responsibility Principle) e guidelines de código limpo.
-Toda lógica de negócio para operações REST de Jobs deve ser implementada aqui.
+Following SRP (Single Responsibility Principle) and clean code guidelines.
+All business logic for Job REST operations should be implemented here.
 """
 
 import logging
@@ -25,105 +25,103 @@ logger = logging.getLogger(__name__)
 
 class JobRestService:
     """
-    Service layer para operações REST de Jobs.
-    Implementa todas as regras de negócio relacionadas à manipulação de Jobs via API REST.
+    Service layer for Job REST operations.
+    Implements all business rules related to Job manipulation via REST API.
     """
 
     @staticmethod
     def create_job(data: Dict[str, Any], user: Staff) -> Job:
         """
-        Cria um novo Job com dados essenciais.
-        Aplica early return para validações.
+        Creates a new Job with essential data.
+        Applies early return for validations.
         
         Args:
-            data: Dados do formulário de criação
-            user: Usuário que está criando o job
+            data: Form creation data
+            user: User creating the job
             
         Returns:
-            Job: Instância do job criado
+            Job: Created job instance
             
         Raises:
-            ValueError: Se dados obrigatórios estão faltando
+            ValueError: If required data is missing
         """
-        # Guard clauses - early return para validações
+        # Guard clauses - early return for validations
         if not data.get('name'):
-            raise ValueError("Nome do Job é obrigatório")
+            raise ValueError("Job name is required")
             
         if not data.get('client_id'):
-            raise ValueError("Cliente é obrigatório")
+            raise ValueError("Client is required")
         
         try:
             client = Client.objects.get(id=data['client_id'])
         except Client.DoesNotExist:
-            raise ValueError("Cliente não encontrado")
+            raise ValueError("Client not found")
         
-        # Switch-case seria ideal aqui, mas Python não tem antes do 3.10
-        # Usando match-case para lógica de decisão clara
         job_data = {
             'name': data['name'],
             'client': client,
             'created_by': user,
         }
         
-        # Campos opcionais - apenas se fornecidos
+        # Optional fields - only if provided
         optional_fields = ['description', 'order_number', 'notes', 'contact_person']
         for field in optional_fields:
             if data.get(field):
                 job_data[field] = data[field]
         
-        # Contato (relacionamento opcional)
+        # Contact (optional relationship)
         if data.get('contact_id'):
             try:
                 contact = ClientContact.objects.get(id=data['contact_id'])
                 job_data['contact'] = contact
             except ClientContact.DoesNotExist:
-                logger.warning(f"Contato {data['contact_id']} não encontrado, ignorando")
+                logger.warning(f"Contact {data['contact_id']} not found, ignoring")
         
         with transaction.atomic():
             job = Job(**job_data)
             job.save(staff=user)
-              # Create job creation event
+              # Log creation
             JobEvent.objects.create(
                 job=job,
                 staff=user,
                 event_type='job_created',
-                description=f'Job "{job.name}" created'
+                description=f'New job created'
             )
             
-            logger.info(f"Job {job.id} created successfully by {user.email}")
+            logger.info(f"Job {job.id} created successfully by {user.username}")
             
         return job
 
     @staticmethod
     def get_job_for_edit(job_id: UUID) -> Dict[str, Any]:
         """
-        Busca dados completos de um Job para edição.
+        Fetches complete Job data for editing.
         
         Args:
-            job_id: UUID do job
+            job_id: Job UUID
             
         Returns:
-            Dict com dados do job e pricing
+            Dict with job and pricing data
         """
         job = get_job_with_pricings(job_id)
         
-        # Serializar dados principais
+        # Serialise main data
         job_data = JobSerializer(job).data
         
-        # Buscar pricings mais recentes
+        # Fetch latest pricings
         latest_pricings = {
             'estimate': job.latest_estimate_pricing,
             'quote': job.latest_quote_pricing,
             'reality': job.latest_reality_pricing,
         }
         
-        # Serializar pricings
+        # Serialise pricings
         latest_pricings_data = {}
         for stage, pricing in latest_pricings.items():
             if pricing:
                 latest_pricings_data[f'{stage}_pricing'] = JobPricingSerializer(pricing).data
         
-        # Buscar eventos do job
+        # Fetch job events
         events = JobEvent.objects.filter(job=job).order_by('-timestamp')[:10]
         events_data = [
             {
@@ -131,7 +129,7 @@ class JobRestService:
                 'timestamp': event.timestamp.isoformat(),
                 'event_type': event.event_type,
                 'description': event.description,
-                'staff': event.staff.get_display_full_name() if event.staff else 'Sistema'
+                'staff': event.staff.get_display_full_name() if event.staff else 'System'
             }
             for event in events
         ]
@@ -141,24 +139,39 @@ class JobRestService:
             'latest_pricings': latest_pricings_data,
             'events': events_data,
             'company_defaults': JobRestService._get_company_defaults(),
-        }
-
+        }    
+    
     @staticmethod
     def update_job(job_id: UUID, data: Dict[str, Any], user: Staff) -> Job:
         """
-        Atualiza um Job existente.
+        Updates an existing Job.
         
         Args:
-            job_id: UUID do job
-            data: Dados para atualização
-            user: Usuário que está atualizando
+            job_id: Job UUID
+            data: Data for updating
+            user: User performing the update
             
         Returns:
-            Job: Instância atualizada
+            Job: Updated instance
         """
         job = get_object_or_404(Job, id=job_id)
+          # Store original values for comparison
+        original_values = {
+            'name': job.name,
+            'description': job.description,
+            'status': job.status,
+            'priority': job.priority,
+            'pricing_methodology': job.pricing_methodology,
+            'client_id': job.client_id,
+            'charge_out_rate': job.charge_out_rate,
+            'order_number': job.order_number,
+            'notes': job.notes,
+            'contact_person': job.contact_person,
+            'contact_email': job.contact_email,
+            'contact_phone': job.contact_phone,
+        }
         
-        # Usar serializer para validação e atualização
+        # Use serialiser for validation and updating
         serializer = JobSerializer(
             instance=job, 
             data=data, 
@@ -167,17 +180,19 @@ class JobRestService:
         )
         
         if not serializer.is_valid():
-            raise ValueError(f"Dados inválidos: {serializer.errors}")
+            raise ValueError(f"Invalid data: {serializer.errors}")
         
         with transaction.atomic():
             job = serializer.save(staff=user)
+              # Generate descriptive update message
+            description = JobRestService._generate_update_description(original_values, serializer.validated_data)
             
-            # Log da atualização
+            # Log the update with descriptive message
             JobEvent.objects.create(
                 job=job,
                 staff=user,
                 event_type='job_updated',
-                description='Job atualizado via interface REST'
+                description=description
             )
         
         return job
@@ -185,24 +200,24 @@ class JobRestService:
     @staticmethod
     def toggle_complex_job(job_id: UUID, complex_job: bool, user: Staff) -> Dict[str, Any]:
         """
-        Alterna o modo complex_job de um Job.
-        Implementa regras de validação específicas.
+        Toggles the complex_job mode of a Job.
+        Implements specific validation rules.
         
         Args:
-            job_id: UUID do job
-            complex_job: Novo valor booleano
-            user: Usuário fazendo a alteração
+            job_id: Job UUID
+            complex_job: New boolean value
+            user: User making the change
             
         Returns:
-            Dict com resultado da operação
+            Dict with operation result
         """
-        # Early return - validação de tipos
+        # Early return - type validation
         if not isinstance(complex_job, bool):
-            raise ValueError("complex_job deve ser um valor booleano")
+            raise ValueError("complex_job must be a boolean value")
         
         job = get_object_or_404(Job, id=job_id)
         
-        # Guard clause - verificar se pode desabilitar modo complexo
+        # Guard clause - check if can disable complex mode
         if not complex_job and job.complex_job:
             validation_result = JobRestService._validate_can_disable_complex_mode(job)
             if not validation_result['can_disable']:
@@ -211,87 +226,38 @@ class JobRestService:
         with transaction.atomic():
             job.complex_job = complex_job
             job.save()
-            
-            # Log da alteração
-            mode = "ativado" if complex_job else "desativado"
+              # Log the change
+            mode_action = "enabled" if complex_job else "disabled"
             JobEvent.objects.create(
                 job=job,
                 staff=user,
-                event_type='complex_mode_changed',
-                description=f'Modo itemizado {mode}'
+                event_type='setting_changed',
+                description=f'Itemised billing {mode_action}'
             )
         
         return {
             'success': True,
             'job_id': str(job_id),
             'complex_job': complex_job,
-            'message': 'Job atualizado com sucesso'
-        }
-
-    @staticmethod
-    def toggle_pricing_methodology(job_id: UUID, methodology: str, user: Staff) -> Dict[str, Any]:
-        """
-        Alterna a metodologia de pricing do Job.
-        
-        Args:
-            job_id: UUID do job
-            methodology: Nova metodologia
-            user: Usuário fazendo a alteração
-            
-        Returns:
-            Dict com resultado da operação
-        """
-        # Guard clause - validação de valores permitidos
-        valid_methodologies = [choice[0] for choice in JobPricingMethodology.choices]
-        if methodology not in valid_methodologies:
-            raise ValueError(f"Metodologia inválida. Opções: {valid_methodologies}")
-        
-        job = get_object_or_404(Job, id=job_id)
-        
-        # Switch-case usando match (Python 3.10+) para decisão de fluxo
-        match methodology:
-            case JobPricingMethodology.TIME_AND_MATERIALS:
-                new_methodology = JobPricingMethodology.TIME_AND_MATERIALS
-            case JobPricingMethodology.FIXED_PRICE:
-                new_methodology = JobPricingMethodology.FIXED_PRICE
-            case _:
-                raise ValueError("Metodologia de pricing não reconhecida")
-        
-        with transaction.atomic():
-            job.pricing_methodology = new_methodology
-            job.save()
-            
-            # Log da alteração
-            JobEvent.objects.create(
-                job=job,
-                staff=user,
-                event_type='pricing_methodology_changed',
-                description=f'Metodologia alterada para {new_methodology}'
-            )
-        
-        return {
-            'success': True,
-            'job_id': str(job_id),
-            'pricing_methodology': new_methodology,
-            'message': 'Metodologia de pricing atualizada com sucesso'
+            'message': 'Job updated successfully'
         }
 
     @staticmethod
     def add_job_event(job_id: UUID, description: str, user: Staff) -> Dict[str, Any]:
         """
-        Adiciona um evento manual ao Job.
+        Adds a manual event to the Job.
         
         Args:
-            job_id: UUID do job
-            description: Descrição do evento
-            user: Usuário criando o evento
+            job_id: Job UUID
+            description: Event description
+            user: User creating the event
             
         Returns:
-            Dict com dados do evento criado
+            Dict with created event data
         """
-        # Guard clause - validação de entrada
+        # Guard clause - input validation
         if not description or not description.strip():
-            raise ValueError("Descrição do evento é obrigatória")
+            raise ValueError("Event description is required")
         
         job = get_object_or_404(Job, id=job_id)
         
@@ -302,7 +268,7 @@ class JobRestService:
             event_type='manual_note'
         )
         
-        logger.info(f"Event {event.id} created for job {job_id} by {user.email}")
+        logger.info(f"Event {event.id} created for job {job_id} by {user.username}")
         
         return {
             'success': True,
@@ -311,25 +277,25 @@ class JobRestService:
                 'timestamp': event.timestamp.isoformat(),
                 'event_type': event.event_type,
                 'description': event.description,
-                'staff': user.get_display_full_name() if user else 'Sistema'
+                'staff': user.get_display_full_name() if user else 'System'
             }
         }
 
     @staticmethod
     def delete_job(job_id: UUID, user: Staff) -> Dict[str, Any]:
         """
-        Deleta um Job se permitido pelas regras de negócio.
+        Deletes a Job if allowed by business rules.
         
         Args:
-            job_id: UUID do job
-            user: Usuário tentando deletar
+            job_id: Job UUID
+            user: User attempting to delete
             
         Returns:
-            Dict com resultado da operação
+            Dict with operation result
         """
         job = get_object_or_404(Job, id=job_id)
         
-        # Guard clause - verificar se pode deletar
+        # Guard clause - check if can delete
         reality_pricing = job.pricings.filter(
             pricing_stage=JobPricingStage.REALITY,
             is_historical=False
@@ -337,7 +303,7 @@ class JobRestService:
         
         if reality_pricing and (reality_pricing.total_revenue > 0 or reality_pricing.total_cost > 0):
             raise ValueError(
-                "Não é possível deletar este job porque ele possui custos ou receitas reais."
+                "Cannot delete this job because it has real costs or revenue."
             )
         
         job_name = job.name
@@ -345,9 +311,11 @@ class JobRestService:
         
         with transaction.atomic():
             job.delete()
+            
             logger.info(
-                f"Job {job_number} '{job_name}' deleted by {user.email}"
+                f"Job {job_number} '{job_name}' deleted by {user.username}"
             )
+        
         return {
             'success': True,
             'message': f'Job {job_number} deleted successfully'
@@ -356,25 +324,25 @@ class JobRestService:
     @staticmethod
     def _validate_can_disable_complex_mode(job: Job) -> Dict[str, Any]:
         """
-        Valida se o job pode ter o modo complexo desabilitado.
+        Validates if the job can have complex mode disabled.
         
         Args:
-            job: Instância do Job
+            job: Job instance
             
         Returns:
-            Dict com resultado da validação
+            Dict with validation result
         """
         for pricing in job.pricings.all():
             if not pricing:
                 continue
                 
-            # Verificar se há múltiplas entradas
+            # Check if there are multiple entries
             if (pricing.time_entries.count() > 1 or 
                 pricing.material_entries.count() > 1 or 
                 pricing.adjustment_entries.count() > 1):
                 return {
                     'can_disable': False,
-                    'reason': 'Não é possível desabilitar modo complexo com múltiplas entradas de pricing'
+                    'reason': 'Cannot disable complex mode with multiple pricing entries'
                 }
         
         return {'can_disable': True, 'reason': ''}
@@ -382,10 +350,10 @@ class JobRestService:
     @staticmethod
     def _get_company_defaults() -> Dict[str, Any]:
         """
-        Busca configurações padrão da empresa.
+        Fetches company default settings.
         
         Returns:
-            Dict com configurações padrão
+            Dict with default settings
         """
         from apps.job.helpers import get_company_defaults
         
@@ -396,3 +364,138 @@ class JobRestService:
             'charge_out_rate': float(defaults.charge_out_rate),
             'wage_rate': float(defaults.wage_rate),
         }
+    
+    @staticmethod
+    def _generate_update_description(original_values: Dict[str, Any], updated_data: Dict[str, Any]) -> str:
+        """
+        Generates user-friendly description of job updates.
+        Based on actual Job model fields.
+        
+        Args:
+            original_values: Original field values before update
+            updated_data: New data provided for update
+            
+        Returns:
+            str: Human-readable description of changes
+        """
+        # Early return if no data to compare
+        if not updated_data:
+            return "Job details updated"
+        
+        changes = []
+        
+        # Field mappings based on actual Job model
+        field_labels = {
+            'name': 'Job name',
+            'description': 'Description',
+            'status': 'Status',
+            'priority': 'Priority',
+            'pricing_methodology': 'Pricing method',
+            'client_id': 'Client',
+            'charge_out_rate': 'Charge out rate',
+            'order_number': 'Order number',
+            'notes': 'Notes',
+            'contact_person': 'Contact person',
+            'contact_email': 'Contact email',
+            'contact_phone': 'Contact phone',
+            'complex_job': 'Itemised billing',
+            'delivery_date': 'Delivery date',
+            'quote_acceptance_date': 'Quote acceptance date',
+            'job_is_valid': 'Job validity',
+            'collected': 'Collection status',
+            'paid': 'Payment status',
+        }
+        
+        # Process each updated field
+        for field, new_value in updated_data.items():
+            # Guard clause - skip fields not in original values
+            if field not in original_values:
+                continue
+                
+            original_value = original_values[field]
+            
+            # Guard clause - skip unchanged values
+            if original_value == new_value:
+                continue
+            
+            label = field_labels.get(field, field.replace('_', ' ').title())
+            
+            # Handle specific field types with switch-case pattern
+            if field == 'status':
+                changes.append(JobRestService._format_status_change(label, original_value, new_value))
+            elif field == 'pricing_methodology':
+                changes.append(JobRestService._format_pricing_method_change(label, original_value, new_value))
+            elif field in ['charge_out_rate']:
+                changes.append(JobRestService._format_currency_change(label, original_value, new_value))
+            elif field in ['complex_job', 'job_is_valid', 'collected', 'paid']:
+                changes.append(JobRestService._format_boolean_change(label, original_value, new_value))
+            else:
+                changes.append(JobRestService._format_generic_change(label, original_value, new_value))
+        
+        # Return formatted result
+        if changes:
+            return ', '.join(changes)
+        else:
+            return "Job details updated"
+    
+    @staticmethod
+    def _format_status_change(label: str, old_value: str, new_value: str) -> str:
+        """Formats status change with proper labels."""
+        # Status labels from Job model
+        status_labels = {
+            'quoting': 'Quoting',
+            'accepted_quote': 'Accepted Quote',
+            'awaiting_materials': 'Awaiting Materials',
+            'in_progress': 'In Progress',
+            'on_hold': 'On Hold',
+            'special': 'Special',
+            'completed': 'Completed',
+            'rejected': 'Rejected',
+            'archived': 'Archived',
+        }
+        
+        old_label = status_labels.get(old_value, old_value.replace('_', ' ').title())
+        new_label = status_labels.get(new_value, new_value.replace('_', ' ').title())
+        
+        return f"{label} changed from {old_label} to {new_label}"
+    
+    @staticmethod
+    def _format_pricing_method_change(label: str, old_value: str, new_value: str) -> str:
+        """Formats pricing methodology change."""
+        method_labels = {
+            'time_materials': 'Time & Materials',
+            'fixed_price': 'Fixed Price'
+        }
+        
+        old_label = method_labels.get(old_value, old_value.replace('_', ' ').title())
+        new_label = method_labels.get(new_value, new_value.replace('_', ' ').title())
+        
+        return f"{label} changed from {old_label} to {new_label}"
+    
+    @staticmethod
+    def _format_currency_change(label: str, old_value: Any, new_value: Any) -> str:
+        """Formats currency field changes."""
+        if old_value and new_value:
+            return f"{label} updated from ${old_value} to ${new_value}"
+        elif new_value:
+            return f"{label} set to ${new_value}"
+        else:
+            return f"{label} cleared"
+    
+    @staticmethod
+    def _format_boolean_change(label: str, old_value: bool, new_value: bool) -> str:
+        """Formats boolean field changes."""
+        if new_value:
+            return f"{label} enabled"
+        else:
+            return f"{label} disabled"
+    
+    @staticmethod
+    def _format_generic_change(label: str, old_value: Any, new_value: Any) -> str:
+        """Formats generic field changes."""
+        if old_value and new_value:
+            return f"{label} updated"
+        elif new_value:
+            return f"{label} added"
+        else:
+            return f"{label} removed"

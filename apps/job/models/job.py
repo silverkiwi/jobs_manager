@@ -311,15 +311,13 @@ class Job(models.Model):
                         "latest_estimate_pricing",
                         "latest_quote_pricing",
                         "latest_reality_pricing",
-                    ]
-                )
-
+                    ]                )
+                
                 if create_creation_event and staff:
                     JobEvent.objects.create(
                         job=self,
-                        event_type="created",
-                        description=f"Job {self.name} created",
-                        staff=staff,
+                        event_type="job_created",
+                        description=f"New job created",                    staff=staff,
                     )
 
         else:
@@ -328,10 +326,10 @@ class Job(models.Model):
 
                 JobEvent.objects.create(
                     job=self,
-                    event_type="status_change",
+                    event_type="status_changed",
                     description=(
-                        f"Job status changed from {original_status} "
-                        f"to {self.status}"
+                        f"Status changed from {original_status.replace('_', ' ').title()} "
+                        f"to {self.status.replace('_', ' ').title()}"
                     ),
                     staff=staff,
                 )
