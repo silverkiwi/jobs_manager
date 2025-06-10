@@ -111,7 +111,7 @@ def _calculate_priority(
                 Job.objects.filter(status=status).aggregate(Max("priority"))[
                     "priority__max"
                 ]
-                or 0
+                or 0.0
             )
             return max_prio + increment
 
