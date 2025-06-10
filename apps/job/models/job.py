@@ -179,9 +179,9 @@ class Job(models.Model):
 
     PRIORITY_INCREMENT = 200
 
-    priority = models.IntegerField(
-        default=0,
-        help_text="Priority of the job, lower numbers are higher priority.",
+    priority = models.FloatField(
+        default=0.0,
+        help_text="Priority of the job, higher numbers are higher priority.",
     )  # type: ignore
 
     class Meta:
@@ -194,12 +194,12 @@ class Job(models.Model):
         ]
 
     @classmethod
-    def _calculate_next_priority_for_status(cls, status_value: str) -> int:
+    def _calculate_next_priority_for_status(cls, status_value: str) -> float:
         max_entry = (
             cls.objects.filter(status=status_value).aggregate(Max("priority"))[
                 "priority__max"
             ]
-            or 0
+            or 0.0
         )
         return max_entry + cls.PRIORITY_INCREMENT
 
