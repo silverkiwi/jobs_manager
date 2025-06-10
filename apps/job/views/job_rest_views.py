@@ -115,7 +115,6 @@ class JobDetailRestView(BaseJobRestView):
         """
         try:
             job_data = JobRestService.get_job_for_edit(job_id)
-            
             return Response({
                 'success': True,
                 'data': job_data
@@ -131,10 +130,13 @@ class JobDetailRestView(BaseJobRestView):
         try:
             data = self.parse_json_body(request)
             job = JobRestService.update_job(job_id, data, request.user)
+            
+            # Get updated job data to return
+            job_data = JobRestService.get_job_for_edit(job_id)
+            
             return Response({
                 'success': True,
-                'job_id': str(job.id),
-                'message': 'Job updated successfully'
+                'data': job_data
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
