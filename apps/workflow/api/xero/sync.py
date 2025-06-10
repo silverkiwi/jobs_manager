@@ -1161,7 +1161,7 @@ def sync_xero_clients_only():
         xero_entity_type="contacts",
         our_entity_type="contacts",
         xero_api_fetch_function=accounting_api.get_contacts,
-        sync_function=sync_clients,
+        sync_function=lambda contacts: sync_clients(contacts, sync_back_to_xero=False),
         last_modified_time=our_latest_contact,
         pagination_mode="page",
     )
@@ -1207,8 +1207,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             "invoice": older_time,
             "bill": older_time,
             "credit_note": older_time,
-            "account": older_time,
-            "journal": older_time,
+            "account": older_time,            "journal": older_time,
             "quote": older_time,
             "purchase_order": older_time,
             "stock": older_time,
@@ -1229,7 +1228,7 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
         xero_entity_type="contacts",
         our_entity_type="contacts",
         xero_api_fetch_function=accounting_api.get_contacts,
-        sync_function=sync_clients,
+        sync_function=lambda contacts: sync_clients(contacts, sync_back_to_xero=False),
         last_modified_time=timestamps["contact"],
         pagination_mode="page",
     )
