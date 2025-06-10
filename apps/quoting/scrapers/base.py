@@ -74,7 +74,8 @@ class BaseScraper(ABC):
             login_success = self.login()
 
             if not login_success:
-                self.logger.warning("Login failed, continuing without login")
+                self.logger.error("Login failed, stopping scraper execution")
+                raise Exception("Login failed - cannot proceed with scraping")
 
             # Get URLs to scrape
             product_urls = self.get_product_urls()
