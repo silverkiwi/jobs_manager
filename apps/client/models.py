@@ -126,7 +126,7 @@ class Client(models.Model):
             str: UUID of the shop client
             
         Raises:
-            ValueError: If zero or multiple shop clients found
+            ValueError: If zero or multiple shop clients found, or if shop_client_name not configured
             RuntimeError: If CompanyDefaults singleton is violated
         """
         from apps.workflow.models import CompanyDefaults
@@ -140,10 +140,11 @@ class Client(models.Model):
         
         company_defaults = CompanyDefaults.objects.get()
         
-        if not company_defaults.company_name:
-            raise ValueError("CompanyDefaults.company_name is empty")
+        # Require explicit shop_client_name configuration
+        if not company_defaults.shop_client_name:
+            raise ValueError("CompanyDefaults.shop_client_name is not configured. Please set the exact name of your shop client.")
         
-        shop_name = f"{company_defaults.company_name} Shop"
+        shop_name = company_defaults.shop_client_name
         
         # Find shop clients with exact name match
         shop_clients = cls.objects.filter(name=shop_name)

@@ -64,6 +64,14 @@ class CompanyDefaults(models.Model):
         help_text="The last time a deep Xero sync was performed (looking back 90 days)",
     )
 
+    # Shop client configuration
+    shop_client_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Name of the internal shop client for tracking shop work (e.g., 'MSM (Shop)')",
+    )
+
     # KPI thresholds
     billable_threshold_green = models.DecimalField(
         max_digits=5,
