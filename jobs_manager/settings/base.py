@@ -115,6 +115,8 @@ LOGIN_EXEMPT_URLS = [
     "accounts/me/",  # Include user info endpoint
     "clients/rest/",  # Include client REST endpoints
     "clients/api/",  # Include client API endpoints
+    "job/rest/",  # Include job REST endpoints
+    "job/api/",  # Include job API endpoints
 ]
 
 LOGGING = {

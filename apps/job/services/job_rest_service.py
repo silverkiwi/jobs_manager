@@ -82,16 +82,15 @@ class JobRestService:
         with transaction.atomic():
             job = Job(**job_data)
             job.save(staff=user)
-            
-            # Log da criação
+              # Create job creation event
             JobEvent.objects.create(
                 job=job,
                 staff=user,
                 event_type='job_created',
-                description=f'Job "{job.name}" criado'
+                description=f'Job "{job.name}" created'
             )
             
-            logger.info(f"Job {job.id} criado com sucesso por {user.username}")
+            logger.info(f"Job {job.id} created successfully by {user.email}")
             
         return job
 
@@ -303,7 +302,7 @@ class JobRestService:
             event_type='manual_note'
         )
         
-        logger.info(f"Evento {event.id} criado para job {job_id} por {user.username}")
+        logger.info(f"Event {event.id} created for job {job_id} by {user.email}")
         
         return {
             'success': True,
@@ -346,14 +345,12 @@ class JobRestService:
         
         with transaction.atomic():
             job.delete()
-            
             logger.info(
-                f"Job {job_number} '{job_name}' deletado por {user.username}"
+                f"Job {job_number} '{job_name}' deleted by {user.email}"
             )
-        
         return {
             'success': True,
-            'message': f'Job {job_number} deletado com sucesso'
+            'message': f'Job {job_number} deleted successfully'
         }
 
     @staticmethod

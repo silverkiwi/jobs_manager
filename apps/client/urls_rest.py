@@ -1,16 +1,17 @@
 """
 Client REST URLs
 
-URLs para as views REST do módulo Client seguindo padrões RESTful:
-- Endpoints claramente definidos
-- Verbos HTTP apropriados
-- Estrutura consistente com outros módulos REST
+REST URLs for Client module following RESTful patterns:
+- Clearly defined endpoints
+- Appropriate HTTP verbs  
+- Consistent structure with other REST modules
 """
 
 from django.urls import path
 from apps.client.views.client_rest_views import (
     ClientSearchRestView,
     ClientContactsRestView,
+    ClientContactCreateRestView,
 )
 
 app_name = "clients_rest"
@@ -28,5 +29,12 @@ urlpatterns = [
         "<uuid:client_id>/contacts/",
         ClientContactsRestView.as_view(),
         name="client_contacts_rest",
+    ),
+    
+    # Client contact creation REST endpoint
+    path(
+        "contacts/",
+        ClientContactCreateRestView.as_view(),
+        name="client_contact_create_rest",
     ),
 ]

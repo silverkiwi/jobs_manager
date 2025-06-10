@@ -1,15 +1,16 @@
 """
 Client REST Views
 
-Views REST para o módulo Client seguindo princípios de clean code:
+REST views for Client module following clean code principles:
 - SRP (Single Responsibility Principle) 
-- Early return e guard clauses
-- Delegação para service layer
-- Views como orquestradoras apenas
+- Early return and guard clauses
+- Delegation to service layer
+- Views as orchestrators only
 """
 
 import logging
 from typing import Dict, Any
+import json
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -18,15 +19,15 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.db.models import Q
 
-from apps.client.models import Client
+from apps.client.models import Client, ClientContact, ClientContact
 
 logger = logging.getLogger(__name__)
 
 
 class BaseClientRestView(View):
     """
-    View base para operações REST de Clients.
-    Implementa funcionalidades comuns como parsing de JSON e tratamento de erros.
+    Base view for Client REST operations.
+    Implements common functionality like JSON parsing and error handling.
     """
     
     @method_decorator(csrf_exempt)
@@ -35,7 +36,7 @@ class BaseClientRestView(View):
     
     def handle_error(self, error: Exception, message: str = "Internal server error") -> JsonResponse:
         """
-        Centraliza tratamento de erros seguindo princípios de clean code.
+        Centralise error handling following clean code principles.
         """
         logger.error(f"{message}: {str(error)}")
         return JsonResponse(
@@ -46,8 +47,8 @@ class BaseClientRestView(View):
 
 class ClientSearchRestView(BaseClientRestView):
     """
-    View REST para busca de clientes.
-    Implementa funcionalidade de busca por nome com paginação.
+    REST view for client search.
+    Implements name-based search functionality with pagination.
     """
     
     def get(self, request) -> JsonResponse:
@@ -156,3 +157,89 @@ class ClientContactsRestView(BaseClientRestView):
             }
             for contact in contacts
         ]
+
+
+class ClientContactCreateRestView(BaseClientRestView):
+    """
+    REST view for creating client contacts.
+    Follows SRP - single responsibility of orchestrating contact creation.
+    """
+    
+    def post(self, request) -> JsonResponse:
+        """
+        Create a new client contact.
+        
+        Expected JSON:
+        {
+            "client_id": "uuid-of-client",
+            "name": "Contact Name",
+            "email": "contact@example.com",
+            "phone": "123-456-7890",
+            "position": "Job Title",
+            "is_primary": false,
+            "notes": "Additional notes"        }
+        """
+        try:
+            data = self._parse_json_body(request)
+            logger.info(f"Received contact creation data: {data}")
+            contact = self._create_contact(data)
+            
+            return JsonResponse({
+                'success': True,
+                'contact': {
+                    'id': str(contact.id),
+                    'name': contact.name,
+                    'email': contact.email or '',
+                    'phone': contact.phone or '',
+                    'position': contact.position or '',
+                    'is_primary': contact.is_primary,
+                    'notes': contact.notes or '',
+                },
+                'message': 'Contact created successfully'
+            }, status=201)
+            
+        except Exception as e:
+            return self.handle_error(e, "Error creating contact")
+    
+    def _parse_json_body(self, request) -> Dict[str, Any]:
+        """
+        Parse JSON body with early return pattern.
+        """
+        if not request.body:
+            raise ValueError("Request body is empty")
+        
+        try:
+            return json.loads(request.body)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON: {str(e)}")
+    
+    def _create_contact(self, data: Dict[str, Any]) -> ClientContact:
+        """
+        Create contact following validation and business rules.
+        Apply guard clauses for required fields.
+        """
+        # Guard clauses - validate required fields
+        if 'client_id' not in data:
+            raise ValueError("client_id is required")
+        
+        if 'name' not in data or not data['name'].strip():
+            raise ValueError("name is required")
+        
+        # Get client with early return on not found
+        try:
+            client = Client.objects.get(id=data['client_id'])
+        except Client.DoesNotExist:
+            raise ValueError("Client not found")
+        
+        # Create contact following clean data handling
+        contact = ClientContact.objects.create(
+            client=client,
+            name=data['name'].strip(),
+            email=data.get('email', '').strip() or None,
+            phone=data.get('phone', '').strip() or None,
+            position=data.get('position', '').strip() or None,
+            is_primary=data.get('is_primary', False),
+            notes=data.get('notes', '').strip() or None,
+        )
+        
+        return contact
