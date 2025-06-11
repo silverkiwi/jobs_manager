@@ -194,6 +194,7 @@ class KPIService:
             if job_number not in job_data:
                 job_data[job_number] = {
                     'job_number': job_number,
+                    'job_display_name': job.job_display_name,
                     'labour_revenue': 0,
                     'labour_cost': 0,
                     'material_revenue': 0,
@@ -234,6 +235,7 @@ class KPIService:
             if job_number not in job_data:
                 job_data[job_number] = {
                     'job_number': job_number,
+                    'job_display_name': job.job_display_name,
                     'labour_revenue': 0,
                     'labour_cost': 0,
                     'material_revenue': 0,
@@ -253,10 +255,8 @@ class KPIService:
             adjustment_profit = data['adjustment_revenue'] - data['adjustment_cost']
             total_profit = labour_profit + material_profit + adjustment_profit
             
-            # Get the job object to format the name
-            job = Job.objects.get(job_number=job_number)
             result.append({
-                'job_name': f"{job.job_number} - {job.name}",
+                'job_name': data['job_display_name'],
                 'labour_profit': labour_profit,
                 'material_profit': material_profit,
                 'adjustment_profit': adjustment_profit,
