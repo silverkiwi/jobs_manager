@@ -560,7 +560,13 @@ class CalendarView {
       
       return `
         <tr class="${rowClass}">
-          <td><strong>${job.job_number}</strong></td>
+          <td>
+            <a href="/job/${job.job_id}/" 
+               title="${job.job_display_name || job.job_number}" 
+               class="text-decoration-none">
+              <strong>${job.job_number}</strong>
+            </a>
+          </td>
           <td class="text-end">${labourProfit}</td>
           <td class="text-end">${materialProfit}</td>
           <td class="text-end">${adjustmentProfit}</td>

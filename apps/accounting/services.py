@@ -193,6 +193,7 @@ class KPIService:
             
             if job_number not in job_data:
                 job_data[job_number] = {
+                    'job_id': str(job.id),
                     'job_number': job_number,
                     'job_display_name': job.job_display_name,
                     'labour_revenue': 0,
@@ -214,6 +215,7 @@ class KPIService:
             
             if job_number not in job_data:
                 job_data[job_number] = {
+                    'job_id': str(job.id),
                     'job_number': job_number,
                     'job_display_name': job.job_display_name,
                     'labour_revenue': 0,
@@ -234,6 +236,7 @@ class KPIService:
             
             if job_number not in job_data:
                 job_data[job_number] = {
+                    'job_id': str(job.id),
                     'job_number': job_number,
                     'job_display_name': job.job_display_name,
                     'labour_revenue': 0,
@@ -256,7 +259,9 @@ class KPIService:
             total_profit = labour_profit + material_profit + adjustment_profit
             
             result.append({
-                'job_name': data['job_display_name'],
+                'job_id': data['job_id'],
+                'job_number': job_number,
+                'job_display_name': data['job_display_name'],
                 'labour_profit': labour_profit,
                 'material_profit': material_profit,
                 'adjustment_profit': adjustment_profit,
