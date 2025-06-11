@@ -115,7 +115,7 @@ def sync_xero_data(
 
     offset = 0
     page = 1
-    page_size = 20
+    page_size = 100 
     total_processed = 0
     total_items = None
     current_batch_start = 0
