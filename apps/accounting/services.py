@@ -214,6 +214,7 @@ class KPIService:
             if job_number not in job_data:
                 job_data[job_number] = {
                     'job_number': job_number,
+                    'job_display_name': job.job_display_name,
                     'labour_revenue': 0,
                     'labour_cost': 0,
                     'material_revenue': 0,
@@ -252,8 +253,10 @@ class KPIService:
             adjustment_profit = data['adjustment_revenue'] - data['adjustment_cost']
             total_profit = labour_profit + material_profit + adjustment_profit
             
+            # Get the job object to format the name
+            job = Job.objects.get(job_number=job_number)
             result.append({
-                'job_number': job_number,
+                'job_name': f"{job.job_number} - {job.name}",
                 'labour_profit': labour_profit,
                 'material_profit': material_profit,
                 'adjustment_profit': adjustment_profit,
@@ -497,21 +500,23 @@ class KPIService:
                 case _:
                     monthly_totals["days_red"] += 1
 
-            # Separate labour performance counting (≥45h green, ≥40h amber, <40h red)
-            if billable_hours >= 45:
-                monthly_totals["labour_green_days"] += 1
-            elif billable_hours >= 40:
-                monthly_totals["labour_amber_days"] += 1
-            else:
-                monthly_totals["labour_red_days"] += 1
+            # Only count performance for elapsed days (not future days)
+            if current_date <= current_date_system:
+                # Separate labour performance counting (≥45h green, ≥40h amber, <40h red)
+                if billable_hours >= 45:
+                    monthly_totals["labour_green_days"] += 1
+                elif billable_hours >= 40:
+                    monthly_totals["labour_amber_days"] += 1
+                else:
+                    monthly_totals["labour_red_days"] += 1
 
-            # Separate profit performance counting (≥$1250 green, ≥$1000 amber, <$1000 red)
-            if gross_profit >= 1250:
-                monthly_totals["profit_green_days"] += 1
-            elif gross_profit >= 1000:
-                monthly_totals["profit_amber_days"] += 1
-            else:
-                monthly_totals["profit_red_days"] += 1
+                # Separate profit performance counting (≥$1250 green, ≥$1000 amber, <$1000 red)
+                if gross_profit >= 1250:
+                    monthly_totals["profit_green_days"] += 1
+                elif gross_profit >= 1000:
+                    monthly_totals["profit_amber_days"] += 1
+                else:
+                    monthly_totals["profit_red_days"] += 1
 
             full_data = base_data.copy()
             full_data.update(
