@@ -88,7 +88,6 @@ class JobRestService:
                 description=f'New job created'
             )
             
-            logger.info(f"Job {job.id} created successfully by {user.username}")
             
         return job
 
