@@ -26,7 +26,7 @@ class DeliveryReceiptListView(LoginRequiredMixin, ListView):
         """Return purchase orders that are submitted or partially received."""
         return PurchaseOrder.objects.filter(
             status__in=["submitted", "partially_received"]
-        ).order_by("-order_date")
+        ).order_by("-po_number")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
