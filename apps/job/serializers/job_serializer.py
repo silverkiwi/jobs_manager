@@ -27,9 +27,7 @@ class JobSerializer(serializers.ModelSerializer):
     contact_id = serializers.PrimaryKeyRelatedField(
         queryset=ClientContact.objects.all(),
         source="contact",
-        write_only=False,  # Allow read access
-        required=False,
-        allow_null=True,
+        write_only=False,  # Allow read access        required=False,        allow_null=True,
     )
     contact_name = serializers.CharField(source="contact.name", read_only=True, required=False)
     job_status = serializers.CharField(source="status")
