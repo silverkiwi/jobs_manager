@@ -166,6 +166,11 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
         },
+        "mail_admins": {
+            "level": "ERROR",
+            "class": "django.utils.log.AdminEmailHandler",
+            "include_html": True,
+        },
     },
     "loggers": {
         # your SQL logger only writes to sql_file, and bubbles up to root
@@ -203,7 +208,7 @@ LOGGING = {
         },
     },
     "root": {
-        "handlers": ["console", "app_file"],
+        "handlers": ["console", "app_file", "mail_admins"],
         "level": "DEBUG",
     },
 }
