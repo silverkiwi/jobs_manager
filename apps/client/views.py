@@ -155,9 +155,18 @@ def get_all_clients_api(request):
     """
     API endpoint to retrieve all clients.
     Returns a list of clients with their ID and name.
+    
+    Query parameters:
+    - include_archived: Set to 'true' to include archived clients (default: false)
     """
     try:
-        clients = Client.objects.all().order_by("name")
+        include_archived = request.GET.get('include_archived', '').lower() == 'true'
+        
+        if include_archived:
+            clients = Client.objects.all().order_by("name")
+        else:
+            clients = Client.objects.exclude(xero_archived=True).order_by("name")
+            
         clients_data = []
         for client in clients:
             clients_data.append(
@@ -167,7 +176,7 @@ def get_all_clients_api(request):
                     "xero_contact_id": client.xero_contact_id,  # Might be useful
                 }
             )
-        logger.info(f"Successfully retrieved {len(clients_data)} clients for API.")
+        logger.info(f"Successfully retrieved {len(clients_data)} clients for API (include_archived={include_archived}).")
         return JsonResponse(clients_data, safe=False)
     except Exception as e:
         logger.error(f"Error fetching all clients for API: {str(e)}", exc_info=True)
@@ -215,7 +224,7 @@ class ClientUpdateView(UpdateView):
 def ClientSearch(request):
     query = request.GET.get("q", "")
     if query and len(query) >= 3:  # Only search when the query is 3+ characters
-        clients = Client.objects.filter(Q(name__icontains=query))[:10]
+        clients = Client.objects.filter(Q(name__icontains=query)).exclude(xero_archived=True)[:10]
         results = [
             {
                 "id": client.id,
