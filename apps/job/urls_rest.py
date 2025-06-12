@@ -17,6 +17,8 @@ from apps.job.views.job_rest_views import (
     JobAdjustmentEntryRestView,
 )
 
+from apps.job.views.workshop_view import WorkshopPDFView
+
 # URLs para novas views REST
 rest_urlpatterns = [
     # Job CRUD operations (REST style)
@@ -34,4 +36,5 @@ rest_urlpatterns = [
     path('rest/jobs/<uuid:job_id>/time-entries/', JobTimeEntryRestView.as_view(), name='job_time_entries_rest'),
     path('rest/jobs/<uuid:job_id>/material-entries/', JobMaterialEntryRestView.as_view(), name='job_material_entries_rest'),
     path('rest/jobs/<uuid:job_id>/adjustment-entries/', JobAdjustmentEntryRestView.as_view(), name='job_adjustment_entries_rest'),
+    path('rest/jobs/<uuid:job_id>/workshop-pdf/', WorkshopPDFView.as_view(), name='workshop-pdf'),
 ]
