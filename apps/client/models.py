@@ -45,6 +45,26 @@ class Client(models.Model):
     django_updated_at = models.DateTimeField(auto_now=True)
 
     xero_last_synced = models.DateTimeField(null=True, blank=True, default=timezone.now)
+    
+    # Fields to track merged clients in Xero
+    xero_archived = models.BooleanField(
+        default=False,
+        help_text="Indicates if this client has been archived/merged in Xero"
+    )
+    xero_merged_into_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="The Xero contact ID this client was merged into (temporary storage)"
+    )
+    merged_into = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='merged_from_clients',
+        help_text="The client this was merged into"
+    )
 
     class Meta:
         ordering = ["name"]
@@ -162,6 +182,24 @@ class Client(models.Model):
             raise ValueError(f"Shop client '{shop_name}' has no Xero contact ID - not properly synced")
         
         return str(shop_client.id)
+    
+    def get_final_client(self):
+        """
+        Follow the merge chain to get the final client.
+        If this client was merged into another, return that client (following the chain).
+        Otherwise return self.
+        """
+        current = self
+        seen = {self.id}  # Prevent infinite loops
+        
+        while current.merged_into:
+            if current.merged_into.id in seen:
+                logger.warning(f"Circular merge chain detected for client {self.id}")
+                break
+            seen.add(current.merged_into.id)
+            current = current.merged_into
+            
+        return current
 
 
 class ClientContact(models.Model):

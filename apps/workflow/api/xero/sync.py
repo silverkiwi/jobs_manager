@@ -428,19 +428,22 @@ def clean_raw_json(data):
 def get_or_fetch_client_by_contact_id(contact_id, invoice_number=None):
     """
     Get a client by Xero contact_id, fetching it from the API if not found locally.
+    Handles merged clients by following the merge chain.
+    
     Args:
         contact_id: The Xero contact_id to search for.
         invoice_number: Optional invoice number for logging purposes.
 
     Returns:
-        Client: The client instance found or fetched.
+        Client: The final client instance (following any merge chain).
 
     Raises:
         ValueError: If the client is not found in Xero.
     """
     client = Client.objects.filter(xero_contact_id=contact_id).first()
     if client:
-        return client
+        # If the client exists, return the final client (following merge chain)
+        return client.get_final_client()
 
     entity_ref = (
         f"invoice {invoice_number}" if invoice_number else f"contact ID {contact_id}"
@@ -455,7 +458,9 @@ def get_or_fetch_client_by_contact_id(contact_id, invoice_number=None):
     if not synced_clients:
         logger.warning(f"Client not found for {entity_ref}")
         raise ValueError(f"Client not found for {entity_ref}")
-    return synced_clients[0]
+    
+    # Return the final client following any merge chain
+    return synced_clients[0].get_final_client()
 
 
 def sync_invoices(invoices):
@@ -730,7 +735,9 @@ def sync_clients(xero_contacts, sync_back_to_xero=True):
     client_instances = []
 
     for contact_data in xero_contacts:
-        xero_contact_id = getattr(contact_data, "contact_id", None)
+        xero_contact_id = contact_data.contact_id
+        contact_status = contact_data.contact_status
+        merged_to_contact_id = getattr(contact_data, "merged_to_contact_id", None)
 
         # Serialize and clean the JSON received from the API
         raw_json_with_currency = serialise_xero_object(contact_data)
@@ -740,26 +747,61 @@ def sync_clients(xero_contacts, sync_back_to_xero=True):
 
         if client:
             client.raw_json = raw_json
+            
+            # Update archived status if contact is archived
+            if contact_status == "ARCHIVED":
+                client.xero_archived = True
+                
+                # If this contact was merged into another, store the Xero ID
+                if merged_to_contact_id:
+                    client.xero_merged_into_id = merged_to_contact_id
+                    logger.info(
+                        f"Client {client.name} was merged in Xero into contact {merged_to_contact_id}"
+                    )
+                    
             set_client_fields(client, new_from_xero=False)
             logger.info(
                 f"Updated client: {client.name} "
-                f"updated_at={client.xero_last_modified}"
+                f"updated_at={client.xero_last_modified} "
+                f"status={contact_status}"
             )
         else:
             client = Client.objects.create(
                 xero_contact_id=xero_contact_id,
                 xero_last_modified=timezone.now(),
                 raw_json=raw_json,
+                xero_archived=(contact_status == "ARCHIVED"),
+                xero_merged_into_id=merged_to_contact_id,
             )
             set_client_fields(client, new_from_xero=True)
             logger.info(
                 f"New client added: {client.name} "
-                f"updated_at={client.xero_last_modified}"
+                f"updated_at={client.xero_last_modified} "
+                f"status={contact_status}"
             )
 
-        if sync_back_to_xero:
+        if sync_back_to_xero and not client.xero_archived:
             sync_client_to_xero(client)
         client_instances.append(client)
+    
+    # Second pass: resolve merge references
+    for client in client_instances:
+        if client.xero_merged_into_id and not client.merged_into:
+            # Find the client this was merged into
+            merged_into_client = Client.objects.filter(
+                xero_contact_id=client.xero_merged_into_id
+            ).first()
+            
+            if merged_into_client:
+                client.merged_into = merged_into_client
+                client.save()
+                logger.info(
+                    f"Resolved merge: {client.name} -> {merged_into_client.name}"
+                )
+            else:
+                logger.warning(
+                    f"Could not find merged client with Xero ID {client.xero_merged_into_id}"
+                )
 
     return client_instances
 

@@ -175,6 +175,16 @@ def set_client_fields(client, new_from_xero=False):
     xero_contact_id_from_json = raw_json.get("_contact_id")
     if xero_contact_id_from_json:
         client.xero_contact_id = xero_contact_id_from_json
+    
+    # Check for archived/merged status from raw_json
+    contact_status = raw_json.get("_contact_status", "ACTIVE")
+    if contact_status == "ARCHIVED":
+        client.xero_archived = True
+        
+    # Check for merge information
+    merged_to_contact_id = raw_json.get("_merged_to_contact_id")
+    if merged_to_contact_id:
+        client.xero_merged_into_id = merged_to_contact_id
 
     # Attempt to get phone number from the 'DEFAULT' phone entry if available
     default_phone = ""
