@@ -62,7 +62,7 @@ class BaseScraper(ABC):
 
     def run(self):
         """Main scraper execution"""
-        from quoting.models import ScrapeJob, Product
+        from apps.quoting.models import ScrapeJob, SupplierProduct
 
         # Create scrape job
         job = ScrapeJob.objects.create(
@@ -74,7 +74,8 @@ class BaseScraper(ABC):
             login_success = self.login()
 
             if not login_success:
-                self.logger.warning("Login failed, continuing without login")
+                self.logger.error("Login failed, stopping scraper execution")
+                raise Exception("Login failed - cannot proceed with scraping")
 
             # Get URLs to scrape
             product_urls = self.get_product_urls()
@@ -89,7 +90,7 @@ class BaseScraper(ABC):
             # Filter existing URLs if not forcing
             if not self.force:
                 existing_urls = set(
-                    Product.objects.filter(supplier=self.supplier).values_list(
+                    SupplierProduct.objects.filter(supplier=self.supplier).values_list(
                         "url", flat=True
                     )
                 )
@@ -152,23 +153,26 @@ class BaseScraper(ABC):
 
     def save_products(self, products_data):
         """Save products to database"""
-        from quoting.models import Product
+        from apps.quoting.models import SupplierProduct, SupplierPriceList
+
+        # Create or get a price list for these products
+        price_list, created = SupplierPriceList.objects.get_or_create(
+            supplier=self.supplier,
+            file_name=f"Scraped Products - {len(products_data)} items",
+            defaults={'file_name': f"Scraped Products - {len(products_data)} items"}
+        )
 
         for product_data in products_data:
             try:
                 product_data["supplier"] = self.supplier
-                product, created = Product.objects.get_or_create(
+                product_data["price_list"] = price_list
+                
+                product, created = SupplierProduct.objects.update_or_create(
                     supplier=self.supplier,
                     variant_id=product_data["variant_id"],
                     url=product_data["url"],
                     defaults=product_data,
                 )
-
-                if not created:
-                    # Update existing
-                    for key, value in product_data.items():
-                        setattr(product, key, value)
-                    product.save()
 
             except Exception as e:
                 self.logger.error(f"Error saving product: {e}")

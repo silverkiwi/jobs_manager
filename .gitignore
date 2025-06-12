@@ -111,3 +111,6 @@ logs/.*.lock
 django-integrations-*.json
 *.pdf
 restore/*.json
+.DS_Store
+steel_and_tube_products.csv
+steel_and_tube_products.json
