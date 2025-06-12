@@ -328,7 +328,7 @@ def sync_xero_data(
             logger.warning(
                 f"Rate limit hit when syncing {our_entity_type}. Applying dynamic delay."
             )
-            retry_after = int(e.response_headers.get("Retry-After", 0))
+            retry_after = int(e.http_resp.headers.get("Retry-After", 60))
             yield {
                 "datetime": timezone.now().isoformat(),
                 "entity": our_entity_type,
@@ -337,7 +337,7 @@ def sync_xero_data(
                 "progress": None,
                 "lastSync": last_modified_time,
             }
-            apply_rate_limit_delay(e.response_headers)
+            apply_rate_limit_delay(e.http_resp.headers)
             # Continue the loop to retry after the delay
             continue
 
