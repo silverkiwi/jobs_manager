@@ -1211,7 +1211,7 @@ def sync_xero_clients_only():
         xero_entity_type="contacts",
         our_entity_type="contacts",
         xero_api_fetch_function=accounting_api.get_contacts,
-        sync_function=sync_clients,
+        sync_function=lambda contacts: sync_clients(contacts, sync_back_to_xero=False),
         last_modified_time=our_latest_contact,
         additional_params={"include_archived": True},
         pagination_mode="page",
