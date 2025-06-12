@@ -56,7 +56,6 @@ class BaseJobRestView(APIView):
         """
         error_message = str(error)
         
-        # Switch-case for different error types
         match type(error).__name__:
             case 'ValueError':
                 return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
@@ -115,13 +114,14 @@ class JobDetailRestView(BaseJobRestView):
         """
         try:
             job_data = JobRestService.get_job_for_edit(job_id)
+            
             return Response({
                 'success': True,
                 'data': job_data
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
-            return self.handle_service_error(e)
+            return self.handle_service_error(e)    
     
     def put(self, request, job_id):
         """
@@ -131,13 +131,9 @@ class JobDetailRestView(BaseJobRestView):
             data = self.parse_json_body(request)
             job = JobRestService.update_job(job_id, data, request.user)
             
-            # Get updated job data to return
+            # Return complete job data for frontend reactivity
             job_data = JobRestService.get_job_for_edit(job_id)
-            
-            return Response({
-                'success': True,
-                'data': job_data
-            }, status=status.HTTP_200_OK)
+            return Response(job_data, status=status.HTTP_200_OK)
             
         except Exception as e:
             return self.handle_service_error(e)
@@ -193,38 +189,19 @@ class JobToggleComplexRestView(BaseJobRestView):
 @method_decorator(csrf_exempt, name='dispatch')
 class JobTogglePricingMethodologyRestView(BaseJobRestView):
     """
-    REST view for toggling pricing methodology.
+    DEPRECATED: This view is deprecated as pricing methodologies are not toggled.
+    JobPricings are automatically created for all three stages (estimate, quote, reality)
+    when a Job is created. Users interact with the existing JobPricings directly.
     """
     
     def post(self, request):
         """
-        Toggle the pricing methodology.
-          Expected JSON:
-        {
-            "job_id": "job-uuid",
-            "pricing_methodology": "time_materials" | "fixed_price"
-        }
+        This endpoint is deprecated and should not be used.
         """
-        try:
-            data = self.parse_json_body(request)
-            
-            # Guard clauses
-            if 'job_id' not in data:
-                raise ValueError("job_id is required")
-            
-            if 'pricing_methodology' not in data:
-                raise ValueError("pricing_methodology is required")
-            
-            result = JobRestService.toggle_pricing_methodology(
-                data['job_id'],
-                data['pricing_methodology'],
-                request.user
-            )
-            
-            return JsonResponse(result)
-            
-        except Exception as e:
-            return self.handle_service_error(e)
+        return JsonResponse({
+            'success': False,
+            'error': 'This endpoint is deprecated. Pricing methodologies are not toggled - all pricing stages are created automatically.'
+        }, status=400)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -261,53 +238,107 @@ class JobEventRestView(BaseJobRestView):
             return self.handle_service_error(e)
 
 
-# Functional views for compatibility with existing URLs
-@require_http_methods(["POST"])
-@csrf_exempt
-def create_job_rest_api(request):
+@method_decorator(csrf_exempt, name='dispatch')
+class JobTimeEntryRestView(BaseJobRestView):
     """
-    Functional view for Job creation (compatibility).
-    Delegates to the class-based view.
+    REST view for Job time entries.
     """
-    view = JobCreateRestView.as_view()
-    return view(request)
+    
+    def post(self, request, job_id):
+        """
+        Add a time entry to the Job.
+        
+        Expected JSON:
+        {
+            "description": "Task description",
+            "hours": 4.5,
+            "charge_out_rate": 105.0,
+            "wage_rate": 32.0
+        }
+        """
+        try:
+            data = self.parse_json_body(request)
+            
+            result = JobRestService.create_time_entry(
+                job_id,
+                data,
+                request.user
+            )
+            
+            return Response({
+                'success': True,
+                'data': result
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return self.handle_service_error(e)
 
 
-@require_http_methods(["GET", "PUT", "DELETE"])
-@csrf_exempt
-def job_detail_rest_api(request, job_id):
+@method_decorator(csrf_exempt, name='dispatch')
+class JobMaterialEntryRestView(BaseJobRestView):
     """
-    Functional view for specific Job operations (compatibility).
+    REST view for Job material entries.
     """
-    view = JobDetailRestView.as_view()
-    return view(request, job_id=job_id)
+    
+    def post(self, request, job_id):
+        """
+        Add a material entry to the Job.
+        
+        Expected JSON:
+        {
+            "description": "Material description",
+            "quantity": 5,
+            "unit_cost": 25.0,
+            "unit_revenue": 35.0
+        }
+        """
+        try:
+            data = self.parse_json_body(request)
+            
+            result = JobRestService.create_material_entry(
+                job_id,
+                data,
+                request.user
+            )
+            
+            return Response({
+                'success': True,
+                'data': result
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return self.handle_service_error(e)
 
 
-@require_http_methods(["POST"])
-@csrf_exempt
-def toggle_complex_job_rest_api(request):
+@method_decorator(csrf_exempt, name='dispatch')
+class JobAdjustmentEntryRestView(BaseJobRestView):
     """
-    Functional view for complex job toggle (compatibility).
+    REST view for Job adjustment entries.
     """
-    view = JobToggleComplexRestView.as_view()
-    return view(request)
-
-
-@require_http_methods(["POST"])
-@csrf_exempt
-def toggle_pricing_methodology_rest_api(request):
-    """
-    Functional view for pricing methodology toggle (compatibility).
-    """
-    view = JobTogglePricingMethodologyRestView.as_view()
-    return view(request)
-
-
-@require_http_methods(["POST"])
-@csrf_exempt
-def add_job_event_rest_api(request, job_id):
-    """
-    Functional view for adding event (compatibility).
-    """
-    view = JobEventRestView.as_view()
-    return view(request, job_id=job_id)
+    
+    def post(self, request, job_id):
+        """
+        Add an adjustment entry to the Job.
+        
+        Expected JSON:
+        {
+            "description": "Adjustment description",
+            "amount": 100.0
+        }
+        """
+        try:
+            data = self.parse_json_body(request)
+            
+            result = JobRestService.create_adjustment_entry(
+                job_id,
+                data,
+                request.user
+            )
+            
+            return Response({
+                'success': True,
+                'data': result
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return self.handle_service_error(e)

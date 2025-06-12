@@ -12,11 +12,9 @@ from apps.job.views.job_rest_views import (
     JobToggleComplexRestView,
     JobTogglePricingMethodologyRestView,
     JobEventRestView,
-    create_job_rest_api,
-    job_detail_rest_api,
-    toggle_complex_job_rest_api,
-    toggle_pricing_methodology_rest_api,
-    add_job_event_rest_api,
+    JobTimeEntryRestView,
+    JobMaterialEntryRestView,
+    JobAdjustmentEntryRestView,
 )
 
 # URLs para novas views REST
@@ -32,10 +30,8 @@ rest_urlpatterns = [
     # Job events
     path('rest/jobs/<uuid:job_id>/events/', JobEventRestView.as_view(), name='job_events_rest'),
     
-    # Compatibility endpoints (functional views)
-    path('api/rest/create-job/', create_job_rest_api, name='create_job_rest_api'),
-    path('api/rest/jobs/<uuid:job_id>/', job_detail_rest_api, name='job_detail_rest_api'),
-    path('api/rest/toggle-complex-job/', toggle_complex_job_rest_api, name='toggle_complex_job_rest_api'),
-    path('api/rest/toggle-pricing-methodology/', toggle_pricing_methodology_rest_api, name='toggle_pricing_methodology_rest_api'),
-    path('api/rest/jobs/<uuid:job_id>/add-event/', add_job_event_rest_api, name='add_job_event_rest_api'),
+    # Job entries
+    path('rest/jobs/<uuid:job_id>/time-entries/', JobTimeEntryRestView.as_view(), name='job_time_entries_rest'),
+    path('rest/jobs/<uuid:job_id>/material-entries/', JobMaterialEntryRestView.as_view(), name='job_material_entries_rest'),
+    path('rest/jobs/<uuid:job_id>/adjustment-entries/', JobAdjustmentEntryRestView.as_view(), name='job_adjustment_entries_rest'),
 ]

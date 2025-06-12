@@ -262,12 +262,11 @@ class JobRestService:
         
         event = JobEvent.objects.create(
             job=job,
-            staff=user,
-            description=description.strip(),
+            staff=user,        description=description.strip(),
             event_type='manual_note'
         )
         
-        logger.info(f"Event {event.id} created for job {job_id} by {user.username}")
+        logger.info(f"Event {event.id} created for job {job_id} by {user.email}")
         
         return {
             'success': True,
@@ -307,12 +306,11 @@ class JobRestService:
         
         job_name = job.name
         job_number = job.job_number
-        
         with transaction.atomic():
             job.delete()
             
             logger.info(
-                f"Job {job_number} '{job_name}' deleted by {user.username}"
+                f"Job {job_number} '{job_name}' deleted by {user.email}"
             )
         
         return {
@@ -498,3 +496,165 @@ class JobRestService:
             return f"{label} added"
         else:
             return f"{label} removed"
+
+    @staticmethod
+    def create_time_entry(job_id: UUID, entry_data: Dict[str, Any], user: Staff) -> Dict[str, Any]:
+        """
+        Creates a new time entry for a Job.
+        
+        Args:
+            job_id: Job UUID
+            entry_data: Time entry data
+            user: User creating the entry
+            
+        Returns:
+            Dict with operation result and updated job data
+        """
+        job = get_object_or_404(Job, id=job_id)
+        
+        # Guard clause - ensure estimate pricing exists
+        estimate_pricing = job.latest_estimate_pricing
+        if not estimate_pricing:
+            raise ValueError("Job must have estimate pricing to add time entries")
+        
+        # Import TimeEntry model here to avoid circular imports
+        from apps.timesheet.models import TimeEntry
+        
+        # Validate required fields
+        required_fields = ['description', 'hours', 'charge_out_rate']
+        for field in required_fields:
+            if field not in entry_data:
+                raise ValueError(f"{field} is required")
+        
+        # Create time entry
+        time_entry_data = {
+            'job_pricing': estimate_pricing,
+            'description': entry_data['description'],
+            'hours': Decimal(str(entry_data['hours'])),
+            'charge_out_rate': Decimal(str(entry_data['charge_out_rate'])),
+            'wage_rate': Decimal(str(entry_data.get('wage_rate', 0))),
+            'staff': user,
+            'items': 1,
+            'minutes_per_item': Decimal(str(entry_data['hours'])) * 60,
+        }
+        
+        with transaction.atomic():
+            time_entry = TimeEntry.objects.create(**time_entry_data)
+            
+            # Log the event
+            JobEvent.objects.create(
+                job=job,
+                staff=user,
+                event_type='entry_added',
+                description=f'Time entry added: {entry_data["description"]}'
+            )
+        
+        # Return updated job data
+        return JobRestService.get_job_for_edit(job_id)
+    
+    @staticmethod
+    def create_material_entry(job_id: UUID, entry_data: Dict[str, Any], user: Staff) -> Dict[str, Any]:
+        """
+        Creates a new material entry for a Job.
+        
+        Args:
+            job_id: Job UUID
+            entry_data: Material entry data
+            user: User creating the entry
+            
+        Returns:
+            Dict with operation result and updated job data
+        """
+        job = get_object_or_404(Job, id=job_id)
+        
+        # Guard clause - ensure estimate pricing exists
+        estimate_pricing = job.latest_estimate_pricing
+        if not estimate_pricing:
+            raise ValueError("Job must have estimate pricing to add material entries")
+        
+        # Import MaterialEntry model here to avoid circular imports
+        from apps.job.models import MaterialEntry
+        
+        # Validate required fields
+        required_fields = ['description', 'quantity', 'unit_cost']
+        for field in required_fields:
+            if field not in entry_data:
+                raise ValueError(f"{field} is required")
+        
+        # Calculate unit_revenue if not provided
+        unit_cost = Decimal(str(entry_data['unit_cost']))
+        unit_revenue = Decimal(str(entry_data.get('unit_revenue', unit_cost)))
+        
+        # Create material entry
+        material_entry_data = {
+            'job_pricing': estimate_pricing,
+            'description': entry_data['description'],
+            'quantity': Decimal(str(entry_data['quantity'])),
+            'unit_cost': unit_cost,
+            'unit_revenue': unit_revenue,
+        }
+        
+        with transaction.atomic():
+            material_entry = MaterialEntry.objects.create(**material_entry_data)
+            
+            # Log the event
+            JobEvent.objects.create(
+                job=job,
+                staff=user,
+                event_type='entry_added',
+                description=f'Material entry added: {entry_data["description"]}'
+            )
+        
+        # Return updated job data
+        return JobRestService.get_job_for_edit(job_id)
+    
+    @staticmethod
+    def create_adjustment_entry(job_id: UUID, entry_data: Dict[str, Any], user: Staff) -> Dict[str, Any]:
+        """
+        Creates a new adjustment entry for a Job.
+        
+        Args:
+            job_id: Job UUID
+            entry_data: Adjustment entry data
+            user: User creating the entry
+            
+        Returns:
+            Dict with operation result and updated job data
+        """
+        job = get_object_or_404(Job, id=job_id)
+        
+        # Guard clause - ensure estimate pricing exists
+        estimate_pricing = job.latest_estimate_pricing
+        if not estimate_pricing:
+            raise ValueError("Job must have estimate pricing to add adjustment entries")
+        
+        # Import AdjustmentEntry model here to avoid circular imports
+        from apps.job.models import AdjustmentEntry
+        
+        # Validate required fields
+        required_fields = ['description', 'amount']
+        for field in required_fields:
+            if field not in entry_data:
+                raise ValueError(f"{field} is required")
+        
+        # Create adjustment entry
+        adjustment_entry_data = {
+            'job_pricing': estimate_pricing,
+            'description': entry_data['description'],
+            'cost_adjustment': Decimal(str(entry_data['amount'])),
+            'revenue_adjustment': Decimal(str(entry_data['amount'])),
+        }
+        
+        with transaction.atomic():
+            adjustment_entry = AdjustmentEntry.objects.create(**adjustment_entry_data)
+            
+            # Log the event
+            JobEvent.objects.create(
+                job=job,
+                staff=user,
+                event_type='entry_added',
+                description=f'Adjustment entry added: {entry_data["description"]}'
+            )
+        
+        # Return updated job data
+        return JobRestService.get_job_for_edit(job_id)
