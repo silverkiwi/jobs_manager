@@ -40,13 +40,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # Basic logging setup for a single execution command
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.INFO)
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
 
         # Parse options
         deep_sync = options['deep_sync']

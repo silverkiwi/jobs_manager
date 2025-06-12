@@ -43,7 +43,7 @@ from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, Stock
 from apps.client.models import Client
 
 logger = logging.getLogger("xero")
-SLEEP_TIME=5 # Sleep 5 seconds after every API call to avoid hitting rate limits
+SLEEP_TIME=1 # Sleep after every API call to avoid hitting rate limits
 
 
 def apply_rate_limit_delay(response_headers):
