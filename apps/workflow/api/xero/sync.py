@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.conf import settings
 
 from xero_python.accounting import AccountingApi
-from xero_python.exceptions.http_status_exceptions import RateLimitException
+from xero_python.exceptions.http_status_exceptions import RateLimitException, HTTPStatusException
 from apps.workflow.utils import get_machine_id
 from apps.workflow.models import CompanyDefaults
 from apps.workflow.api.xero.reprocess_xero import (
@@ -43,6 +43,7 @@ from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, Stock
 from apps.client.models import Client
 
 logger = logging.getLogger("xero")
+SLEEP_TIME=5 # Sleep 5 seconds after every API call to avoid hitting rate limits
 
 
 def apply_rate_limit_delay(response_headers):
@@ -461,7 +462,7 @@ def get_or_fetch_client_by_contact_id(contact_id, invoice_number=None):
         raise ValueError(f"Client not found for {entity_ref}")
 
     missing_client = response.contacts[0]
-    synced_clients = sync_clients([missing_client], sync_back_to_xero=False)
+    synced_clients = sync_clients([missing_client])
     if not synced_clients:
         logger.warning(f"Client not found for {entity_ref}")
         raise ValueError(f"Client not found for {entity_ref}")
@@ -734,7 +735,7 @@ def sync_journals(journals):
             )
 
 
-def sync_clients(xero_contacts, sync_back_to_xero=True):
+def sync_clients(xero_contacts):
     """
     Sync clients fetched from Xero API.
     Returns a list of Client instances that were created or updated.
@@ -787,9 +788,10 @@ def sync_clients(xero_contacts, sync_back_to_xero=True):
                 f"status={contact_status}"
             )
 
-        if sync_back_to_xero and not client.xero_archived:
-            sync_client_to_xero(client)
         client_instances.append(client)
+        
+        # Small delay to avoid rate limiting
+        time.sleep(SLEEP_TIME)
     
     # Second pass: resolve merge references
     for client in client_instances:
@@ -1211,7 +1213,7 @@ def sync_xero_clients_only():
         xero_entity_type="contacts",
         our_entity_type="contacts",
         xero_api_fetch_function=accounting_api.get_contacts,
-        sync_function=lambda contacts: sync_clients(contacts, sync_back_to_xero=False),
+        sync_function=sync_clients,
         last_modified_time=our_latest_contact,
         additional_params={"include_archived": True},
         pagination_mode="page",
