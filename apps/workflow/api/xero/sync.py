@@ -449,11 +449,18 @@ def get_or_fetch_client_by_contact_id(contact_id, invoice_number=None):
         f"invoice {invoice_number}" if invoice_number else f"contact ID {contact_id}"
     )
 
-    missing_client = AccountingApi(api_client).get_contact(get_tenant_id(), contact_id)
-    if not missing_client:
+    # Use get_contacts with include_archived=True to ensure we can fetch archived clients
+    response = AccountingApi(api_client).get_contacts(
+        get_tenant_id(), 
+        i_ds=[contact_id],
+        include_archived=True
+    )
+    
+    if not response.contacts:
         logger.warning(f"Client not found for {entity_ref}")
         raise ValueError(f"Client not found for {entity_ref}")
 
+    missing_client = response.contacts[0]
     synced_clients = sync_clients([missing_client], sync_back_to_xero=False)
     if not synced_clients:
         logger.warning(f"Client not found for {entity_ref}")
@@ -1105,6 +1112,7 @@ def single_sync_client(
         where=(
             f'Name=="{client_name}"' if client_name and not xero_contact_id else None
         ),
+        include_archived=True,
     )
 
     contacts = response.contacts if response.contacts else []
@@ -1205,16 +1213,19 @@ def sync_xero_clients_only():
         xero_api_fetch_function=accounting_api.get_contacts,
         sync_function=lambda contacts: sync_clients(contacts, sync_back_to_xero=False),
         last_modified_time=our_latest_contact,
+        additional_params={"include_archived": True},
         pagination_mode="page",
     )
 
 
-def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
+def _sync_all_xero_data(use_latest_timestamps=True, days_back=30, entities=None):
     """
     Internal function to sync all Xero data.
     Args:
         use_latest_timestamps: If True, use latest modification times. If False, use days_back.
         days_back: Number of days to look back when use_latest_timestamps is False.
+        entities: List of entities to sync. If None, sync all. Options: 
+                 ['contacts', 'invoices', 'bills', 'quotes', 'accounts', 'journals', 'purchase_orders', 'credit_notes', 'stock']
     """
     token = get_token()
     if not token:
@@ -1255,102 +1266,117 @@ def _sync_all_xero_data(use_latest_timestamps=True, days_back=30):
             "stock": older_time,
         }
 
-    logger.info("Starting first sync_xero_data call for accounts")
+    # If entities is None, sync all. Otherwise only sync specified entities.
+    if entities is None:
+        entities = ['accounts', 'contacts', 'invoices', 'bills', 'quotes', 'credit_notes', 'purchase_orders', 'stock', 'journals']
 
-    yield from sync_xero_data(
-        xero_entity_type="accounts",
-        our_entity_type="accounts",
-        xero_api_fetch_function=accounting_api.get_accounts,
-        sync_function=sync_accounts,
-        last_modified_time=timestamps["account"],
-        pagination_mode="single",
-    )
+    logger.info(f"Starting sync for entities: {entities}")
 
-    yield from sync_xero_data(
-        xero_entity_type="contacts",
-        our_entity_type="contacts",
-        xero_api_fetch_function=accounting_api.get_contacts,
-        sync_function=lambda contacts: sync_clients(contacts, sync_back_to_xero=False),
-        last_modified_time=timestamps["contact"],
-        pagination_mode="page",
-    )
+    if 'accounts' in entities:
+        yield from sync_xero_data(
+            xero_entity_type="accounts",
+            our_entity_type="accounts",
+            xero_api_fetch_function=accounting_api.get_accounts,
+            sync_function=sync_accounts,
+            last_modified_time=timestamps["account"],
+            pagination_mode="single",
+        )
 
-    yield from sync_xero_data(
-        xero_entity_type="invoices",
-        our_entity_type="invoices",
-        xero_api_fetch_function=accounting_api.get_invoices,
-        sync_function=sync_invoices,
-        last_modified_time=timestamps["invoice"],
-        additional_params={"where": 'Type=="ACCREC"'},
-        pagination_mode="page",
-    )
+    if 'contacts' in entities:
+        yield from sync_xero_data(
+            xero_entity_type="contacts",
+            our_entity_type="contacts",
+            xero_api_fetch_function=accounting_api.get_contacts,
+            sync_function=sync_clients,
+            last_modified_time=timestamps["contact"],
+            additional_params={"include_archived": True},
+            pagination_mode="page",
+        )
 
-    yield from sync_xero_data(
-        xero_entity_type="invoices",  # Note: Still "invoices" in Xero
-        our_entity_type="bills",  # But "bills" in our system
-        xero_api_fetch_function=accounting_api.get_invoices,
-        sync_function=sync_bills,
-        last_modified_time=timestamps["bill"],
-        additional_params={"where": 'Type=="ACCPAY"'},
-        pagination_mode="page",
-    )
+    if 'invoices' in entities:
+        yield from sync_xero_data(
+            xero_entity_type="invoices",
+            our_entity_type="invoices",
+            xero_api_fetch_function=accounting_api.get_invoices,
+            sync_function=sync_invoices,
+            last_modified_time=timestamps["invoice"],
+            additional_params={"where": 'Type=="ACCREC"'},
+            pagination_mode="page",
+        )
 
-    yield from sync_xero_data(
-        xero_entity_type="quotes",
-        our_entity_type="quotes",
-        xero_api_fetch_function=accounting_api.get_quotes,
-        sync_function=sync_quotes,
-        last_modified_time=timestamps["quote"],
-        pagination_mode="single",
-    )
+    if 'bills' in entities:
+        yield from sync_xero_data(
+            xero_entity_type="invoices",  # Note: Still "invoices" in Xero
+            our_entity_type="bills",  # But "bills" in our system
+            xero_api_fetch_function=accounting_api.get_invoices,
+            sync_function=sync_bills,
+            last_modified_time=timestamps["bill"],
+            additional_params={"where": 'Type=="ACCPAY"'},
+            pagination_mode="page",
+        )
 
-    yield from sync_xero_data(
-        xero_entity_type="credit_notes",
-        our_entity_type="credit_notes",
-        xero_api_fetch_function=accounting_api.get_credit_notes,
-        sync_function=sync_credit_notes,
-        last_modified_time=timestamps["credit_note"],
-        pagination_mode="page",
-    )
+    if 'quotes' in entities:
+        yield from sync_xero_data(
+            xero_entity_type="quotes",
+            our_entity_type="quotes",
+            xero_api_fetch_function=accounting_api.get_quotes,
+            sync_function=sync_quotes,
+            last_modified_time=timestamps["quote"],
+            pagination_mode="single",
+        )
 
-    yield from sync_xero_data(
-        xero_entity_type="purchase_orders",
-        our_entity_type="purchase_orders",
-        xero_api_fetch_function=accounting_api.get_purchase_orders,
-        sync_function=sync_purchase_orders,
-        last_modified_time=timestamps["purchase_order"],
-        pagination_mode="page",
-    )
+    if 'credit_notes' in entities:
+        yield from sync_xero_data(
+            xero_entity_type="credit_notes",
+            our_entity_type="credit_notes",
+            xero_api_fetch_function=accounting_api.get_credit_notes,
+            sync_function=sync_credit_notes,
+            last_modified_time=timestamps["credit_note"],
+            pagination_mode="page",
+        )
 
-    yield from sync_xero_data(
-        xero_entity_type="items",
-        our_entity_type="stock",
-        xero_api_fetch_function=get_xero_items,
-        sync_function=sync_items,
-        last_modified_time=timestamps["stock"],
-        pagination_mode="single",
-    )
+    if 'purchase_orders' in entities:
+        yield from sync_xero_data(
+            xero_entity_type="purchase_orders",
+            our_entity_type="purchase_orders",
+            xero_api_fetch_function=accounting_api.get_purchase_orders,
+            sync_function=sync_purchase_orders,
+            last_modified_time=timestamps["purchase_order"],
+            pagination_mode="page",
+        )
 
-    yield from sync_xero_data(
-        xero_entity_type="journals",
-        our_entity_type="journals",
-        xero_api_fetch_function=accounting_api.get_journals,
-        sync_function=sync_journals,
-        last_modified_time=timestamps["journal"],
-        pagination_mode="offset",
-    )
+    if 'stock' in entities:
+        yield from sync_xero_data(
+            xero_entity_type="items",
+            our_entity_type="stock",
+            xero_api_fetch_function=get_xero_items,
+            sync_function=sync_items,
+            last_modified_time=timestamps["stock"],
+            pagination_mode="single",
+        )
+
+    if 'journals' in entities:
+        yield from sync_xero_data(
+            xero_entity_type="journals",
+            our_entity_type="journals",
+            xero_api_fetch_function=accounting_api.get_journals,
+            sync_function=sync_journals,
+            last_modified_time=timestamps["journal"],
+            pagination_mode="offset",
+        )
 
 
-def one_way_sync_all_xero_data():
+def one_way_sync_all_xero_data(entities=None):
     """Sync all Xero data using latest modification times."""
-    yield from _sync_all_xero_data(use_latest_timestamps=True)
+    yield from _sync_all_xero_data(use_latest_timestamps=True, entities=entities)
 
 
-def deep_sync_xero_data(days_back=30):
+def deep_sync_xero_data(days_back=30, entities=None):
     """
     Sync all Xero data using a longer time window (days_back).
     Args:
         days_back: Number of days to look back for changes.
+        entities: List of entities to sync. If None, sync all.
     """
     logger.info(f"Starting deep sync looking back {days_back} days")
     yield {
@@ -1360,7 +1386,7 @@ def deep_sync_xero_data(days_back=30):
         "message": f"Starting deep sync looking back {days_back} days",
         "progress": None,
     }
-    yield from _sync_all_xero_data(use_latest_timestamps=False, days_back=days_back)
+    yield from _sync_all_xero_data(use_latest_timestamps=False, days_back=days_back, entities=entities)
 
 
 def synchronise_xero_data(delay_between_requests=1):
