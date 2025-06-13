@@ -406,7 +406,8 @@ class XeroInvoiceManager(XeroDocumentManager):
                 price_adjustment=adjustment_amount,
                 cost_adjustment=Decimal('0.00'),  # No cost adjustment, only revenue
                 accounting_date=timezone.now().date(),
-                comments=f"Automatic adjustment on invoice creation. Quote: ${quote_revenue}, Reality: ${reality_revenue}"
+                comments=f"Automatic adjustment on invoice creation. Quote: ${quote_revenue}, Reality: ${reality_revenue}",
+                is_quote_adjustment=True
             )
             logger.info(
                 f"Created quote adjustment of ${adjustment_amount} for job {self.job.id}"

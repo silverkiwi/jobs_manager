@@ -33,7 +33,12 @@ export function numberParser(params) {
   const parsed = parseFloat(cleanValue);
   
   // Return 0 if parsing failed (NaN)
-  return isNaN(parsed) ? 0 : parsed;
+  if (isNaN(parsed)) {
+    return 0;
+  }
+  
+  // Round to 2 decimal places to match database precision
+  return Math.round(parsed * 100) / 100;
 }
 
 export function currencyParser(params) {
@@ -66,5 +71,8 @@ export function currencyParser(params) {
   }
   
   // Apply negative sign if value was in parentheses
-  return isNegative ? -parsed : parsed;
+  const result = isNegative ? -parsed : parsed;
+  
+  // Round to 2 decimal places to match database precision
+  return Math.round(result * 100) / 100;
 }
