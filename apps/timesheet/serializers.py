@@ -4,6 +4,8 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.timesheet.models import TimeEntry
+from apps.accounts.models import Staff
+from apps.job.models import JobPricing
 
 logger = logging.getLogger(__name__)
 
@@ -151,3 +153,173 @@ class TimeEntryForTimeEntryViewSerializer(serializers.ModelSerializer):
 
     def get_staff_id(self, obj):
         return str(obj.staff.id)
+
+
+class TimeEntryAPISerializer(serializers.ModelSerializer):
+    """
+    Serializer optimized for Vue.js frontend API communication.
+    Maps Django model fields to frontend expectations.
+    """
+
+    # Map frontend field names to Django model fields
+    jobPricingId = serializers.CharField(source="job_pricing.id", read_only=True)
+    jobNumber = serializers.CharField(source="job_pricing.job.job_number", read_only=True)
+    jobName = serializers.CharField(source="job_pricing.job.name", read_only=True)
+    isBillable = serializers.BooleanField(source="is_billable")
+    notes = serializers.CharField(source="note", allow_blank=True, required=False)
+    rateMultiplier = serializers.DecimalField(
+        source="wage_rate_multiplier", max_digits=5, decimal_places=2
+    )
+    timesheetDate = serializers.DateField(source="date", format="%Y-%m-%d")
+    hoursSpent = serializers.DecimalField(
+        source="job_pricing.total_hours", read_only=True, max_digits=10, decimal_places=2
+    )
+    estimatedHours = serializers.SerializerMethodField()
+    staffId = serializers.CharField(source="staff.id", read_only=True)
+    minsPerItem = serializers.DecimalField(
+        source="minutes_per_item", max_digits=8, decimal_places=2, required=False, allow_null=True
+    )
+    wageRate = serializers.DecimalField(source="wage_rate", max_digits=10, decimal_places=2)
+    chargeOutRate = serializers.DecimalField(source="charge_out_rate", max_digits=10, decimal_places=2)
+
+    class Meta:
+        model = TimeEntry
+        fields = [
+            "id",
+            "description",
+            "jobPricingId",
+            "jobNumber",
+            "jobName",
+            "hours",
+            "isBillable",
+            "notes",
+            "rateMultiplier",
+            "timesheetDate",
+            "hoursSpent",
+            "estimatedHours",
+            "staffId",
+            "items",
+            "minsPerItem",
+            "wageRate",
+            "chargeOutRate",
+        ]
+
+    def get_estimatedHours(self, obj):
+        """Get estimated hours from job's latest estimate pricing."""
+        try:
+            if obj.job_pricing and obj.job_pricing.job and obj.job_pricing.job.latest_estimate_pricing:
+                return float(obj.job_pricing.job.latest_estimate_pricing.total_hours)
+            return 0.0
+        except:
+            return 0.0
+
+    def to_representation(self, instance):
+        """Convert decimal fields to float for JSON serialization."""
+        representation = super().to_representation(instance)
+
+        # Convert Decimal fields to float for frontend
+        decimal_fields = [
+            "hours",
+            "hoursSpent",
+            "estimatedHours",
+            "rateMultiplier",
+            "wageRate",
+            "chargeOutRate",
+            "minsPerItem",
+        ]
+        for field in decimal_fields:
+            if field in representation and representation[field] is not None:
+                representation[field] = float(representation[field])
+
+        return representation
+
+
+class StaffAPISerializer(serializers.ModelSerializer):
+    """
+    Serializer for Staff model optimized for Vue.js frontend.
+    """
+
+    name = serializers.SerializerMethodField()
+    firstName = serializers.CharField(source="first_name", read_only=True)
+    lastName = serializers.CharField(source="last_name", read_only=True)
+    avatarUrl = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Staff
+        fields = [
+            "id",
+            "name",
+            "firstName",
+            "lastName",
+            "email",
+            "avatarUrl",        ]
+        
+    def get_name(self, obj):
+        """Get full display name."""
+        return obj.get_display_name()
+
+    def get_avatarUrl(self, obj):
+        """Get avatar URL - returns icon URL if available, otherwise None."""
+        if obj.icon:
+            # Use Django's build_absolute_uri to generate full URL
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.icon.url)
+            return obj.icon.url
+        return None  # Return None instead of empty string for consistent handling
+
+
+class JobPricingAPISerializer(serializers.ModelSerializer):
+    """
+    Serializer for JobPricing model optimized for Vue.js frontend.
+    """
+    
+    jobId = serializers.CharField(source="job.id", read_only=True)
+    jobNumber = serializers.CharField(source="job.job_number", read_only=True)
+    jobName = serializers.CharField(source="job.name", read_only=True)
+    taskName = serializers.SerializerMethodField()
+    isBillable = serializers.BooleanField(read_only=True)
+    chargeOutRate = serializers.DecimalField(
+        source="charge_out_rate", max_digits=10, decimal_places=2, read_only=True
+    )
+    estimatedHours = serializers.DecimalField(
+        source="estimated_hours", max_digits=10, decimal_places=2, read_only=True
+    )
+    totalHours = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    displayName = serializers.SerializerMethodField()    
+    
+    class Meta:
+        model = JobPricing
+        fields = [
+            "id",
+            "jobId",
+            "jobNumber",
+            "jobName",
+            "taskName",
+            "chargeOutRate",
+            "estimatedHours",
+            "totalHours",
+            "isBillable",
+            "displayName",
+        ]
+
+    def get_taskName(self, obj):
+        """Generate a task name based on the pricing stage."""
+        return f"{obj.get_pricing_stage_display()}"
+
+    def get_displayName(self, obj):
+        """Create display name for job selection."""
+        task_name = self.get_taskName(obj)
+        return f"{obj.job.job_number} - {obj.job.name} ({task_name})"
+
+    def to_representation(self, instance):
+        """Convert decimal fields to float for JSON serialization."""
+        representation = super().to_representation(instance)
+
+        # Convert Decimal fields to float for frontend
+        decimal_fields = ["chargeOutRate", "estimatedHours", "totalHours"]
+        for field in decimal_fields:
+            if field in representation and representation[field] is not None:
+                representation[field] = float(representation[field])
+
+        return representation
