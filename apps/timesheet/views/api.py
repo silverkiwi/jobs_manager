@@ -103,14 +103,36 @@ class TimeEntriesAPIView(APIView):
         serializer = TimeEntryAPISerializer(time_entries, many=True)
         
         return Response({'time_entries': serializer.data})
-    
     def post(self, request):
         """Create a new time entry."""
         data = request.data
         
         try:
-            staff = Staff.objects.get(id=data.get('staff_id'))
-            job_pricing = JobPricing.objects.get(id=data.get('job_pricing_id'))
+            staff_id = data.get('staff_id') or data.get('staffId')  # Handle both formats
+            job_pricing_id = data.get('job_pricing_id') or data.get('jobPricingId')  # Handle both formats
+            
+            if not staff_id:
+                return Response({'error': 'staff_id or staffId is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not job_pricing_id:
+                return Response({'error': 'job_pricing_id or jobPricingId is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            logger.debug(f"Looking for staff with ID: {staff_id}")
+            logger.debug(f"Looking for job_pricing with ID: {job_pricing_id}")
+            
+            try:
+                staff = Staff.objects.get(id=staff_id)
+                logger.debug(f"Found staff: {staff.get_display_name()}")
+            except Staff.DoesNotExist:
+                logger.error(f"Staff with ID {staff_id} not found. Available staff IDs: {list(Staff.objects.values_list('id', flat=True))}")
+                return Response({'error': f'Staff with ID {staff_id} does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                job_pricing = JobPricing.objects.get(id=job_pricing_id)
+                logger.debug(f"Found job_pricing: {job_pricing}")
+            except JobPricing.DoesNotExist:
+                logger.error(f"JobPricing with ID {job_pricing_id} not found")
+                return Response({'error': f'JobPricing with ID {job_pricing_id} does not exist'}, status=status.HTTP_400_BAD_REQUEST)
             
             time_entry = TimeEntry.objects.create(
                 staff=staff,
@@ -124,15 +146,14 @@ class TimeEntriesAPIView(APIView):
                 wage_rate_multiplier=data.get('rate_multiplier', 1.0),
                 is_billable=data.get('is_billable', True),
                 note=data.get('notes', ''),
-                rate_type=data.get('rate_type', RateType.STANDARD.value)
+                # Remove rate_type field as it doesn't exist in TimeEntry model
             )
             serializer = TimeEntryAPISerializer(time_entry)
             return Response({'time_entry': serializer.data}, status=status.HTTP_201_CREATED)
             
-        except (Staff.DoesNotExist, JobPricing.DoesNotExist) as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Error creating time entry: {e}")
+            logger.error(f"Request data: {data}")
             return Response({'error': 'Failed to create time entry'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def put(self, request, entry_id):

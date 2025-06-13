@@ -12,6 +12,7 @@ from uuid import UUID
 
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from apps.job.models import Job, JobPricing, JobEvent
 from apps.job.enums import JobPricingMethodology, JobPricingStage
@@ -525,8 +526,7 @@ class JobRestService:
         for field in required_fields:
             if field not in entry_data:
                 raise ValueError(f"{field} is required")
-        
-        # Create time entry
+          # Create time entry
         time_entry_data = {
             'job_pricing': estimate_pricing,
             'description': entry_data['description'],
@@ -534,14 +534,16 @@ class JobRestService:
             'charge_out_rate': Decimal(str(entry_data['charge_out_rate'])),
             'wage_rate': Decimal(str(entry_data.get('wage_rate', 0))),
             'staff': user,
-            'items': 1,
-            'minutes_per_item': Decimal(str(entry_data['hours'])) * 60,
+            'items': entry_data.get('items', 1),
+            'minutes_per_item': Decimal(str(entry_data.get('minutes_per_item', entry_data['hours'] * 60))),
+            'date': timezone.now().date(),  # Add current date
+            'is_billable': entry_data.get('is_billable', True),  # Add billable flag
+            'wage_rate_multiplier': Decimal(str(entry_data.get('wage_rate_multiplier', 1.0))),  # Add rate multiplier
         }
         
         with transaction.atomic():
             time_entry = TimeEntry.objects.create(**time_entry_data)
-            
-            # Log the event
+              # Log the event
             JobEvent.objects.create(
                 job=job,
                 staff=user,
@@ -549,8 +551,8 @@ class JobRestService:
                 description=f'Time entry added: {entry_data["description"]}'
             )
         
-        # Return updated job data
-        return JobRestService.get_job_for_edit(job_id)
+        # Return minimal success response instead of full job data to avoid request dependency
+        return {'success': True, 'job_id': str(job_id), 'time_entry_id': str(time_entry.id)}
     
     @staticmethod
     def create_material_entry(job_id: UUID, entry_data: Dict[str, Any], user: Staff) -> Dict[str, Any]:
@@ -596,8 +598,7 @@ class JobRestService:
         
         with transaction.atomic():
             material_entry = MaterialEntry.objects.create(**material_entry_data)
-            
-            # Log the event
+              # Log the event
             JobEvent.objects.create(
                 job=job,
                 staff=user,
@@ -605,8 +606,8 @@ class JobRestService:
                 description=f'Material entry added: {entry_data["description"]}'
             )
         
-        # Return updated job data
-        return JobRestService.get_job_for_edit(job_id)
+        # Return minimal success response
+        return {'success': True, 'job_id': str(job_id), 'material_entry_id': str(material_entry.id)}
     
     @staticmethod
     def create_adjustment_entry(job_id: UUID, entry_data: Dict[str, Any], user: Staff) -> Dict[str, Any]:
@@ -647,8 +648,7 @@ class JobRestService:
         
         with transaction.atomic():
             adjustment_entry = AdjustmentEntry.objects.create(**adjustment_entry_data)
-            
-            # Log the event
+              # Log the event
             JobEvent.objects.create(
                 job=job,
                 staff=user,
@@ -656,5 +656,5 @@ class JobRestService:
                 description=f'Adjustment entry added: {entry_data["description"]}'
             )
         
-        # Return updated job data
-        return JobRestService.get_job_for_edit(job_id)
+        # Return minimal success response
+        return {'success': True, 'job_id': str(job_id), 'adjustment_entry_id': str(adjustment_entry.id)}

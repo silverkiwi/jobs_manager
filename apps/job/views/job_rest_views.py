@@ -258,15 +258,19 @@ class JobTimeEntryRestView(BaseJobRestView):
         try:
             data = self.parse_json_body(request)
             
+            # Create the time entry
             result = JobRestService.create_time_entry(
                 job_id,
                 data,
                 request.user
             )
             
+            # Get updated job data for frontend
+            job_data = JobRestService.get_job_for_edit(job_id, request)
+            
             return Response({
                 'success': True,
-                'data': result
+                'data': job_data
             }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
@@ -290,19 +294,23 @@ class JobMaterialEntryRestView(BaseJobRestView):
             "unit_cost": 25.0,
             "unit_revenue": 35.0
         }
-        """
+        """        
         try:
             data = self.parse_json_body(request)
             
+            # Create the material entry
             result = JobRestService.create_material_entry(
                 job_id,
                 data,
                 request.user
             )
             
+            # Get updated job data for frontend
+            job_data = JobRestService.get_job_for_edit(job_id, request)
+            
             return Response({
                 'success': True,
-                'data': result
+                'data': job_data
             }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
@@ -324,19 +332,23 @@ class JobAdjustmentEntryRestView(BaseJobRestView):
             "description": "Adjustment description",
             "amount": 100.0
         }
-        """
+        """        
         try:
             data = self.parse_json_body(request)
             
+            # Create the adjustment entry
             result = JobRestService.create_adjustment_entry(
                 job_id,
                 data,
                 request.user
             )
             
+            # Get updated job data for frontend
+            job_data = JobRestService.get_job_for_edit(job_id, request)
+            
             return Response({
                 'success': True,
-                'data': result
+                'data': job_data
             }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
