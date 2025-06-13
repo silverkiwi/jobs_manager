@@ -92,7 +92,7 @@ class JobRestService:
         return job
 
     @staticmethod
-    def get_job_for_edit(job_id: UUID) -> Dict[str, Any]:
+    def get_job_for_edit(job_id: UUID, request) -> Dict[str, Any]:
         """
         Fetches complete Job data for editing.
         
@@ -105,7 +105,7 @@ class JobRestService:
         job = get_job_with_pricings(job_id)
         
         # Serialise main data
-        job_data = JobSerializer(job).data
+        job_data = JobSerializer(job, context={'request': request}).data
         
         # Fetch latest pricings
         latest_pricings = {

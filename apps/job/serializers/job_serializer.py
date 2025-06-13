@@ -32,7 +32,7 @@ class JobSerializer(serializers.ModelSerializer):
     contact_name = serializers.CharField(source="contact.name", read_only=True, required=False)
     job_status = serializers.CharField(source="status")
     job_files = JobFileSerializer(
-        source="files", many=False, required=False
+        source="files", many=True, required=False
     )  # To prevent conflicts with PUTTING only one file
 
     class Meta:

@@ -113,7 +113,7 @@ class JobDetailRestView(BaseJobRestView):
         Fetch complete Job data for editing.
         """
         try:
-            job_data = JobRestService.get_job_for_edit(job_id)
+            job_data = JobRestService.get_job_for_edit(job_id, request)
             
             return Response({
                 'success': True,
@@ -129,10 +129,9 @@ class JobDetailRestView(BaseJobRestView):
         """
         try:
             data = self.parse_json_body(request)
-            job = JobRestService.update_job(job_id, data, request.user)
             
             # Return complete job data for frontend reactivity
-            job_data = JobRestService.get_job_for_edit(job_id)
+            job_data = JobRestService.get_job_for_edit(job_id, request)
             return Response(job_data, status=status.HTTP_200_OK)
             
         except Exception as e:
