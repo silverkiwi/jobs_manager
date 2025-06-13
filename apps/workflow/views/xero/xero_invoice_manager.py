@@ -17,7 +17,7 @@ from .xero_helpers import (
 # Import models
 from apps.accounting.models import Invoice
 from apps.client.models import Client
-from apps.job.models import Job, AdjustmentEntry
+from apps.job.models import Job
 from apps.job.enums import JobPricingMethodology
 from apps.accounting.enums import InvoiceStatus
 from xero_python.accounting.models import LineItem, Invoice as XeroInvoice
@@ -234,10 +234,6 @@ class XeroInvoiceManager(XeroDocumentManager):
                     f"Invoice {invoice.id} created successfully for job {self.job.id}"
                 )
 
-                # Create quote adjustment entry for fixed price jobs
-                if self.job.pricing_methodology == JobPricingMethodology.FIXED_PRICE:
-                    self.create_quote_adjustment_entry()
-
                 # Return success details for the view
                 return JsonResponse(
                     {
@@ -385,30 +381,4 @@ class XeroInvoiceManager(XeroDocumentManager):
                     "message": f"An unexpected error occurred ({str(e)}) while deleting the invoice with Xero. Please contact support to check the data sent.",
                 },
                 status=500,
-            )
-
-    def create_quote_adjustment_entry(self):
-        """
-        Creates an adjustment entry to record the difference between quoted and actual revenue
-        for fixed price jobs when they are invoiced.
-        """
-        quote_revenue = Decimal(str(self.job.latest_quote_pricing.total_revenue))
-        reality_revenue = Decimal(str(self.job.latest_reality_pricing.total_revenue))
-        
-        # Calculate the adjustment needed (positive if quote > reality, negative if reality > quote)
-        adjustment_amount = quote_revenue - reality_revenue
-        
-        # Only create adjustment if there's a difference
-        if adjustment_amount != Decimal('0.00'):
-            AdjustmentEntry.objects.create(
-                job_pricing=self.job.latest_reality_pricing,
-                description="Adjusted to match quote",
-                price_adjustment=adjustment_amount,
-                cost_adjustment=Decimal('0.00'),  # No cost adjustment, only revenue
-                accounting_date=timezone.now().date(),
-                comments=f"Automatic adjustment on invoice creation. Quote: ${quote_revenue}, Reality: ${reality_revenue}",
-                is_quote_adjustment=True
-            )
-            logger.info(
-                f"Created quote adjustment of ${adjustment_amount} for job {self.job.id}"
             )
