@@ -1,7 +1,7 @@
 import os
 import gzip
 import tempfile
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.core.management import call_command
 from django.conf import settings
 
@@ -14,6 +14,14 @@ class Command(BaseCommand):
         parser.add_argument('--skip-cleanup', action='store_true', help='Skip clearing existing data')
 
     def handle(self, *args, **options):
+        # Production safety check - absolutely prevent running in production
+        if not settings.DEBUG:
+            raise CommandError(
+                "This command is DISABLED in production to prevent data loss. "
+                "It would wipe your entire database. Use proper database restoration "
+                "tools for production environments."
+            )
+        
         backup_file = options['backup_file']
         skip_cleanup = options['skip_cleanup']
         

@@ -43,10 +43,11 @@ class SupplierProduct(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ["supplier", "variant_id"]
+        unique_together = ["supplier", "item_no", "variant_id"]
         indexes = [
             models.Index(fields=["variant_id"]),
             models.Index(fields=["product_name"]),
+            models.Index(fields=["item_no"]),
         ]
 
     def __str__(self):

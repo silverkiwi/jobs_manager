@@ -141,7 +141,7 @@ class SteelAndTubeScraper(BaseScraper):
             # Check for page not found
             if "The requested page cannot be found" in self.driver.page_source:
                 self.logger.warning(f"Page not found for URL: {url}")
-                return [self.create_page_not_found_record(url)]
+                return []
 
             # Extract basic product info
             product_name = self.extract_text_by_selector('h1[itemprop="name"]', default="N/A")
@@ -150,11 +150,32 @@ class SteelAndTubeScraper(BaseScraper):
             specifications = self.extract_specifications()
             price_unit = self.extract_price_unit()
 
+            # Validate essential fields
+            if not product_name or product_name in ["N/A", "Page Not Found"]:
+                self.logger.warning(f"Invalid product_name '{product_name}' for URL: {url}")
+                return []
+            
+            if not item_no or item_no == "N/A":
+                self.logger.warning(f"Invalid item_no '{item_no}' for URL: {url}")
+                return []
+
             # Extract variants using comprehensive method
             variants_data = self.extract_all_variants(
                 url, product_name, item_no, description, specifications, price_unit
             )
-            return variants_data
+            
+            # Filter out invalid variants
+            valid_variants = []
+            for variant in variants_data:
+                if (variant.get('variant_id') and 
+                    variant.get('variant_id') not in [None, "N/A", ""] and
+                    variant.get('product_name') and 
+                    variant.get('product_name') not in [None, "N/A", "Page Not Found"]):
+                    valid_variants.append(variant)
+                else:
+                    self.logger.warning(f"Skipping invalid variant: {variant}")
+            
+            return valid_variants
 
         except Exception as e:
             self.logger.error(f"Error scraping product {url}: {e}")
@@ -425,18 +446,3 @@ class SteelAndTubeScraper(BaseScraper):
             self.logger.error(f"Could not extract variants for width {width}: {e}")
             return []
 
-    def create_page_not_found_record(self, url):
-        """Create a record for page not found"""
-        return {
-            "product_name": "Page Not Found",
-            "item_no": "N/A", 
-            "description": "N/A",
-            "specifications": "N/A",
-            "variant_id": f"not_found_{hash(url) % 1000000}",
-            "variant_width": None,
-            "variant_length": None,
-            "variant_price": None,
-            "price_unit": "N/A",
-            "variant_available_stock": None,
-            "url": url,
-        }
