@@ -39,8 +39,8 @@ class SupplierProduct(models.Model):
     )
 
     # Standard audit fields
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=False)
+    updated_at = models.DateTimeField(auto_now=True, null=False)
 
     class Meta:
         unique_together = ["supplier", "item_no", "variant_id"]
