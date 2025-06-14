@@ -62,11 +62,17 @@ class BaseScraper(ABC):
 
     def run(self):
         """Main scraper execution"""
-        from apps.quoting.models import ScrapeJob, SupplierProduct
+        from apps.quoting.models import ScrapeJob, SupplierProduct, SupplierPriceList
 
         # Create scrape job
         job = ScrapeJob.objects.create(
             supplier=self.supplier, status="running", started_at=timezone.now()
+        )
+        
+        # Create price list for this scrape session
+        self.price_list = SupplierPriceList.objects.create(
+            supplier=self.supplier,
+            file_name=f"Web Scrape {timezone.now().strftime('%Y-%m-%d %H:%M')}"
         )
 
         try:
@@ -153,19 +159,12 @@ class BaseScraper(ABC):
 
     def save_products(self, products_data):
         """Save products to database"""
-        from apps.quoting.models import SupplierProduct, SupplierPriceList
-
-        # Create or get a price list for these products
-        price_list, created = SupplierPriceList.objects.get_or_create(
-            supplier=self.supplier,
-            file_name=f"Scraped Products - {len(products_data)} items",
-            defaults={'file_name': f"Scraped Products - {len(products_data)} items"}
-        )
+        from apps.quoting.models import SupplierProduct
 
         for product_data in products_data:
             try:
                 product_data["supplier"] = self.supplier
-                product_data["price_list"] = price_list
+                product_data["price_list"] = self.price_list
                 
                 product, created = SupplierProduct.objects.update_or_create(
                     supplier=self.supplier,
