@@ -1,8 +1,11 @@
 import os
 import datetime
+import json
 from django.core.management.base import BaseCommand
-from django.core.management import call_command
 from django.conf import settings
+from django.core import serializers
+from django.apps import apps
+from faker import Faker
 
 class Command(BaseCommand):
     help = 'Backs up necessary production data, excluding Xero-related models.'
@@ -20,14 +23,31 @@ class Command(BaseCommand):
         # Include: Models that can be copied directly or need relinkage during import
         # These will be passed to dumpdata
         INCLUDE_MODELS = [
+            # Core job management
             'job.Job',
-            'timesheet.TimeEntry',
-            'job.JobFile',
-            'job.JobPart',
+            'job.JobPricing',
+            'job.JobPart', 
             'job.MaterialEntry',
             'job.AdjustmentEntry',
             'job.JobEvent',
-            'job.JobPricing',
+            'job.JobFile',
+            
+            # Time tracking
+            'timesheet.TimeEntry',
+            
+            # Staff data (will be anonymized)
+            'accounts.Staff',
+            
+            # Client data (ClientContact be anonymized)
+            'client.Client',
+            'client.ClientContact',
+            
+            # Purchasing/inventory
+            'purchasing.PurchaseOrder',
+            'purchasing.PurchaseOrderLine', 
+            'purchasing.Stock',
+            
+            # Quoting/supplier data
             'quoting.SupplierPriceList',
             'quoting.SupplierProduct',
         ]
@@ -51,29 +71,84 @@ class Command(BaseCommand):
         self.stdout.write(f'Models to be backed up: {", ".join(models_to_dump)}')
 
         try:
-            # Call Django's dumpdata command
-            # --indent=2 for readability
-            # --natural-foreign and --natural-primary for better cross-database compatibility
-            # (though dumpdata handles FKs by default, these can help with custom primary keys)
-            call_command(
-                'dumpdata',
-                *models_to_dump,
-                output=output_path,
-                indent=2,
-                natural_foreign=True,
-                natural_primary=True,
-                # Use the 'default' database alias, assuming production is configured there
-                # or a specific 'production' alias could be used if available.
-                # For this task, we assume 'default' connects to production.
-                database='default',
-                # Exclude contenttypes and auth.permission as they are usually not needed
-                # and can cause issues with natural keys if not handled carefully.
-                # Also exclude sessions and admin logs.
-                exclude=['contenttypes', 'auth.permission', 'admin.logentry', 'sessions.session'],
-            )
+            # Initialize Faker for data anonymization
+            fake = Faker()
+            
+            # Serialize data with anonymization
+            backup_data = []
+            
+            for model_label in models_to_dump:
+                app_label, model_name = model_label.split('.')
+                model = apps.get_model(app_label, model_name)
+                
+                self.stdout.write(f'Processing {model_label}...')
+                
+                for instance in model.objects.all():
+                    # Serialize the instance
+                    serialized = json.loads(serializers.serialize('json', [instance]))[0]
+                    
+                    # Anonymize PII fields based on model
+                    self._anonymize_instance(serialized, model_label, fake)
+                    
+                    backup_data.append(serialized)
+            
+            # Write to file
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(backup_data, f, indent=2, ensure_ascii=False)
+            
             self.stdout.write(self.style.SUCCESS(f'Data backup completed successfully to {output_path}'))
+            
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error during data backup: {e}'))
             # Clean up the partially created file if an error occurs
             if os.path.exists(output_path):
                 os.remove(output_path)
+    
+    def _anonymize_instance(self, serialized, model_label, fake):
+        """Anonymize PII fields in the serialized instance"""
+        fields = serialized['fields']
+        
+        if model_label == 'accounts.Staff':
+            # Anonymize staff names and emails but keep structure
+            if 'first_name' in fields:
+                fields['first_name'] = fake.first_name()
+            if 'last_name' in fields:
+                fields['last_name'] = fake.last_name()
+            if 'email' in fields:
+                # Keep original email format for referential integrity
+                original_email = fields['email']
+                if '@' in original_email:
+                    domain = original_email.split('@')[1]
+                    fields['email'] = f"{fake.user_name()}@{domain}"
+        
+        elif model_label == 'client.Client':
+            # Anonymize client names
+            if 'name' in fields:
+                fields['name'] = fake.company()
+            if 'contact_person' in fields and fields['contact_person']:
+                fields['contact_person'] = fake.name()
+            if 'contact_email' in fields and fields['contact_email']:
+                fields['contact_email'] = fake.email()
+            if 'contact_phone' in fields and fields['contact_phone']:
+                fields['contact_phone'] = fake.phone_number()
+        
+        elif model_label == 'client.ClientContact':
+            # Anonymize contact details
+            if 'name' in fields:
+                fields['name'] = fake.name()
+            if 'email' in fields and fields['email']:
+                fields['email'] = fake.email()
+            if 'phone' in fields and fields['phone']:
+                fields['phone'] = fake.phone_number()
+        
+        elif model_label == 'job.Job':
+            # Anonymize job names and contact details
+            if 'name' in fields:
+                # Keep it somewhat realistic for jobs
+                fields['name'] = f"{fake.word().capitalize()} {fake.word()}"
+            if 'contact_person' in fields and fields['contact_person']:
+                fields['contact_person'] = fake.name()
+            if 'contact_email' in fields and fields['contact_email']:
+                fields['contact_email'] = fake.email()
+            if 'contact_phone' in fields and fields['contact_phone']:
+                fields['contact_phone'] = fake.phone_number()

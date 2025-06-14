@@ -48,6 +48,7 @@ google-api-python-client = "^2.171.0"
 google-generativeai = "^0.8.5"
 pandas = "^2.3.0"
 openpyxl = "^3.1.5"
+faker = "^37.4.0"
 
 [tool.poetry.scripts]
 post-install = "scripts.post_install:install_system_deps"  # Script to install system dependencies like poppler-utils
