@@ -28,6 +28,10 @@ class Command(BaseCommand):
         if not skip_cleanup:
             self.stdout.write('Clearing existing data...')
             call_command('flush', '--noinput')
+            
+            # Load essential company configuration
+            self.stdout.write('Loading essential company configuration...')
+            call_command('loaddata', 'apps/workflow/fixtures/company_defaults.json')
         
         # Handle compressed files
         if backup_file.endswith('.gz'):

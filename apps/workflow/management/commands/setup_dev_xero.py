@@ -108,7 +108,7 @@ class Command(BaseCommand):
             # Try to find and sync from Xero
             try:
                 from xero_python.accounting import AccountingApi
-                from apps.workflow.api.xero.xero import api_client, get_tenant_id
+                from apps.workflow.api.xero.xero import get_tenant_id
                 
                 accounting_api = AccountingApi(api_client)
                 xero_tenant_id = get_tenant_id()
@@ -181,7 +181,7 @@ class Command(BaseCommand):
                 logger.error(f"Error during full Xero sync: {e}", exc_info=True)
                 return
         else:
-            self.stdout.write(self.style.INFO("Skipping full Xero sync (default). Use --full-sync to run it."))
+            self.stdout.write("Skipping full Xero sync (default). Use --full-sync to run it.")
 
         close_old_connections()
         self.stdout.write(self.style.SUCCESS("Setup completed!"))

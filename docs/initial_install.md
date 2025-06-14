@@ -129,11 +129,19 @@ npm install
     ```bash
     python manage.py migrate
     ```
-3.  Load essential initial data fixtures:
+3.  Load essential configuration and initial data fixtures:
     ```bash
+    # Load essential company configuration
+    python manage.py loaddata apps/workflow/fixtures/company_defaults.json
+    
+    # EITHER
+    # Load demo data for development (optional - skip if restoring production data)
     python manage.py loaddata apps/workflow/fixtures/initial_data.json
+    # OR...  restore from prod
+    python manage.py backport_data_restore
+    
     ```
-    **Default Admin Credentials:**
+    **Default Admin Credentials (from initial_data.json):**
     *   **Username:** `defaultadmin@example.com`
     *   **Password:** `Default-admin-password`
 
@@ -141,7 +149,7 @@ npm install
     ```bash
     python manage.py backport_data_restore restore/prod_backup_YYYYMMDD_HHMMSS.json
     ```
-    This loads production data (jobs, timesheets, etc.) while preserving local settings.
+    This loads production data (jobs, timesheets, etc.) while preserving essential configuration. The restore command automatically loads `company_defaults.json` after clearing the database, so you don't need to load it separately.
 
 ## Phase 3: Running the Application & Connecting Xero
 
@@ -260,6 +268,7 @@ To wipe the local database and start fresh:
 4.  **Re-initialize Application:** (Activate `poetry shell` if needed)
     ```bash
     python manage.py migrate
+    python manage.py loaddata apps/workflow/fixtures/company_defaults.json
     python manage.py loaddata apps/workflow/fixtures/initial_data.json
     # Optional: python manage.py backport_data_restore restore/prod_backup_YYYYMMDD_HHMMSS.json
     ```
