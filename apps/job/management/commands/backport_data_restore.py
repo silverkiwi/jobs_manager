@@ -1,12 +1,46 @@
 import os
+import gzip
+import tempfile
 from django.core.management.base import BaseCommand
+from django.core.management import call_command
 from django.conf import settings
 
 
 class Command(BaseCommand):
-    help = 'Post-restore fixes for dev environment'
+    help = 'Restore data from backup with cleanup'
+
+    def add_arguments(self, parser):
+        parser.add_argument('backup_file', type=str, help='Path to the backup JSON file')
+        parser.add_argument('--skip-cleanup', action='store_true', help='Skip clearing existing data')
 
     def handle(self, *args, **options):
+        backup_file = options['backup_file']
+        skip_cleanup = options['skip_cleanup']
+        
+        if not skip_cleanup:
+            self.stdout.write('Clearing existing data...')
+            call_command('flush', '--noinput')
+        
+        # Handle compressed files
+        if backup_file.endswith('.gz'):
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+                with gzip.open(backup_file, 'rt', encoding='utf-8') as gz_file:
+                    temp_file.write(gz_file.read())
+                temp_file_path = temp_file.name
+            
+            self.stdout.write(f'Loading data from {backup_file} (decompressed)...')
+            try:
+                call_command('loaddata', temp_file_path)
+            finally:
+                os.unlink(temp_file_path)
+        else:
+            self.stdout.write(f'Loading data from {backup_file}...')
+            call_command('loaddata', backup_file)
+        
+        self.stdout.write('Running post-restore fixes...')
+        self.post_restore_fixes()
+
+    def post_restore_fixes(self):
         # Create dummy files for JobFile instances
         from apps.job.models import JobFile
         
