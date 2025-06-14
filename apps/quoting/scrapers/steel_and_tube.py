@@ -11,6 +11,9 @@ from .base import BaseScraper
 
 class SteelAndTubeScraper(BaseScraper):
     """Steel & Tube specific scraper implementation with comprehensive variant extraction"""
+    
+    # Hardcoded supplier - S&T Stainless Limited
+    SUPPLIER_XERO_ID = "92bd100c-b0e5-45e7-84d9-1ed883050353"
 
     def get_credentials(self):
         """Get Steel & Tube credentials from environment variables"""

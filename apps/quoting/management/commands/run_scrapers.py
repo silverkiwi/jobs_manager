@@ -165,6 +165,16 @@ class Command(BaseCommand):
                 )
                 return None
 
+        # Hardcoded supplier mappings
+        if scraper_class_name == "SteelAndTubeScraper":
+            try:
+                supplier = Supplier.objects.get(xero_contact_id="92bd100c-b0e5-45e7-84d9-1ed883050353")
+                logger.info(f"Found supplier by hardcoded Xero ID: {supplier.name}")
+                return supplier
+            except Supplier.DoesNotExist:
+                logger.error("S&T Stainless Limited supplier not found with Xero ID 92bd100c-b0e5-45e7-84d9-1ed883050353")
+                return None
+
         # Otherwise, try to match by scraper name to supplier name
         # SteelAndTubeScraper -> Steel & Tube
         scraper_supplier_name = scraper_class_name.replace("Scraper", "").replace(

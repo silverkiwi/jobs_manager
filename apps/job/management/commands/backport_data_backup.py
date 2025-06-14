@@ -2,6 +2,7 @@ import os
 import datetime
 import json
 import subprocess
+import gzip
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from faker import Faker
@@ -39,7 +40,7 @@ class Command(BaseCommand):
 
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         env_name = 'dev' if settings.DEBUG else 'prod'
-        output_filename = f'{env_name}_backup_{timestamp}.json'
+        output_filename = f'{env_name}_backup_{timestamp}.json.gz'
         output_path = os.path.join(backup_dir, output_filename)
 
         self.stdout.write(f'Backup will be saved to: {output_path}')
@@ -59,8 +60,8 @@ class Command(BaseCommand):
             for item in data:
                 self.anonymize_item(item, fake)
             
-            # Step 3: Write anonymized data
-            with open(output_path, 'w', encoding='utf-8') as f:
+            # Step 3: Write anonymized data (compressed)
+            with gzip.open(output_path, 'wt', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             
             self.stdout.write(self.style.SUCCESS(f'Data backup completed successfully to {output_path}'))
