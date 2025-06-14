@@ -1,11 +1,11 @@
 import os
 import datetime
 import json
+import subprocess
 from django.core.management.base import BaseCommand
 from django.conf import settings
-from django.core import serializers
-from django.apps import apps
 from faker import Faker
+
 
 class Command(BaseCommand):
     help = 'Backs up necessary production data, excluding Xero-related models.'
@@ -13,17 +13,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('Starting data backup...'))
 
-        # Define models to include and exclude based on the provided strategy
-        # Exclude: Models directly related to Xero integration
-        EXCLUDE_MODELS = [
-            'accounting.Invoice',
-            'accounting.Quote',
-        ]
-
-        # Include: Models that can be copied directly or need relinkage during import
-        # These will be passed to dumpdata
+        # Define models to include
         INCLUDE_MODELS = [
-            # Core job management
             'job.Job',
             'job.JobPricing',
             'job.JobPart', 
@@ -31,124 +22,91 @@ class Command(BaseCommand):
             'job.AdjustmentEntry',
             'job.JobEvent',
             'job.JobFile',
-            
-            # Time tracking
             'timesheet.TimeEntry',
-            
-            # Staff data (will be anonymized)
             'accounts.Staff',
-            
-            # Client data (ClientContact be anonymized)
             'client.Client',
             'client.ClientContact',
-            
-            # Purchasing/inventory
             'purchasing.PurchaseOrder',
             'purchasing.PurchaseOrderLine', 
             'purchasing.Stock',
-            
-            # Quoting/supplier data
             'quoting.SupplierPriceList',
             'quoting.SupplierProduct',
         ]
 
-        # Construct the list of models for dumpdata, excluding those explicitly marked
-        # We need to ensure that only models that exist are included.
-        # For simplicity, we'll assume all listed INCLUDE_MODELS exist.
-        # In a real scenario, you might dynamically check `apps.get_models()`
-        # to verify existence.
-        models_to_dump = [model for model in INCLUDE_MODELS if model not in EXCLUDE_MODELS]
-
         # Define the output directory and filename
         backup_dir = os.path.join(settings.BASE_DIR, 'restore')
-        os.makedirs(backup_dir, exist_ok=True) # Ensure the directory exists
+        os.makedirs(backup_dir, exist_ok=True)
 
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        output_filename = f'prod_backup_{timestamp}.json'
+        env_name = 'dev' if settings.DEBUG else 'prod'
+        output_filename = f'{env_name}_backup_{timestamp}.json'
         output_path = os.path.join(backup_dir, output_filename)
 
         self.stdout.write(f'Backup will be saved to: {output_path}')
-        self.stdout.write(f'Models to be backed up: {", ".join(models_to_dump)}')
+        self.stdout.write(f'Models to be backed up: {", ".join(INCLUDE_MODELS)}')
 
         try:
-            # Initialize Faker for data anonymization
+            # Step 1: Use Django's dumpdata for clean serialization
+            cmd = ['python', 'manage.py', 'dumpdata', '--natural-foreign'] + INCLUDE_MODELS
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            
+            # Step 2: Parse and anonymize
+            data = json.loads(result.stdout)
             fake = Faker()
             
-            # Serialize data with anonymization
-            backup_data = []
+            self.stdout.write(f'Anonymizing {len(data)} records...')
             
-            for model_label in models_to_dump:
-                app_label, model_name = model_label.split('.')
-                model = apps.get_model(app_label, model_name)
-                
-                self.stdout.write(f'Processing {model_label}...')
-                
-                for instance in model.objects.all():
-                    # Serialize the instance
-                    serialized = json.loads(serializers.serialize('json', [instance]))[0]
-                    
-                    # Anonymize PII fields based on model
-                    self._anonymize_instance(serialized, model_label, fake)
-                    
-                    backup_data.append(serialized)
+            for item in data:
+                self.anonymize_item(item, fake)
             
-            # Write to file
+            # Step 3: Write anonymized data
             with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(backup_data, f, indent=2, ensure_ascii=False)
+                json.dump(data, f, indent=2, ensure_ascii=False)
             
             self.stdout.write(self.style.SUCCESS(f'Data backup completed successfully to {output_path}'))
             
+        except subprocess.CalledProcessError as e:
+            self.stdout.write(self.style.ERROR(f'dumpdata failed: {e.stderr}'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Error during data backup: {e}'))
-            # Clean up the partially created file if an error occurs
             if os.path.exists(output_path):
                 os.remove(output_path)
-    
-    def _anonymize_instance(self, serialized, model_label, fake):
-        """Anonymize PII fields in the serialized instance"""
-        fields = serialized['fields']
+
+    def anonymize_item(self, item, fake):
+        """Anonymize PII fields in the serialized item"""
+        model = item['model']
+        fields = item['fields']
         
-        if model_label == 'accounts.Staff':
-            # Anonymize staff names and emails but keep structure
-            if 'first_name' in fields:
-                fields['first_name'] = fake.first_name()
-            if 'last_name' in fields:
-                fields['last_name'] = fake.last_name()
-            if 'email' in fields:
-                # Keep original email format for referential integrity
-                original_email = fields['email']
-                if '@' in original_email:
-                    domain = original_email.split('@')[1]
-                    fields['email'] = f"{fake.user_name()}@{domain}"
-        
-        elif model_label == 'client.Client':
-            # Anonymize client names
-            if 'name' in fields:
-                fields['name'] = fake.company()
-            if 'contact_person' in fields and fields['contact_person']:
-                fields['contact_person'] = fake.name()
-            if 'contact_email' in fields and fields['contact_email']:
-                fields['contact_email'] = fake.email()
-            if 'contact_phone' in fields and fields['contact_phone']:
-                fields['contact_phone'] = fake.phone_number()
-        
-        elif model_label == 'client.ClientContact':
-            # Anonymize contact details
-            if 'name' in fields:
-                fields['name'] = fake.name()
-            if 'email' in fields and fields['email']:
+        if model == 'accounts.staff':
+            fields['first_name'] = fake.first_name()
+            fields['last_name'] = fake.last_name()
+            if fields['preferred_name']:
+                fields['preferred_name'] = fake.first_name()
+            if fields['email']:
                 fields['email'] = fake.email()
-            if 'phone' in fields and fields['phone']:
+        
+        elif model == 'client.client':
+            fields['name'] = fake.company()
+            if fields['primary_contact_name']:
+                fields['primary_contact_name'] = fake.name()
+            if fields['primary_contact_email']:
+                fields['primary_contact_email'] = fake.email()
+            if fields['email']:
+                fields['email'] = fake.email()
+            if fields['phone']:
                 fields['phone'] = fake.phone_number()
         
-        elif model_label == 'job.Job':
-            # Anonymize job names and contact details
-            if 'name' in fields:
-                # Keep it somewhat realistic for jobs
-                fields['name'] = f"{fake.word().capitalize()} {fake.word()}"
-            if 'contact_person' in fields and fields['contact_person']:
+        elif model == 'client.clientcontact':
+            fields['name'] = fake.name()
+            if fields['email']:
+                fields['email'] = fake.email()
+            if fields['phone']:
+                fields['phone'] = fake.phone_number()
+        
+        elif model == 'job.job':
+            if fields['contact_person']:
                 fields['contact_person'] = fake.name()
-            if 'contact_email' in fields and fields['contact_email']:
+            if fields['contact_email']:
                 fields['contact_email'] = fake.email()
-            if 'contact_phone' in fields and fields['contact_phone']:
+            if fields['contact_phone']:
                 fields['contact_phone'] = fake.phone_number()
