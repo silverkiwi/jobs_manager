@@ -13,6 +13,10 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterUniqueTogether(
             name="supplierproduct",
+            unique_together=set(),
+        ),
+        migrations.AlterUniqueTogether(
+            name="supplierproduct",
             unique_together={("supplier", "item_no", "variant_id")},
         ),
         migrations.AddIndex(
