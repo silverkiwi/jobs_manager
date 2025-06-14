@@ -27,9 +27,9 @@ class Command(BaseCommand):
             'accounts.Staff',
             'client.Client',
             'client.ClientContact',
-            'purchasing.PurchaseOrder',
-            'purchasing.PurchaseOrderLine', 
-            'purchasing.Stock',
+            # 'purchasing.PurchaseOrder',     # Xero-owned, will be synced from Xero
+            # 'purchasing.PurchaseOrderLine', # Xero-owned, will be synced from Xero
+            # 'purchasing.Stock',            # Xero-owned, will be synced from Xero
             'quoting.SupplierPriceList',
             'quoting.SupplierProduct',
         ]
