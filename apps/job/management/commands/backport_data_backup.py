@@ -48,7 +48,7 @@ class Command(BaseCommand):
 
         try:
             # Step 1: Use Django's dumpdata for clean serialization
-            cmd = ['python', 'manage.py', 'dumpdata', '--natural-foreign'] + INCLUDE_MODELS
+            cmd = ['python', 'manage.py', 'dumpdata'] + INCLUDE_MODELS
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             
             # Step 2: Parse and anonymize
