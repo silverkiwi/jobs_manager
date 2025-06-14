@@ -163,13 +163,23 @@ class BaseScraper(ABC):
 
         for product_data in products_data:
             try:
+                # Fail fast on missing essential fields
+                item_no = product_data.get("item_no")
+                if not item_no or item_no in ["N/A", "", None]:
+                    raise ValueError(
+                        f"Product missing required item_no: "
+                        f"URL={product_data.get('url')}, "
+                        f"Name={product_data.get('product_name')}, "
+                        f"VariantID={product_data.get('variant_id')}"
+                    )
+                
                 product_data["supplier"] = self.supplier
                 product_data["price_list"] = self.price_list
                 
                 product, created = SupplierProduct.objects.update_or_create(
                     supplier=self.supplier,
+                    item_no=product_data["item_no"],
                     variant_id=product_data["variant_id"],
-                    url=product_data["url"],
                     defaults=product_data,
                 )
 
