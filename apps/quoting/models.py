@@ -39,15 +39,16 @@ class SupplierProduct(models.Model):
     )
 
     # Standard audit fields
-    created_at = models.DateTimeField(auto_now_add=True, null=False)
-    updated_at = models.DateTimeField(auto_now=True, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ["supplier", "item_no", "variant_id"]
+        unique_together = ["supplier", "url", "item_no", "variant_id"]
         indexes = [
             models.Index(fields=["variant_id"]),
-            models.Index(fields=["product_name"]),
             models.Index(fields=["item_no"]),
+            models.Index(fields=["url"]),
+            models.Index(fields=["product_name"]),
         ]
 
     def __str__(self):

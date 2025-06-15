@@ -1,0 +1,7 @@
+Priorities:
+    1. Able to parse supplier price PDFs
+    2. Able to parse supplier quotes and create POs
+    3. Scraper is running correctly
+    4. Logger on error sends an email
+    5. MCP: Able to query supplier prices and stock
+    

@@ -1,37 +1,14 @@
 import logging
-import os
 import json
 import base64
-import mimetypes
 from typing import Optional, Tuple
-import requests
-
-import google.generativeai as genai
 import pdfplumber
-
-from django.conf import settings
+import anthropic
 
 from apps.workflow.helpers import get_company_defaults
-from apps.job.enums import MetalType
 from apps.workflow.enums import AIProviderTypes
 
 logger = logging.getLogger(__name__)
-
-
-def read_file_content(file_path: str) -> Optional[bytes]:
-    """Read file content in binary mode."""
-    try:
-        with open(file_path, "rb") as file:
-            return file.read()
-    except Exception as e:
-        logger.error(f"Failed to read file {file_path}: {e}")
-        return None
-
-
-def create_concise_prompt(metal_types: list[str]) -> str:
-    """Generates a concise prompt for Supplier Price List data extraction."""
-    metal_types_str = ", ".join(metal_types)
-    return f"Extract supplier price list data for {metal_types_str} and return it in JSON format."
 
 
 def create_supplier_extraction_prompt() -> str:
@@ -84,20 +61,6 @@ def create_supplier_extraction_prompt() -> str:
         "specifications": "5005 alloy, H34 temper, 50µm PE Film"
         }
 
-        Aluminum Profile Example (UA codes):
-        Input: Description: 10 X 2.3mm UA1165 AEC3799 FLAT BAR 6060T5 5.000 m, Price: $8.98
-
-        Output:
-        {
-        "description": "10 X 2.3mm UA1165 AEC3799 FLAT BAR 6060T5 5.000 m $8.98",
-        "unit_price": "8.98",
-        "supplier_item_code": "UA1165",
-        "variant_id": "UA1165-10-2.3",
-        "metal_type": "Aluminum",
-        "dimensions": "10mm x 2.3mm x 5.000m",
-        "specifications": "6060T6 alloy, Flat Bar profile"
-        }
-
         CRITICAL RULES:
 
         Extract descriptions EXACTLY as they appear in the document
@@ -135,23 +98,11 @@ def clean_json_response(text: str) -> str:
     return text.strip()
 
 
-def log_token_usage(usage, api_name):
-    """Log token usage from AI API response."""
-    input_tokens = getattr(usage, "input_tokens", 0)
-    output_tokens = getattr(usage, "output_tokens", 0)
-    total_tokens = input_tokens + output_tokens
-
-    logger.info(
-        f"{api_name} API token usage for price list extraction: "
-        f"Input: {input_tokens}, Output: {output_tokens}, Total: {total_tokens}"
-    )
-
-
-def extract_data_from_supplier_price_list_gemini(
+def extract_data_from_supplier_price_list_claude(
     file_path: str, content_type: Optional[str] = None
 ) -> Tuple[Optional[dict], Optional[str]]:
     """
-    Extract data from a supplier price list file using Gemini.
+    Extract data from a supplier price list file using Claude.
 
     Args:
         file_path: Path to the price list file.
@@ -171,29 +122,21 @@ def extract_data_from_supplier_price_list_gemini(
                 "No active AI provider configured. Please set one in company settings.",
             )
 
-        if active_ai_provider.provider_type != AIProviderTypes.GOOGLE:
+        if active_ai_provider.provider_type != AIProviderTypes.ANTHROPIC:
             return (
                 None,
-                f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Google (Gemini).",
+                f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Anthropic (Claude).",
             )
 
-        gemini_api_key = active_ai_provider.api_key
+        claude_api_key = active_ai_provider.api_key
 
-        if not gemini_api_key:
+        if not claude_api_key:
             return (
                 None,
-                "Gemini API key not configured for the active AI provider. Please add it in company settings.",
+                "Claude API key not configured for the active AI provider. Please add it in company settings.",
             )
 
-        genai.configure(api_key=gemini_api_key)
-
-        # Configure generation with high token limit for large supplier catalogs
-        generation_config = genai.GenerationConfig(
-            max_output_tokens=200000,  # Required for catalogs with thousands of products
-            temperature=0.1,  # Lower temperature for more consistent extraction
-        )
-        
-        model = genai.GenerativeModel("gemini-1.5-flash", generation_config=generation_config)
+        client = anthropic.Anthropic(api_key=claude_api_key)
 
         # Extract text from PDF using pdfplumber
         text_pages = []
@@ -207,37 +150,38 @@ def extract_data_from_supplier_price_list_gemini(
         extracted_text = "\n\n".join(text_pages)
         logger.info(f"Extracted {len(extracted_text)} characters from PDF")
         
-        # Send extracted text to Gemini
+        # Send extracted text to Claude
         prompt = create_supplier_extraction_prompt()
-        contents = [f"{prompt}\n\nExtracted text from PDF:\n{extracted_text}"]
+        full_prompt = f"{prompt}\n\nExtracted text from PDF:\n{extracted_text}"
 
-        logger.info(f"Calling Gemini API for price list extraction: {file_path}")
-        response = model.generate_content(contents)
+        logger.info(f"Calling Claude API for price list extraction: {file_path}")
+        
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=8192,
+            messages=[
+                {
+                    "role": "user",
+                    "content": full_prompt
+                }
+            ]
+        )
 
-        # Log token usage
-        if response.usage_metadata:
-            log_token_usage(response.usage_metadata, "Gemini")
-        else:
-            logger.warning("Gemini API response did not contain usage_metadata.")
-
-        if not response.candidates:
-            return None, "Gemini API returned no candidates."
+        if not message.content:
+            return None, "Claude API returned no content."
 
         # Extract JSON from response
-        json_text = response.text
-
+        json_text = message.content[0].text if message.content else ""
+        
         price_list_data = json.loads(clean_json_response(json_text))
-
-        # No supplier matching needed here, as this is for price lists, not specific quotes.
-        # The supplier name will be extracted directly from the JSON.
 
         return price_list_data, None
 
     except json.JSONDecodeError as e:
-        logger.error(f"Gemini response was not valid JSON: {json_text}. Error: {e}")
-        return None, f"Gemini returned invalid JSON: {e}"
+        logger.error(f"Claude response was not valid JSON: {json_text}. Error: {e}")
+        return None, f"Claude returned invalid JSON: {e}"
     except Exception as e:
         logger.exception(
-            f"Error extracting data from supplier price list with Gemini: {e}"
+            f"Error extracting data from supplier price list with Claude: {e}"
         )
         return None, str(e)

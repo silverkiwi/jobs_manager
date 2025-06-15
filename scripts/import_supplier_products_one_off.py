@@ -18,7 +18,7 @@ import django
 
 django.setup()
 
-from apps.quoting.models import SupplierProduct
+from apps.quoting.models_old import SupplierProduct
 from apps.client.models import Client
 from django.db import transaction, IntegrityError
 
