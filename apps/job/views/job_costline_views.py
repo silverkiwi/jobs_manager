@@ -1,0 +1,218 @@
+"""
+CostLine REST Views
+
+REST views for CostLine CRUD operations following clean code principles:
+- SRP (Single Responsibility Principle)
+- Early return and guard clauses
+- Delegation to service layer
+- Views as orchestrators only
+"""
+
+import logging
+from decimal import Decimal
+from typing import Dict, Any
+
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.db import transaction
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+
+from apps.job.models import Job, CostSet, CostLine
+from apps.job.serializers.costing_serializer import (
+    CostLineSerializer, 
+    CostLineCreateUpdateSerializer
+)
+
+logger = logging.getLogger(__name__)
+
+
+class CostLineCreateView(APIView):
+    """
+    Create a new CostLine in the specified job's actual CostSet
+    
+    POST /job/rest/jobs/<job_id>/cost_sets/actual/cost_lines/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, job_id):
+        """Create a new cost line"""
+        # Guard clause - validate job exists
+        job = get_object_or_404(Job, id=job_id)
+        
+        try:
+            with transaction.atomic():
+                # Get or create actual CostSet
+                cost_set = self._get_or_create_actual_cost_set(job)
+                
+                # Validate and create cost line
+                serializer = CostLineCreateUpdateSerializer(data=request.data)
+                if not serializer.is_valid():
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Create the cost line
+                cost_line = serializer.save(cost_set=cost_set)
+                
+                # Update cost set summary
+                self._update_cost_set_summary(cost_set)
+                
+                # Return created cost line
+                response_serializer = CostLineSerializer(cost_line)
+                return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+                
+        except Exception as e:
+            logger.error(f"Error creating cost line for job {job_id}: {e}")
+            return Response(
+                {'error': 'Failed to create cost line'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _get_or_create_actual_cost_set(self, job: Job) -> CostSet:
+        """Get or create the actual CostSet for the job"""
+        cost_set = job.cost_sets.filter(kind='actual').order_by('-rev').first()
+        
+        if not cost_set:
+            # Create new actual cost set
+            latest_rev = job.cost_sets.filter(kind='actual').count()
+            cost_set = CostSet.objects.create(
+                job=job,
+                kind='actual',
+                rev=latest_rev + 1,
+                summary={'cost': 0, 'rev': 0, 'hours': 0}
+            )
+            logger.info(f"Created new actual CostSet rev {cost_set.rev} for job {job.id}")
+        
+        return cost_set
+    
+    def _update_cost_set_summary(self, cost_set: CostSet) -> None:
+        """Update cost set summary with aggregated data"""
+        cost_lines = cost_set.cost_lines.all()
+        
+        total_cost = sum(line.total_cost for line in cost_lines)
+        total_rev = sum(line.total_rev for line in cost_lines)
+        total_hours = sum(
+            float(line.quantity) for line in cost_lines 
+            if line.kind == 'time'
+        )
+        
+        cost_set.summary = {
+            'cost': float(total_cost),
+            'rev': float(total_rev),
+            'hours': total_hours
+        }
+        cost_set.save()
+
+
+class CostLineUpdateView(APIView):
+    """
+    Update an existing CostLine
+    
+    PATCH /job/rest/cost_lines/<cost_line_id>/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def patch(self, request, cost_line_id):
+        """Update a cost line"""
+        # Guard clause - validate cost line exists
+        cost_line = get_object_or_404(CostLine, id=cost_line_id)
+        
+        try:
+            with transaction.atomic():
+                # Validate and update cost line
+                serializer = CostLineCreateUpdateSerializer(
+                    cost_line, 
+                    data=request.data, 
+                    partial=True
+                )
+                
+                if not serializer.is_valid():
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Save updated cost line
+                updated_cost_line = serializer.save()
+                
+                # Update cost set summary
+                self._update_cost_set_summary(updated_cost_line.cost_set)
+                
+                # Return updated cost line
+                response_serializer = CostLineSerializer(updated_cost_line)
+                return Response(response_serializer.data, status=status.HTTP_200_OK)
+                
+        except Exception as e:
+            logger.error(f"Error updating cost line {cost_line_id}: {e}")
+            return Response(
+                {'error': 'Failed to update cost line'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _update_cost_set_summary(self, cost_set: CostSet) -> None:
+        """Update cost set summary with aggregated data"""
+        cost_lines = cost_set.cost_lines.all()
+        
+        total_cost = sum(line.total_cost for line in cost_lines)
+        total_rev = sum(line.total_rev for line in cost_lines)
+        total_hours = sum(
+            float(line.quantity) for line in cost_lines 
+            if line.kind == 'time'
+        )
+        
+        cost_set.summary = {
+            'cost': float(total_cost),
+            'rev': float(total_rev),
+            'hours': total_hours
+        }
+        cost_set.save()
+
+
+class CostLineDeleteView(APIView):
+    """
+    Delete an existing CostLine
+    
+    DELETE /job/rest/cost_lines/<cost_line_id>/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def delete(self, request, cost_line_id):
+        """Delete a cost line"""
+        # Guard clause - validate cost line exists
+        cost_line = get_object_or_404(CostLine, id=cost_line_id)
+        
+        try:
+            with transaction.atomic():
+                cost_set = cost_line.cost_set
+                
+                # Delete the cost line
+                cost_line.delete()
+                logger.info(f"Deleted cost line {cost_line_id}")
+                
+                # Update cost set summary
+                self._update_cost_set_summary(cost_set)
+                
+                return Response(status=status.HTTP_204_NO_CONTENT)
+                
+        except Exception as e:
+            logger.error(f"Error deleting cost line {cost_line_id}: {e}")
+            return Response(
+                {'error': 'Failed to delete cost line'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _update_cost_set_summary(self, cost_set: CostSet) -> None:
+        """Update cost set summary with aggregated data"""
+        cost_lines = cost_set.cost_lines.all()
+        
+        total_cost = sum(line.total_cost for line in cost_lines)
+        total_rev = sum(line.total_rev for line in cost_lines)
+        total_hours = sum(
+            float(line.quantity) for line in cost_lines 
+            if line.kind == 'time'
+        )
+        
+        cost_set.summary = {
+            'cost': float(total_cost),
+            'rev': float(total_rev),
+            'hours': total_hours
+        }
+        cost_set.save()
