@@ -13,10 +13,11 @@ XERO_ENTITIES = [
     "contacts",
     "invoices",
     "bills",
-    "journals",
-    "credit_notes",
     "quotes",
+    "credit_notes",
     "purchase_orders",
+    "stock",
+    "journals",
 ]
 
 

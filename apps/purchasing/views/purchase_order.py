@@ -63,8 +63,8 @@ class PurchaseOrderListView(LoginRequiredMixin, ListView):
     context_object_name = "purchase_orders"
 
     def get_queryset(self):
-        """Return purchase orders ordered by date."""
-        return PurchaseOrder.objects.all().order_by("-order_date")
+        """Return purchase orders ordered by PO number (descending)."""
+        return PurchaseOrder.objects.all().order_by("-po_number")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

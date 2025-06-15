@@ -14,6 +14,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("accounting", "0001_initial"),
+        ("workflow", "0001_initial"),
     ]
 
     database_operations = [
@@ -526,6 +527,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[],
-            database_operations=database_operations
+            database_operations=[]  # No database operations - tables already exist from workflow migration
         )
     ]

@@ -7,6 +7,7 @@ from typing import Optional, Tuple
 import requests
 
 import google.generativeai as genai
+import pdfplumber
 
 from django.conf import settings
 
@@ -186,16 +187,29 @@ def extract_data_from_supplier_price_list_gemini(
 
         genai.configure(api_key=gemini_api_key)
 
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        # Configure generation with high token limit for large supplier catalogs
+        generation_config = genai.GenerationConfig(
+            max_output_tokens=200000,  # Required for catalogs with thousands of products
+            temperature=0.1,  # Lower temperature for more consistent extraction
+        )
+        
+        model = genai.GenerativeModel("gemini-1.5-flash", generation_config=generation_config)
 
-        uploaded_file = genai.upload_file(file_path)
-        if uploaded_file is None:
-            return None, f"Failed to upload file to Gemini: {file_path}"
-
-        valid_metal_types = [choice[0] for choice in MetalType.choices]
-        prompt = create_concise_prompt(valid_metal_types)
-
-        contents = [prompt, uploaded_file]
+        # Extract text from PDF using pdfplumber
+        text_pages = []
+        with pdfplumber.open(file_path) as pdf:
+            for page_num, page in enumerate(pdf.pages, 1):
+                page_text = page.extract_text()
+                if not page_text:
+                    return None, f"Failed to extract text from page {page_num} of PDF"
+                text_pages.append(page_text)
+        
+        extracted_text = "\n\n".join(text_pages)
+        logger.info(f"Extracted {len(extracted_text)} characters from PDF")
+        
+        # Send extracted text to Gemini
+        prompt = create_supplier_extraction_prompt()
+        contents = [f"{prompt}\n\nExtracted text from PDF:\n{extracted_text}"]
 
         logger.info(f"Calling Gemini API for price list extraction: {file_path}")
         response = model.generate_content(contents)

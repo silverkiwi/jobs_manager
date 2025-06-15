@@ -178,6 +178,19 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
         },
+        "ai_extraction_file": {
+            "level": "DEBUG",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/ai_extraction.log"),
+            "maxBytes": 10 * 1024 * 1024,  # Larger for detailed OCR/parsing logs
+            "backupCount": 10,
+            "formatter": "verbose",
+        },
+        "mail_admins": {
+            "level": "ERROR",
+            "class": "django.utils.log.AdminEmailHandler",
+            "include_html": True,
+        },
     },
     "loggers": {
         # your SQL logger only writes to sql_file, and bubbles up to root
@@ -213,9 +226,20 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        # AI extraction logs (OCR, parsing, price lists)
+        "apps.quoting.services.ai_price_extraction": {
+            "handlers": ["ai_extraction_file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+        "apps.quoting.services.providers": {
+            "handlers": ["ai_extraction_file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
     },
     "root": {
-        "handlers": ["console", "app_file"],
+        "handlers": ["console", "app_file", "mail_admins"],
         "level": "DEBUG",
     },
 }
@@ -238,6 +262,7 @@ TEMPLATES = [
             os.path.join(BASE_DIR, "apps/client/templates"),
             os.path.join(BASE_DIR, "apps/purchasing/templates"),
             os.path.join(BASE_DIR, "apps/accounting/templates"),
+            os.path.join(BASE_DIR, "apps/quoting/templates"),
         ],
         "APP_DIRS": True,
         "OPTIONS": {

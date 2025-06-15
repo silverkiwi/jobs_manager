@@ -272,7 +272,7 @@ def extract_data_from_supplier_quote(
                 "content-type": "application/json",
             },
             json={
-                "model": "claude-3-7-sonnet-20250219",
+                "model": "claude-sonnet-4-20250514",
                 "max_tokens": 4000,
                 "messages": [
                     {

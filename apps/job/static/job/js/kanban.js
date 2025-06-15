@@ -29,7 +29,8 @@ function initializeColumns() {
     loadJobs(status);
   });
 
-  initializeDragAndDrop();
+  // Don't call initializeDragAndDrop() here - it runs before async loadJobs() completes
+  // Each column initializes its own drag and drop in renderJobs() after jobs are loaded
 }
 
 function loadJobs(status) {
@@ -84,12 +85,22 @@ function refreshAllColumns() {
 
 function renderJobs(status, jobs) {
   const container = document.querySelector(`#${status} .job-list`);
+  
+  // Disable Sortable during job loading to prevent reorder events
+  if (container && container.sortableJobsInstance) {
+    container.sortableJobsInstance.destroy();
+    container.sortableJobsInstance = null;
+  }
+  
   container.innerHTML = "";
 
   if (jobs.length === 0) {
     container.innerHTML = `
       <div class="empty-message">No jobs found</div>
     `;
+    // Still need to initialize drag and drop for empty columns so they can receive drops
+    initializeDragAndDropForColumn(container);
+    initializeStaffDragAndDrop();
     return;
   }
 
@@ -99,6 +110,9 @@ function renderJobs(status, jobs) {
     container.appendChild(jobCard);
   });
 
+  // Initialize drag and drop for this specific column after jobs are loaded
+  // Can't rely on global initializeDragAndDrop() because it runs before async loadJobs() completes
+  initializeDragAndDropForColumn(container);
   initializeStaffDragAndDrop();
 }
 
@@ -192,6 +206,99 @@ function createJobCard(job) {
   });
 
   return card;
+}
+
+// Initialize SortableJS for a specific container
+function initializeDragAndDropForColumn(container) {
+  // Destroy existing instance if any, to prevent duplicates
+  if (container.sortableJobsInstance) {
+    container.sortableJobsInstance.destroy();
+  }
+  container.sortableJobsInstance = new Sortable(container, {
+    group: "jobGroup",
+    animation: 150,
+    ghostClass: "sortable-ghost",
+    chosenClass: "sortable-drag",
+    dragClass: "sortable-drag",
+    onStart: function () {
+      document.querySelectorAll(".kanban-column").forEach((col) => {
+        col.classList.add("drop-target-potential");
+      });
+    },
+    onEnd: function (evt) {
+      const itemEl = evt.item;
+      const oldCol = evt.from.closest(".kanban-column");
+      const newCol = evt.to.closest(".kanban-column");
+      const oldStatus = oldCol.id;
+      const newStatus = newCol.id;
+      const jobId = itemEl.dataset.id;
+
+      document
+        .querySelectorAll(".kanban-column")
+        .forEach((c) => c.classList.remove("drop-target-potential"));
+
+      // collect cards in the dest column
+      let cards = Array.from(newCol.querySelectorAll(".job-card"));
+      if (cards.length === 0) cards = [itemEl];      // column was empty
+
+      const total = cards.length;
+      let index = evt.newIndex;
+      if (index >= total) index = total - 1; // clamp
+      if (index < 0) index = 0;
+
+      let beforeId = null;
+      let afterId = null;
+
+      switch (true) {
+        // top
+        case index === 0:               
+          afterId = cards[1] ? cards[1].dataset.id : null;
+          break;
+          
+        // bottom
+        case index === total - 1:      
+          beforeId = cards[total - 2] ? cards[total - 2].dataset.id : null;
+          break;
+
+        // middle
+        default:                        
+          beforeId = cards[index - 1].dataset.id;
+          afterId = cards[index + 1].dataset.id;
+          break;
+      }
+
+      const payload = {
+        before_id: beforeId,
+        after_id: afterId,
+        status: newStatus
+      };
+
+      fetch(`/job/${jobId}/reorder/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            console.log("Job reordered successfully");
+          } else {
+            console.error("Error reordering job:", data.error);
+          }
+        })
+        .catch((error) => {
+          console.error("Network error:", error);
+        });
+
+      // Update status if moved between columns
+      if (oldStatus !== newStatus) {
+        updateJobStatus(jobId, newStatus);
+      }
+    },
+  });
 }
 
 // Initialize SortableJS to allow moving jobs between columns
@@ -389,8 +496,9 @@ function setupToggleArchived() {
   const archiveContainer = document.getElementById("archiveContainer");
 
   let archivedVisible = false;
+  let archivedLoaded = false;
 
-  loadJobs("archived");
+  // Don't load archived jobs on init - causes Sortable errors on hidden container
 
   toggleButton.addEventListener("click", () => {
     archivedVisible = !archivedVisible;
@@ -400,7 +508,11 @@ function setupToggleArchived() {
       case true:
         archiveContainer.style.display = "grid";
         if (icon) icon.className = "bi bi-chevron-up";
-        loadJobs("archived");
+        // Only load archived jobs once, when first opened
+        if (!archivedLoaded) {
+          loadJobs("archived");
+          archivedLoaded = true;
+        }
         break;
       default:
         archiveContainer.style.display = "none";
