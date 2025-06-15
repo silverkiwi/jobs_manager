@@ -23,7 +23,6 @@ from django.db import transaction
 
 from apps.client.models import Client, ClientContact
 from apps.client.forms import ClientForm
-from apps.client.forms import ClientForm
 
 logger = logging.getLogger(__name__)
 
