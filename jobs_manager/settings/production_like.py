@@ -131,6 +131,22 @@ else:
 ENABLE_JWT_AUTH = os.getenv("ENABLE_JWT_AUTH", "True").lower() == "true"
 ENABLE_DUAL_AUTHENTICATION = os.getenv("ENABLE_DUAL_AUTHENTICATION", "False").lower() == "true"
 
+# JWT Configuration for production - override base settings for secure cookies
+if ENABLE_JWT_AUTH:
+    from .base import SIMPLE_JWT as BASE_SIMPLE_JWT
+    
+    SIMPLE_JWT = BASE_SIMPLE_JWT.copy()
+    SIMPLE_JWT.update({
+        "AUTH_COOKIE_SECURE": True,  # Require HTTPS for auth cookies in production
+        "AUTH_COOKIE_HTTP_ONLY": True,  # httpOnly for security
+        "AUTH_COOKIE_SAMESITE": "Lax",
+        "AUTH_COOKIE_DOMAIN": None,  # Let browser determine based on request domain
+        "REFRESH_COOKIE": "refresh_token",
+        "REFRESH_COOKIE_SECURE": True,  # Require HTTPS for refresh cookies
+        "REFRESH_COOKIE_HTTP_ONLY": True,
+        "REFRESH_COOKIE_SAMESITE": "Lax",
+    })
+
 from django.apps import apps
 from django.db import ProgrammingError
 
