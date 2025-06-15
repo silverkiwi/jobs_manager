@@ -138,10 +138,23 @@ class SteelAndTubeScraper(BaseScraper):
                 raise Exception("Login verification failed - cannot proceed with scraping")
 
         try:
-            # Check for page not found
+            # Check for page not found - save these as 404 entries
             if "The requested page cannot be found" in self.driver.page_source:
                 self.logger.warning(f"Page not found for URL: {url}")
-                return []
+                # Create a 404 product entry
+                return [{
+                    'product_name': "Page Not Found",
+                    'item_no': f"404-{url.split('/')[-1][-7:]}",  # Use last 7 chars of URL as item number
+                    'description': "Page not found (404)",
+                    'specifications': "N/A",
+                    'variant_id': f"404-{url.split('/')[-1]}",
+                    'variant_width': None,
+                    'variant_length': None,
+                    'variant_price': None,
+                    'price_unit': "N/A",
+                    'variant_available_stock': 0,
+                    'url': url
+                }]
 
             # Extract basic product info
             product_name = self.extract_text_by_selector('h1[itemprop="name"]', default="N/A")
