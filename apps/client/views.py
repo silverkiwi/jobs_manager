@@ -29,8 +29,9 @@ from apps.workflow.api.xero.sync import (
 from apps.workflow.api.xero.xero import get_valid_token, api_client, get_tenant_id
 from apps.accounting.models import Invoice, Bill
 
-from apps.client.models import Client
+from apps.client.models import Client, ClientContact
 from apps.client.forms import ClientForm
+from apps.client.serializers import ClientContactSerializer
 
 from apps.job.models import Job
 
@@ -590,3 +591,69 @@ class UnusedClientsView(TemplateView):
         except Exception as e:
             logger.error(f"Error in bulk client deletion: {str(e)}")
             return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+# API views for ClientContact management
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+
+@api_view(['GET'])
+def get_client_contacts_api(request, client_id):
+    """
+    API endpoint to retrieve all contacts for a specific client.
+    """
+    try:
+        client = get_object_or_404(Client, id=client_id)
+        contacts = ClientContact.objects.filter(client=client).order_by('-is_primary', 'name')
+        serializer = ClientContactSerializer(contacts, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        logger.error(f"Error fetching contacts for client {client_id}: {str(e)}")
+        return Response(
+            {"error": f"Error fetching contacts: {str(e)}"}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+def create_client_contact_api(request):
+    """
+    API endpoint to create a new contact for a client.
+    """
+    try:
+        serializer = ClientContactSerializer(data=request.data)
+        if serializer.is_valid():
+            contact = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error creating contact: {str(e)}")
+        return Response(
+            {"error": f"Error creating contact: {str(e)}"}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def client_contact_detail_api(request, contact_id):
+    """
+    API endpoint to retrieve, update, or delete a specific contact.
+    """
+    contact = get_object_or_404(ClientContact, id=contact_id)
+    
+    if request.method == 'GET':
+        serializer = ClientContactSerializer(contact)
+        return Response(serializer.data)
+    
+    elif request.method == 'PUT':
+        serializer = ClientContactSerializer(contact, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        contact.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

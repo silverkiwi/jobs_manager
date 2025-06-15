@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from django.db import models, transaction
 from django.db.models import Max, Index
@@ -57,6 +57,8 @@ class Job(models.Model):
         related_name="jobs",  # Allows reverse lookup of jobs for a client
     )
     order_number = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Legacy contact fields - to be migrated to ClientContact
     contact_person = models.CharField(max_length=100, null=True, blank=True)
     contact_email = models.EmailField(
         null=True, blank=True
@@ -65,6 +67,16 @@ class Job(models.Model):
         max_length=150,
         null=True,
         blank=True,
+    )
+    
+    # New relationship to ClientContact
+    contact = models.ForeignKey(
+        "client.ClientContact",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="jobs",
+        help_text="The contact person for this job"
     )
     job_number = models.IntegerField(unique=True)  # Job 1234
     material_gauge_quantity = models.TextField(
@@ -165,6 +177,34 @@ class Job(models.Model):
 
     people = models.ManyToManyField(Staff, related_name="assigned_jobs")
 
+    # Latest cost set snapshots for linking to current estimates/quotes/actuals
+    latest_estimate = models.OneToOneField(
+        "CostSet",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text="Latest estimate cost set snapshot"
+    )
+    
+    latest_quote = models.OneToOneField(
+        "CostSet", 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text="Latest quote cost set snapshot"
+    )
+    
+    latest_actual = models.OneToOneField(
+        "CostSet",
+        on_delete=models.SET_NULL, 
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text="Latest actual cost set snapshot"
+    )
+
     PRIORITY_INCREMENT = 200
 
     priority = models.IntegerField(
@@ -216,15 +256,59 @@ class Job(models.Model):
     def invoiced(self) -> bool:
         if hasattr(self, "invoice") and self.invoice is not None:
             return self.invoice
-        return False
-
+        return False    
+    
     def __str__(self) -> str:
-        client_name = self.client.name if self.client else "No Client"
-        job_name = self.name if self.name else "No Job Name"
-        return f" {self.job_number} - {job_name} for {client_name}"
+        status_display = self.get_status_display()
+        return f"[Job {self.job_number}] {self.name} ({status_display})"
 
-    def get_display_name(self) -> str:
-        return f"Job: {self.job_number}"  # type: ignore
+    def get_latest(self, kind: str) -> Optional['CostSet']:
+        """
+        Returns the respective CostSet or None.
+        
+        Args:
+            kind: 'estimate', 'quote' or 'actual'
+            
+        Returns:
+            CostSet instance or None
+        """
+        field_mapping = {
+            'estimate': 'latest_estimate',
+            'quote': 'latest_quote', 
+            'actual': 'latest_actual'
+        }
+        
+        if kind not in field_mapping:
+            raise ValueError(f"Invalid kind '{kind}'. Must be one of: {list(field_mapping.keys())}")
+            
+        return getattr(self, field_mapping[kind], None)
+    
+    def set_latest(self, kind: str, cost_set: 'CostSet') -> None:
+        """
+        Updates pointer and saves.
+        
+        Args:
+            kind: 'estimate', 'quote' or 'actual'
+            cost_set: CostSet instance to set as latest
+        """
+        field_mapping = {
+            'estimate': 'latest_estimate',
+            'quote': 'latest_quote',
+            'actual': 'latest_actual'
+        }
+        
+        if kind not in field_mapping:
+            raise ValueError(f"Invalid kind '{kind}'. Must be one of: {list(field_mapping.keys())}")
+            
+        # Validate that the cost_set belongs to this job and is of the correct kind
+        if cost_set.job != self:
+            raise ValueError("CostSet must belong to this job")
+            
+        if cost_set.kind != kind:
+            raise ValueError(f"CostSet kind '{cost_set.kind}' does not match requested kind '{kind}'")
+            
+        setattr(self, field_mapping[kind], cost_set)
+        self.save(update_fields=[field_mapping[kind]])
 
     @property
     def job_display_name(self) -> str:
@@ -299,14 +383,13 @@ class Job(models.Model):
                         "latest_estimate_pricing",
                         "latest_quote_pricing",
                         "latest_reality_pricing",
-                    ]
-                )
-
+                    ]                )
+                
                 if create_creation_event and staff:
                     JobEvent.objects.create(
                         job=self,
-                        event_type="created",
-                        description=f"Job {self.name} created",
+                        event_type="job_created",
+                        description=f"New job created",                    
                         staff=staff,
                     )
 
@@ -316,10 +399,10 @@ class Job(models.Model):
 
                 JobEvent.objects.create(
                     job=self,
-                    event_type="status_change",
+                    event_type="status_changed",
                     description=(
-                        f"Job status changed from {original_status} "
-                        f"to {self.status}"
+                        f"Status changed from {original_status.replace('_', ' ').title()} "
+                        f"to {self.status.replace('_', ' ').title()}"
                     ),
                     staff=staff,
                 )

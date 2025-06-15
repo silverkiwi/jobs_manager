@@ -108,3 +108,6 @@ logs/.*.lock
 # For images
 **/*.png
 **/*.jpg
+django-integrations-*.json
+*.pdf
+restore/*.json

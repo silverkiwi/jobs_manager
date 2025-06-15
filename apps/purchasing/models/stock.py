@@ -127,6 +127,7 @@ class Stock(models.Model):
     )
 
     class Meta:
+        db_table = "workflow_stock"
         constraints = [
             models.UniqueConstraint(fields=["xero_id"], name="unique_xero_id_stock")
         ]
@@ -179,8 +180,4 @@ class Stock(models.Model):
             cls._stock_holding_job = Job.objects.get(name=cls.STOCK_HOLDING_JOB_NAME)
         return cls._stock_holding_job
 
-    class Meta:
-        db_table = "workflow_stock"
-        constraints = [
-            models.UniqueConstraint(fields=['xero_id'], name='unique_xero_id_stock')
-        ]
+

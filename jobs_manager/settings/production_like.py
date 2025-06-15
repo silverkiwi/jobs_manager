@@ -108,21 +108,44 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "True").lower() == "true"
 
-CORS_ALLOWED_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
+# CORS Allowed Headers - read from environment or use defaults
+cors_headers_env = os.getenv("CORS_ALLOWED_HEADERS", "")
+if cors_headers_env:
+    CORS_ALLOWED_HEADERS = [header.strip() for header in cors_headers_env.split(",") if header.strip()]
+else:
+    CORS_ALLOWED_HEADERS = [
+        'accept',
+        'accept-encoding',
+        'authorization',
+        'content-type',
+        'dnt',
+        'origin',
+        'user-agent',
+        'x-csrftoken',
+        'x-requested-with',
+        'x-actual-users',  # Custom header for staff filtering - should be X-Actual-Users
+        'X-Actual-Users',  # Case sensitive version for proper CORS support
+    ]
 
 # Enable JWT Authentication for API - Load from environment
 ENABLE_JWT_AUTH = os.getenv("ENABLE_JWT_AUTH", "True").lower() == "true"
-ENABLE_DUAL_AUTHENTICATION = os.getenv("ENABLE_DUAL_AUTHENTICATION", "True").lower() == "true"
+ENABLE_DUAL_AUTHENTICATION = os.getenv("ENABLE_DUAL_AUTHENTICATION", "False").lower() == "true"
+
+# JWT Configuration for production - override base settings for secure cookies
+if ENABLE_JWT_AUTH:
+    from .base import SIMPLE_JWT as BASE_SIMPLE_JWT
+    
+    SIMPLE_JWT = BASE_SIMPLE_JWT.copy()
+    SIMPLE_JWT.update({
+        "AUTH_COOKIE_SECURE": True,  # Require HTTPS for auth cookies in production
+        "AUTH_COOKIE_HTTP_ONLY": True,  # httpOnly for security
+        "AUTH_COOKIE_SAMESITE": "Lax",
+        "AUTH_COOKIE_DOMAIN": None,  # Let browser determine based on request domain
+        "REFRESH_COOKIE": "refresh_token",
+        "REFRESH_COOKIE_SECURE": True,  # Require HTTPS for refresh cookies
+        "REFRESH_COOKIE_HTTP_ONLY": True,
+        "REFRESH_COOKIE_SAMESITE": "Lax",
+    })
 
 from django.apps import apps
 from django.db import ProgrammingError

@@ -58,8 +58,8 @@ MIDDLEWARE = [
 
 # JWT/general authentication settings
 
-ENABLE_JWT_AUTH = False
-ENABLE_DUAL_AUTHENTICATION = True
+ENABLE_JWT_AUTH = True
+ENABLE_DUAL_AUTHENTICATION = False
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [],
@@ -113,6 +113,10 @@ LOGIN_EXEMPT_URLS = [
     "api/",  # Exempt all API endpoints from session authentication
     "accounts/api/",  # Include accounts API endpoints
     "accounts/me/",  # Include user info endpoint
+    "clients/rest/",  # Include client REST endpoints
+    "clients/api/",  # Include client API endpoints
+    "job/rest/",  # Include job REST endpoints
+    "job/api/",  # Include job API endpoints
 ]
 
 LOGGING = {

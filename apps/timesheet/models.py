@@ -106,5 +106,5 @@ class TimeEntry(models.Model):
     def __str__(self):
         staff_name = self.staff.get_display_name() if self.staff else "No Staff"
         job_name = self.job_pricing.job.name if self.job_pricing else "No Job"
-        time_date = self.date.strftime("%Y-%m-%d")
+        time_date = self.date.strftime("%Y-%m-%d") if self.date else "No Date"
         return f"{staff_name} - {job_name} on {time_date}"

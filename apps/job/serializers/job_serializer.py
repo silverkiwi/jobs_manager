@@ -2,7 +2,7 @@ import logging
 
 from rest_framework import serializers
 
-from apps.client.models import Client
+from apps.client.models import Client, ClientContact
 
 from apps.job.models import Job, JobFile
 
@@ -17,15 +17,22 @@ class JobSerializer(serializers.ModelSerializer):
     latest_estimate_pricing = JobPricingSerializer(required=False)
     latest_quote_pricing = JobPricingSerializer(required=False)
     latest_reality_pricing = JobPricingSerializer(required=False)
+    
     client_id = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
         source="client",
-        write_only=True,
+        write_only=False,  # Allow read access
     )
     client_name = serializers.CharField(source="client.name", read_only=True)
+    contact_id = serializers.PrimaryKeyRelatedField(
+        queryset=ClientContact.objects.all(),
+        source="contact",
+        write_only=False,  # Allow read access        required=False,        allow_null=True,
+    )
+    contact_name = serializers.CharField(source="contact.name", read_only=True, required=False)
     job_status = serializers.CharField(source="status")
     job_files = JobFileSerializer(
-        source="files", many=False, required=False
+        source="files", many=True, required=False
     )  # To prevent conflicts with PUTTING only one file
 
     class Meta:
@@ -35,6 +42,8 @@ class JobSerializer(serializers.ModelSerializer):
             "name",
             "client_id",
             "client_name",
+            "contact_id",
+            "contact_name",
             "contact_person",
             "contact_email",  # Added contact_email
             "contact_phone",

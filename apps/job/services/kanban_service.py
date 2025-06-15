@@ -35,13 +35,13 @@ class KanbanService:
         
         if search_terms:
             query = Q()
-            for term in search_terms:
+            for term in search_terms:                
                 term_query = (
                     Q(name__icontains=term)
                     | Q(description__icontains=term)
                     | Q(client__name__icontains=term)
                     | Q(contact_person__icontains=term)
-                    | Q(created_by__username__icontains=term)
+                    | Q(created_by__email__icontains=term)
                 )
                 query &= term_query
             jobs_query = jobs_query.filter(query)
