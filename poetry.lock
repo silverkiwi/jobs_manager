@@ -921,6 +921,21 @@ files = [
 ]
 
 [[package]]
+name = "eval-type-backport"
+version = "0.2.2"
+description = "Like `typing._eval_type`, but lets older Python versions use newer typing features."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "eval_type_backport-0.2.2-py3-none-any.whl", hash = "sha256:cb6ad7c393517f476f96d456d0412ea80f0a8cf96f6892834cd9340149111b0a"},
+    {file = "eval_type_backport-0.2.2.tar.gz", hash = "sha256:f0576b4cf01ebb5bd358d02314d31846af5e07678387486e2c798af0e7d849c1"},
+]
+
+[package.extras]
+tests = ["pytest"]
+
+[[package]]
 name = "faker"
 version = "37.4.0"
 description = "Faker is a Python package that generates fake data for you."
@@ -1849,6 +1864,29 @@ files = [
     {file = "mccabe-0.7.0-py2.py3-none-any.whl", hash = "sha256:6c2d30ab6be0e4a46919781807b4f0d834ebdd6c6e3dca0bda5a15f863427b6e"},
     {file = "mccabe-0.7.0.tar.gz", hash = "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325"},
 ]
+
+[[package]]
+name = "mistralai"
+version = "1.8.2"
+description = "Python Client SDK for the Mistral AI API."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "mistralai-1.8.2-py3-none-any.whl", hash = "sha256:d7f2c3c9d02475c1f1911cff2458bd01e91bbe8e15bfb57cb7ac397a9440ef8e"},
+    {file = "mistralai-1.8.2.tar.gz", hash = "sha256:3a2fdf35498dd71cca3ee065adf8d75331f3bc6bbfbc7ffdd20dc82ae01d9d6d"},
+]
+
+[package.dependencies]
+eval-type-backport = ">=0.2.0"
+httpx = ">=0.28.1"
+pydantic = ">=2.10.3"
+python-dateutil = ">=2.8.2"
+typing-inspection = ">=0.4.0"
+
+[package.extras]
+agents = ["authlib (>=1.5.2,<2.0)", "griffe (>=1.7.3,<2.0)", "mcp (>=1.0,<2.0) ; python_version >= \"3.10\""]
+gcp = ["google-auth (>=2.27.0)", "requests (>=2.32.3)"]
 
 [[package]]
 name = "mypy"
@@ -3568,4 +3606,4 @@ urllib3 = "*"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "ce70966de12e10641eafed4a2cb32d4c0cd1565cf6df09c66bfcdae17e06849a"
+content-hash = "0c912ea3e7af3771800a7628d2201e1f77f23492478f3d1b957c084b8294cd6a"

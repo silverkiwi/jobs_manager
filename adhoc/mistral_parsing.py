@@ -3,6 +3,8 @@ import base64
 import json
 from mistralai import Mistral
 
+# THIS FILE NEEDS FIXING.  print! erorr eating!  Gross repeated breaches of architecture.
+
 def encode_pdf(pdf_path):
     """Encode the PDF file to base64."""
     try:

@@ -46,8 +46,9 @@ class BaseScraper(ABC):
         chrome_options.add_argument("--disable-features=TranslateUI")
         chrome_options.add_argument("--disable-ipc-flooding-protection")
         
-        # Use unique temp directory to avoid conflicts
-        unique_id = str(uuid.uuid4())[:8]
+        # Use unique temp directory with timestamp to avoid conflicts
+        import time
+        unique_id = f"{int(time.time())}_{str(uuid.uuid4())[:8]}"
         temp_dir = tempfile.mkdtemp(prefix=f"scraper_chrome_{unique_id}_")
         chrome_options.add_argument(f"--user-data-dir={temp_dir}")
         
