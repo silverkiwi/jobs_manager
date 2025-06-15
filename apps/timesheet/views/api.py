@@ -103,6 +103,7 @@ class TimeEntriesAPIView(APIView):
         serializer = TimeEntryAPISerializer(time_entries, many=True)
         
         return Response({'time_entries': serializer.data})
+    
     def post(self, request):
         """Create a new time entry."""
         data = request.data
@@ -133,7 +134,7 @@ class TimeEntriesAPIView(APIView):
             except JobPricing.DoesNotExist:
                 logger.error(f"JobPricing with ID {job_pricing_id} not found")
                 return Response({'error': f'JobPricing with ID {job_pricing_id} does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-            
+              
             time_entry = TimeEntry.objects.create(
                 staff=staff,
                 job_pricing=job_pricing,
@@ -146,8 +147,26 @@ class TimeEntriesAPIView(APIView):
                 wage_rate_multiplier=data.get('rate_multiplier', 1.0),
                 is_billable=data.get('is_billable', True),
                 note=data.get('notes', ''),
-                # Remove rate_type field as it doesn't exist in TimeEntry model
             )
+            
+            # Calculate hours from the provided data
+            hours = data.get('hours', 0)
+            if hours > 0:
+                # If hours is provided directly, use it
+                time_entry.items = 1
+                time_entry.minutes_per_item = int(hours * 60)  # Convert hours to minutes
+            elif data.get('items') and data.get('minutes_per_item'):
+                # Use items and minutes_per_item if provided
+                pass  # Already set above
+            else:
+                # Default fallback
+                time_entry.items = 1
+                time_entry.minutes_per_item = 60  # 1 hour default
+            
+            time_entry.save()
+            
+            logger.info(f"Created time entry with {time_entry.items} items, {time_entry.minutes_per_item} minutes per item")
+            
             serializer = TimeEntryAPISerializer(time_entry)
             return Response({'time_entry': serializer.data}, status=status.HTTP_201_CREATED)
             

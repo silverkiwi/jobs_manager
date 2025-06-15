@@ -59,8 +59,8 @@ EXCLUDED_JOBS = [
 class TimesheetOverviewView(TemplateView):
     """View for displaying timesheet overview including staff hours, job statistics and graphics."""
 
-    template_name = "timesheet/timesheet_overview.html"
-
+    template_name = "timesheet/timesheet_overview.html"    
+    
     @classmethod
     def get_filtered_staff(cls) -> List[Staff]:
         """Get filtered staff list excluding certain staff members.
@@ -85,15 +85,17 @@ class TimesheetOverviewView(TemplateView):
         Returns:
             Rendered template with timesheet data context
         """
-        action = request.headers.get("action")
+        # Check for action in query parameters instead of headers
+        action = request.GET.get("action")
         if not action:
             action = request.GET.get("export_to_ims")
         logger.info(f"Logging action {action}")
         start_date = self._get_start_date(start_date)
         match (action):
-            case "export_to_ims" | 1:
-                header_date = request.headers.get("X-Date")
-                return self.export_to_ims(request, self._get_start_date(header_date))
+            case "export_to_ims" | "1":
+                # Get date from query parameters instead of headers
+                query_date = request.GET.get("date")
+                return self.export_to_ims(request, self._get_start_date(query_date))
             case _:
                 try:
                     week_days = self._get_week_days(start_date)
