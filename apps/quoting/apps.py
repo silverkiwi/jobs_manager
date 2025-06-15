@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from django.apps import AppConfig
 from django.conf import settings
 from django.db import close_old_connections
@@ -22,6 +23,13 @@ class QuotingConfig(AppConfig):
         # might not be fully loaded when apps.py is initially processed.
         from apscheduler.schedulers.background import BackgroundScheduler
         from django_apscheduler.jobstores import DjangoJobStore
+
+        # Skip scheduler in one-off manage.py commands (migrate, shell, etc.)
+        if sys.argv[0].endswith("manage.py"):
+            cmd = sys.argv[1] if len(sys.argv) > 1 else ""
+            if cmd != "runserver":          # runserver still needs the scheduler
+                logger.info("Skipping APScheduler setup inside manage.py %s", cmd or "<no-cmd>")
+                return
 
         # Import the standalone job functions
         from apps.quoting.scheduler_jobs import (

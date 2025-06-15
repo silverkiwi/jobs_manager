@@ -223,13 +223,13 @@ class PurchaseOrderPDFGenerator:
                     str(item.description)[:50]
                     + ("..." if len(str(item.description)) > 50 else ""),
                     f"{float(item.quantity):.2f}" if item.quantity else "0.00",
-                    f"£{float(item.unit_cost):.2f}" if item.unit_cost else "TBC",
-                    f"£{line_total:.2f}" if not item.price_tbc else "TBC",
+                    f"${float(item.unit_cost):.2f}" if item.unit_cost else "TBC",
+                    f"${line_total:.2f}" if not item.price_tbc else "TBC",
                 ]
             )
 
         # Add total row
-        table_data.append(["", "", "TOTAL:", f"£{total_amount:.2f}"])
+        table_data.append(["", "", "TOTAL:", f"${total_amount:.2f}"])
 
         # Create table
         lines_table = Table(

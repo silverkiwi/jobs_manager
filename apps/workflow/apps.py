@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from django.apps import AppConfig
 from django.conf import settings
 
@@ -26,9 +27,17 @@ class WorkflowConfig(AppConfig):
         # Prevent scheduler from running multiple times, especially during development
         # or when running management commands like runserver.
         # RUN_MAIN is set by Django in the main process.
+        # ── guard #1: skip Django auto-reload child in DEBUG (already present)
         if settings.DEBUG and os.environ.get("RUN_MAIN") != "true":
             logger.info("Skipping APScheduler setup in debug child process.")
             return
+
+        # ── guard #2: skip all ad-hoc manage.py commands ──────────────────
+        if sys.argv[0].endswith("manage.py"):
+            cmd = sys.argv[1] if len(sys.argv) > 1 else ""
+            if cmd not in {"runserver"}:          # list any long-running cmds you *do* want
+                logger.info("Skipping APScheduler setup inside manage.py %s", cmd or "<no-cmd>")
+                return
 
         # Only start the scheduler if it hasn't been started already
         # This check is crucial to prevent multiple scheduler instances in production.

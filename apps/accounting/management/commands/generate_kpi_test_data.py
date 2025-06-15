@@ -553,6 +553,7 @@ class Command(BaseCommand):
                     unit_revenue=unit_rev,
                     quantity=random.randint(1, 7),
                     comments=f"Auto-generated KPI test data ({category})",
+                    accounting_date=day_date,
                     created_at=self._nz_random_dt(day_date),
                 )
                 created += 1
@@ -567,6 +568,7 @@ class Command(BaseCommand):
                 unit_revenue=Decimal("75.00"),
                 quantity=1,
                 comments=f"Auto-generated KPI test data ({category})",
+                accounting_date=day_date,
                 created_at=self._nz_random_dt(day_date),
             )
             created = 1
@@ -622,6 +624,7 @@ class Command(BaseCommand):
                     price_adjustment=price_adj,
                     cost_adjustment=cost_adj,
                     comments=f"Auto-generated KPI test data ({category})",
+                    accounting_date=day_date,
                     created_at=self._nz_random_dt(day_date),
                 )
                 created += 1
@@ -639,6 +642,7 @@ class Command(BaseCommand):
                     else Decimal("0.00")
                 ),
                 comments=f"Auto-generated KPI test data ({category})",
+                accounting_date=day_date,
                 created_at=self._nz_random_dt(day_date),
             )
             created = 1

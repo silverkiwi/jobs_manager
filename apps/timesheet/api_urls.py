@@ -10,6 +10,7 @@ from .views.api import (
     WeeklyOverviewAPIView,
     autosave_timesheet_api
 )
+from .views.ims_export_view import IMSExportView
 
 app_name = "timesheet_api"
 
@@ -23,9 +24,11 @@ urlpatterns = [
     
     # Jobs endpoints
     path("jobs/", JobsAPIView.as_view(), name="jobs_list"),
-    
-    # Weekly overview
+      # Weekly overview
     path("weekly-overview/", WeeklyOverviewAPIView.as_view(), name="weekly_overview"),
+    
+    # IMS Export
+    path("ims-export/", IMSExportView.as_view(), name="ims_export"),
     
     # Autosave
     path("autosave/", autosave_timesheet_api, name="autosave"),

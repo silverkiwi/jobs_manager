@@ -37,12 +37,12 @@ urlpatterns = [
         name="purchase_orders_autosave",
     ),
     path(
-        "api/purchase-orders/<uuid:pk>/pdf/",
+        "api/purchase-orders/<uuid:purchase_order_id>/pdf/",
         views.PurchaseOrderPDFView.as_view(),
         name="purchase_orders_pdf",
     ),
     path(
-        "api/purchase-orders/<uuid:pk>/email/",
+        "api/purchase-orders/<uuid:purchase_order_id>/email/",
         views.PurchaseOrderEmailView.as_view(),
         name="purchase_orders_email",
     ),
