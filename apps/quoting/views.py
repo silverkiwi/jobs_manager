@@ -13,7 +13,7 @@ from django.views.decorators.http import require_http_methods
 from .services.gemini_price_list_extraction import (
     extract_data_from_supplier_price_list_gemini,
 )
-from .models_old import SupplierPriceList
+from .models import SupplierPriceList
 
 logger = logging.getLogger(__name__)
 
