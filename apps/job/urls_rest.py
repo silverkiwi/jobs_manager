@@ -17,6 +17,8 @@ from apps.job.views.job_rest_views import (
     JobAdjustmentEntryRestView,
 )
 
+from apps.job.views.job_costing_views import JobCostSetView
+
 from apps.job.views.workshop_view import WorkshopPDFView
 
 from apps.job.views.job_file_upload import JobFileUploadView
@@ -35,11 +37,13 @@ rest_urlpatterns = [
     
     # Job events
     path('rest/jobs/<uuid:job_id>/events/', JobEventRestView.as_view(), name='job_events_rest'),
-    
-    # Job entries
+      # Job entries
     path('rest/jobs/<uuid:job_id>/time-entries/', JobTimeEntryRestView.as_view(), name='job_time_entries_rest'),
     path('rest/jobs/<uuid:job_id>/material-entries/', JobMaterialEntryRestView.as_view(), name='job_material_entries_rest'),
     path('rest/jobs/<uuid:job_id>/adjustment-entries/', JobAdjustmentEntryRestView.as_view(), name='job_adjustment_entries_rest'),
+
+    # Job costing
+    path('rest/jobs/<uuid:pk>/cost_sets/<str:kind>/', JobCostSetView.as_view(), name='job_cost_set_rest'),
 
     # Workshop PDF
     path('rest/jobs/<uuid:job_id>/workshop-pdf/', WorkshopPDFView.as_view(), name='workshop-pdf'),
