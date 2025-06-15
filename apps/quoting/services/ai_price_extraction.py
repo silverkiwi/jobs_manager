@@ -4,8 +4,8 @@ from typing import Optional, Tuple, Dict, Any
 
 from apps.workflow.helpers import get_company_defaults
 from apps.workflow.enums import AIProviderTypes
-from .providers.gemini_provider import GeminiPriceExtractionProvider
-from .providers.claude_provider import ClaudePriceExtractionProvider
+#from .providers.gemini_provider import GeminiPriceExtractionProvider
+#from .providers.claude_provider import ClaudePriceExtractionProvider
 from .providers.mistral_provider import MistralPriceExtractionProvider
 
 logger = logging.getLogger(__name__)
@@ -44,12 +44,12 @@ class PriceExtractionFactory:
     @staticmethod
     def create_provider(provider_type: str, api_key: str) -> PriceExtractionProvider:
         """Create a provider instance based on type."""
-        if provider_type == AIProviderTypes.GOOGLE:
-            return GeminiPriceExtractionProvider(api_key)
-        elif provider_type == AIProviderTypes.MISTRAL:
+        if provider_type == AIProviderTypes.MISTRAL:
             return MistralPriceExtractionProvider(api_key)
-        elif provider_type == AIProviderTypes.ANTHROPIC:
-            return ClaudePriceExtractionProvider(api_key)
+#       elif provider_type == AIProviderTypes.GOOGLE:
+#            return GeminiPriceExtractionProvider(api_key)
+#        elif provider_type == AIProviderTypes.ANTHROPIC:
+#            return ClaudePriceExtractionProvider(api_key)
         else:
             raise ValueError(f"Unsupported provider type: {provider_type}")
 

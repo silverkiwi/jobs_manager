@@ -6,7 +6,7 @@ import logging
 from typing import Optional, Tuple, Dict, Any
 from mistralai import Mistral
 
-from ..ai_price_extraction import PriceExtractionProvider
+# Import will be handled by the factory - avoid circular import
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def encode_pdf(pdf_path):
         return None
 
 
-class MistralPriceExtractionProvider(PriceExtractionProvider):
+class MistralPriceExtractionProvider:
     """Mistral AI provider for price extraction using OCR - EXACTLY like adhoc/mistral_parsing.py"""
     
     def __init__(self, api_key: str):
@@ -61,8 +61,18 @@ class MistralPriceExtractionProvider(PriceExtractionProvider):
             for line in lines[:10]:  # Check first 10 lines
                 line = line.strip()
                 if line and len(line) > 3 and not line.isdigit():
-                    supplier_name = line
-                    break
+                    # Clean up markdown table formatting
+                    cleaned_line = line.replace('|', '').replace(':', '').strip()
+                    # Look for common supplier indicators
+                    if 'customer' in cleaned_line.lower() and len(cleaned_line) > 10:
+                        # Extract supplier name after "Customer" keyword
+                        parts = cleaned_line.split()
+                        if len(parts) > 1:
+                            supplier_name = ' '.join(parts[1:]).strip()
+                            break
+                    elif len(cleaned_line) > 10 and not any(x in cleaned_line.lower() for x in ['date', 'contents', 'description']):
+                        supplier_name = cleaned_line
+                        break
             
             logger.info(f"Identified supplier: {supplier_name}")
             

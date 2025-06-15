@@ -86,29 +86,44 @@ class UploadSupplierPricingView(LoginRequiredMixin, TemplateView):
                         supplier=supplier,
                         file_name=uploaded_file.name
                     )
+                    logger.info(f"Created SupplierPriceList record: {price_list.id} for supplier {supplier.name}")
                     
                     # Save individual products
                     items_saved = 0
-                    for item in extracted_data.get('items', []):
-                        SupplierProduct.objects.create(
-                            supplier=supplier,
-                            price_list=price_list,
-                            product_name=item.get('description', '')[:500],  # Truncate to field limit
-                            item_no=item.get('supplier_item_code', ''),
-                            description=item.get('description', ''),
-                            specifications=item.get('specifications', ''),
-                            variant_id=item.get('variant_id', ''),
-                            variant_price=item.get('unit_price') if item.get('unit_price') else None,
-                            url=''  # PDF uploads don't have URLs
-                        )
-                        items_saved += 1
+                    items_data = extracted_data.get('items', [])
+                    logger.info(f"Processing {len(items_data)} items for database insertion")
+                    
+                    for item in items_data:
+                        try:
+                            product = SupplierProduct.objects.create(
+                                supplier=supplier,
+                                price_list=price_list,
+                                product_name=item.get('description', '')[:500],  # Truncate to field limit
+                                item_no=item.get('supplier_item_code', ''),
+                                description=item.get('description', ''),
+                                specifications=item.get('specifications', ''),
+                                variant_id=item.get('variant_id', ''),
+                                variant_price=item.get('unit_price') if item.get('unit_price') else None,
+                                url=''  # PDF uploads don't have URLs
+                            )
+                            items_saved += 1
+                            logger.debug(f"Created SupplierProduct: {product.id} - {product.variant_id}")
+                        except Exception as item_error:
+                            logger.error(f"Failed to save product item {item.get('variant_id', 'unknown')}: {item_error}")
+                    
+                    # Log parsing statistics if available
+                    if 'parsing_stats' in extracted_data:
+                        stats = extracted_data['parsing_stats']
+                        logger.info(f"Parsing stats - Total lines: {stats.get('total_lines', 0)}, "
+                                  f"Items found: {stats.get('items_found', 0)}, "
+                                  f"Pages processed: {stats.get('pages_processed', 0)}")
                     
                     messages.success(
                         request,
                         f"File '{uploaded_file.name}' processed successfully. "
                         f"Saved {items_saved} products from {supplier_name}.",
                     )
-                    logger.info(f"Saved {items_saved} products from PDF: {uploaded_file.name}")
+                    logger.info(f"Successfully saved {items_saved} products from PDF: {uploaded_file.name} to price list {price_list.id}")
                     
                 except Exception as db_error:
                     logger.exception(f"Error saving extracted data to database: {db_error}")

@@ -166,6 +166,14 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
         },
+        "ai_extraction_file": {
+            "level": "DEBUG",
+            "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs/ai_extraction.log"),
+            "maxBytes": 10 * 1024 * 1024,  # Larger for detailed OCR/parsing logs
+            "backupCount": 10,
+            "formatter": "verbose",
+        },
         "mail_admins": {
             "level": "ERROR",
             "class": "django.utils.log.AdminEmailHandler",
@@ -205,6 +213,17 @@ LOGGING = {
             "handlers": ["console", "scheduler_file"],
             "level": "INFO",
             "propagate": False,
+        },
+        # AI extraction logs (OCR, parsing, price lists)
+        "apps.quoting.services.ai_price_extraction": {
+            "handlers": ["ai_extraction_file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+        "apps.quoting.services.providers": {
+            "handlers": ["ai_extraction_file"],
+            "level": "DEBUG",
+            "propagate": True,
         },
     },
     "root": {
