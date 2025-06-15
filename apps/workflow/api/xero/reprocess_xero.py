@@ -175,6 +175,16 @@ def set_client_fields(client, new_from_xero=False):
     xero_contact_id_from_json = raw_json.get("_contact_id")
     if xero_contact_id_from_json:
         client.xero_contact_id = xero_contact_id_from_json
+    
+    # Check for archived/merged status from raw_json
+    contact_status = raw_json.get("_contact_status", "ACTIVE")
+    if contact_status == "ARCHIVED":
+        client.xero_archived = True
+        
+    # Check for merge information
+    merged_to_contact_id = raw_json.get("_merged_to_contact_id")
+    if merged_to_contact_id:
+        client.xero_merged_into_id = merged_to_contact_id
 
     # Attempt to get phone number from the 'DEFAULT' phone entry if available
     default_phone = ""
@@ -232,163 +242,6 @@ def set_client_fields(client, new_from_xero=False):
     else:
         client.xero_last_modified = client.xero_last_modified or timezone.now()
 
-    # Reset contact fields before populating
-    client.primary_contact_name = None
-    client.primary_contact_email = None
-    client.additional_contact_persons = []  # Initialize as an empty list
-    client.all_phones = []  # Initialize as an empty list
-
-    # --- Populate Primary Contact ---
-    root_first_name = raw_json.get("_first_name")
-    root_last_name = raw_json.get("_last_name")
-    root_email = raw_json.get("_email_address")  # This is the main contact's email
-
-    contact_persons_list = None
-    if "_contact_persons" in raw_json and isinstance(
-        raw_json["_contact_persons"], list
-    ):
-        contact_persons_list = raw_json["_contact_persons"]
-    elif "ContactPersons" in raw_json and isinstance(
-        raw_json["ContactPersons"], list
-    ):  # Fallback
-        contact_persons_list = raw_json["ContactPersons"]
-
-    primary_contact_source_is_root = False
-    processed_contact_person_indices = (
-        []
-    )  # To keep track of which persons from list are used
-
-    if root_first_name or root_last_name:
-        client.primary_contact_name = (
-            f"{root_first_name or ''} {root_last_name or ''}".strip()
-        )
-        client.primary_contact_email = (
-            root_email  # Use the main email for the primary contact from root
-        )
-        primary_contact_source_is_root = True
-        logger.info(
-            f"Set primary contact for client {client.id} from root fields: Name='{client.primary_contact_name}', Email='{client.primary_contact_email}'"
-        )
-    # elif contact_persons_list and len(contact_persons_list) > 0:
-    #     # Use first person from _contact_persons list as primary if root names are empty
-    #     person_data = contact_persons_list[0]
-    #     if isinstance(person_data, dict):
-    #         first_name = person_data.get('_first_name', person_data.get('FirstName', ''))
-    #         last_name = person_data.get('_last_name', person_data.get('LastName', ''))
-    #         email = person_data.get('_email_address', person_data.get('EmailAddress', ''))
-
-    #         full_name = f"{first_name} {last_name}".strip()
-    #         if full_name:
-    #             client.primary_contact_name = full_name
-    #         if email: # Use the email from the contact person entry
-    #             client.primary_contact_email = email
-    #         processed_contact_person_indices.append(0)
-    #         logger.info(f"Set primary contact for client {client.id} from _contact_persons[0]: Name='{client.primary_contact_name}', Email='{client.primary_contact_email}'")
-    #     else:
-    #         logger.warning(f"Data for _contact_persons[0] for client {client.id} is not a dictionary: {person_data}")
-    # else:
-    #     logger.info(f"No primary contact information found in root fields or _contact_persons for client {client.id}.")
-
-    # --- Populate Additional Contact Persons ---
-    # This list will store all persons from the _contact_persons array in raw_json
-
-    temp_additional_contacts = []
-    if contact_persons_list:  # Ensure contact_persons_list was populated earlier
-        for idx, person_data_item in enumerate(contact_persons_list):
-            if isinstance(person_data_item, dict):
-                p_first_name = person_data_item.get(
-                    "_first_name", person_data_item.get("FirstName", "")
-                )
-                p_last_name = person_data_item.get(
-                    "_last_name", person_data_item.get("LastName", "")
-                )
-                p_email = person_data_item.get(
-                    "_email_address", person_data_item.get("EmailAddress", "")
-                )
-
-                p_full_name = f"{p_first_name} {p_last_name}".strip()
-
-                contact_entry = {}
-                if p_full_name:
-                    contact_entry["name"] = p_full_name
-                if p_email:
-                    contact_entry["email"] = p_email
-
-                if contact_entry:  # Only add if there's a name or email
-                    temp_additional_contacts.append(contact_entry)
-            else:
-                logger.warning(
-                    f"Item at index {idx} in _contact_persons for client {client.id} is not a dictionary: {person_data_item}"
-                )
-
-        client.additional_contact_persons = temp_additional_contacts
-        logger.info(
-            f"Populated additional_contact_persons for client {client.id} with {len(temp_additional_contacts)} contacts."
-        )
-    else:
-        logger.info(
-            f"No _contact_persons list found in raw_json for client {client.id} to populate additional_contact_persons."
-        )
-
-    # --- (Re-evaluation of Primary Contact if not set from root and additional_contact_persons is available) ---
-    # If primary contact wasn't set from root fields, and we now have additional_contact_persons,
-    # we can set the primary contact from the first entry of additional_contact_persons.
-    # This simplifies the earlier primary contact logic.
-
-    if (
-        not primary_contact_source_is_root
-        and client.additional_contact_persons
-        and len(client.additional_contact_persons) > 0
-    ):
-        first_additional_contact = client.additional_contact_persons[0]
-        client.primary_contact_name = first_additional_contact.get("name")
-        client.primary_contact_email = first_additional_contact.get("email")
-        logger.info(
-            f"Set primary contact for client {client.id} from the first of additional_contact_persons: Name='{client.primary_contact_name}', Email='{client.primary_contact_email}'"
-        )
-    elif (
-        not client.primary_contact_name and not client.primary_contact_email
-    ):  # If still no primary contact
-        logger.info(
-            f"No primary contact information could be derived for client {client.id}."
-        )
-
-    # --- Populate All Phones ---
-    raw_phones_list = raw_json.get("_phones")
-    if isinstance(raw_phones_list, list):
-        temp_all_phones = []
-        for phone_entry in raw_phones_list:
-            if isinstance(phone_entry, dict):
-                phone_type = phone_entry.get("_phone_type", "UNKNOWN")
-
-                # Extract all parts of the phone number
-                # Ensure that strip() is called on a string, even if the value is None
-                country_code = (phone_entry.get("_phone_country_code") or "").strip()
-                area_code = (phone_entry.get("_phone_area_code") or "").strip()
-                number_part = (phone_entry.get("_phone_number") or "").strip()
-
-                # Construct the full phone number
-                # Only add parts if they exist to avoid extra spaces or hyphens
-                full_number_parts = []
-                if country_code:
-                    full_number_parts.append(f"+{country_code}")
-                if area_code:
-                    full_number_parts.append(area_code)
-                if number_part:
-                    full_number_parts.append(number_part)
-
-                full_number = " ".join(full_number_parts)
-
-                if full_number:  # Only add if there's a resulting number
-                    temp_all_phones.append({"type": phone_type, "number": full_number})
-        client.all_phones = temp_all_phones
-        logger.info(
-            f"Populated all_phones for client {client.id} with {len(temp_all_phones)} phone numbers."
-        )
-    else:
-        logger.info(
-            f"No _phones list found or not a list in raw_json for client {client.id}."
-        )
 
     client.xero_last_synced = timezone.now()
     client.save()

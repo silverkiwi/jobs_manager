@@ -1,3 +1,5 @@
+import re
+from decimal import Decimal, InvalidOperation
 from rest_framework import serializers
 
 from apps.job.helpers import decimal_to_float

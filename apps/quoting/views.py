@@ -10,10 +10,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
-from .services.gemini_price_list_extraction import (
-    extract_data_from_supplier_price_list_gemini,
-)
-from .models import SupplierPriceList
+from .services.ai_price_extraction import extract_price_data
+from .models import SupplierPriceList, SupplierProduct
+from apps.client.models import Client
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ def index(request):
 
 
 class UploadSupplierPricingView(LoginRequiredMixin, TemplateView):
-    template_name = "purchases/upload_supplier_pricing.html"
+    template_name = "purchasing/upload_supplier_pricing.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -55,7 +54,7 @@ class UploadSupplierPricingView(LoginRequiredMixin, TemplateView):
 
             content_type = uploaded_file.content_type
 
-            extracted_data, error = extract_data_from_supplier_price_list_gemini(
+            extracted_data, error = extract_price_data(
                 temp_file_path, content_type
             )
 
@@ -68,12 +67,70 @@ class UploadSupplierPricingView(LoginRequiredMixin, TemplateView):
                     f"Error extracting data from '{uploaded_file.name}': {error}",
                 )
             else:
-                messages.success(
-                    request,
-                    f"File '{uploaded_file.name}' uploaded and data extracted successfully.",
-                )
-                # You might want to store extracted_data in the database or session here
-                logger.info(f"Extracted data: {extracted_data}")
+                # Save extracted data to database
+                try:
+                    supplier_name = extracted_data.get('supplier', {}).get('name', 'Unknown Supplier')
+                    
+                    # Get existing supplier/client - do not create
+                    try:
+                        supplier = Client.objects.get(name=supplier_name)
+                    except Client.DoesNotExist:
+                        messages.error(
+                            request,
+                            f"Supplier '{supplier_name}' not found in system. Please create the supplier first.",
+                        )
+                        return self.get(request, *args, **kwargs)
+                    
+                    # Create price list entry
+                    price_list = SupplierPriceList.objects.create(
+                        supplier=supplier,
+                        file_name=uploaded_file.name
+                    )
+                    logger.info(f"Created SupplierPriceList record: {price_list.id} for supplier {supplier.name}")
+                    
+                    # Save individual products
+                    items_saved = 0
+                    items_data = extracted_data.get('items', [])
+                    logger.info(f"Processing {len(items_data)} items for database insertion")
+                    
+                    for item in items_data:
+                        try:
+                            product = SupplierProduct.objects.create(
+                                supplier=supplier,
+                                price_list=price_list,
+                                product_name=item.get('description', '')[:500],  # Truncate to field limit
+                                item_no=item.get('supplier_item_code', ''),
+                                description=item.get('description', ''),
+                                specifications=item.get('specifications', ''),
+                                variant_id=item.get('variant_id', ''),
+                                variant_price=item.get('unit_price') if item.get('unit_price') else None,
+                                url=''  # PDF uploads don't have URLs
+                            )
+                            items_saved += 1
+                            logger.debug(f"Created SupplierProduct: {product.id} - {product.variant_id}")
+                        except Exception as item_error:
+                            logger.error(f"Failed to save product item {item.get('variant_id', 'unknown')}: {item_error}")
+                    
+                    # Log parsing statistics if available
+                    if 'parsing_stats' in extracted_data:
+                        stats = extracted_data['parsing_stats']
+                        logger.info(f"Parsing stats - Total lines: {stats.get('total_lines', 0)}, "
+                                  f"Items found: {stats.get('items_found', 0)}, "
+                                  f"Pages processed: {stats.get('pages_processed', 0)}")
+                    
+                    messages.success(
+                        request,
+                        f"File '{uploaded_file.name}' processed successfully. "
+                        f"Saved {items_saved} products from {supplier_name}.",
+                    )
+                    logger.info(f"Successfully saved {items_saved} products from PDF: {uploaded_file.name} to price list {price_list.id}")
+                    
+                except Exception as db_error:
+                    logger.exception(f"Error saving extracted data to database: {db_error}")
+                    messages.error(
+                        request,
+                        f"Data extracted successfully but failed to save to database: {db_error}",
+                    )
         else:
             messages.error(request, "No PDF file was uploaded.")
 
@@ -114,7 +171,7 @@ def extract_supplier_price_list_data_view(request):
 
         content_type = price_list_file.content_type
 
-        extracted_data, error = extract_data_from_supplier_price_list_gemini(
+        extracted_data, error = extract_price_data(
             temp_file_path, content_type
         )
 
@@ -163,7 +220,7 @@ def extract_supplier_price_list_data_view(request):
 
         content_type = price_list_file.content_type
 
-        extracted_data, error = extract_data_from_supplier_price_list_gemini(
+        extracted_data, error = extract_price_data(
             temp_file_path, content_type
         )
 

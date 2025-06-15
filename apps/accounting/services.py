@@ -6,11 +6,11 @@ import holidays
 
 from decimal import Decimal
 
-from typing import Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple
 
 from datetime import date, timedelta
 
-from django.db.models import Sum, Case, When, F, DecimalField, Value
+from django.db.models import Sum, Case, When, F, DecimalField, Value, Q
 
 from django.db.models.functions import TruncDate
 
@@ -26,6 +26,8 @@ from apps.accounts.utils import get_excluded_staff
 from apps.timesheet.models import TimeEntry
 
 from apps.job.models import AdjustmentEntry, MaterialEntry
+from apps.client.models import Client
+from apps.job.enums import JobPricingStage
 
 logger = getLogger(__name__)
 
@@ -37,8 +39,13 @@ class KPIService:
     """
 
     nz_timezone = get_nz_tz()
+    shop_client_id: str = None  # Will be set on first access
 
-    shop_job_id: str = "00000000-0000-0000-0000-000000000001"
+    @classmethod
+    def _ensure_shop_client_id(cls):
+        """Ensure shop_client_id is set, initialize if needed"""
+        if cls.shop_client_id is None:
+            cls.shop_client_id = Client.get_shop_client_id()
 
     @staticmethod
     def get_company_thresholds() -> Dict[str, float]:
@@ -138,6 +145,134 @@ class KPIService:
         return "red"
 
     @classmethod
+    def get_job_breakdown_for_date(cls, target_date: date) -> List[Dict[str, Any]]:
+        """
+        Get job-level profit breakdown for a specific date
+        
+        Args:
+            target_date: The date to get job breakdown for
+            
+        Returns:
+            List of job breakdowns with profit details
+        """
+        from apps.job.models import Job
+        
+        cls._ensure_shop_client_id()
+        excluded_staff_ids = get_excluded_staff()
+        # Get time entries for the date
+        time_entries = TimeEntry.objects.filter(
+            date=target_date,
+            job_pricing__pricing_stage=JobPricingStage.REALITY
+        ).exclude(staff_id__in=excluded_staff_ids).select_related('job_pricing__job')
+        
+        # Get material entries for the date
+        aware_start = timezone.make_aware(
+            datetime.datetime.combine(target_date, datetime.time.min), cls.nz_timezone
+        )
+        aware_end = timezone.make_aware(
+            datetime.datetime.combine(target_date, datetime.time.max), cls.nz_timezone
+        )
+        
+        material_entries = MaterialEntry.objects.filter(
+            accounting_date=target_date,
+            job_pricing__pricing_stage=JobPricingStage.REALITY
+        ).select_related('job_pricing__job')
+        
+        adjustment_entries = AdjustmentEntry.objects.filter(
+            accounting_date=target_date,
+            job_pricing__pricing_stage=JobPricingStage.REALITY
+        ).select_related('job_pricing__job')
+        
+        # Group by job
+        job_data = {}
+        
+        # Process time entries
+        for entry in time_entries:
+            job = entry.job_pricing.job
+            job_number = job.job_number
+            
+            if job_number not in job_data:
+                job_data[job_number] = {
+                    'job_id': str(job.id),
+                    'job_number': job_number,
+                    'job_display_name': job.job_display_name,
+                    'labour_revenue': 0,
+                    'labour_cost': 0,
+                    'material_revenue': 0,
+                    'material_cost': 0,
+                    'adjustment_revenue': 0,
+                    'adjustment_cost': 0,
+                }
+            
+            if entry.is_billable and str(job.client_id) != cls.shop_client_id:
+                job_data[job_number]['labour_revenue'] += float(entry.hours * entry.charge_out_rate)
+            job_data[job_number]['labour_cost'] += float(entry.hours * entry.wage_rate)
+        
+        # Process material entries
+        for entry in material_entries:
+            job = entry.job_pricing.job
+            job_number = job.job_number
+            
+            if job_number not in job_data:
+                job_data[job_number] = {
+                    'job_id': str(job.id),
+                    'job_number': job_number,
+                    'job_display_name': job.job_display_name,
+                    'labour_revenue': 0,
+                    'labour_cost': 0,
+                    'material_revenue': 0,
+                    'material_cost': 0,
+                    'adjustment_revenue': 0,
+                    'adjustment_cost': 0,
+                }
+            
+            job_data[job_number]['material_revenue'] += float(entry.unit_revenue * entry.quantity)
+            job_data[job_number]['material_cost'] += float(entry.unit_cost * entry.quantity)
+        
+        # Process adjustment entries
+        for entry in adjustment_entries:
+            job = entry.job_pricing.job
+            job_number = job.job_number
+            
+            if job_number not in job_data:
+                job_data[job_number] = {
+                    'job_id': str(job.id),
+                    'job_number': job_number,
+                    'job_display_name': job.job_display_name,
+                    'labour_revenue': 0,
+                    'labour_cost': 0,
+                    'material_revenue': 0,
+                    'material_cost': 0,
+                    'adjustment_revenue': 0,
+                    'adjustment_cost': 0,
+                }
+            
+            job_data[job_number]['adjustment_revenue'] += float(entry.price_adjustment or 0)
+            job_data[job_number]['adjustment_cost'] += float(entry.cost_adjustment or 0)
+        
+        # Calculate profits and return sorted list
+        result = []
+        for job_number, data in job_data.items():
+            labour_profit = data['labour_revenue'] - data['labour_cost']
+            material_profit = data['material_revenue'] - data['material_cost']
+            adjustment_profit = data['adjustment_revenue'] - data['adjustment_cost']
+            total_profit = labour_profit + material_profit + adjustment_profit
+            
+            result.append({
+                'job_id': data['job_id'],
+                'job_number': job_number,
+                'job_display_name': data['job_display_name'],
+                'labour_profit': labour_profit,
+                'material_profit': material_profit,
+                'adjustment_profit': adjustment_profit,
+                'total_profit': total_profit
+            })
+        
+        # Sort by total profit descending
+        result.sort(key=lambda x: x['total_profit'], reverse=True)
+        return result
+
+    @classmethod
     def get_calendar_data(cls, year: int, month: int) -> Dict[str, Any]:
         """
         Gets all KPI data for a specific month.
@@ -151,6 +286,7 @@ class KPIService:
         """
         logger.info(f"Generating KPI calendar data for {year}-{month}")
 
+        cls._ensure_shop_client_id()
         thresholds = cls.get_company_thresholds()
         logger.debug(
             f"Using thresholds: green={thresholds['billable_threshold_green']}, amber={thresholds['billable_threshold_amber']}"
@@ -169,42 +305,67 @@ class KPIService:
             "days_green": 0,
             "days_amber": 0,
             "days_red": 0,
+            "labour_green_days": 0,
+            "labour_amber_days": 0,
+            "labour_red_days": 0,
+            "profit_green_days": 0,
+            "profit_amber_days": 0,
+            "profit_red_days": 0,
             "working_days": 0,
             "elapsed_workdays": 0,
             "remaining_workdays": 0,
             # The following are internal
             "time_revenue": 0,
             "material_revenue": 0,
+            "adjustment_revenue": 0,
             "staff_cost": 0,
             "material_cost": 0,
+            "adjustment_cost": 0,
+            "material_profit": 0,
+            "adjustment_profit": 0,
         }
 
         decimal_field = DecimalField(max_digits=10, decimal_places=2)
-        # Process data of the day
+        # Process data of the day - ONLY reality entries
         time_entries_by_date = {
             entry["date"]: entry
-            for entry in TimeEntry.objects.filter(date__range=[start_date, end_date])
+            for entry in TimeEntry.objects.filter(
+                date__range=[start_date, end_date],
+                job_pricing__pricing_stage=JobPricingStage.REALITY
+            )
             .exclude(staff_id__in=excluded_staff_ids)
             .values("date")
             .annotate(
                 total_hours=Sum("hours", output_field=decimal_field),
                 billable_hours=Sum(
                     Case(
-                        When(is_billable=True, then="hours"),
+                        When(
+                            is_billable=True,
+                            then=Case(
+                                When(job_pricing__job__client_id=cls.shop_client_id, then=Value(0, output_field=decimal_field)),
+                                default="hours"
+                            )
+                        ),
                         default=Value(0, output_field=decimal_field),
                     ),
                     output_field=decimal_field,
                 ),
                 time_revenue=Sum(
                     Case(
-                        When(is_billable=True, then=F("hours") * F("charge_out_rate")),
+                        When(
+                            is_billable=True,
+                            then=Case(
+                                When(job_pricing__job__client_id=cls.shop_client_id, then=Value(0, output_field=decimal_field)),
+                                default=F("hours") * F("charge_out_rate")
+                            )
+                        ),
                         default=Value(0, output_field=decimal_field),
                     ),
                     output_field=decimal_field,
                 ),
                 shop_hours=Sum(
                     Case(
-                        When(job_pricing__job__client_id=cls.shop_job_id, then="hours"),
+                        When(job_pricing__job__client_id=cls.shop_client_id, then="hours"),
                         default=Value(0, output_field=decimal_field),
                     ),
                     output_field=decimal_field,
@@ -221,8 +382,11 @@ class KPIService:
         )
 
         material_entries = (
-            MaterialEntry.objects.filter(created_at__range=[aware_start, aware_end])
-            .annotate(local_date=TruncDate("created_at", tzinfo=cls.nz_timezone))
+            MaterialEntry.objects.filter(
+                accounting_date__range=[start_date, end_date],
+                job_pricing__pricing_stage=JobPricingStage.REALITY
+            )
+            .annotate(local_date=F("accounting_date"))
             .values("local_date")
             .annotate(
                 revenue=Sum(
@@ -233,8 +397,11 @@ class KPIService:
         )
 
         adjustment_entries = (
-            AdjustmentEntry.objects.filter(created_at__range=[aware_start, aware_end])
-            .annotate(local_date=TruncDate("created_at", tzinfo=cls.nz_timezone))
+            AdjustmentEntry.objects.filter(
+                accounting_date__range=[start_date, end_date],
+                job_pricing__pricing_stage=JobPricingStage.REALITY
+            )
+            .annotate(local_date=F("accounting_date"))
             .values("local_date")
             .annotate(
                 revenue=Sum(F("price_adjustment")), cost=Sum(F("cost_adjustment"))
@@ -268,16 +435,16 @@ class KPIService:
                 "holiday": is_holiday,
             }
 
+            # Count all weekdays (including holidays) as working days
+            monthly_totals["working_days"] += 1
+            if current_date <= current_date_system:
+                monthly_totals["elapsed_workdays"] += 1
+
             if is_holiday:
                 base_data["holiday_name"] = holiday_dates[current_date]
                 calendar_data[date_key] = base_data
                 current_date += timedelta(days=1)
                 continue
-
-            # Count commercial day
-            monthly_totals["working_days"] += 1
-            if current_date <= current_date_system:
-                monthly_totals["elapsed_workdays"] += 1
 
             logger.debug(f"Processing data for day: {current_date}")
 
@@ -338,6 +505,24 @@ class KPIService:
                 case _:
                     monthly_totals["days_red"] += 1
 
+            # Only count performance for elapsed days (not future days)
+            if current_date <= current_date_system:
+                # Separate labour performance counting (≥45h green, ≥40h amber, <40h red)
+                if billable_hours >= 45:
+                    monthly_totals["labour_green_days"] += 1
+                elif billable_hours >= 40:
+                    monthly_totals["labour_amber_days"] += 1
+                else:
+                    monthly_totals["labour_red_days"] += 1
+
+                # Separate profit performance counting (≥$1250 green, ≥$1000 amber, <$1000 red)
+                if gross_profit >= 1250:
+                    monthly_totals["profit_green_days"] += 1
+                elif gross_profit >= 1000:
+                    monthly_totals["profit_amber_days"] += 1
+                else:
+                    monthly_totals["profit_red_days"] += 1
+
             full_data = base_data.copy()
             full_data.update(
                 {
@@ -376,6 +561,7 @@ class KPIService:
                                 adjustment_revenue - adjustment_cost
                             ),
                         },
+                        "job_breakdown": cls.get_job_breakdown_for_date(current_date),
                     },
                 }
             )
@@ -386,9 +572,13 @@ class KPIService:
             monthly_totals["shop_hours"] += shop_hours
             monthly_totals["gross_profit"] += gross_profit
             monthly_totals["material_revenue"] += material_revenue
+            monthly_totals["adjustment_revenue"] += adjustment_revenue
             monthly_totals["time_revenue"] += time_revenue
             monthly_totals["staff_cost"] += staff_cost
             monthly_totals["material_cost"] += material_cost
+            monthly_totals["adjustment_cost"] += adjustment_cost
+            monthly_totals["material_profit"] += (material_revenue - material_cost)
+            monthly_totals["adjustment_profit"] += (adjustment_revenue - adjustment_cost)
 
             # Advance to next day
             current_date += timedelta(days=1)

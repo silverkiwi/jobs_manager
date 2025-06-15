@@ -10,23 +10,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="jobpart",
-                    name="job",
-                ),
-                migrations.AddField(
-                    model_name="jobpart",
-                    name="job_pricing",
-                    field=models.ForeignKey(
-                        null=True,
-                        blank=True,
-                        on_delete=models.CASCADE,
-                        to="job.jobpricing",
-                    ),
-                ),
-            ],
-            database_operations=[],
-        ),
+        # No operations needed - JobPart table is now created correctly from the start
     ]

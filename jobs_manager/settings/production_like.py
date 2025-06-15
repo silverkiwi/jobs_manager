@@ -87,6 +87,20 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 EMAIL_BCC = os.getenv("EMAIL_BCC", "").split(",")
 
+# Admin email notifications for errors
+ADMINS = [
+    (name, email) for name_email in os.getenv("DJANGO_ADMINS", "").split(",")
+    if (parts := name_email.strip().split(":")) and len(parts) == 2
+    for name, email in [parts]
+]
+
+# Admin email notifications for errors
+ADMINS = [
+    (name, email) for name_email in os.getenv("DJANGO_ADMINS", "").split(",")
+    if (parts := name_email.strip().split(":")) and len(parts) == 2
+    for name, email in [parts]
+]
+
 # CORS Configuration - Load from environment variables
 cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
 if cors_origins_env:

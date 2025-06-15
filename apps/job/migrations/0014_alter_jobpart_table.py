@@ -10,8 +10,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelTable(
-            name="jobpart",
-            table="workflow_jobpart",
-        ),
+        # No operations needed - JobPart table is now created with correct name from the start
     ]
