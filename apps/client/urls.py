@@ -59,9 +59,4 @@ urlpatterns = [
         name="update_client",
     ),
     path("add/", client_view.AddClient, name="add_client"),
-    path(
-        "xero/unused/",
-        client_view.UnusedClientsView.as_view(),
-        name="xero_unused_clients",
-    ),
 ]

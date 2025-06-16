@@ -555,3 +555,93 @@ def sync_client_to_xero(client):
     
     return True
 
+
+def sync_single_contact(sync_service, contact_id):
+    """Fetch and sync a single contact from Xero by ID"""
+    if not contact_id:
+        raise ValueError("No contact_id provided")
+    
+    accounting_api = AccountingApi(api_client)
+    response = accounting_api.get_contacts(
+        sync_service.tenant_id,
+        i_ds=[contact_id],
+        include_archived=True
+    )
+    time.sleep(SLEEP_TIME)
+    
+    if not response or not response.contacts:
+        raise ValueError(f"No contact found with ID {contact_id}")
+    
+    contact = response.contacts[0]
+    raw_json = process_xero_data(contact)
+    
+    client, created = Client.objects.update_or_create(
+        xero_contact_id=contact.contact_id,
+        defaults={
+            "raw_json": raw_json,
+            "xero_last_modified": timezone.now(),
+            "xero_archived": contact.contact_status == "ARCHIVED",
+            "xero_merged_into_id": getattr(contact, "merged_to_contact_id", None),
+        }
+    )
+    
+    set_client_fields(client, new_from_xero=created)
+    
+    # Handle merge if needed
+    if client.xero_merged_into_id and not client.merged_into:
+        merged_into = Client.objects.filter(xero_contact_id=client.xero_merged_into_id).first()
+        if merged_into:
+            client.merged_into = merged_into
+            client.save()
+    
+    logger.info(f"Synced contact {contact_id} from webhook")
+
+
+def sync_single_invoice(sync_service, invoice_id):
+    """Fetch and sync a single invoice from Xero by ID"""
+    if not invoice_id:
+        raise ValueError("No invoice_id provided")
+    
+    accounting_api = AccountingApi(api_client)
+    response = accounting_api.get_invoice(
+        sync_service.tenant_id,
+        invoice_id=invoice_id
+    )
+    time.sleep(SLEEP_TIME)
+    
+    if not response or not response.invoices:
+        raise ValueError(f"No invoice found with ID {invoice_id}")
+    
+    xero_invoice = response.invoices[0]
+    
+    # Route to correct model based on type
+    if xero_invoice.type == "ACCPAY":
+        # It's a bill
+        raw_json = process_xero_data(xero_invoice)
+        bill, created = Bill.objects.update_or_create(
+            xero_id=xero_invoice.invoice_id,
+            defaults={
+                "raw_json": raw_json,
+                "xero_last_modified": xero_invoice._updated_date_utc,
+                "xero_last_synced": timezone.now(),
+            }
+        )
+        set_invoice_or_bill_fields(bill, new_from_xero=created)
+        logger.info(f"Synced bill {invoice_id} from webhook")
+        
+    elif xero_invoice.type == "ACCREC":
+        # It's an invoice
+        raw_json = process_xero_data(xero_invoice)
+        invoice, created = Invoice.objects.update_or_create(
+            xero_id=xero_invoice.invoice_id,
+            defaults={
+                "raw_json": raw_json,
+                "xero_last_modified": xero_invoice._updated_date_utc,
+                "xero_last_synced": timezone.now(),
+            }
+        )
+        set_invoice_or_bill_fields(invoice, new_from_xero=created)
+        logger.info(f"Synced invoice {invoice_id} from webhook")
+    else:
+        raise ValueError(f"Unknown invoice type {xero_invoice.type} for {invoice_id}")
+
