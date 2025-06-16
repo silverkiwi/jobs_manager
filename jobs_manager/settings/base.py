@@ -105,6 +105,7 @@ LOGIN_EXEMPT_URLS = [
     "accounts:reset",
     "accounts:password_reset_confirm",
     "accounts:password_reset_complete",
+    "xero_webhook",
 ]
 
 LOGGING = {
@@ -366,6 +367,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID", "")
 XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET", "")
 XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI", "")
+XERO_WEBHOOK_KEY = os.getenv("XERO_WEBHOOK_KEY", "")
 # Default scopes if not specified in .env
 DEFAULT_XERO_SCOPES = " ".join(
     [
