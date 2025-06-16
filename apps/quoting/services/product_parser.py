@@ -21,7 +21,8 @@ class ProductParser:
     using LLM with permanent mapping storage for consistency.
     """
     
-    PARSER_VERSION = "1.0.0"
+    PARSER_VERSION = "1.1.0"
+    BATCH_SIZE = 100
     
     def __init__(self):
         self.company_defaults = get_company_defaults()
@@ -56,35 +57,90 @@ class ProductParser:
         except ProductParsingMapping.DoesNotExist:
             return None
     
-    def _create_parsing_prompt(self, product_data: Dict[str, Any]) -> str:
-        """Create LLM prompt for parsing product data."""
+    def _get_training_examples(self) -> str:
+        """Get few-shot training examples for the LLM."""
+        return """
+TRAINING EXAMPLES:
+
+Example 1:
+INPUT: Product Name: 30mm x 10mm 304 HRAP Stainless Steel Flat Bar ASTM A276
+       Description: 30mm x 10mm 304 HRAP Stainless Steel Flat Bar ASTM A276
+       Price: 45.20 per metre
+OUTPUT: {
+    "item_code": "FB-3010-304HRAP",
+    "description": "30mm x 10mm 304 HRAP Stainless Steel Flat Bar",
+    "metal_type": "stainless_steel",
+    "alloy": "304",
+    "specifics": "HRAP finish, ASTM A276",
+    "dimensions": "30x10mm",
+    "unit_cost": 45.20,
+    "price_unit": "per metre",
+    "confidence": 0.95
+}
+
+Example 2:
+INPUT: Product Name: 6061 T6 Aluminium Round Bar 25mm Diameter
+       Description: 6061 T6 Aluminium Round Bar 25mm Diameter
+       Price: 12.50 each
+OUTPUT: {
+    "item_code": "RB-25-6061T6",
+    "description": "25mm Diameter 6061 T6 Aluminium Round Bar",
+    "metal_type": "aluminium",
+    "alloy": "6061",
+    "specifics": "T6 temper",
+    "dimensions": "25mm diameter",
+    "unit_cost": 12.50,
+    "price_unit": "each",
+    "confidence": 0.92
+}
+
+Example 3:
+INPUT: Product Name: Mild Steel Plate 10mm x 2400mm x 1200mm
+       Description: Mild Steel Plate 10mm thick
+       Price: 285.00 per sheet
+OUTPUT: {
+    "item_code": "PL-10-MS-2400x1200",
+    "description": "10mm Mild Steel Plate 2400x1200mm",
+    "metal_type": "mild_steel",
+    "alloy": null,
+    "specifics": "Hot rolled plate",
+    "dimensions": "2400x1200x10mm",
+    "unit_cost": 285.00,
+    "price_unit": "per sheet",
+    "confidence": 0.88
+}
+
+Example 4:
+INPUT: Product Name: PVC Pipe 90mm x 6m
+       Description: PVC Pipe 90mm diameter 6 metre length
+       Price: 45.00 each
+OUTPUT: {
+    "item_code": "PIPE-90-PVC-6M",
+    "description": "90mm PVC Pipe 6m length",
+    "metal_type": null,
+    "alloy": null,
+    "specifics": "PVC pipe",
+    "dimensions": "90mm diameter x 6m",
+    "unit_cost": 45.00,
+    "price_unit": "each",
+    "confidence": 0.90
+}
+"""
+
+    def _create_parsing_prompt(self, product_data_list: list) -> str:
+        """Create LLM prompt for parsing product data (single item or batch)."""
         metal_types = [choice[0] for choice in MetalType.choices]
+        
+        # Convert single item to list for uniform processing
+        if not isinstance(product_data_list, list):
+            product_data_list = [product_data_list]
+        
+        training_examples = self._get_training_examples()
         
         prompt = f"""
 Parse the following supplier product data and extract structured information for inventory management.
 
-INPUT DATA:
-Product Name: {product_data.get('product_name', 'N/A')}
-Description: {product_data.get('description', 'N/A')}
-Specifications: {product_data.get('specifications', 'N/A')}
-Item Number: {product_data.get('item_no', 'N/A')}
-Variant Info: {product_data.get('variant_id', 'N/A')}
-Dimensions: {product_data.get('variant_width', 'N/A')} x {product_data.get('variant_length', 'N/A')}
-Price: {product_data.get('variant_price', 'N/A')} {product_data.get('price_unit', 'N/A')}
-
-EXTRACT and return JSON with these fields:
-
-{{
-    "item_code": "Standardized item code for inventory (create if none exists)",
-    "description": "Clean, standardized description for inventory (max 255 chars)",
-    "metal_type": "One of: {', '.join(metal_types)} or null if not metal",
-    "alloy": "Alloy specification like 304, 6061, etc. or null",
-    "specifics": "Specific details like grade, finish, etc. (max 255 chars)",
-    "dimensions": "Standardized dimensions format like '2400x1200x3mm' or null",
-    "unit_cost": "Numeric price value only (no currency symbols)",
-    "price_unit": "Standardized unit like 'per metre', 'each', 'per kg', etc.",
-    "confidence": "Your confidence in this parsing (0.0 to 1.0)"
-}}
+{training_examples}
 
 RULES:
 - Be optimistic - make reasonable inferences from available data
@@ -94,7 +150,37 @@ RULES:
 - Keep descriptions concise but informative
 - Ensure all dimensions follow consistent format
 - Extract numeric price only (remove currency symbols, "from", etc.)
+- Metal types must be one of: {', '.join(metal_types)} or null
+
+OUTPUT FORMAT:
+Return a JSON array with one object per input product. Each object should have these fields:
+{{
+    "item_code": "Standardized item code for inventory",
+    "description": "Clean, standardized description (max 255 chars)",
+    "metal_type": "One of the valid metal types or null",
+    "alloy": "Alloy specification or null",
+    "specifics": "Specific details (max 255 chars)",
+    "dimensions": "Standardized dimensions format or null",
+    "unit_cost": "Numeric price value only",
+    "price_unit": "Standardized unit",
+    "confidence": "Your confidence (0.0 to 1.0)"
+}}
+
+INPUT DATA TO PARSE:
 """
+        
+        for i, product_data in enumerate(product_data_list, 1):
+            prompt += f"""
+Product {i}:
+Product Name: {product_data.get('product_name', 'N/A')}
+Description: {product_data.get('description', 'N/A')}
+Specifications: {product_data.get('specifications', 'N/A')}
+Item Number: {product_data.get('item_no', 'N/A')}
+Variant Info: {product_data.get('variant_id', 'N/A')}
+Dimensions: {product_data.get('variant_width', 'N/A')} x {product_data.get('variant_length', 'N/A')}
+Price: {product_data.get('variant_price', 'N/A')} {product_data.get('price_unit', 'N/A')}
+"""
+        
         return prompt
     
     def _call_llm(self, prompt: str) -> Dict[str, Any]:
@@ -105,15 +191,25 @@ RULES:
             # Extract JSON from response
             response_text = response.text.strip()
             
-            # Try to find JSON in the response
-            start_idx = response_text.find('{')
-            end_idx = response_text.rfind('}') + 1
+            # Try to find JSON array or object in the response
+            start_idx = response_text.find('[')
+            if start_idx == -1:
+                start_idx = response_text.find('{')
+            # Find the matching closing bracket/brace
+            if response_text[start_idx] == '[':
+                end_idx = response_text.rfind(']') + 1
+            else:
+                end_idx = response_text.rfind('}') + 1
             
             if start_idx == -1 or end_idx == 0:
                 raise ValueError("No JSON found in LLM response")
             
             json_str = response_text[start_idx:end_idx]
             parsed_data = json.loads(json_str)
+            
+            # Ensure we always return a list for batch processing
+            if not isinstance(parsed_data, list):
+                parsed_data = [parsed_data]
             
             return {
                 'parsed_data': parsed_data,

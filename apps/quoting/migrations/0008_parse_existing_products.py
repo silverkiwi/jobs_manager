@@ -3,10 +3,73 @@
 from django.db import migrations
 
 
+def parse_existing_products(apps, schema_editor):
+    """Parse existing supplier products and stock items to create mappings."""
+    # Import models
+    SupplierProduct = apps.get_model('quoting', 'SupplierProduct')
+    Stock = apps.get_model('purchasing', 'Stock')
+    
+    # Import the parser - we need to import it inside the function
+    # since it's not available at migration time
+    try:
+        from apps.quoting.services.product_parser import ProductParser
+        parser = ProductParser()
+        
+        print("Parsing existing supplier products...")
+        for product in SupplierProduct.objects.all():
+            product_data = {
+                'description': product.description,
+                'product_name': product.product_name,
+                'specifications': product.specifications,
+                'item_no': product.item_no,
+                'variant_id': product.variant_id,
+                'variant_width': product.variant_width,
+                'variant_length': product.variant_length,
+                'variant_price': product.variant_price,
+                'price_unit': product.price_unit,
+            }
+            try:
+                parser.parse_product(product_data)
+            except Exception as e:
+                print(f"Error parsing supplier product {product.id}: {e}")
+        
+        print("Parsing existing stock items...")
+        for stock in Stock.objects.all():
+            stock_data = {
+                'description': stock.description,
+                'product_name': stock.item_code,
+                'specifications': stock.specifics,
+                'item_no': stock.item_code,
+                'variant_id': f'{stock.metal_type}_{stock.alloy}' if stock.metal_type and stock.alloy else stock.item_code,
+            }
+            try:
+                parser.parse_product(stock_data)
+            except Exception as e:
+                print(f"Error parsing stock item {stock.id}: {e}")
+                
+        print("Parsing complete!")
+        
+    except ImportError as e:
+        print(f"Could not import parser during migration: {e}")
+        print("Mappings will be created when products are next accessed")
+
+
+def reverse_parse_existing_products(apps, schema_editor):
+    """Remove all product parsing mappings."""
+    ProductParsingMapping = apps.get_model('quoting', 'ProductParsingMapping')
+    ProductParsingMapping.objects.all().delete()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
         ("quoting", "0007_supplierproduct_parsed_alloy_and_more"),
+        ("purchasing", "0008_stock_parsed_at_stock_parser_confidence_and_more"),
     ]
 
-    operations = []
+    operations = [
+        migrations.RunPython(
+            parse_existing_products,
+            reverse_parse_existing_products,
+        ),
+    ]
