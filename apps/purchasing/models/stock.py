@@ -126,6 +126,20 @@ class Stock(models.Model):
         null=True, blank=True, help_text="Raw JSON data from Xero for this item"
     )
 
+    # Parser tracking fields
+    parsed_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text="When this inventory item was parsed by LLM"
+    )
+    parser_version = models.CharField(
+        max_length=50, blank=True, null=True,
+        help_text="Version of parser used for this data"
+    )
+    parser_confidence = models.DecimalField(
+        max_digits=3, decimal_places=2, blank=True, null=True,
+        help_text="Parser confidence score 0.00-1.00"
+    )
+
     class Meta:
         db_table = "workflow_stock"
         constraints = [

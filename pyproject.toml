@@ -69,6 +69,7 @@ deptry = "^0.20.0"
 pandas = "^2.2.3"
 django-debug-toolbar = "^4.4.6"
 pylint-django = "^2.6.1"
+pytest = "^8.4.0"
 
 [build-system]
 requires = ["poetry-core"]
