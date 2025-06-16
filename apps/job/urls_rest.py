@@ -19,6 +19,18 @@ from apps.job.views.job_rest_views import (
 
 from apps.job.views.job_costing_views import JobCostSetView
 
+from apps.job.views.job_costline_views import (
+    CostLineCreateView,
+    CostLineUpdateView,
+    CostLineDeleteView,
+)
+
+from apps.job.views.modern_timesheet_views import (
+    ModernTimesheetEntryView,
+    ModernTimesheetDayView,
+    ModernTimesheetJobView,
+)
+
 from apps.job.views.workshop_view import WorkshopPDFView
 
 from apps.job.views.job_file_upload import JobFileUploadView
@@ -51,6 +63,16 @@ rest_urlpatterns = [
     
     # Job costing
     path('rest/jobs/<uuid:pk>/cost_sets/<str:kind>/', JobCostSetView.as_view(), name='job_cost_set_rest'),
+
+      # CostLine CRUD operations for modern timesheet
+    path('rest/jobs/<uuid:job_id>/cost_sets/actual/cost_lines/', CostLineCreateView.as_view(), name='costline_create_rest'),
+    path('rest/cost_lines/<int:cost_line_id>/', CostLineUpdateView.as_view(), name='costline_update_rest'),
+    path('rest/cost_lines/<int:cost_line_id>/delete/', CostLineDeleteView.as_view(), name='costline_delete_rest'),
+    
+    # Modern Timesheet API endpoints
+    path('rest/timesheet/entries/', ModernTimesheetEntryView.as_view(), name='modern_timesheet_entry_rest'),
+    path('rest/timesheet/staff/<uuid:staff_id>/date/<str:entry_date>/', ModernTimesheetDayView.as_view(), name='modern_timesheet_day_rest'),
+    path('rest/timesheet/jobs/<uuid:job_id>/', ModernTimesheetJobView.as_view(), name='modern_timesheet_job_rest'),
 
     # Workshop PDF
     path('rest/jobs/<uuid:job_id>/workshop-pdf/', WorkshopPDFView.as_view(), name='workshop-pdf'),    

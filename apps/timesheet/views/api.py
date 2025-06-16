@@ -16,13 +16,15 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
-from apps.job.models import Job, JobPricing
+from apps.job.models import Job, JobPricing, CostSet
 from apps.timesheet.models import TimeEntry
 from apps.timesheet.serializers import (
     TimeEntryAPISerializer,
     StaffAPISerializer, 
-    JobPricingAPISerializer
+    JobPricingAPISerializer,
+    TimesheetJobAPISerializer
 )
+from apps.job.serializers.costing_serializer import CostSetSerializer
 from apps.timesheet.enums import RateType
 
 logger = logging.getLogger(__name__)
@@ -219,20 +221,34 @@ class JobsAPIView(APIView):
     """API endpoint to get available jobs for timesheet entries."""
     
     permission_classes = [IsAuthenticated]
+    
     def get(self, request):
-        """Get list of active jobs with pricing information."""
+        """Get list of active jobs for timesheet entries using CostSet system."""
         try:
-            # Get active jobs with their pricing - filter by status instead of is_active
-            # Exclude archived, completed, and rejected jobs
+            # Get active jobs - exclude archived, completed, and rejected jobs
             excluded_statuses = ['archived', 'completed', 'rejected']
-            job_pricings = JobPricing.objects.filter(
-                job__status__in=['quoting', 'accepted_quote', 'awaiting_materials', 'in_progress', 'on_hold', 'special']
-            ).select_related('job').order_by('job__job_number')
+            jobs = Job.objects.filter(
+                status__in=['quoting', 'accepted_quote', 'awaiting_materials', 'in_progress', 'on_hold', 'special']
+            ).exclude(
+                status__in=excluded_statuses
+            ).select_related('client').prefetch_related(
+                'cost_sets'  # Prefetch cost sets for efficiency
+            ).order_by('job_number')
             
-            if not job_pricings.exists():
+            # Filter jobs that have actual CostSet (for timesheet entries)
+            # We create actual CostSet on-demand when needed
+            jobs_with_actual_costset = []
+            for job in jobs:
+                # Ensure job has at least an actual cost set or can create one
+                actual_cost_set = job.get_latest('actual')
+                if actual_cost_set or job.status in ['in_progress', 'on_hold', 'special']:
+                    # Include jobs that either have actual cost sets or are in progress
+                    jobs_with_actual_costset.append(job)
+            
+            if not jobs_with_actual_costset:
                 return Response({'jobs': []})
             
-            serializer = JobPricingAPISerializer(job_pricings, many=True)
+            serializer = TimesheetJobAPISerializer(jobs_with_actual_costset, many=True)
             return Response({'jobs': serializer.data})
         
         except Exception as e:

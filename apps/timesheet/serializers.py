@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from apps.timesheet.models import TimeEntry
 from apps.accounts.models import Staff
-from apps.job.models import JobPricing
+from apps.job.models import JobPricing, Job
 
 logger = logging.getLogger(__name__)
 
@@ -311,6 +311,79 @@ class JobPricingAPISerializer(serializers.ModelSerializer):
         """Create display name for job selection."""
         task_name = self.get_taskName(obj)
         return f"{obj.job.job_number} - {obj.job.name} ({task_name})"
+
+    def to_representation(self, instance):
+        """Convert decimal fields to float for JSON serialization."""
+        representation = super().to_representation(instance)
+
+        # Convert Decimal fields to float for frontend
+        decimal_fields = ["chargeOutRate", "estimatedHours", "totalHours"]
+        for field in decimal_fields:
+            if field in representation and representation[field] is not None:
+                representation[field] = float(representation[field])
+
+        return representation
+
+
+class TimesheetJobAPISerializer(serializers.ModelSerializer):
+    """
+    Serializer for Job model optimized for timesheet job selection.
+    Uses the modern CostSet system instead of JobPricing.
+    """
+    
+    jobId = serializers.CharField(source="id", read_only=True)
+    jobNumber = serializers.CharField(source="job_number", read_only=True)
+    jobName = serializers.CharField(source="name", read_only=True)
+    clientName = serializers.CharField(source="client.name", read_only=True)
+    taskName = serializers.SerializerMethodField()
+    isBillable = serializers.BooleanField(default=True, read_only=True)
+    chargeOutRate = serializers.DecimalField(
+        source="charge_out_rate", max_digits=10, decimal_places=2, read_only=True
+    )
+    estimatedHours = serializers.SerializerMethodField()
+    totalHours = serializers.SerializerMethodField()
+    displayName = serializers.SerializerMethodField()
+    status = serializers.CharField(read_only=True)
+    
+    class Meta:
+        model = Job
+        fields = [
+            "id",
+            "jobId", 
+            "jobNumber",
+            "jobName",
+            "clientName",
+            "taskName",
+            "chargeOutRate",
+            "estimatedHours",
+            "totalHours",
+            "isBillable",
+            "displayName",
+            "status",
+        ]
+
+    def get_taskName(self, obj):
+        """Generate a task name for timesheet context."""
+        return "Time Entry"
+
+    def get_estimatedHours(self, obj):
+        """Get estimated hours from the latest estimate CostSet."""
+        estimate_cost_set = obj.get_latest('estimate')
+        if estimate_cost_set and estimate_cost_set.summary:
+            return estimate_cost_set.summary.get('hours', 0)
+        return 0
+
+    def get_totalHours(self, obj):
+        """Get actual hours from the latest actual CostSet."""
+        actual_cost_set = obj.get_latest('actual')
+        if actual_cost_set and actual_cost_set.summary:
+            return actual_cost_set.summary.get('hours', 0)
+        return 0
+
+    def get_displayName(self, obj):
+        """Create display name for job selection."""
+        client_part = f" - {obj.client.name}" if obj.client else ""
+        return f"{obj.job_number} - {obj.name}{client_part}"
 
     def to_representation(self, instance):
         """Convert decimal fields to float for JSON serialization."""

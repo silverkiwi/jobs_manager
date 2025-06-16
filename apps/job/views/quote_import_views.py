@@ -54,21 +54,29 @@ class QuoteImportPreviewView(APIView):
         uploaded_file = request.FILES['file']
         
         # Early return: validate file type
-        if not uploaded_file.name.endswith(('.xlsx', '.xls')):
-            return Response(
+        if not uploaded_file.name.endswith(('.xlsx', '.xls')):            return Response(
                 {'error': 'Only Excel files (.xlsx, .xls) are supported'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         try:
-            # Save uploaded file temporarily (in a real system, use temp storage)
-            temp_path = f"/tmp/{uploaded_file.name}"
+            # Save uploaded file temporarily
+            import tempfile
+            import os
+            
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, f"quote_preview_{uploaded_file.name}")
+            
             with open(temp_path, 'wb+') as destination:
                 for chunk in uploaded_file.chunks():
                     destination.write(chunk)
             
             # Preview the import
             preview_data = preview_quote_import(job, temp_path)
+            
+            # Clean up temp file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
             
             # Format response
             response_data = {
@@ -116,19 +124,27 @@ class QuoteImportView(APIView):
                 {'error': 'Only Excel files (.xlsx, .xls) are supported'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # Get options from request
+          # Get options from request
         skip_validation = request.data.get('skip_validation', 'false').lower() == 'true'
         
         try:
-            # Save uploaded file temporarily (in a real system, use temp storage)
-            temp_path = f"/tmp/{uploaded_file.name}"
+            # Save uploaded file temporarily
+            import tempfile
+            import os
+            
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, f"quote_import_{uploaded_file.name}")
+            
             with open(temp_path, 'wb+') as destination:
                 for chunk in uploaded_file.chunks():
                     destination.write(chunk)
             
             # Import the quote
             result = import_quote_from_file(job, temp_path, skip_validation=skip_validation)
+            
+            # Clean up temp file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
             
             # Format response based on result
             if result.success:
