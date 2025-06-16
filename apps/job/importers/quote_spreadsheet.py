@@ -1,6 +1,72 @@
 import pandas as pd
 from decimal import Decimal
+from enum import Enum
+from dataclasses import dataclass
+from typing import List, Optional, Dict, Any
 from .draft import DraftLine
+
+class ErrorSeverity(Enum):
+    """Severity levels for validation errors."""
+    WARNING = "warning"      # Non-blocking, proceed with import
+    ERROR = "error"          # Blocking, reject import
+    CRITICAL = "critical"    # Critical format issues, cannot parse
+
+class ErrorType(Enum):
+    """Types of validation errors."""
+    # Format errors (critical)
+    MISSING_REQUIRED_COLUMNS = "missing_required_columns"
+    INVALID_SHEET_STRUCTURE = "invalid_sheet_structure"
+    
+    # Data conflicts (errors - blocking)
+    LABOUR_MATERIAL_CONFLICT = "labour_material_conflict"
+    INVALID_ITEM_FORMAT = "invalid_item_format"
+    PRICING_MISMATCH = "pricing_mismatch"
+    
+    # Validation warnings (non-blocking)
+    MARKUP_MISMATCH = "markup_mismatch"
+    CHARGE_RATE_MISMATCH = "charge_rate_mismatch"
+    TOTALS_MISMATCH = "totals_mismatch"
+
+@dataclass
+class ValidationError:
+    """Individual validation error with context."""
+    error_type: ErrorType
+    severity: ErrorSeverity
+    message: str
+    row_number: Optional[int] = None
+    column: Optional[str] = None
+    expected_value: Optional[Any] = None
+    actual_value: Optional[Any] = None
+    suggestion: Optional[str] = None
+
+@dataclass
+class ValidationReport:
+    """Complete validation report for a spreadsheet."""
+    is_valid: bool
+    can_proceed: bool  # True if only warnings, False if errors/critical
+    errors: List[ValidationError]
+    warnings: List[ValidationError]
+    critical_issues: List[ValidationError]
+    summary: Dict[str, Any]
+    
+    def has_blocking_issues(self) -> bool:
+        """Check if there are any blocking issues (errors or critical)."""
+        return len(self.errors) > 0 or len(self.critical_issues) > 0
+    
+    def get_error_summary(self) -> str:
+        """Get a human-readable summary of all issues."""
+        if not self.errors and not self.warnings and not self.critical_issues:
+            return "✅ No validation issues found"
+        
+        summary_parts = []
+        if self.critical_issues:
+            summary_parts.append(f"🚨 {len(self.critical_issues)} critical issue(s)")
+        if self.errors:
+            summary_parts.append(f"❌ {len(self.errors)} error(s)")
+        if self.warnings:
+            summary_parts.append(f"⚠️ {len(self.warnings)} warning(s)")
+        
+        return " | ".join(summary_parts)
 
 def _d(val):
     """Safely coerce values to Decimal with 2 decimal places precision."""
@@ -64,7 +130,7 @@ def detect_material_columns(df):
     
     return total_col, item_col
 
-def parse_xlsx(path: str, company=None) -> tuple[list[DraftLine], list[str]]:
+def parse_xlsx(path: str, company=None, skip_validation=False) -> tuple[list[DraftLine], list[str]]:
     """
     Parse the Quoting Spreadsheet and convert Primary Details sheet
     into a list of DraftLine objects with validation.
@@ -72,11 +138,35 @@ def parse_xlsx(path: str, company=None) -> tuple[list[DraftLine], list[str]]:
     Args:
         path: Path to the Excel file
         company: Company object with wage_rate and charge_out_rate (optional)
+        skip_validation: Skip pre-import validation (default: False)
         
     Returns:
         tuple: (draft_lines, validation_report)
     """
     try:
+        # Perform pre-import validation
+        if not skip_validation:
+            validation_report = validate_spreadsheet_format(path)
+            
+            # Reject if critical issues or blocking errors
+            if validation_report.has_blocking_issues():
+                error_summary = []
+                
+                # Add critical issues
+                for issue in validation_report.critical_issues:
+                    error_summary.append(f"CRITICAL: {issue.message}")
+                
+                # Add blocking errors
+                for issue in validation_report.errors:
+                    error_summary.append(f"ERROR: {issue.message}")
+                    if issue.row_number:
+                        error_summary[-1] += f" (Row {issue.row_number})"
+                    if issue.suggestion:
+                        error_summary[-1] += f" - {issue.suggestion}"
+                
+                # Return empty results with detailed error report
+                return [], error_summary
+        
         # Read the Primary Details sheet
         df = pd.read_excel(path, sheet_name=PRIMARY_SHEET)
         
@@ -113,14 +203,12 @@ def parse_xlsx(path: str, company=None) -> tuple[list[DraftLine], list[str]]:
                 materials_markup = DEFAULT_MATERIALS_MARKUP
         
         draft_lines = []
-        total_minutes = Decimal("0")          # Process rows - only those with valid item numbers in column A
+        total_minutes = Decimal("0")        # Process rows - only those with valid item numbers in column A
         for idx in range(0, min(45, len(df))):
             row = df.iloc[idx]
-            excel_row = idx + 1  # Convert to Excel row number            # Skip rows without description
-            description = str(row.get("Description", "")).strip()
-            if not description or description.lower() in ["nan", "none", ""]:
-                description = f"Item {row.get('item', '')}"  # Use item number as description if blank
-              # Validate item: must have ALL three - item number, quantity, and description
+            excel_row = idx + 1  # Convert to Excel row number
+            
+            # Validate item: must have item number AND quantity
             # Check 1: Item number (must be valid number)
             item_number = str(row.get("item", "")).strip()
             if not item_number or item_number.lower() in ["nan", "none", ""]:
@@ -135,11 +223,11 @@ def parse_xlsx(path: str, company=None) -> tuple[list[DraftLine], list[str]]:
             quantity = _d(row.get(QUANTITY_COL, 1))
             if quantity <= 0:
                 continue
-                
-            # Check 3: Description (must not be empty, nan, or none)
+            
+            # Check 3: Description (if empty, use item number as fallback)
             description = str(row.get("Description", "")).strip()
             if not description or description.lower() in ["nan", "none", ""]:
-                continue
+                description = f"Item {item_number}"  # Use item number as description if blank
               # Get values from key columns only (A, B, C, D, N, O)
             minutes = _d(row.get(labour_col, 0)) if labour_col else Decimal("0")
             material_total_cost = _d(row.get(material_total_col, 0)) if material_total_col else Decimal("0")
@@ -364,3 +452,389 @@ def parse_xlsx_with_summary(path: str) -> dict:
         'summary': summary,
         'validation_report': validation_report
     }
+
+def parse_xlsx_with_validation(path: str, company=None) -> dict:
+    """
+    Parse Excel file with comprehensive validation and error reporting.
+    
+    Args:
+        path: Path to the Excel file
+        company: Company object with wage_rate and charge_out_rate (optional)
+        
+    Returns:
+        Dictionary containing:
+        - 'success': bool - Whether parsing was successful
+        - 'can_proceed': bool - Whether import can proceed (no blocking errors)
+        - 'draft_lines': list - Parsed DraftLine objects (empty if failed)
+        - 'validation_report': ValidationReport - Complete validation results
+        - 'summary': dict - Summary statistics
+        - 'error_report': list - Human-readable error messages
+    """
+    try:
+        # Always perform validation first
+        validation_report = validate_spreadsheet_format(path)
+        
+        # Prepare result structure
+        result = {
+            'success': False,
+            'can_proceed': validation_report.can_proceed,
+            'draft_lines': [],
+            'validation_report': validation_report,
+            'summary': validation_report.summary,
+            'error_report': []
+        }
+        
+        # Generate human-readable error report
+        error_report = []
+        
+        # Add critical issues
+        if validation_report.critical_issues:
+            error_report.append("🚨 CRITICAL ISSUES (Cannot proceed):")
+            for issue in validation_report.critical_issues:
+                error_report.append(f"  • {issue.message}")
+                if issue.suggestion:
+                    error_report.append(f"    💡 {issue.suggestion}")
+        
+        # Add blocking errors
+        if validation_report.errors:
+            error_report.append("❌ BLOCKING ERRORS (Must fix before import):")
+            for issue in validation_report.errors:
+                msg = f"  • {issue.message}"
+                if issue.row_number:
+                    msg += f" (Row {issue.row_number})"
+                error_report.append(msg)
+                if issue.suggestion:
+                    error_report.append(f"    💡 {issue.suggestion}")
+        
+        # Add warnings
+        if validation_report.warnings:
+            error_report.append("⚠️ WARNINGS (Non-blocking, import can proceed):")
+            for issue in validation_report.warnings:
+                msg = f"  • {issue.message}"
+                if issue.expected_value and issue.actual_value:
+                    msg += f" (Expected: {issue.expected_value}, Got: {issue.actual_value})"
+                error_report.append(msg)
+                if issue.suggestion:
+                    error_report.append(f"    💡 {issue.suggestion}")
+        
+        result['error_report'] = error_report
+        
+        # If there are blocking issues, don't attempt parsing
+        if validation_report.has_blocking_issues():
+            result['summary']['parse_attempted'] = False
+            result['summary']['rejection_reason'] = "Blocking validation errors found"
+            return result
+        
+        # Attempt parsing (skip validation since we already did it)
+        draft_lines, legacy_validation_issues = parse_xlsx(path, company, skip_validation=True)
+        
+        # Update result with successful parsing
+        result['success'] = True
+        result['draft_lines'] = draft_lines
+        result['summary'].update({
+            'parse_attempted': True,
+            'total_lines': len(draft_lines),
+            'time_lines': len([line for line in draft_lines if line.kind == 'time']),
+            'material_lines': len([line for line in draft_lines if line.kind == 'material']),
+            'adjust_lines': len([line for line in draft_lines if line.kind == 'adjust']),
+            'total_cost': sum(line.total_cost for line in draft_lines),
+            'total_revenue': sum(line.total_rev for line in draft_lines),
+        })
+        
+        # Add any legacy validation issues as warnings
+        if legacy_validation_issues:
+            if not error_report or error_report[-1] != "⚠️ WARNINGS (Non-blocking, import can proceed):":
+                error_report.append("⚠️ ADDITIONAL VALIDATION NOTES:")
+            for issue in legacy_validation_issues:
+                error_report.append(f"  • {issue}")
+            result['error_report'] = error_report
+        
+        return result
+        
+    except Exception as e:
+        # Unexpected error during validation or parsing
+        return {
+            'success': False,
+            'can_proceed': False,
+            'draft_lines': [],
+            'validation_report': ValidationReport(
+                is_valid=False,
+                can_proceed=False,
+                errors=[],
+                warnings=[],
+                critical_issues=[ValidationError(
+                    error_type=ErrorType.INVALID_SHEET_STRUCTURE,
+                    severity=ErrorSeverity.CRITICAL,
+                    message=f"Unexpected error: {str(e)}"
+                )],
+                summary={'total_issues': 1, 'critical_count': 1, 'error_count': 0, 'warning_count': 0}
+            ),
+            'summary': {'total_issues': 1, 'parse_attempted': False},
+            'error_report': [f"🚨 CRITICAL ERROR: {str(e)}"]
+        }
+
+# ...existing code...
+def validate_spreadsheet_format(path: str) -> ValidationReport:
+    """
+    Perform comprehensive pre-import validation of the spreadsheet.
+    
+    Args:
+        path: Path to the Excel file
+        
+    Returns:
+        ValidationReport: Complete validation report with errors and warnings
+    """
+    errors = []
+    warnings = []
+    critical_issues = []
+    
+    try:
+        # Check if file exists and is readable
+        try:
+            df = pd.read_excel(path, sheet_name=PRIMARY_SHEET)
+        except FileNotFoundError:
+            critical_issues.append(ValidationError(
+                error_type=ErrorType.INVALID_SHEET_STRUCTURE,
+                severity=ErrorSeverity.CRITICAL,
+                message=f"File not found: {path}"
+            ))
+            return _create_validation_report(critical_issues, errors, warnings, df=None)
+        except Exception as e:
+            critical_issues.append(ValidationError(
+                error_type=ErrorType.INVALID_SHEET_STRUCTURE,
+                severity=ErrorSeverity.CRITICAL,
+                message=f"Cannot read Primary Details sheet: {str(e)}"
+            ))
+            return _create_validation_report(critical_issues, errors, warnings, df=None)
+        
+        # Check required columns
+        required_columns = ["item", "quantity", "Description"]
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            critical_issues.append(ValidationError(
+                error_type=ErrorType.MISSING_REQUIRED_COLUMNS,
+                severity=ErrorSeverity.CRITICAL,
+                message=f"Missing required columns: {', '.join(missing_columns)}",
+                suggestion="Ensure spreadsheet has 'item', 'quantity', and 'Description' columns"
+            ))
+        
+        # Check for labour or material columns
+        labour_col = detect_labour_column(df)
+        material_total_col, material_item_col = detect_material_columns(df)
+        
+        if not labour_col and not material_total_col and not material_item_col:
+            critical_issues.append(ValidationError(
+                error_type=ErrorType.MISSING_REQUIRED_COLUMNS,
+                severity=ErrorSeverity.CRITICAL,
+                message="No labour or material cost columns found",
+                suggestion="Ensure spreadsheet has either labour columns or material cost columns"
+            ))
+        
+        # Validate individual items and detect conflicts
+        labour_material_conflicts = _detect_labour_material_conflicts(df, labour_col, material_total_col, material_item_col)
+        errors.extend(labour_material_conflicts)
+        
+        # Validate pricing against company defaults
+        pricing_warnings = _validate_pricing_consistency(path, df)
+        warnings.extend(pricing_warnings)
+        
+        # Check totals validation
+        totals_warnings = _validate_totals_consistency(df, labour_col)
+        warnings.extend(totals_warnings)
+        
+    except Exception as e:
+        critical_issues.append(ValidationError(
+            error_type=ErrorType.INVALID_SHEET_STRUCTURE,
+            severity=ErrorSeverity.CRITICAL,
+            message=f"Unexpected error during validation: {str(e)}"
+        ))
+    
+    return _create_validation_report(critical_issues, errors, warnings, df)
+
+def _detect_labour_material_conflicts(df, labour_col, material_total_col, material_item_col) -> List[ValidationError]:
+    """Detect items that have both labour and material costs."""
+    conflicts = []
+    
+    if not labour_col or (not material_total_col and not material_item_col):
+        return conflicts  # No conflict possible if missing columns
+    
+    for idx in range(min(45, len(df))):
+        row = df.iloc[idx]
+        excel_row = idx + 1
+        
+        # Check if this is a valid item
+        if not _is_valid_item(row):
+            continue
+          # Check for conflict
+        has_labour = _d(row.get(labour_col, 0)) > 0
+        has_material = (_d(row.get(material_total_col, 0)) > 0 or 
+                       _d(row.get(material_item_col, 0)) > 0)
+        
+        if has_labour and has_material:
+            description = str(row.get("Description", "")).strip()
+            conflicts.append(ValidationError(
+                error_type=ErrorType.LABOUR_MATERIAL_CONFLICT,
+                severity=ErrorSeverity.ERROR,  # Blocking error - incorrect spreadsheet format
+                message=f"Item '{description}' has both labour and material costs",
+                row_number=excel_row,
+                suggestion="Remove either labour time or material costs - each item should be either labour OR material, not both"
+            ))
+    
+    return conflicts
+
+def _validate_pricing_consistency(path: str, df) -> List[ValidationError]:
+    """Validate pricing against company defaults and pricing details sheet."""
+    warnings = []
+    
+    try:
+        # Get company defaults
+        try:
+            from apps.workflow.models import CompanyDefaults
+            defaults = CompanyDefaults.objects.first()
+            if defaults:
+                expected_wage = defaults.wage_rate
+                expected_charge = defaults.charge_out_rate
+                expected_markup = defaults.materials_markup
+            else:
+                expected_wage = DEFAULT_WAGE_RATE
+                expected_charge = DEFAULT_CHARGE_OUT_RATE
+                expected_markup = DEFAULT_MATERIALS_MARKUP
+        except (ImportError, Exception):
+            expected_wage = DEFAULT_WAGE_RATE
+            expected_charge = DEFAULT_CHARGE_OUT_RATE
+            expected_markup = DEFAULT_MATERIALS_MARKUP
+        
+        # Check pricing details sheet
+        try:
+            pricing_df = pd.read_excel(path, sheet_name="pricing details - inhouse")
+            
+            # Find labour cost and margin
+            labour_cost_row = None
+            margin_row = None
+            
+            for idx, row in pricing_df.iterrows():
+                desc = str(row.get("Description", "")).strip().lower()
+                if "labour cost" in desc:
+                    labour_cost_row = row
+                elif "margin" in desc:
+                    margin_row = row
+            
+            # Validate labour cost
+            if labour_cost_row is not None:
+                actual_labour_cost = _d(labour_cost_row.get("amount", 0))
+                if abs(actual_labour_cost - expected_charge) > Decimal("1.00"):
+                    warnings.append(ValidationError(
+                        error_type=ErrorType.CHARGE_RATE_MISMATCH,
+                        severity=ErrorSeverity.WARNING,
+                        message=f"Labour cost in pricing details (${actual_labour_cost}) doesn't match company charge-out rate (${expected_charge})",
+                        expected_value=float(expected_charge),
+                        actual_value=float(actual_labour_cost),
+                        suggestion="Update company defaults or spreadsheet pricing"
+                    ))
+            
+            # Validate margin
+            if margin_row is not None:
+                actual_margin = _d(margin_row.get("amount", 0))
+                expected_margin_multiplier = 1 + expected_markup
+                if abs(actual_margin - expected_margin_multiplier) > Decimal("0.05"):
+                    warnings.append(ValidationError(
+                        error_type=ErrorType.MARKUP_MISMATCH,
+                        severity=ErrorSeverity.WARNING,
+                        message=f"Margin in pricing details ({actual_margin}) doesn't match company markup ({expected_margin_multiplier})",
+                        expected_value=float(expected_margin_multiplier),
+                        actual_value=float(actual_margin),
+                        suggestion="Update company defaults or spreadsheet pricing"
+                    ))
+        
+        except Exception:
+            # Pricing details sheet not found or readable - this is optional
+            pass
+    
+    except Exception as e:
+        warnings.append(ValidationError(
+            error_type=ErrorType.PRICING_MISMATCH,
+            severity=ErrorSeverity.WARNING,
+            message=f"Could not validate pricing consistency: {str(e)}"
+        ))
+    
+    return warnings
+
+def _validate_totals_consistency(df, labour_col) -> List[ValidationError]:
+    """Validate that computed totals match spreadsheet totals."""
+    warnings = []
+    
+    try:
+        validation_cells = find_validation_cells(df, labour_col)
+        
+        # This is a simplified validation - full validation happens during parsing
+        if not validation_cells.get("total_minutes"):
+            warnings.append(ValidationError(
+                error_type=ErrorType.TOTALS_MISMATCH,
+                severity=ErrorSeverity.WARNING,
+                message="Could not find total minutes cell for validation",
+                suggestion="Check spreadsheet format and ensure totals are present"
+            ))
+        
+        if not validation_cells.get("labour_revenue"):
+            warnings.append(ValidationError(
+                error_type=ErrorType.TOTALS_MISMATCH,
+                severity=ErrorSeverity.WARNING,
+                message="Could not find labour revenue cell for validation",
+                suggestion="Check spreadsheet format and ensure labour totals are present"
+            ))
+    
+    except Exception as e:
+        warnings.append(ValidationError(
+            error_type=ErrorType.TOTALS_MISMATCH,
+            severity=ErrorSeverity.WARNING,
+            message=f"Could not validate totals: {str(e)}"
+        ))
+    
+    return warnings
+
+def _is_valid_item(row) -> bool:
+    """Check if a row represents a valid item."""
+    # Must have item number
+    item_num = row.get("item")
+    if pd.isna(item_num) or item_num is None:
+        return False
+    
+    try:
+        float(item_num)  # Must be numeric
+    except (ValueError, TypeError):
+        return False
+    
+    # Must have quantity
+    quantity = row.get("quantity")
+    if pd.isna(quantity) or quantity is None or quantity == 0:
+        return False
+    
+    # Description is optional - if empty, we'll use item number as fallback
+    return True
+
+def _create_validation_report(critical_issues: List[ValidationError], 
+                            errors: List[ValidationError], 
+                            warnings: List[ValidationError],
+                            df) -> ValidationReport:
+    """Create a validation report from collected issues."""
+    is_valid = len(critical_issues) == 0 and len(errors) == 0
+    can_proceed = len(critical_issues) == 0 and len(errors) == 0
+    
+    # Create summary
+    summary = {
+        "total_issues": len(critical_issues) + len(errors) + len(warnings),
+        "critical_count": len(critical_issues),
+        "error_count": len(errors),
+        "warning_count": len(warnings),
+        "sheet_readable": df is not None,
+        "estimated_items": 0 if df is None else sum(1 for idx in range(min(45, len(df))) if _is_valid_item(df.iloc[idx]))
+    }
+    
+    return ValidationReport(
+        is_valid=is_valid,
+        can_proceed=can_proceed,
+        errors=errors,
+        warnings=warnings,
+        critical_issues=critical_issues,
+        summary=summary
+    )

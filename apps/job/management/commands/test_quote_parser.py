@@ -20,6 +20,11 @@ class Command(BaseCommand):
             action='store_true',
             help='Show detailed output of parsed lines'
         )
+        parser.add_argument(
+            '--legacy',
+            action='store_true',
+            help='Use legacy parser (for compatibility)'
+        )
 
     def handle(self, *args, **options):
         # Determine the file path
@@ -33,12 +38,20 @@ class Command(BaseCommand):
         
         self.stdout.write(f"Testing quote spreadsheet parser with: {file_path}")
         
-        # Check if file exists
+        if options['legacy']:
+            self.stdout.write(self.style.WARNING("Using legacy parser (without new validation)"))
+          # Check if file exists
         if not file_path.exists():
             raise CommandError(f"Spreadsheet not found at {file_path}")
 
-        try:            # Parse the spreadsheet with new function signature
-            draft_lines, validation_report = parse_xlsx(str(file_path))
+        try:
+            # Parse the spreadsheet - use validation unless legacy mode
+            if options['legacy']:
+                # Legacy mode: skip validation 
+                draft_lines, validation_report = parse_xlsx(str(file_path), skip_validation=True)
+            else:
+                # Normal mode: use validation (may reject invalid spreadsheets)
+                draft_lines, validation_report = parse_xlsx(str(file_path), skip_validation=False)
             
             # Create summary from draft_lines
             summary = {
@@ -49,7 +62,9 @@ class Command(BaseCommand):
                 'total_cost': sum(line.total_cost for line in draft_lines),
                 'total_revenue': sum(line.total_rev for line in draft_lines),
             }
-            lines = draft_lines  # for backward compatibility              # Basic sanity checks
+            lines = draft_lines  # for backward compatibility
+            
+            # Basic sanity checks
             self.stdout.write(self.style.SUCCESS(f"✓ Successfully parsed {len(lines)} lines"))
             
             # Show validation report
@@ -59,7 +74,8 @@ class Command(BaseCommand):
                     self.stdout.write(f"  - {issue}")
             else:
                 self.stdout.write(self.style.SUCCESS("✓ No validation issues"))
-              # Check we have both time and material lines (be flexible about counts)
+            
+            # Check we have both time and material lines (be flexible about counts)
             if summary['time_lines'] == 0:
                 self.stdout.write(self.style.WARNING("⚠ No time lines found"))
             else:
@@ -69,7 +85,8 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING("⚠ No material lines found"))
             else:
                 self.stdout.write(self.style.SUCCESS(f"✓ Found {summary['material_lines']} material lines"))
-              # Calculate breakdown of costs and revenues
+            
+            # Calculate breakdown of costs and revenues
             material_cost = sum(line.total_cost for line in lines if line.kind == 'material')
             time_cost = sum(line.total_cost for line in lines if line.kind == 'time')  # wage cost
             material_revenue = sum(line.total_rev for line in lines if line.kind == 'material')
@@ -108,7 +125,8 @@ class Command(BaseCommand):
                     self.stdout.write(f"  {issue}")
             else:
                 self.stdout.write(self.style.SUCCESS("✓ All lines are valid"))
-              # Show summary with detailed breakdown
+            
+            # Show summary with detailed breakdown
             self.stdout.write(f"\n📊 Summary:")
             self.stdout.write(f"  Total lines: {summary['total_lines']}")
             self.stdout.write(f"  Time lines: {summary['time_lines']}")
@@ -146,8 +164,10 @@ class Command(BaseCommand):
                     self.stdout.write(
                         f"  {i+1:3d}. [{line.kind:8s}] {line.desc[:50]:50s} "
                         f"qty={line.quantity:>6} cost=${line.unit_cost:>8} "
-                        f"rev=${line.unit_rev:>8} (row {line.source_row})"                    )
-              # Final verdict
+                        f"rev=${line.unit_rev:>8} (row {line.source_row})"
+                    )
+            
+            # Final verdict
             has_time_lines = summary['time_lines'] > 0
             has_material_lines = summary['material_lines'] > 0
             has_reasonable_data = material_cost > 0 and time_revenue > 0
