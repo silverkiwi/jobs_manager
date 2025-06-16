@@ -553,54 +553,7 @@ class UnusedClientsView(TemplateView):
         Handle bulk deletion of unused clients.
         Archives the contacts in Xero and deletes them from our database.
         """
-        try:
-            client_ids = request.POST.getlist("client_ids[]")
-            if not client_ids:
-                return JsonResponse(
-                    {"success": False, "error": "No clients selected"}, status=400
-                )
-
-            clients_to_delete = self.get_unused_clients().filter(id__in=client_ids)
-            deletion_count = clients_to_delete.count()
-
-            with transaction.atomic():
-                try:
-                    # Archive in Xero first
-                    success_count, error_count = archive_clients_in_xero(
-                        clients_to_delete
-                    )
-                    if error_count > 0:
-                        raise Exception(
-                            f"Failed to archive {error_count} clients in Xero"
-                        )
-
-                    # If archiving succeeded, delete from our database
-                    clients_to_delete.delete()
-                except Exception as e:
-                    logger.error(f"Failed to archive/delete clients: {str(e)}")
-                    return JsonResponse(
-                        {
-                            "success": False,
-                            "error": f"Failed to archive/delete clients: {str(e)}",
-                        },
-                        status=500,
-                    )
-
-            logger.info(
-                f"Successfully archived and deleted {deletion_count} unused clients"
-            )
-            return JsonResponse(
-                {
-                    "success": True,
-                    "message": f"Successfully archived and deleted {deletion_count} clients",
-                    "deleted_count": deletion_count,
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Error in bulk client deletion: {str(e)}")
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
-
+        raise Exception("This method has beeen deliberately removed.   Archive clients directly in Xero ")
 
 # API views for ClientContact management
 from rest_framework import status

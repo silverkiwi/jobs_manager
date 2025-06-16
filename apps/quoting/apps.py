@@ -13,6 +13,9 @@ class QuotingConfig(AppConfig):
     name = "apps.quoting"
 
     def ready(self):
+        # Import signals to ensure they're connected
+        import apps.quoting.signals  # noqa
+        
         # This app (quoting) is responsible for scheduling scraper jobs.
         # The 'workflow' app handles its own scheduled jobs (e.g., Xero syncs).
         # Both apps use the same DjangoJobStore for persistence.
