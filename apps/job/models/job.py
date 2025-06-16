@@ -362,10 +362,38 @@ class Job(models.Model):
 
                 # Creating a new job is tricky because of the circular reference.
                 # We first save the job to the DB without any associated pricings, then we
-                super(Job, self).save(*args, **kwargs)
+                super(Job, self).save(*args, **kwargs)                # Create initial CostSet instances (modern system)
+                logger.debug("Creating initial CostSet entries.")
+                from .costing import CostSet
+                
+                # Create estimate cost set
+                estimate_cost_set = CostSet.objects.create(
+                    job=self,
+                    kind="estimate",
+                    rev=1
+                )
+                self.latest_estimate = estimate_cost_set
+                
+                # Create quote cost set
+                quote_cost_set = CostSet.objects.create(
+                    job=self,
+                    kind="quote", 
+                    rev=1
+                )
+                self.latest_quote = quote_cost_set
+                
+                # Create actual cost set
+                actual_cost_set = CostSet.objects.create(
+                    job=self,
+                    kind="actual",
+                    rev=1
+                )
+                self.latest_actual = actual_cost_set
+                
+                logger.debug("Initial CostSets created successfully.")
 
-                #  Create the initial JobPricing instances
-                logger.debug("Creating related JobPricing entries.")
+                # Create legacy JobPricing instances for backward compatibility (deprecated)
+                logger.debug("Creating legacy JobPricing entries for backward compatibility.")
                 self.latest_estimate_pricing = JobPricing.objects.create(
                     pricing_stage="estimate", job=self
                 )
@@ -375,15 +403,18 @@ class Job(models.Model):
                 self.latest_reality_pricing = JobPricing.objects.create(
                     pricing_stage="reality", job=self
                 )
-                logger.debug("Initial pricings created successfully.")
+                logger.debug("Legacy pricings created successfully.")
 
                 # Save the references back to the DB
                 super(Job, self).save(
                     update_fields=[
+                        "latest_estimate",
+                        "latest_quote", 
+                        "latest_actual",
                         "latest_estimate_pricing",
                         "latest_quote_pricing",
                         "latest_reality_pricing",
-                    ]                )
+                    ])
                 
                 if create_creation_event and staff:
                     JobEvent.objects.create(
