@@ -54,6 +54,17 @@ class CostSetSerializer(serializers.ModelSerializer):
     Serializer for CostSet model - includes nested cost lines
     """
     cost_lines = CostLineSerializer(many=True, read_only=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Garante que summary sempre tem os campos obrigatórios
+        summary = data.get('summary') or {}
+        data['summary'] = {
+            'cost': summary.get('cost', 0),
+            'rev': summary.get('rev', 0),
+            'hours': summary.get('hours', 0)
+        }
+        return data
     
     class Meta:
         model = CostSet

@@ -62,10 +62,9 @@ rest_urlpatterns = [
     path('rest/jobs/<uuid:job_id>/adjustment-entries/', JobAdjustmentEntryRestView.as_view(), name='job_adjustment_entries_rest'),    
     
     # Job costing
-    path('rest/jobs/<uuid:pk>/cost_sets/<str:kind>/', JobCostSetView.as_view(), name='job_cost_set_rest'),
-
-      # CostLine CRUD operations for modern timesheet
+    path('rest/jobs/<uuid:pk>/cost_sets/<str:kind>/', JobCostSetView.as_view(), name='job_cost_set_rest'),      # CostLine CRUD operations for modern timesheet
     path('rest/jobs/<uuid:job_id>/cost_sets/actual/cost_lines/', CostLineCreateView.as_view(), name='costline_create_rest'),
+    path('rest/jobs/<uuid:job_id>/cost_sets/<str:kind>/cost_lines/', CostLineCreateView.as_view(), name='costline_create_any_rest'),
     path('rest/cost_lines/<int:cost_line_id>/', CostLineUpdateView.as_view(), name='costline_update_rest'),
     path('rest/cost_lines/<int:cost_line_id>/delete/', CostLineDeleteView.as_view(), name='costline_delete_rest'),
     

@@ -3,7 +3,8 @@ REST API views for timesheet functionality.
 Provides endpoints for the Vue.js frontend to interact with timesheet data.
 """
 import logging
-from datetime import datetime, timedelta
+import traceback
+from datetime import datetime, timedelta, date
 from typing import List, Dict, Any
 
 from django.db.models import Q, Sum, Prefetch
@@ -26,6 +27,9 @@ from apps.timesheet.serializers import (
 )
 from apps.job.serializers.costing_serializer import CostSetSerializer
 from apps.timesheet.enums import RateType
+from apps.timesheet.services.daily_timesheet_service import DailyTimesheetService
+from apps.timesheet.services.weekly_timesheet_service import WeeklyTimesheetService
+from apps.timesheet.serializers.daily_timesheet_serializers import DailyTimesheetSummarySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -370,3 +374,202 @@ def autosave_timesheet_api(request):
     except Exception as e:
         logger.error(f"Autosave error: {e}")
         return Response({'status': 'error', 'message': 'Autosave failed'}, status=500)
+
+
+class DailyTimesheetAPIView(APIView):
+    """
+    API endpoint for daily timesheet overview.
+    Provides comprehensive daily summary using modern CostLine system.
+    """
+    
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Get daily timesheet overview for all staff members.
+        
+        Query Parameters:
+            date (optional): Date in YYYY-MM-DD format. Defaults to today.
+            
+        Returns:
+            JSON response with daily timesheet data including:
+            - Staff data with hours, status, and alerts
+            - Daily totals and statistics
+            - Summary metrics
+        """        
+        try:
+            # Get and validate date parameter
+            date_param = request.query_params.get('date')
+            
+            if date_param:
+                try:
+                    target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Invalid date format. Use YYYY-MM-DD'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                target_date = date.today()
+            
+            logger.info(f"Getting daily timesheet overview for {target_date}")
+            
+            # Delegate to service layer for business logic
+            summary_data = DailyTimesheetService.get_daily_summary(target_date)
+            
+            # Serialize and return response
+            serializer = DailyTimesheetSummarySerializer(summary_data)
+            
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error in DailyTimesheetAPIView: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return Response(
+                {
+                    'error': 'Failed to get daily timesheet overview',
+                    'details': str(e) if request.user.is_staff else 'Internal server error'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class WeeklyTimesheetAPIView(APIView):
+    """
+    Comprehensive weekly timesheet API endpoint using WeeklyTimesheetService.
+    Provides complete weekly overview data for the modern Vue.js frontend.
+    """
+    
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Get comprehensive weekly timesheet data.
+        
+        Query Parameters:
+            start_date (optional): Monday of target week in YYYY-MM-DD format
+            export_to_ims (optional): Boolean to include IMS-specific data
+            
+        Returns:
+            Comprehensive weekly timesheet data including:
+            - Staff data with daily breakdowns
+            - Weekly totals and metrics
+            - Job statistics
+            - Summary statistics
+        """
+        try:
+            # Get and validate parameters
+            start_date_str = request.query_params.get('start_date')
+            export_to_ims = request.query_params.get('export_to_ims', '').lower() == 'true'
+            
+            if start_date_str:
+                try:
+                    start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Invalid start_date format. Use YYYY-MM-DD'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                # Default to current week Monday
+                today = datetime.now().date()
+                start_date = today - timedelta(days=today.weekday())
+            
+            logger.info(f"Getting weekly timesheet data for week starting {start_date}, IMS mode: {export_to_ims}")
+            
+            # Use service layer for business logic
+            weekly_data = WeeklyTimesheetService.get_weekly_overview(start_date, export_to_ims)
+            
+            # Add navigation URLs
+            prev_week_date = start_date - timedelta(days=7)
+            next_week_date = start_date + timedelta(days=7)
+            
+            weekly_data.update({
+                'navigation': {
+                    'prev_week_date': prev_week_date.strftime('%Y-%m-%d'),
+                    'next_week_date': next_week_date.strftime('%Y-%m-%d'),
+                    'current_week_date': start_date.strftime('%Y-%m-%d')
+                }
+            })
+            
+            return Response(weekly_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error in WeeklyTimesheetAPIView: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return Response(
+                {
+                    'error': 'Failed to get weekly timesheet data',
+                    'details': str(e) if request.user.is_staff else 'Internal server error'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def post(self, request):
+        """
+        Submit paid absence request.
+        
+        Expected payload:
+        {
+            "staff_id": "uuid",
+            "start_date": "YYYY-MM-DD",
+            "end_date": "YYYY-MM-DD", 
+            "leave_type": "annual|sick|other",
+            "hours_per_day": 8.0,
+            "description": "Optional description"
+        }
+        """
+        try:
+            data = request.data
+            
+            # Validate required fields
+            required_fields = ['staff_id', 'start_date', 'end_date', 'leave_type', 'hours_per_day']
+            for field in required_fields:
+                if field not in data:
+                    return Response(
+                        {'error': f'Missing required field: {field}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Parse dates
+            try:
+                start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+                end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid date format. Use YYYY-MM-DD'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate date range
+            if end_date < start_date:
+                return Response(
+                    {'error': 'End date cannot be before start date'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Submit paid absence using service
+            result = WeeklyTimesheetService.submit_paid_absence(
+                staff_id=data['staff_id'],
+                start_date=start_date,
+                end_date=end_date,
+                leave_type=data['leave_type'],
+                hours_per_day=float(data['hours_per_day']),
+                description=data.get('description', '')
+            )
+            
+            if result.get('success'):
+                return Response(result, status=status.HTTP_201_CREATED)
+            else:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error submitting paid absence: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return Response(
+                {
+                    'error': 'Failed to submit paid absence',
+                    'details': str(e) if request.user.is_staff else 'Internal server error'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

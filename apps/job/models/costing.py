@@ -7,8 +7,8 @@ from .job import Job
 
 class CostSet(models.Model):
     """
-    Representa um conjunto de custos para um job em uma revisão específica.
-    Pode ser uma estimativa, cotação ou custo real.
+    Represents a set of costs for a job in a specific revision.
+    Can be an estimate, quote or actual cost.
     """
     
     KIND_CHOICES = [
@@ -42,8 +42,8 @@ class CostSet(models.Model):
 
 class CostLine(models.Model):
     """
-    Representa uma linha de custo dentro de um CostSet.
-    Pode ser tempo, material ou ajuste.
+    Represents a cost line within a CostSet.
+    Can be time, material or adjustment.
     """
     
     KIND_CHOICES = [
@@ -72,12 +72,12 @@ class CostLine(models.Model):
     
     @property
     def total_cost(self):
-        """Calcula o custo total (quantidade * custo unitário)"""
+        """Calculates total cost (quantity * unit cost)"""
         return self.quantity * self.unit_cost
     
     @property
     def total_rev(self):
-        """Calcula a receita total (quantidade * receita unitária)"""
+        """Calculates total revenue (quantity * unit revenue)"""
         return self.quantity * self.unit_rev
     
     def clean(self):

@@ -362,7 +362,9 @@ class Job(models.Model):
 
                 # Creating a new job is tricky because of the circular reference.
                 # We first save the job to the DB without any associated pricings, then we
-                super(Job, self).save(*args, **kwargs)                # Create initial CostSet instances (modern system)
+                super(Job, self).save(*args, **kwargs)                
+                
+                # Create initial CostSet instances (modern system)
                 logger.debug("Creating initial CostSet entries.")
                 from .costing import CostSet
                 

@@ -31,21 +31,30 @@ logger = logging.getLogger(__name__)
 
 class CostLineCreateView(APIView):
     """
-    Create a new CostLine in the specified job's actual CostSet
+    Create a new CostLine in the specified job's CostSet
     
-    POST /job/rest/jobs/<job_id>/cost_sets/actual/cost_lines/
+    POST /job/rest/jobs/<job_id>/cost_sets/<kind>/cost_lines/
+    POST /job/rest/jobs/<job_id>/cost_sets/actual/cost_lines/ (legacy)
     """
     permission_classes = [IsAuthenticated]
     
-    def post(self, request, job_id):
+    def post(self, request, job_id, kind='actual'):
         """Create a new cost line"""
         # Guard clause - validate job exists
         job = get_object_or_404(Job, id=job_id)
         
+        # Validate kind parameter
+        valid_kinds = ['estimate', 'quote', 'actual']
+        if kind not in valid_kinds:
+            return Response(
+                {'error': f'Invalid kind. Must be one of: {", ".join(valid_kinds)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         try:
             with transaction.atomic():
-                # Get or create actual CostSet
-                cost_set = self._get_or_create_actual_cost_set(job)
+                # Get or create CostSet for the specified kind
+                cost_set = self._get_or_create_cost_set(job, kind)
                 
                 # Validate and create cost line
                 serializer = CostLineCreateUpdateSerializer(data=request.data)
@@ -68,21 +77,20 @@ class CostLineCreateView(APIView):
                 {'error': 'Failed to create cost line'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
-    def _get_or_create_actual_cost_set(self, job: Job) -> CostSet:
-        """Get or create the actual CostSet for the job"""
-        cost_set = job.cost_sets.filter(kind='actual').order_by('-rev').first()
+      def _get_or_create_cost_set(self, job: Job, kind: str) -> CostSet:
+        """Get or create a CostSet for the job with the specified kind"""
+        cost_set = job.cost_sets.filter(kind=kind).order_by('-rev').first()
         
         if not cost_set:
-            # Create new actual cost set
-            latest_rev = job.cost_sets.filter(kind='actual').count()
+            # Create new cost set
+            latest_rev = job.cost_sets.filter(kind=kind).count()
             cost_set = CostSet.objects.create(
                 job=job,
-                kind='actual',
+                kind=kind,
                 rev=latest_rev + 1,
                 summary={'cost': 0, 'rev': 0, 'hours': 0}
             )
-            logger.info(f"Created new actual CostSet rev {cost_set.rev} for job {job.id}")
+            logger.info(f"Created new {kind} CostSet rev {cost_set.rev} for job {job.id}")
         
         return cost_set
     
