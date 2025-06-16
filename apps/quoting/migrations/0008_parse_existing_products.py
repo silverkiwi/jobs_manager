@@ -15,37 +15,55 @@ def parse_existing_products(apps, schema_editor):
         from apps.quoting.services.product_parser import ProductParser
         parser = ProductParser()
         
-        print("Parsing existing supplier products...")
-        for product in SupplierProduct.objects.all():
-            product_data = {
-                'description': product.description,
-                'product_name': product.product_name,
-                'specifications': product.specifications,
-                'item_no': product.item_no,
-                'variant_id': product.variant_id,
-                'variant_width': product.variant_width,
-                'variant_length': product.variant_length,
-                'variant_price': product.variant_price,
-                'price_unit': product.price_unit,
-            }
-            try:
-                parser.parse_product(product_data)
-            except Exception as e:
-                print(f"Error parsing supplier product {product.id}: {e}")
+        print("Parsing existing supplier products in batches...")
+        supplier_products = list(SupplierProduct.objects.all())
         
-        print("Parsing existing stock items...")
-        for stock in Stock.objects.all():
-            stock_data = {
-                'description': stock.description,
-                'product_name': stock.item_code,
-                'specifications': stock.specifics,
-                'item_no': stock.item_code,
-                'variant_id': f'{stock.metal_type}_{stock.alloy}' if stock.metal_type and stock.alloy else stock.item_code,
-            }
+        # Process in batches of 100
+        for i in range(0, len(supplier_products), parser.BATCH_SIZE):
+            batch = supplier_products[i:i + parser.BATCH_SIZE]
+            product_data_list = []
+            
+            for product in batch:
+                product_data_list.append({
+                    'description': product.description,
+                    'product_name': product.product_name,
+                    'specifications': product.specifications,
+                    'item_no': product.item_no,
+                    'variant_id': product.variant_id,
+                    'variant_width': product.variant_width,
+                    'variant_length': product.variant_length,
+                    'variant_price': product.variant_price,
+                    'price_unit': product.price_unit,
+                })
+            
             try:
-                parser.parse_product(stock_data)
+                results = parser.parse_products_batch(product_data_list)
+                print(f"Processed batch {i//parser.BATCH_SIZE + 1}: {len(results)} products")
             except Exception as e:
-                print(f"Error parsing stock item {stock.id}: {e}")
+                print(f"Error parsing supplier product batch {i//parser.BATCH_SIZE + 1}: {e}")
+        
+        print("Parsing existing stock items in batches...")
+        stock_items = list(Stock.objects.all())
+        
+        # Process in batches of 100
+        for i in range(0, len(stock_items), parser.BATCH_SIZE):
+            batch = stock_items[i:i + parser.BATCH_SIZE]
+            stock_data_list = []
+            
+            for stock in batch:
+                stock_data_list.append({
+                    'description': stock.description,
+                    'product_name': stock.item_code,
+                    'specifications': stock.specifics,
+                    'item_no': stock.item_code,
+                    'variant_id': f'{stock.metal_type}_{stock.alloy}' if stock.metal_type and stock.alloy else stock.item_code,
+                })
+            
+            try:
+                results = parser.parse_products_batch(stock_data_list)
+                print(f"Processed stock batch {i//parser.BATCH_SIZE + 1}: {len(results)} items")
+            except Exception as e:
+                print(f"Error parsing stock batch {i//parser.BATCH_SIZE + 1}: {e}")
                 
         print("Parsing complete!")
         

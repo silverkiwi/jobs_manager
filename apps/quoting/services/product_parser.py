@@ -277,6 +277,86 @@ Price: {product_data.get('variant_price', 'N/A')} {product_data.get('price_unit'
         mapping.save()
         return mapping
     
+    def parse_products_batch(self, product_data_list: list) -> list:
+        """
+        Parse multiple products in a single LLM call for efficiency.
+        
+        Args:
+            product_data_list: List of raw supplier product data
+            
+        Returns:
+            List of tuples (parsed_data_dict, was_cached)
+        """
+        if not product_data_list:
+            return []
+        
+        # Group products by those that need parsing vs those already cached
+        uncached_products = []
+        uncached_indices = []
+        results = [None] * len(product_data_list)
+        
+        for i, product_data in enumerate(product_data_list):
+            input_hash = self._calculate_input_hash(product_data)
+            existing_mapping = self._get_cached_mapping(input_hash)
+            
+            if existing_mapping:
+                results[i] = ({
+                    'item_code': existing_mapping.mapped_item_code,
+                    'description': existing_mapping.mapped_description,
+                    'metal_type': existing_mapping.mapped_metal_type,
+                    'alloy': existing_mapping.mapped_alloy,
+                    'specifics': existing_mapping.mapped_specifics,
+                    'dimensions': existing_mapping.mapped_dimensions,
+                    'unit_cost': existing_mapping.mapped_unit_cost,
+                    'price_unit': existing_mapping.mapped_price_unit,
+                    'confidence': existing_mapping.parser_confidence,
+                    'parser_version': existing_mapping.parser_version,
+                }, True)
+            else:
+                uncached_products.append(product_data)
+                uncached_indices.append(i)
+        
+        # Parse uncached products in batch
+        if uncached_products:
+            logger.info(f"Batch parsing {len(uncached_products)} products with LLM")
+            prompt = self._create_parsing_prompt(uncached_products)
+            llm_response = self._call_llm(prompt)
+            
+            if llm_response['success'] and len(llm_response['parsed_data']) == len(uncached_products):
+                for j, parsed_data in enumerate(llm_response['parsed_data']):
+                    original_index = uncached_indices[j]
+                    product_data = uncached_products[j]
+                    
+                    # Save mapping
+                    input_hash = self._calculate_input_hash(product_data)
+                    mapping = self._save_mapping(
+                        input_hash,
+                        product_data,
+                        parsed_data,
+                        llm_response
+                    )
+                    
+                    results[original_index] = ({
+                        'item_code': mapping.mapped_item_code,
+                        'description': mapping.mapped_description,
+                        'metal_type': mapping.mapped_metal_type,
+                        'alloy': mapping.mapped_alloy,
+                        'specifics': mapping.mapped_specifics,
+                        'dimensions': mapping.mapped_dimensions,
+                        'unit_cost': mapping.mapped_unit_cost,
+                        'price_unit': mapping.mapped_price_unit,
+                        'confidence': mapping.parser_confidence,
+                        'parser_version': mapping.parser_version,
+                    }, False)
+            else:
+                logger.error(f"Batch parsing failed or returned wrong number of results")
+                # Fall back to individual parsing
+                for j, product_data in enumerate(uncached_products):
+                    original_index = uncached_indices[j]
+                    results[original_index] = self.parse_product(product_data)
+        
+        return results
+    
     def parse_product(self, product_data: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
         """
         Parse supplier product data to inventory format.
@@ -309,18 +389,21 @@ Price: {product_data.get('variant_price', 'N/A')} {product_data.get('price_unit'
         
         # Parse with LLM
         logger.info(f"Parsing new product data with LLM (hash: {input_hash[:8]}...)")
-        prompt = self._create_parsing_prompt(product_data)
+        prompt = self._create_parsing_prompt([product_data])
         llm_response = self._call_llm(prompt)
         
-        if not llm_response['success']:
+        if not llm_response['success'] or not llm_response['parsed_data']:
             logger.error(f"Failed to parse product data: {llm_response['full_response']}")
             return {}, False
+        
+        # Get the first (and only) result from the batch
+        parsed_data = llm_response['parsed_data'][0]
         
         # Save mapping for future use
         mapping = self._save_mapping(
             input_hash, 
             product_data, 
-            llm_response['parsed_data'], 
+            parsed_data, 
             llm_response
         )
         
