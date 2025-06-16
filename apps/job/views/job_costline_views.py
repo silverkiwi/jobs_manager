@@ -77,7 +77,8 @@ class CostLineCreateView(APIView):
                 {'error': 'Failed to create cost line'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-      def _get_or_create_cost_set(self, job: Job, kind: str) -> CostSet:
+        
+    def _get_or_create_cost_set(self, job: Job, kind: str) -> CostSet:
         """Get or create a CostSet for the job with the specified kind"""
         cost_set = job.cost_sets.filter(kind=kind).order_by('-rev').first()
         
