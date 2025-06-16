@@ -4,6 +4,7 @@ import tempfile
 from django.core.management.base import BaseCommand, CommandError
 from django.core.management import call_command
 from django.conf import settings
+import json
 
 
 class Command(BaseCommand):
@@ -37,7 +38,18 @@ class Command(BaseCommand):
         if backup_file.endswith('.gz'):
             with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
                 with gzip.open(backup_file, 'rt', encoding='utf-8') as gz_file:
-                    temp_file.write(gz_file.read())
+                    raw_data = gz_file.read()
+                    json_data = json.loads(raw_data)
+                    
+                    filtered_data = [
+                        item for item in json_data
+                        if not (
+                            item['model'] == 'job.materialentry' and
+                            item['fields'].get('purchase_order_line') is not None
+                        )
+                    ]
+                    
+                    json.dump(filtered_data, temp_file, indent=2, ensure_ascii=False)
                 temp_file_path = temp_file.name
             
             self.stdout.write(f'Loading data from {backup_file} (decompressed)...')
