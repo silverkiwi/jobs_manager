@@ -44,8 +44,10 @@ class Command(BaseCommand):
                     filtered_data = [
                         item for item in json_data
                         if not (
-                            item['model'] == 'job.materialentry' and
-                            item['fields'].get('purchase_order_line') is not None
+                            item['model'] == 'job.materialentry' and (
+                                item['fields'].get('purchase_order_line') is not None or
+                                item['fields'].get('source_stock') is not None
+                            )
                         )
                     ]
                     
