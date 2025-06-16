@@ -30,6 +30,12 @@ from .stock import (
     deactivate_stock_api_view,
 )
 
+# Product Mapping views
+from .product_mapping import (
+    product_mapping_validation,
+    validate_mapping,
+)
+
 __all__ = [
     # Purchase Order views
     "PurchaseOrderListView",
@@ -49,4 +55,7 @@ __all__ = [
     "create_stock_api_view",
     "search_available_stock_api",
     "deactivate_stock_api_view",
+    # Product Mapping views
+    "product_mapping_validation",
+    "validate_mapping",
 ]
