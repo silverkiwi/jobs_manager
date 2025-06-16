@@ -82,4 +82,15 @@ urlpatterns = [
     path(
         "api/stock/search/", views.search_available_stock_api, name="stock_search_api"
     ),
+    # Product Mapping Validation
+    path(
+        "product-mapping/",
+        views.product_mapping_validation,
+        name="product_mapping_validation",
+    ),
+    path(
+        "api/product-mapping/<uuid:mapping_id>/validate/",
+        views.validate_mapping,
+        name="validate_mapping",
+    ),
 ]

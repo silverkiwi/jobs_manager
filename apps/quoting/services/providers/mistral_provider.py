@@ -21,7 +21,7 @@ def encode_pdf(pdf_path):
 
 
 class MistralPriceExtractionProvider:
-    """Mistral AI provider for price extraction using OCR - EXACTLY like adhoc/mistral_parsing.py"""
+    """Mistral AI provider for price extraction using OCR"""
     
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -34,25 +34,28 @@ class MistralPriceExtractionProvider:
         lines = text.split('\n')
         supplier_name = "Unknown Supplier"
         
-        # First, check for explicit supplier references
-        for line in lines[:20]:  # Check first 20 lines
+        # Check for supplier name in footer pattern "**Company Name**"
+        footer_pattern = r'\*\*([^*]+)\*\*'
+        footer_matches = re.findall(footer_pattern, text)
+        for match in footer_matches:
+            if 'customer' not in match.lower() and 'morris' not in match.lower():
+                # Found a potential supplier name in bold
+                supplier_name = match.strip()
+        
+        # Check first 30 lines for company indicators
+        for line in lines[:30]:
             line = line.strip()
             
             # Skip customer lines
             if 'customer' in line.lower() or 'morris' in line.lower():
                 continue
             
-            # Check for "Ullrich Aluminium" which appears in the footer
-            if 'ullrich aluminium' in line.lower():
-                return "Ullrich Aluminium"
-            
             # Look for company indicators
-            if any(indicator in line.upper() for indicator in ['LTD', 'PTY', 'INC', 'CORP', 'LLC']):
+            if any(indicator in line.upper() for indicator in ['LTD', 'PTY', 'INC', 'CORP', 'LLC', 'COMPANY']):
                 # Clean up the line
-                cleaned = line.replace('|', '').strip()
+                cleaned = line.replace('|', '').replace('*', '').strip()
                 if len(cleaned) > 5 and 'customer' not in cleaned.lower():
-                    supplier_name = cleaned
-                    break
+                    return cleaned
         
         return supplier_name
     
@@ -296,22 +299,13 @@ class MistralPriceExtractionProvider:
                     return [ocr_response_to_dict(item) for item in ocr_obj]
                 else:
                     return ocr_obj
-            # Save the results to a JSON file
-            json_output_file = os.path.join(tempfile.gettempdir(), "ocr_results.json")
+            # Save the results to a JSON file with input filename
+            base_filename = os.path.splitext(os.path.basename(file_path))[0]
+            json_output_file = os.path.join(tempfile.gettempdir(), f"{base_filename}_ocr_results.json")
             with open(json_output_file, "w") as f:
                 json.dump(ocr_response_to_dict(ocr_response), f, indent=2)
-            # Save the results to a Markdown file
-            md_output_file = os.path.join(tempfile.gettempdir(), "ocr_results.md")
-            with open(md_output_file, "w", encoding="utf-8") as f:
-                if hasattr(ocr_response, 'pages') and ocr_response.pages:
-                    for i, page in enumerate(ocr_response.pages, 1):
-                        if hasattr(page, 'markdown') and page.markdown:
-                            f.write(f"# Page {i}\n\n")
-                            f.write(page.markdown)
-                            f.write("\n\n---\n\n") # Add separator between pages
             logger.info("OCR processing complete!")
             logger.info(f"JSON results saved to: {os.path.abspath(json_output_file)}")
-            logger.info(f"Markdown results saved to: {os.path.abspath(md_output_file)}")
             # Log a preview of the results
             logger.debug("Preview of the OCR results (first page):")
             if hasattr(ocr_response, 'pages') and ocr_response.pages:
@@ -330,7 +324,7 @@ class MistralPriceExtractionProvider:
                 logger.warning("No pages found in the OCR response.")
             logger.info(f"Full results have been saved to:")
             logger.info(f"- {os.path.abspath(json_output_file)}")
-            logger.info(f"- {os.path.abspath(md_output_file)}")
+            logger.info(f"JSON output saved for testing/debugging")
             
             # Now parse the OCR text into structured price data
             return self._parse_ocr_to_price_data(client, ocr_response)
