@@ -57,17 +57,30 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
+# Proxy/Load Balancer Configuration for UAT
+# Trust the proxy headers to determine HTTPS status
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
 # CSRF configs
 CSRF_COOKIE_SECURE = True
-CSRF_TRUSTED_ORIGINS = [
-    "http://" + host for host in ALLOWED_HOSTS if host not in ["localhost", "127.0.0.1"]
-]
-CSRF_TRUSTED_ORIGINS += ["http://localhost", "http://127.0.0.1"]
-CSRF_TRUSTED_ORIGINS += [
-    "https://" + host
-    for host in ALLOWED_HOSTS
-    if host not in ["localhost", "127.0.0.1"]
-]
+
+# Load CSRF trusted origins from environment
+cors_trusted_origins_env = os.getenv("CORS_TRUSTED_ORIGINS", "")
+if cors_trusted_origins_env:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in cors_trusted_origins_env.split(",") if origin.strip()]
+else:
+    # Fallback to building from ALLOWED_HOSTS
+    CSRF_TRUSTED_ORIGINS = [
+        "http://" + host for host in ALLOWED_HOSTS if host not in ["localhost", "127.0.0.1"]
+    ]
+    CSRF_TRUSTED_ORIGINS += ["http://localhost", "http://127.0.0.1"]
+    CSRF_TRUSTED_ORIGINS += [
+        "https://" + host
+        for host in ALLOWED_HOSTS
+        if host not in ["localhost", "127.0.0.1"]
+    ]
 
 # Cache configs
 CACHES = {

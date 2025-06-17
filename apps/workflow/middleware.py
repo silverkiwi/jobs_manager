@@ -26,25 +26,26 @@ class LoginRequiredMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         # Check exact path matches first
         if request.path_info in self.exempt_urls:
-            return self.get_response(request)
-
-        # Check path prefixes
+            return self.get_response(request)        # Check path prefixes
         path = request.path_info.lstrip("/")
         if any(path.startswith(prefix) for prefix in self.exempt_url_prefixes):
             return self.get_response(request)
-
+        
         # Special handling for API endpoints - they should not redirect to login
         if request.path_info.startswith('/accounts/') and '/api/' in request.path_info:
+            return self.get_response(request)
+        
+        # Force exemption for all timesheet API endpoints regardless of configuration
+        if request.path_info.startswith('/timesheets/api/'):
+            return self.get_response(request)
+        
+        # Force exemption for all other API endpoints  
+        if '/api/' in request.path_info:
             return self.get_response(request)
         
         # Handle logout endpoints specifically
         if request.path_info.endswith('/logout/'):
             return self.get_response(request)
-
-        if not request.user.is_authenticated:
-            return redirect(settings.LOGIN_URL)
-
-        return self.get_response(request)
 
         if not request.user.is_authenticated:
             return redirect(settings.LOGIN_URL)

@@ -110,8 +110,7 @@ LOGIN_EXEMPT_URLS = [
     "accounts:password_reset_complete",
     "accounts:token_obtain_pair",
     "accounts:token_refresh",
-    "accounts:token_verify",
-    "api/",  # Exempt all API endpoints from session authentication
+    "accounts:token_verify",    "api/",  # Exempt all API endpoints from session authentication
     "accounts/api/",  # Include accounts API endpoints
     "accounts/me/",  # Include user info endpoint
     "accounts/logout/",  # Include logout API endpoint explicitly
@@ -119,6 +118,7 @@ LOGIN_EXEMPT_URLS = [
     "clients/api/",  # Include client API endpoints
     "job/rest/",  # Include job REST endpoints
     "job/api/",  # Include job API endpoints
+    "timesheets/api/",  # Include timesheet API endpoints
 ]
 
 LOGGING = {
