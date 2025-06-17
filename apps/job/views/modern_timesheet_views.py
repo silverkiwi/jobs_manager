@@ -22,7 +22,7 @@ from django.utils.dateparse import parse_date
 from apps.job.models import Job, CostSet, CostLine
 from apps.accounts.models import Staff
 from apps.job.services.timesheet_migration_service import TimesheetToCostLineService
-from apps.job.serializers.costing_serializer import CostLineSerializer
+from apps.job.serializers.costing_serializer import CostLineSerializer, TimesheetCostLineSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class ModernTimesheetEntryView(APIView):
                     'staff_id': str(staff_id),
                     'date': parsed_date.isoformat()
                 }
-            ).select_related('cost_set__job').order_by('id')
+            ).select_related('cost_set__job__client').order_by('id')
 
             # Calculate totals
             total_hours = sum(float(line.quantity) for line in cost_lines)
@@ -89,8 +89,8 @@ class ModernTimesheetEntryView(APIView):
             total_cost = sum(line.total_cost for line in cost_lines)
             total_revenue = sum(line.total_rev for line in cost_lines)
 
-            # Serialize the results
-            serializer = CostLineSerializer(cost_lines, many=True)
+            # Serialize the results using timesheet-specific serializer
+            serializer = TimesheetCostLineSerializer(cost_lines, many=True)
 
             return Response({
                 'cost_lines': serializer.data,
@@ -225,17 +225,15 @@ class ModernTimesheetDayView(APIView):
                 return Response(
                     {'error': f'Staff {staff_id} not found'},
                     status=status.HTTP_404_NOT_FOUND
-                )
-
-            # Find all cost lines for this staff on this date
+                )            # Find all cost lines for this staff on this date
             cost_lines = CostLine.objects.filter(
                 kind='time',
                 meta__staff_id=str(staff_id),
                 meta__entry_date=parsed_date.isoformat()
-            ).select_related('cost_set__job').order_by('id')
+            ).select_related('cost_set__job__client').order_by('id')
 
-            # Serialize the cost lines
-            serializer = CostLineSerializer(cost_lines, many=True)
+            # Serialize the cost lines using timesheet-specific serializer
+            serializer = TimesheetCostLineSerializer(cost_lines, many=True)
 
             return Response({
                 'staff_id': str(staff_id),
@@ -280,16 +278,14 @@ class ModernTimesheetJobView(APIView):
                     'total_hours': 0,
                     'total_cost': 0,
                     'total_revenue': 0,
-                })
-
-            # Get time cost lines (timesheet entries)
+                })            # Get time cost lines (timesheet entries)
             timesheet_lines = cost_set.cost_lines.filter(
                 kind='time',
                 meta__created_from_timesheet=True
             ).order_by('meta__entry_date', 'id')
 
-            # Serialize the cost lines
-            serializer = CostLineSerializer(timesheet_lines, many=True)
+            # Serialize the cost lines using timesheet-specific serializer
+            serializer = TimesheetCostLineSerializer(timesheet_lines, many=True)
 
             return Response({
                 'job_id': str(job_id),

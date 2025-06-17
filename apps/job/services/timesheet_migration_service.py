@@ -70,9 +70,7 @@ class TimesheetToCostLineService:
             # Calculate costs
             actual_wage_rate = wage_rate * rate_multiplier
             unit_cost = actual_wage_rate  # Cost per hour
-            unit_rev = charge_out_rate if is_billable else Decimal('0.00')
-            
-            # Prepare metadata
+            unit_rev = charge_out_rate if is_billable else Decimal('0.00')            # Prepare metadata - ONLY timesheet-specific data, NOT job data
             if meta is None:
                 meta = {}
             
@@ -80,12 +78,14 @@ class TimesheetToCostLineService:
                 'staff_id': str(staff_id),
                 'staff_name': staff.get_display_full_name(),
                 'entry_date': entry_date.isoformat(),
+                'date': entry_date.isoformat(),  # Legacy compatibility
                 'is_billable': is_billable,
-                'rate_multiplier': float(rate_multiplier),
-                'wage_rate': float(wage_rate),
-                'charge_out_rate': float(charge_out_rate),
+                'wage_rate_multiplier': float(rate_multiplier),
+                'rate_multiplier': float(rate_multiplier),  # Legacy compatibility
                 'created_from_timesheet': True
             })
+            
+            # DO NOT include job data in meta - it comes from CostSet relationship
             
             if ext_refs is None:
                 ext_refs = {}
