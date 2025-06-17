@@ -54,12 +54,15 @@ class KanbanService:
             case "archived":
                 return jobs[:100]
             case _:
-                return jobs[:limit]
+                return jobs[:limit]    
 
     @staticmethod
     def get_all_active_jobs() -> QuerySet[Job]:
-        """Get all active (non-archived) jobs."""
-        return Job.objects.filter(~Q(status="archived")).order_by("status", "priority")
+        """Get all active (non-archived) jobs, filtered for kanban display."""
+        
+        # Get non-archived jobs and filter out special jobs for kanban
+        active_jobs = Job.objects.exclude(status="archived").order_by("status", "priority")
+        return KanbanService.filter_kanban_jobs(active_jobs)
 
     @staticmethod
     def get_archived_jobs(limit: int = 50) -> QuerySet[Job]:
