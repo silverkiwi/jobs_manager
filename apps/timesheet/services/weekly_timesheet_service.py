@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
-from apps.job.models import Job, JobPricing
+from apps.job.models import Job, JobPricing, CostSet, CostLine
 from apps.timesheet.models import TimeEntry
 
 logger = logging.getLogger(__name__)
@@ -320,18 +320,17 @@ class WeeklyTimesheetService:
             active_jobs = Job.objects.filter(
                 status__in=['approved', 'in_progress', 'quoting']
             ).count()
-            
-            # Get jobs with entries in this week
+              # Get jobs with entries in this week using CostLine system
             jobs_with_entries = Job.objects.filter(
-                jobpricing__timeentry__date__range=[start_date, end_date]
+                cost_sets__cost_lines__entry_date__range=[start_date, end_date]
             ).distinct().count()
             
-            # Calculate total estimated and actual hours
+            # Calculate total estimated and actual hours using CostLine system
             job_stats = Job.objects.filter(
-                jobpricing__timeentry__date__range=[start_date, end_date]
+                cost_sets__cost_lines__entry_date__range=[start_date, end_date]
             ).aggregate(
                 total_estimated=Sum('estimated_hours'),
-                total_actual=Sum('jobpricing__timeentry__hours')
+                total_actual=Sum('cost_sets__cost_lines__actual_hours')
             )
             
             return {
