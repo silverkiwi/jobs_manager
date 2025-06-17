@@ -25,14 +25,17 @@ class Job(models.Model):
     name = models.CharField(max_length=100, null=False, blank=False)
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
+    
     JOB_STATUS_CHOICES: List[tuple[str, str]] = [
         ("quoting", "Quoting"),
         ("accepted_quote", "Accepted Quote"),
         ("awaiting_materials", "Awaiting Materials"),
+        ("awaiting_staff", "Awaiting Staff"),
+        ("awaiting_site_availability", "Awaiting Site Availability"),
         ("in_progress", "In Progress"),
         ("on_hold", "On Hold"),
         ("special", "Special"),
+        ("recently_completed", "Recently Completed"),
         ("completed", "Completed"),
         ("rejected", "Rejected"),
         ("archived", "Archived"),
@@ -42,11 +45,14 @@ class Job(models.Model):
         "quoting": "The quote is currently being prepared.",
         "accepted_quote": "The quote has been approved, but work hasn't started yet.",
         "awaiting_materials": "Job is ready to start but waiting for materials.",
+        "awaiting_staff": "Job is waiting for available staff to be assigned.",
+        "awaiting_site_availability": "Job is waiting for site access or availability.",
         "rejected": "The quote was declined.",
         "in_progress": "Work has started on this job.",
-        "on_hold": "The job is on hold, possibly awaiting materials.",
-        "special": "Shop jobs, upcoming shutdowns, etc.",
-        "completed": "Work has finished on this job.",
+        "on_hold": "The job is on hold for other reasons.",
+        "special": "Shop jobs, upcoming shutdowns, etc. (filtered from kanban).",
+        "recently_completed": "Work has just finished on this job.",
+        "completed": "Work finished and job is completed.",
         "archived": "The job has been paid for and picked up.",
     }
 

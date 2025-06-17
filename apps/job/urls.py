@@ -113,17 +113,21 @@ urlpatterns = [
         "api/jobs/<str:job_id>/reorder/",
         kanban_view_api.reorder_job,
         name="api_reorder_job",
-    ),
-    path(
+    ),    path(
         "api/jobs/fetch/<str:status>/",
         kanban_view_api.fetch_jobs,
         name="api_fetch_jobs",
     ),
     path(
+        "api/jobs/fetch-by-column/<str:column_id>/",
+        kanban_view_api.fetch_jobs_by_column,
+        name="api_fetch_jobs_by_column",
+    ),
+    path(
         "api/jobs/status-values/",
         kanban_view_api.fetch_status_values,
         name="api_fetch_status_values",
-    ),    path(
+    ),path(
         "api/jobs/advanced-search/",
         kanban_view_api.advanced_search,
         name="api_advanced_search",

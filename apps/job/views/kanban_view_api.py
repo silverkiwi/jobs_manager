@@ -14,6 +14,7 @@ from rest_framework import status
 
 from apps.job.models import Job
 from apps.job.services.kanban_service import KanbanService
+from apps.job.services.kanban_categorization_service import KanbanCategorizationService
 
 logger = logging.getLogger(__name__)
 
@@ -195,6 +196,33 @@ def advanced_search(request: Request) -> Response:
         
     except Exception as e:
         logger.error(f"Error in advanced search: {e}")
+        return Response(
+            {"success": False, "error": str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def fetch_jobs_by_column(request: Request, column_id: str) -> Response:
+    """Fetch jobs by kanban column using new categorization system."""
+    try:
+        max_jobs = int(request.GET.get("max_jobs", 50))
+        search_term = request.GET.get("search", "")
+        
+        # Use the new categorized kanban service
+        result = KanbanService.get_jobs_by_kanban_column(column_id, max_jobs, search_term)
+        
+        return Response(result)
+        
+    except ValueError as e:
+        logger.error(f"Invalid parameter in fetch_jobs_by_column: {e}")
+        return Response(
+            {"success": False, "error": "Invalid parameters"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        logger.error(f"Error fetching jobs for column {column_id}: {e}")
         return Response(
             {"success": False, "error": str(e)}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
