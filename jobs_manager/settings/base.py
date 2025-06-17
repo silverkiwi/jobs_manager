@@ -102,6 +102,7 @@ LOGIN_REDIRECT_URL = "/"
 LOGIN_EXEMPT_URLS = [
     "accounts:login",
     "accounts:logout", 
+    "accounts:api_logout",  # Add the API logout endpoint
     "accounts:password_reset",
     "accounts:password_reset_done",
     "accounts:reset",
@@ -113,6 +114,7 @@ LOGIN_EXEMPT_URLS = [
     "api/",  # Exempt all API endpoints from session authentication
     "accounts/api/",  # Include accounts API endpoints
     "accounts/me/",  # Include user info endpoint
+    "accounts/logout/",  # Include logout API endpoint explicitly
     "clients/rest/",  # Include client REST endpoints
     "clients/api/",  # Include client API endpoints
     "job/rest/",  # Include job REST endpoints

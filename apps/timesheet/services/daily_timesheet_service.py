@@ -188,32 +188,33 @@ class DailyTimesheetService:
     
     @classmethod
     def _get_job_breakdown(cls, cost_lines) -> List[Dict]:
-        """Get breakdown of hours by job"""
+        """Get breakdown of hours by job using the actual CostSet relationship"""
         job_data = {}
         
         for line in cost_lines:
-            job_id = line.meta.get('job_id')
-            job_number = line.meta.get('job_number', 'Unknown')
-            job_name = line.meta.get('job_name', 'Unknown Job')
+            # Use the actual relationship instead of deprecated meta.job_id
+            job = line.cost_set.job if line.cost_set else None
             
-            # Convert job_id to string to ensure JSON serialization compatibility
-            job_id_str = str(job_id) if job_id else 'unknown'
-            
-            if job_id_str not in job_data:
-                job_data[job_id_str] = {
-                    'job_id': job_id_str,
-                    'job_number': job_number,
-                    'job_name': job_name,
-                    'client': line.meta.get('client', ''),
-                    'hours': Decimal('0.0'),
-                    'revenue': Decimal('0.0'),
-                    'cost': Decimal('0.0'),
-                    'is_billable': line.meta.get('is_billable', True)
-                }
-            
-            job_data[job_id_str]['hours'] += Decimal(line.quantity)
-            job_data[job_id_str]['revenue'] += Decimal(line.total_rev)
-            job_data[job_id_str]['cost'] += Decimal(line.total_cost)
+            if job:
+                job_id_str = str(job.id)
+                job_number = job.job_number or 'Unknown'
+                job_name = job.name or 'Unknown Job'
+                
+                if job_id_str not in job_data:
+                    job_data[job_id_str] = {
+                        'job_id': job_id_str,
+                        'job_number': job_number,
+                        'job_name': job_name,
+                        'client': job.client.name if job.client else '',
+                        'hours': Decimal('0.0'),
+                        'revenue': Decimal('0.0'),
+                        'cost': Decimal('0.0'),
+                        'is_billable': line.meta.get('is_billable', True)
+                    }
+                
+                job_data[job_id_str]['hours'] += Decimal(line.quantity)
+                job_data[job_id_str]['revenue'] += Decimal(line.total_rev)
+                job_data[job_id_str]['cost'] += Decimal(line.total_cost)
         
         # Convert to list and sort by hours descending
         breakdown = list(job_data.values())
@@ -240,9 +241,8 @@ class DailyTimesheetService:
         
         if actual_hours > scheduled_hours * Decimal('1.2'):  # More than 120%
             alerts.append("Overtime recorded")
-        
-        # Check for missing job information
-        missing_job_entries = [line for line in cost_lines if not line.meta.get('job_id')]
+          # Check for missing job information - use actual relationship instead of deprecated meta.job_id
+        missing_job_entries = [line for line in cost_lines if not (line.cost_set and line.cost_set.job)]
         if missing_job_entries:
             alerts.append(f"{len(missing_job_entries)} entries missing job info")
         

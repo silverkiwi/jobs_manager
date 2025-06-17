@@ -565,7 +565,8 @@ class WeeklyTimesheetAPIView(APIView):
                 
         except Exception as e:
             logger.error(f"Error submitting paid absence: {e}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"Traceback: {traceback.format_exc()}")            
+            
             return Response(
                 {
                     'error': 'Failed to submit paid absence',
