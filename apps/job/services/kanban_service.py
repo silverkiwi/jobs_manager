@@ -62,7 +62,9 @@ class KanbanService:
         
         # Get non-archived jobs and filter out special jobs for kanban
         active_jobs = Job.objects.exclude(status="archived").order_by("status", "priority")
-        return KanbanService.filter_kanban_jobs(active_jobs)    @staticmethod
+        return KanbanService.filter_kanban_jobs(active_jobs)    
+        
+    @staticmethod
     def get_archived_jobs(limit: int = 50) -> QuerySet[Job]:
         """Get archived jobs with limit."""
         return Job.objects.filter(status="archived").order_by("-created_at")[:limit]
