@@ -46,7 +46,7 @@ def reverse_job_statuses(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('job', '0001_initial'),  # Replace with actual latest migration
+        ('job', '0024_rename_pricing_jobpricing'),
     ]
 
     operations = [
