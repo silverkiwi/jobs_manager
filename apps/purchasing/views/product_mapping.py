@@ -6,7 +6,6 @@ from django.utils import timezone
 from decimal import Decimal
 
 from apps.quoting.models import ProductParsingMapping
-from apps.purchasing.models import Stock
 
 logger = logging.getLogger(__name__)
 

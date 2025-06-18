@@ -263,14 +263,23 @@ class ProductParsingMapping(models.Model):
             models.Index(fields=["input_hash"]),
             models.Index(fields=["created_at"]),
         ]
+
     def update_xero_status(self):
-        """Update the item_code_is_in_xero field based on Stock model."""
+        """Update the item_code_is_in_xero field based on Stock model.
+        If item doesn't exist in Xero, clear mapped_item_code to maintain FK integrity.
+        """
         if self.mapped_item_code:
             from apps.purchasing.models import Stock
+
             self.item_code_is_in_xero = Stock.objects.filter(
                 item_code=self.mapped_item_code
             ).exists()
+
+            # If item doesn't exist in Xero, clear the mapped_item_code
+            if not self.item_code_is_in_xero:
+                self.mapped_item_code = None
         else:
             self.item_code_is_in_xero = False
+
     def __str__(self):
         return f"Mapping: {self.input_hash[:8]}... → {self.mapped_description or 'No description'}"
