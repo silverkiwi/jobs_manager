@@ -55,10 +55,15 @@ class CostLineCreateView(APIView):
             with transaction.atomic():
                 # Get or create CostSet for the specified kind
                 cost_set = self._get_or_create_cost_set(job, kind)
+                  # Log the incoming data for debugging
+                logger.info(f"Creating cost line with data: {request.data}")
                 
                 # Validate and create cost line
                 serializer = CostLineCreateUpdateSerializer(data=request.data)
                 if not serializer.is_valid():
+                    logger.error(f"Cost line validation failed for job {job_id}:")
+                    logger.error(f"Received data: {request.data}")
+                    logger.error(f"Validation errors: {serializer.errors}")
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                 
                 # Create the cost line

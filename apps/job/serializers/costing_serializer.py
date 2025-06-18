@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from decimal import Decimal
+import logging
 from apps.job.models import CostSet, CostLine
+
+logger = logging.getLogger(__name__)
 
 
 class CostLineSerializer(serializers.ModelSerializer):
@@ -72,20 +75,28 @@ class CostLineCreateUpdateSerializer(serializers.ModelSerializer):
             'ext_refs', 'meta'
         ]
     
+    def validate(self, data):
+        """Custom validation with detailed logging"""
+        logger.info(f"Validating CostLine data: {data}")
+        return super().validate(data)
+    
     def validate_quantity(self, value):
         """Validate quantity is non-negative"""
+        logger.info(f"Validating quantity: {value} (type: {type(value)})")
         if value < 0:
             raise serializers.ValidationError("Quantity must be non-negative")
         return value
     
     def validate_unit_cost(self, value):
         """Validate unit cost is non-negative"""
+        logger.info(f"Validating unit_cost: {value} (type: {type(value)})")
         if value < 0:
             raise serializers.ValidationError("Unit cost must be non-negative")
         return value
     
     def validate_unit_rev(self, value):
         """Validate unit revenue is non-negative"""
+        logger.info(f"Validating unit_rev: {value} (type: {type(value)})")
         if value < 0:
             raise serializers.ValidationError("Unit revenue must be non-negative")
         return value
