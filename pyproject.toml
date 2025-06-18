@@ -51,6 +51,11 @@ pandas = "^2.3.0"
 openpyxl = "^3.1.5"
 faker = "^37.4.0"
 mistralai = "^1.8.2"
+django-mcp-server = "^0.5.4"
+channels = "^4.2.2"
+channels-redis = "^4.2.1"
+mcp = "^1.9.4"
+anthropic = "^0.54.0"
 
 [tool.poetry.scripts]
 post-install = "scripts.post_install:install_system_deps"  # Script to install system dependencies like poppler-utils

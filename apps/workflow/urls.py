@@ -42,6 +42,7 @@ from django.views.generic import RedirectView
 
 from apps.workflow.api.enums import get_enum_choices
 from apps.workflow.views.xero import xero_view
+from apps.workflow.xero_webhooks import XeroWebhookView
 
 urlpatterns = [
     # Redirect to Kanban board
@@ -101,6 +102,11 @@ urlpatterns = [
         "api/xero/sync/",
         xero_view.start_xero_sync,
         name="synchronise_xero_data",
+    ),
+    path(
+        "api/xero/webhook/",
+        XeroWebhookView.as_view(),
+        name="xero_webhook",
     ),
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
     path(

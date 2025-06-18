@@ -10,15 +10,15 @@ class Command(BaseCommand):
     help = "Starts Django server with ngrok"
 
     def handle(self, *args: Any, **kwargs: Any) -> None:
-        ngrok_domain = os.environ.get("NGROK_DOMAIN", "msm-workflow.ngrok-free.app")
+        app_domain = os.environ.get("APP_DOMAIN", "msm-workflow.ngrok-free.app")
         django_port = os.environ.get("DJANGO_PORT", "8000")
 
         # Create ngrok command with the custom domain
-        ngrok_command = f"ngrok http  --region=au --domain={ngrok_domain} {django_port}"
+        ngrok_command = f"ngrok http  --region=au --domain={app_domain} {django_port}"
 
         # Start ngrok process
         self.stdout.write(
-            self.style.SUCCESS(f"Starting ngrok with domain {ngrok_domain}...")
+            self.style.SUCCESS(f"Starting ngrok with domain {app_domain}...")
         )
         # We don't bother capturing the ngrok process because it runs indefinitely
         # ngrok_process = subprocess.Popen(shlex.split(ngrok_command))

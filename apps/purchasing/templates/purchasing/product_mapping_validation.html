@@ -5,6 +5,10 @@
 <link href="{% static 'purchasing/css/product_mapping.css' %}" rel="stylesheet">
 {% endblock %}
 
+{% block extra_js %}
+<script src="{% static 'purchasing/js/product_mapping_validation.js' %}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -46,13 +50,21 @@
                                 <option value="copper">Copper</option>
                             </select>
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button id="clearFilters" class="btn btn-outline-secondary">Clear All</button>
+                        <div class="col-md-2">
+                            <label for="xeroStatusFilter" class="form-label">Xero Status</label>
+                            <select id="xeroStatusFilter" class="form-select">
+                                <option value="">All</option>
+                                <option value="in_xero">In Xero</option>
+                                <option value="new_item">New Item</option>
+                            </select>
                         </div>
                     </div>
                     <div class="row mt-2">
-                        <div class="col-12">
-                            <small class="text-muted" id="resultsCount">Showing {{ unvalidated_mappings|length }} mappings</small>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button id="clearFilters" class="btn btn-outline-secondary">Clear All</button>
+                        </div>
+                        <div class="col-md-10">
+                            <small class="text-muted" id="resultsCount">Showing {{ all_mappings|length }} mappings</small>
                         </div>
                     </div>
                 </div>
@@ -60,10 +72,11 @@
 
             <!-- Mappings List -->
             <div id="mappings-container">
-                {% for mapping in unvalidated_mappings %}
+                {% for mapping in all_mappings %}
                 <div class="mapping-card" 
                      data-validated="{{ mapping.is_validated|yesno:'true,false' }}" 
                      data-metal-type="{{ mapping.mapped_metal_type|default:'' }}"
+                     data-xero-status="{{ mapping.item_code_is_in_xero|yesno:'in_xero,new_item' }}"
                      data-search-text="{{ mapping.mapped_description|default:'' }} {{ mapping.input_data.product_name|default:'' }} {{ mapping.input_data.description|default:'' }} {{ mapping.mapped_item_code|default:'' }}">
                     
                     <div class="mapping-header">
@@ -122,8 +135,21 @@
                                         {% csrf_token %}
                                         <div class="mb-2">
                                             <label class="form-label">Item Code</label>
-                                            <input type="text" name="mapped_item_code" class="form-control form-control-sm" 
-                                                   value="{{ mapping.mapped_item_code|default:'' }}">
+                                            <div class="input-group">
+                                                <input type="text" name="mapped_item_code" class="form-control form-control-sm" 
+                                                       value="{{ mapping.mapped_item_code|default:'' }}">
+                                                <span class="input-group-text">
+                                                    {% if mapping.item_code_is_in_xero %}
+                                                        <span class="badge bg-success" title="Item exists in Xero">
+                                                            <i class="bi bi-check-circle"></i> In Xero
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary" title="Item not found in Xero">
+                                                            <i class="bi bi-question-circle"></i> New Item
+                                                        </span>
+                                                    {% endif %}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div class="mb-2">
                                             <label class="form-label">Description</label>
@@ -202,114 +228,4 @@
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
-    const metalTypeFilter = document.getElementById('metalTypeFilter');
-    const clearFilters = document.getElementById('clearFilters');
-    const mappingCards = document.querySelectorAll('.mapping-card');
-    const resultsCount = document.getElementById('resultsCount');
-
-    function highlightSearchTerms(text, searchTerm) {
-        if (!searchTerm) return text;
-        const regex = new RegExp(`(${searchTerm})`, 'gi');
-        return text.replace(regex, '<mark>$1</mark>');
-    }
-
-    function filterMappings() {
-        const statusValue = statusFilter.value;
-        const metalTypeValue = metalTypeFilter.value;
-        const searchValue = searchInput.value.toLowerCase().trim();
-
-        let visibleCount = 0;
-
-        mappingCards.forEach(card => {
-            let show = true;
-
-            // Status filter
-            if (statusValue === 'validated' && card.dataset.validated !== 'true') show = false;
-            if (statusValue === 'unvalidated' && card.dataset.validated !== 'false') show = false;
-
-            // Metal type filter
-            if (metalTypeValue && card.dataset.metalType !== metalTypeValue) show = false;
-
-            // Search filter
-            if (searchValue) {
-                const searchText = card.dataset.searchText.toLowerCase();
-                if (!searchText.includes(searchValue)) {
-                    show = false;
-                } else {
-                    // Highlight search terms in visible text
-                    const searchableElements = card.querySelectorAll('.searchable-text');
-                    searchableElements.forEach(el => {
-                        const originalText = el.textContent;
-                        el.innerHTML = highlightSearchTerms(originalText, searchValue);
-                    });
-                }
-            } else {
-                // Remove highlights when no search
-                const searchableElements = card.querySelectorAll('.searchable-text');
-                searchableElements.forEach(el => {
-                    el.innerHTML = el.textContent;
-                });
-            }
-
-            card.style.display = show ? 'block' : 'none';
-            if (show) visibleCount++;
-        });
-
-        // Update results count
-        resultsCount.textContent = `Showing ${visibleCount} mappings${searchValue ? ` for "${searchValue}"` : ''}`;
-    }
-
-    // Real-time search on input
-    searchInput.addEventListener('input', filterMappings);
-    statusFilter.addEventListener('change', filterMappings);
-    metalTypeFilter.addEventListener('change', filterMappings);
-    
-    clearFilters.addEventListener('click', function() {
-        searchInput.value = '';
-        statusFilter.value = '';
-        metalTypeFilter.value = '';
-        filterMappings();
-        searchInput.focus();
-    });
-
-    // Validation functionality
-    document.querySelectorAll('.validate-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const mappingId = this.dataset.mappingId;
-            const form = document.querySelector(`.mapping-form[data-mapping-id="${mappingId}"]`);
-            const formData = new FormData(form);
-            
-            // Add CSRF token
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-
-            fetch(`/purchasing/api/product-mapping/${mappingId}/validate/`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload(); // Refresh to show updated status
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while validating the mapping.');
-            });
-        });
-    });
-
-    // Focus search input on page load
-    searchInput.focus();
-    
-    // Initial filter application
-    filterMappings();
-});
-</script>
 {% endblock %}

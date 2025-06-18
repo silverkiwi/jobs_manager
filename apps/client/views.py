@@ -18,13 +18,9 @@ from django.utils import timezone
 from xero_python.accounting import AccountingApi
 from apps.workflow.api.xero.reprocess_xero import set_client_fields
 from apps.workflow.api.xero.sync import (
-    single_sync_client,
     sync_client_to_xero,
-    serialise_xero_object,
+    serialize_xero_object,
     sync_clients,
-    sync_xero_clients_only,
-    delete_clients_from_xero,
-    archive_clients_in_xero,
 )
 from apps.workflow.api.xero.xero import get_valid_token, api_client, get_tenant_id
 from apps.accounting.models import Invoice, Bill
@@ -304,10 +300,6 @@ def AddClient(request):
         )
         return redirect(f"{reverse_lazy('api_xero_authenticate')}?next={return_url}")
     if request.method == "GET":
-        # Sync clients from Xero before displaying the form
-        # Otherwise we try and create clients only to discover they already exist too much
-        sync_xero_clients_only()
-
         name = request.GET.get("name", "")
         form = ClientForm(initial={"name": name}) if name else ClientForm()
         return render(request, "client/add_client.html", {"form": form})
@@ -466,94 +458,6 @@ def AddClient(request):
             )
 
 
-class UnusedClientsView(TemplateView):
-    """
-    View for managing unused Xero clients.
-    Lists and allows bulk deletion of clients that have no invoices or bills.
-    """
-
-    template_name = "client/unused_clients.html"
-    items_per_page = 50
-
-    def get_unused_clients(self):
-        """
-        Get queryset of clients with no jobs, invoices, or bills.
-        Excludes clients that are already archived in Xero.
-        Returns clients ordered by creation date.
-
-        Note: We use set operations instead of exclude(Q()) because:
-        1. Foreign key fields (client_id) might contain NULL values
-        2. SQL exclude with OR conditions can behave unexpectedly with NULLs
-        3. Set operations on actual IDs are more reliable for this use case
-        """
-        clients_with_invoices = set(
-            Invoice.objects.values_list("client_id", flat=True).distinct()
-        )
-        clients_with_bills = set(
-            Bill.objects.values_list("client_id", flat=True).distinct()
-        )
-        clients_with_jobs = set(
-            Job.objects.values_list("client_id", flat=True).distinct()
-        )
-
-        logger.debug(f"Found {len(clients_with_invoices)} clients with invoices")
-        logger.debug(f"Found {len(clients_with_bills)} clients with bills")
-        logger.debug(f"Found {len(clients_with_jobs)} clients with jobs")
-
-        # Get all client IDs
-        all_client_ids = set(Client.objects.values_list("id", flat=True))
-        logger.debug(f"Total clients: {len(all_client_ids)}")
-
-        # Find clients that don't appear in any of the above sets
-        used_client_ids = clients_with_invoices | clients_with_bills | clients_with_jobs
-        unused_client_ids = all_client_ids - used_client_ids
-        logger.debug(f"Found {len(unused_client_ids)} unused clients")
-
-        return Client.objects.filter(id__in=unused_client_ids).order_by(
-            "django_created_at"
-        )
-
-    def get_context_data(self, **kwargs) -> Dict[str, Any]:
-        """
-        Add pagination and client data to the template context.
-        """
-        context = super().get_context_data(**kwargs)
-        page = self.request.GET.get("page", 1)
-
-        unused_clients = self.get_unused_clients()
-        paginator = Paginator(unused_clients, self.items_per_page)
-        page_obj = paginator.get_page(page)
-
-        unused_clients_data = [
-            {
-                "id": client.id,
-                "name": client.name,
-                "created_at": timezone.localtime(client.django_created_at).strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
-                "email": client.email or "",
-                "phone": client.phone or "",
-            }
-            for client in page_obj
-        ]
-
-        context.update(
-            {
-                "unused_clients": unused_clients_data,
-                "page_obj": page_obj,
-                "total_count": paginator.count,
-                "items_per_page": self.items_per_page,
-            }
-        )
-        return context
-
-    @method_decorator(require_POST)
-    def post(self, request, *args, **kwargs) -> JsonResponse:
-        """
-        Handle bulk deletion of unused clients.
-        Archives the contacts in Xero and deletes them from our database.
-        """
-        raise Exception("This method has beeen deliberately removed.   Archive clients directly in Xero ")
 
 # API views for ClientContact management
 from rest_framework import status

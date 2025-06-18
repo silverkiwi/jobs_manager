@@ -178,12 +178,6 @@ class PurchaseOrderLine(models.Model):
         null=True,
         help_text="Where this item will be stored",
     )
-    dimensions = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text="Dimensions such as length, width, height, etc.",
-    )
     raw_line_data = models.JSONField(
         null=True,
         blank=True,
@@ -238,13 +232,15 @@ class PurchaseOrderSupplierQuote(models.Model):
 
 
 class Stock(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     """
     Model for tracking inventory items.
     Each stock item represents a quantity of material that can be assigned to jobs.
 
     EARLY DRAFT: REVIEW AND TEST
     """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
     job = models.ForeignKey(
         Job,
         on_delete=models.SET_NULL,
@@ -252,6 +248,10 @@ class Stock(models.Model):
         blank=True,
         related_name="stock_items",
         help_text="The job this stock item is assigned to",
+    )
+
+    item_code = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Xero Item Code"
     )
 
     description = models.CharField(
@@ -332,6 +332,34 @@ class Stock(models.Model):
         help_text="False when quantity reaches zero or item is fully consumed/transformed",
     )
 
+    xero_id = models.CharField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Unique ID from Xero for this item",
+    )
+    xero_last_modified = models.DateTimeField(
+        null=True, blank=True, help_text="Last modified date from Xero for this item"
+    )
+    raw_json = models.JSONField(
+        null=True, blank=True, help_text="Raw JSON data from Xero for this item"
+    )
+
+    # Parser tracking fields
+    parsed_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text="When this inventory item was parsed by LLM"
+    )
+    parser_version = models.CharField(
+        max_length=50, blank=True, null=True,
+        help_text="Version of parser used for this data"
+    )
+    parser_confidence = models.DecimalField(
+        max_digits=3, decimal_places=2, blank=True, null=True,
+        help_text="Parser confidence score 0.00-1.00"
+    )
+
     # TODO: Add fields for:
     # - Location
     # - Minimum stock level
@@ -379,3 +407,9 @@ class Stock(models.Model):
         if cls._stock_holding_job is None:
             cls._stock_holding_job = Job.objects.get(name=cls.STOCK_HOLDING_JOB_NAME)
         return cls._stock_holding_job
+
+    class Meta:
+        db_table = "workflow_stock"
+        constraints = [
+            models.UniqueConstraint(fields=["xero_id"], name="unique_xero_id_stock")
+        ]

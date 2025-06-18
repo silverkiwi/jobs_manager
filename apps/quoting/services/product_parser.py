@@ -41,7 +41,7 @@ class ProductParser:
                 raise ValueError("No active Gemini AI provider configured")
             
             genai.configure(api_key=ai_provider.api_key)
-            self._gemini_client = genai.GenerativeModel('gemini-1.5-flash')
+            self._gemini_client = genai.GenerativeModel('gemini-2.5-flash-lite-preview-06-17') # TODO: Add to a config
         
         return self._gemini_client
     
@@ -258,23 +258,28 @@ Price: {product_data.get('variant_price', 'N/A')} {product_data.get('price_unit'
             except:
                 unit_cost = None
         
-        mapping = ProductParsingMapping(
+        # Use get_or_create to handle potential duplicates
+        mapping, created = ProductParsingMapping.objects.get_or_create(
             input_hash=input_hash,
-            input_data=serializable_input,
-            mapped_item_code=parsed_data.get('item_code'),
-            mapped_description=parsed_data.get('description'),
-            mapped_metal_type=parsed_data.get('metal_type'),
-            mapped_alloy=parsed_data.get('alloy'),
-            mapped_specifics=parsed_data.get('specifics'),
-            mapped_dimensions=parsed_data.get('dimensions'),
-            mapped_unit_cost=unit_cost,
-            mapped_price_unit=parsed_data.get('price_unit'),
-            parser_version=self.PARSER_VERSION,
-            parser_confidence=confidence,
-            llm_response=llm_response
+            defaults={
+                'input_data': serializable_input,
+                'mapped_item_code': parsed_data.get('item_code'),
+                'mapped_description': parsed_data.get('description'),
+                'mapped_metal_type': parsed_data.get('metal_type'),
+                'mapped_alloy': parsed_data.get('alloy'),
+                'mapped_specifics': parsed_data.get('specifics'),
+                'mapped_dimensions': parsed_data.get('dimensions'),
+                'mapped_unit_cost': unit_cost,
+                'mapped_price_unit': parsed_data.get('price_unit'),
+                'parser_version': self.PARSER_VERSION,
+                'parser_confidence': confidence,
+                'llm_response': llm_response
+            }
         )
         
-        mapping.save()
+        if not created:
+            logger.info(f"Mapping already exists for hash {input_hash[:8]}... (race condition avoided)")
+        
         return mapping
     
     def parse_products_batch(self, product_data_list: list) -> list:

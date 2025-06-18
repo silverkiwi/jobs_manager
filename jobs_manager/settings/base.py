@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     "apps.quoting.apps.QuotingConfig",
     "apps.client.apps.ClientConfig",
     "apps.purchasing.apps.PurchasingConfig",
+    "channels",
+    "mcp_server",
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -102,7 +104,7 @@ LOGIN_REDIRECT_URL = "/"
 LOGIN_EXEMPT_URLS = [
     "accounts:login",
     "accounts:logout", 
-    "accounts:api_logout",  # Add the API logout endpoint
+    "accounts:api_logout",
     "accounts:password_reset",
     "accounts:password_reset_done",
     "accounts:reset",
@@ -110,7 +112,8 @@ LOGIN_EXEMPT_URLS = [
     "accounts:password_reset_complete",
     "accounts:token_obtain_pair",
     "accounts:token_refresh",
-    "accounts:token_verify",    "api/",  # Exempt all API endpoints from session authentication
+    "accounts:token_verify",
+    "api/",  # Exempt all API endpoints from session authentication
     "accounts/api/",  # Include accounts API endpoints
     "accounts/me/",  # Include user info endpoint
     "accounts/logout/",  # Include logout API endpoint explicitly
@@ -120,6 +123,7 @@ LOGIN_EXEMPT_URLS = [
     "job/api/",  # Include job API endpoints
     "rest/",  # Include all REST endpoints
     "timesheets/api/",  # Include timesheet API endpoints
+    "xero_webhook",
 ]
 
 LOGGING = {
@@ -281,6 +285,23 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "jobs_manager.wsgi.application"
+ASGI_APPLICATION = "jobs_manager.asgi.application"
+
+# Django Channels configuration
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(os.getenv("REDIS_HOST", "127.0.0.1"), int(os.getenv("REDIS_PORT", 6379)))],
+        },
+    },
+}
+
+# MCP Configuration
+DJANGO_MCP_AUTHENTICATION_CLASSES = [
+    "rest_framework.authentication.SessionAuthentication",
+]
+
 load_dotenv(BASE_DIR / ".env")
 
 # Database
@@ -387,6 +408,7 @@ if not SECRET_KEY:
 XERO_CLIENT_ID = os.getenv("XERO_CLIENT_ID", "")
 XERO_CLIENT_SECRET = os.getenv("XERO_CLIENT_SECRET", "")
 XERO_REDIRECT_URI = os.getenv("XERO_REDIRECT_URI", "")
+XERO_WEBHOOK_KEY = os.getenv("XERO_WEBHOOK_KEY", "")
 # Default scopes if not specified in .env
 DEFAULT_XERO_SCOPES = " ".join(
     [
