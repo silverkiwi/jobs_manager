@@ -118,6 +118,7 @@ LOGIN_EXEMPT_URLS = [
     "clients/api/",  # Include client API endpoints
     "job/rest/",  # Include job REST endpoints
     "job/api/",  # Include job API endpoints
+    "rest/",  # Include all REST endpoints
     "timesheets/api/",  # Include timesheet API endpoints
 ]
 

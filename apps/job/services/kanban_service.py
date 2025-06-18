@@ -47,7 +47,7 @@ class KanbanService:
                 query &= term_query
             jobs_query = jobs_query.filter(query)
 
-        jobs = jobs_query.order_by("priority", "-created_at")
+        jobs = jobs_query.order_by("-priority", "-created_at")
         
         # Apply different limits based on status
         match status:
@@ -59,10 +59,9 @@ class KanbanService:
     @staticmethod
     def get_all_active_jobs() -> QuerySet[Job]:
         """Get all active (non-archived) jobs, filtered for kanban display."""
-        
-        # Get non-archived jobs and filter out special jobs for kanban
-        active_jobs = Job.objects.exclude(status="archived").order_by("status", "priority")
-        return KanbanService.filter_kanban_jobs(active_jobs)    
+          # Get non-archived jobs and filter out special jobs for kanban
+        active_jobs = Job.objects.exclude(status="archived").order_by("status", "-priority")
+        return KanbanService.filter_kanban_jobs(active_jobs)
         
     @staticmethod
     def get_archived_jobs(limit: int = 50) -> QuerySet[Job]:
@@ -191,7 +190,7 @@ class KanbanService:
             status: Status column to rebalance
         """
         increment = Job.PRIORITY_INCREMENT
-        jobs = list(Job.objects.filter(status=status).order_by("priority"))
+        jobs = list(Job.objects.filter(status=status).order_by("-priority"))
 
         with transaction.atomic():
             for index, job in enumerate(jobs, start=1):
