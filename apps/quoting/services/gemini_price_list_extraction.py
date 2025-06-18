@@ -193,7 +193,7 @@ def extract_data_from_supplier_price_list_gemini(
             temperature=0.1,  # Lower temperature for more consistent extraction
         )
         
-        model = genai.GenerativeModel("gemini-1.5-flash", generation_config=generation_config)
+        model = genai.GenerativeModel("gemini-2.5-flash-lite-preview-06-17", generation_config=generation_config)
 
         # Extract text from PDF using pdfplumber
         text_pages = []
