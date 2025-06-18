@@ -46,12 +46,20 @@
                                 <option value="copper">Copper</option>
                             </select>
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button id="clearFilters" class="btn btn-outline-secondary">Clear All</button>
+                        <div class="col-md-2">
+                            <label for="xeroStatusFilter" class="form-label">Xero Status</label>
+                            <select id="xeroStatusFilter" class="form-select">
+                                <option value="">All</option>
+                                <option value="in_xero">In Xero</option>
+                                <option value="new_item">New Item</option>
+                            </select>
                         </div>
                     </div>
                     <div class="row mt-2">
-                        <div class="col-12">
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button id="clearFilters" class="btn btn-outline-secondary">Clear All</button>
+                        </div>
+                        <div class="col-md-10">
                             <small class="text-muted" id="resultsCount">Showing {{ unvalidated_mappings|length }} mappings</small>
                         </div>
                     </div>
@@ -64,6 +72,7 @@
                 <div class="mapping-card" 
                      data-validated="{{ mapping.is_validated|yesno:'true,false' }}" 
                      data-metal-type="{{ mapping.mapped_metal_type|default:'' }}"
+                     data-xero-status="{{ mapping.item_code_is_in_xero|yesno:'in_xero,new_item' }}"
                      data-search-text="{{ mapping.mapped_description|default:'' }} {{ mapping.input_data.product_name|default:'' }} {{ mapping.input_data.description|default:'' }} {{ mapping.mapped_item_code|default:'' }}">
                     
                     <div class="mapping-header">
@@ -122,8 +131,21 @@
                                         {% csrf_token %}
                                         <div class="mb-2">
                                             <label class="form-label">Item Code</label>
-                                            <input type="text" name="mapped_item_code" class="form-control form-control-sm" 
-                                                   value="{{ mapping.mapped_item_code|default:'' }}">
+                                            <div class="input-group">
+                                                <input type="text" name="mapped_item_code" class="form-control form-control-sm" 
+                                                       value="{{ mapping.mapped_item_code|default:'' }}">
+                                                <span class="input-group-text">
+                                                    {% if mapping.item_code_is_in_xero %}
+                                                        <span class="badge bg-success" title="Item exists in Xero">
+                                                            <i class="bi bi-check-circle"></i> In Xero
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary" title="Item not found in Xero">
+                                                            <i class="bi bi-question-circle"></i> New Item
+                                                        </span>
+                                                    {% endif %}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div class="mb-2">
                                             <label class="form-label">Description</label>
@@ -207,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
     const metalTypeFilter = document.getElementById('metalTypeFilter');
+    const xeroStatusFilter = document.getElementById('xeroStatusFilter');
     const clearFilters = document.getElementById('clearFilters');
     const mappingCards = document.querySelectorAll('.mapping-card');
     const resultsCount = document.getElementById('resultsCount');
@@ -220,6 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function filterMappings() {
         const statusValue = statusFilter.value;
         const metalTypeValue = metalTypeFilter.value;
+        const xeroStatusValue = xeroStatusFilter.value;
         const searchValue = searchInput.value.toLowerCase().trim();
 
         let visibleCount = 0;
@@ -233,6 +257,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Metal type filter
             if (metalTypeValue && card.dataset.metalType !== metalTypeValue) show = false;
+
+            // Xero status filter
+            if (xeroStatusValue && card.dataset.xeroStatus !== xeroStatusValue) show = false;
 
             // Search filter
             if (searchValue) {
@@ -267,11 +294,13 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener('input', filterMappings);
     statusFilter.addEventListener('change', filterMappings);
     metalTypeFilter.addEventListener('change', filterMappings);
+    xeroStatusFilter.addEventListener('change', filterMappings);
     
     clearFilters.addEventListener('click', function() {
         searchInput.value = '';
         statusFilter.value = '';
         metalTypeFilter.value = '';
+        xeroStatusFilter.value = '';
         filterMappings();
         searchInput.focus();
     });

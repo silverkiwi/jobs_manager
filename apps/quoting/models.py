@@ -222,6 +222,12 @@ class ProductParsingMapping(models.Model):
         help_text="Notes from manual validation"
     )
     
+    # Xero integration field
+    item_code_is_in_xero = models.BooleanField(
+        default=False,
+        help_text="Whether the mapped item code exists in Xero inventory (Stock model)"
+    )
+    
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -232,6 +238,16 @@ class ProductParsingMapping(models.Model):
             models.Index(fields=["input_hash"]),
             models.Index(fields=["created_at"]),
         ]
+    
+    def update_xero_status(self):
+        """Update the item_code_is_in_xero field based on Stock model."""
+        if self.mapped_item_code:
+            from apps.purchasing.models import Stock
+            self.item_code_is_in_xero = Stock.objects.filter(
+                item_code=self.mapped_item_code
+            ).exists()
+        else:
+            self.item_code_is_in_xero = False
     
     def __str__(self):
         return f"Mapping: {self.input_hash[:8]}... → {self.mapped_description or 'No description'}"

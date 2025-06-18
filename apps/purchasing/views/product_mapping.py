@@ -6,6 +6,7 @@ from django.utils import timezone
 from decimal import Decimal
 
 from apps.quoting.models import ProductParsingMapping
+from apps.purchasing.models import Stock
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +20,18 @@ def product_mapping_validation(request):
         is_validated=False
     ).order_by('-created_at')[:100]  # Increased limit for better search
     
+    # Update Xero status for unvalidated mappings
+    for mapping in unvalidated_mappings:
+        mapping.update_xero_status()
+    
     # Get recently validated mappings for context
     validated_mappings = ProductParsingMapping.objects.filter(
         is_validated=True
     ).order_by('-validated_at')[:20]
+    
+    # Update Xero status for validated mappings too
+    for mapping in validated_mappings:
+        mapping.update_xero_status()
     
     # Get some stats
     total_mappings = ProductParsingMapping.objects.count()
@@ -74,6 +83,9 @@ def validate_mapping(request, mapping_id):
                 pass
         
         mapping.mapped_price_unit = request.POST.get('mapped_price_unit', mapping.mapped_price_unit)
+        
+        # Update Xero status based on the new item code
+        mapping.update_xero_status()
         
         mapping.save()
         
