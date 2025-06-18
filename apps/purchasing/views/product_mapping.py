@@ -14,24 +14,21 @@ def product_mapping_validation(request):
     """
     Modern interface for validating product parsing mappings.
     """
-    # Get mappings that need validation (not validated yet)
-    unvalidated_mappings = ProductParsingMapping.objects.filter(
+    # Get all mappings, prioritizing unvalidated ones first
+    all_mappings = list(ProductParsingMapping.objects.filter(
         is_validated=False
-    ).order_by("-created_at")[
-        :100
-    ]  # Increased limit for better search
-
-    # Update Xero status for unvalidated mappings
-    for mapping in unvalidated_mappings:
-        mapping.update_xero_status()
-
-    # Get recently validated mappings for context
-    validated_mappings = ProductParsingMapping.objects.filter(
+    ).order_by("-created_at")[:100])  # Unvalidated first, limited for performance
+    
+    # Add validated mappings for context
+    validated_mappings = list(ProductParsingMapping.objects.filter(
         is_validated=True
-    ).order_by("-validated_at")[:20]
+    ).order_by("-validated_at")[:20])
+    
+    # Combine all mappings
+    all_mappings.extend(validated_mappings)
 
-    # Update Xero status for validated mappings too
-    for mapping in validated_mappings:
+    # Update Xero status for all mappings
+    for mapping in all_mappings:
         mapping.update_xero_status()
 
     # Get some stats
@@ -41,8 +38,7 @@ def product_mapping_validation(request):
 
     context = {
         "title": "Product Mapping Validation",
-        "unvalidated_mappings": unvalidated_mappings,
-        "validated_mappings": validated_mappings,
+        "all_mappings": all_mappings,
         "stats": {
             "total_mappings": total_mappings,
             "validated_count": validated_count,
