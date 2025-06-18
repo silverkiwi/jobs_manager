@@ -255,19 +255,22 @@ def import_quote_from_drafts(job: Job, draft_lines: List[DraftLine]) -> QuoteImp
                     to_update=[],
                     to_delete=[]
                 )
-                logger.info(f"No existing quote - all {len(draft_lines)} lines will be added")
+                logger.info(f"No existing quote - all {len(draft_lines)} lines will be added")            # Step 4: Apply diff to create cost lines
+            if old_cost_set:
+                # Apply diff to existing cost set
+                new_cost_set = apply_diff(old_cost_set, diff_result)
+            else:
+                # For first quote, create minimal cost set and apply diff
+                # apply_diff will create the real cost set with proper revision
+                empty_cost_set = CostSet(
+                    job=job,
+                    kind='quote',
+                    rev=0,  # apply_diff will increment this to 1
+                    summary={'cost': 0, 'rev': 0, 'hours': 0}
+                )
+                new_cost_set = apply_diff(empty_cost_set, diff_result)
             
-            # Step 4: Create new CostSet
-            new_cost_set = CostSet.objects.create(
-                job=job,
-                kind='quote',
-                rev=next_rev,
-                summary={'cost': 0, 'rev': 0, 'hours': 0}  # Will be updated by apply_diff
-            )
-            logger.info(f"Created new quote CostSet rev {next_rev} (ID: {new_cost_set.id})")
-            
-            # Step 5: Apply diff to create cost lines
-            apply_diff(new_cost_set, diff_result)
+            logger.info(f"Created new quote CostSet rev {new_cost_set.rev} (ID: {new_cost_set.id})")
               # Step 6: Update job's latest_quote pointer to maintain consistency
             # This ensures the pointer stays in sync with the database
             job.set_latest('quote', new_cost_set)
