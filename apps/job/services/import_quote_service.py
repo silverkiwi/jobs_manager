@@ -56,9 +56,8 @@ def serialize_draft_lines(draft_lines: List[DraftLine]) -> List[Dict[str, Any]]:
     serialized_lines = []
     for line in draft_lines:
         serialized_lines.append({
-            'supplier': line.supplier,
-            'ref': line.ref,
-            'description': line.description,
+            'kind': line.kind,
+            'desc': line.desc,
             'quantity': float(line.quantity),
             'unit_cost': float(line.unit_cost),
             'total_cost': float(line.total_cost),
