@@ -6,3 +6,4 @@ Priorities:
     5. MCP: Able to query supplier prices and stock
     6. Write a new schedule for refreshing prices in the scraper.  Regularly ordered products should be refreshed.  E.g. whenever the MCP server returns a product, add it to a products to refresh.
     7. Get a mistral API key
+    8. Fix the update init script

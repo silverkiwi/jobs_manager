@@ -17,12 +17,12 @@ def product_mapping_validation(request):
     # Get all mappings, prioritizing unvalidated ones first
     all_mappings = list(ProductParsingMapping.objects.filter(
         is_validated=False
-    ).order_by("-created_at")[:100])  # Unvalidated first, limited for performance
+    ).order_by("-created_at"))  # Unvalidated first
     
     # Add validated mappings for context
     validated_mappings = list(ProductParsingMapping.objects.filter(
         is_validated=True
-    ).order_by("-validated_at")[:20])
+    ).order_by("-validated_at"))
     
     # Combine all mappings
     all_mappings.extend(validated_mappings)
