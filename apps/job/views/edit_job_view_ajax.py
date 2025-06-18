@@ -612,61 +612,6 @@ def toggle_complex_job(request):
 
 
 @require_http_methods(["POST"])
-@transaction.atomic
-def toggle_pricing_methodology(request):
-    try:
-        data = json.loads(request.body)
-        if not isinstance(data, dict):
-            return JsonResponse({"error": "Invalid request format"}, status=400)
-
-        job_id = data.get("job_id")
-        new_type = data.get("pricing_methodology")
-
-        logger.info(f"[toggle_pricing_methodology]: data: {data}")
-
-        if job_id is None or new_type is None:
-            return JsonResponse(
-                {"error": "Missing required fields: job_id and pricing_methodology"},
-                status=400,
-            )
-
-        if new_type not in [choice[0] for choice in JobPricingMethodology.choices]:
-            return JsonResponse({"error": "Invalid pricing type value"}, status=400)
-
-        job = get_object_or_404(Job.objects.select_for_update(), id=job_id)
-
-        match (new_type):
-            case JobPricingMethodology.TIME_AND_MATERIALS:
-                new_type = JobPricingMethodology.TIME_AND_MATERIALS
-            case JobPricingMethodology.FIXED_PRICE:
-                new_type = JobPricingMethodology.FIXED_PRICE
-            case _:
-                return JsonResponse({"error": "Invalid pricing type value"}, status=400)
-
-        # Update job
-        job.pricing_methodology = new_type
-        job.save()
-
-        return JsonResponse(
-            {
-                "success": True,
-                "job_id": job_id,
-                "pricing_methodology": new_type,
-                "message": "Pricing type updated successfully",
-            }
-        )
-
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON in request body"}, status=400)
-    except ValidationError as e:
-        return JsonResponse({"error": str(e)}, status=400)
-    except Exception as e:
-        return JsonResponse(
-            {"error": f"An unexpected error occurred: {str(e)}"}, status=500
-        )
-
-
-@require_http_methods(["POST"])
 def delete_job(request, job_id):
     """
     Deletes a job if it doesn't have any reality job pricing with actual data.
@@ -738,13 +683,11 @@ def create_linked_quote_api(request, job_id):
 
         # Update the job with the new quote URL
         job.linked_quote = quote_url
-        job.save(staff=request.user)
-
-        # Create a job event to record this action
+        job.save(staff=request.user)        # Create a job event to record this action
         JobEvent.objects.create(
             job=job,
-            event_type="linked_quote_created",
-            description=f"Created linked quote spreadsheet",
+            event_type="quote_created",
+            description=f"Quote spreadsheet created and linked",
             staff=request.user,
         )
 

@@ -12,6 +12,7 @@ class Migration(migrations.Migration):
         ("workflow", "0143_alter_stock_job"),
     ]
 
+    # Rename pricing_type to pricing_methodology in Job and HistoricalJob models (prod!)
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[],
@@ -150,7 +151,7 @@ class Migration(migrations.Migration):
                                 null=True,
                                 on_delete=django.db.models.deletion.SET_NULL,
                                 related_name="material_entries",
-                                to="purchasing.PurchaseOrderLine",
+                                to="workflow.purchaseorderline",
                             ),
                         ),
                         (

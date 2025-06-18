@@ -25,8 +25,8 @@ from django.urls import include, path
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("apps.workflow.urls")),
-    path("", include("apps.job.urls", namespace="jobs")),
-    path("accounts/", include("apps.accounts.urls")),
+    path("job/", include("apps.job.urls", namespace="jobs")),
+    path("accounts/", include("apps.accounts.urls")),    
     path("timesheets/", include("apps.timesheet.urls")),
     path("quoting/", include("apps.quoting.urls")),
     path("clients/", include("apps.client.urls", namespace="clients")),
