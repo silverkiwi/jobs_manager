@@ -38,8 +38,7 @@ class TimesheetToCostLineService:
         rate_multiplier: Decimal = Decimal('1.0'),
         is_billable: bool = True,
         ext_refs: Optional[Dict[str, Any]] = None,
-        meta: Optional[Dict[str, Any]] = None
-    ) -> CostLine:
+        meta: Optional[Dict[str, Any]] = None    ) -> CostLine:
         """
         Create a CostLine from timesheet entry data
         
@@ -59,6 +58,10 @@ class TimesheetToCostLineService:
         Returns:
             Created CostLine instance
         """
+        # Guard clause - validate description is not empty
+        if not description or description.strip() == '':
+            raise ValueError("Description cannot be empty for timesheet entries")
+            
         with transaction.atomic():
             # Get job
             job = Job.objects.get(id=job_id)
