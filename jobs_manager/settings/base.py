@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     "apps.quoting.apps.QuotingConfig",
     "apps.client.apps.ClientConfig",
     "apps.purchasing.apps.PurchasingConfig",
+    "channels",
+    "mcp_server",
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -267,6 +269,23 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "jobs_manager.wsgi.application"
+ASGI_APPLICATION = "jobs_manager.asgi.application"
+
+# Django Channels configuration
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(os.getenv("REDIS_HOST", "127.0.0.1"), int(os.getenv("REDIS_PORT", 6379)))],
+        },
+    },
+}
+
+# MCP Configuration
+DJANGO_MCP_AUTHENTICATION_CLASSES = [
+    "rest_framework.authentication.SessionAuthentication",
+]
+
 load_dotenv(BASE_DIR / ".env")
 
 # Database

@@ -43,8 +43,8 @@ class SupplierProduct(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Inventory mapping fields (parsed from raw product data)
-    # These fields will be populated by the LLM parser to match Stock model structure
+    # # Inventory mapping fields (parsed from raw product data)
+    # # These fields will be populated by the LLM parser to match Stock model structure
     parsed_item_code = models.CharField(
         max_length=100, blank=True, null=True,
         help_text="Item code parsed for inventory mapping"
@@ -176,8 +176,13 @@ class ProductParsingMapping(models.Model):
         help_text="Original input data that was parsed"
     )
     
+    derived_key = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text="Derived key for this mapping, if applicable") # **Format**: `{METAL_TYPE}-{ALLOY}-{FORM}-{DIMENSIONS}-{SEQUENCE}`
+
     # Mapped output fields matching Stock model structure
-    mapped_item_code = models.CharField(max_length=100, blank=True, null=True)
+    mapped_item_code = models.CharField(max_length=100, blank=True, null=True) # IN Xero
+
     mapped_description = models.CharField(max_length=255, blank=True, null=True)
     mapped_metal_type = models.CharField(
         max_length=50, choices=MetalType.choices, blank=True, null=True

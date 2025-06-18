@@ -41,7 +41,7 @@ class ProductParser:
                 raise ValueError("No active Gemini AI provider configured")
             
             genai.configure(api_key=ai_provider.api_key)
-            self._gemini_client = genai.GenerativeModel('gemini-1.5-flash')
+            self._gemini_client = genai.GenerativeModel('gemini-2.5-flash-preview-05-20') # TODO: Add to a config
         
         return self._gemini_client
     
