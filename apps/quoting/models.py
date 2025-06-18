@@ -111,6 +111,15 @@ class SupplierProduct(models.Model):
         null=True,
         help_text="Parser confidence score 0.00-1.00",
     )
+    
+    # Mapping relationship
+    mapping_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="SHA-256 hash linking to ProductParsingMapping for this product",
+    )
 
     class Meta:
         unique_together = ["supplier", "url", "item_no", "variant_id"]
