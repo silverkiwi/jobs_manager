@@ -46,47 +46,70 @@ class SupplierProduct(models.Model):
     # # Inventory mapping fields (parsed from raw product data)
     # # These fields will be populated by the LLM parser to match Stock model structure
     parsed_item_code = models.CharField(
-        max_length=100, blank=True, null=True,
-        help_text="Item code parsed for inventory mapping"
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Item code parsed for inventory mapping",
     )
     parsed_description = models.CharField(
-        max_length=255, blank=True, null=True,
-        help_text="Standardized description for inventory"
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Standardized description for inventory",
     )
     parsed_metal_type = models.CharField(
-        max_length=50, choices=MetalType.choices, blank=True, null=True,
-        help_text="Metal type parsed from product specifications"
+        max_length=50,
+        choices=MetalType.choices,
+        blank=True,
+        null=True,
+        help_text="Metal type parsed from product specifications",
     )
     parsed_alloy = models.CharField(
-        max_length=50, blank=True, null=True,
-        help_text="Alloy specification (e.g., 304, 6061)"
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Alloy specification (e.g., 304, 6061)",
     )
     parsed_specifics = models.CharField(
-        max_length=255, blank=True, null=True,
-        help_text="Specific details parsed from product data"
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Specific details parsed from product data",
     )
     parsed_dimensions = models.CharField(
-        max_length=100, blank=True, null=True,
-        help_text="Standardized dimensions format"
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Standardized dimensions format",
     )
     parsed_unit_cost = models.DecimalField(
-        max_digits=10, decimal_places=2, blank=True, null=True,
-        help_text="Standardized unit cost"
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text="Standardized unit cost",
     )
     parsed_price_unit = models.CharField(
-        max_length=50, blank=True, null=True,
-        help_text="Standardized price unit (e.g., 'per metre', 'each')"
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Standardized price unit (e.g., 'per metre', 'each')",
     )
-    
+
     # Parser metadata
     parsed_at = models.DateTimeField(blank=True, null=True)
     parser_version = models.CharField(
-        max_length=50, blank=True, null=True,
-        help_text="Version of parser used for this data"
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Version of parser used for this data",
     )
     parser_confidence = models.DecimalField(
-        max_digits=3, decimal_places=2, blank=True, null=True,
-        help_text="Parser confidence score 0.00-1.00"
+        max_digits=3,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text="Parser confidence score 0.00-1.00",
     )
 
     class Meta:
@@ -129,29 +152,29 @@ class ScrapeJob(models.Model):
     """
     Tracks scraping job execution for monitoring and preventing concurrent runs.
     """
-    
+
     STATUS_CHOICES = [
-        ('running', 'Running'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
+        ("running", "Running"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     supplier = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="scrape_jobs"
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='running')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="running")
     started_at = models.DateTimeField(default=timezone.now)
     completed_at = models.DateTimeField(null=True, blank=True)
     products_scraped = models.IntegerField(default=0)
     products_failed = models.IntegerField(default=0)
     error_message = models.TextField(null=True, blank=True)
-    
+
     class Meta:
         ordering = ["-started_at"]
         verbose_name = "Scrape Job"
         verbose_name_plural = "Scrape Jobs"
-    
+
     def __str__(self):
         return f"{self.supplier.name} - {self.status} ({self.started_at.strftime('%Y-%m-%d %H:%M')})"
 
@@ -162,26 +185,31 @@ class ProductParsingMapping(models.Model):
     of identical input data. Once parsed, the same input always produces
     the same structured output.
     """
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Input hash for mapping lookup
     input_hash = models.CharField(
-        max_length=64, unique=True, db_index=True,
-        help_text="SHA-256 hash of normalized input data"
+        max_length=64,
+        unique=True,
+        db_index=True,
+        help_text="SHA-256 hash of normalized input data",
     )
-    
+
     # Original input data for reference
-    input_data = models.JSONField(
-        help_text="Original input data that was parsed"
-    )
-    
+    input_data = models.JSONField(help_text="Original input data that was parsed")
+
     derived_key = models.CharField(
-        max_length=100, blank=True, null=True,
-        help_text="Derived key for this mapping, if applicable") # **Format**: `{METAL_TYPE}-{ALLOY}-{FORM}-{DIMENSIONS}-{SEQUENCE}`
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Derived key for this mapping, if applicable",
+    )  # **Format**: `{METAL_TYPE}-{ALLOY}-{FORM}-{DIMENSIONS}-{SEQUENCE}`
 
     # Mapped output fields matching Stock model structure
-    mapped_item_code = models.CharField(max_length=100, blank=True, null=True) # IN Xero
+    mapped_item_code = models.CharField(
+        max_length=100, blank=True, null=True
+    )  # IN Xero
 
     mapped_description = models.CharField(max_length=255, blank=True, null=True)
     mapped_metal_type = models.CharField(
@@ -194,37 +222,41 @@ class ProductParsingMapping(models.Model):
         max_digits=10, decimal_places=2, blank=True, null=True
     )
     mapped_price_unit = models.CharField(max_length=50, blank=True, null=True)
-    
+
     # Parser metadata
     parser_version = models.CharField(max_length=50)
     parser_confidence = models.DecimalField(
         max_digits=3, decimal_places=2, blank=True, null=True
     )
-    llm_response = models.JSONField(
-        help_text="Full LLM response for debugging"
-    )
-    
+    llm_response = models.JSONField(help_text="Full LLM response for debugging")
+
     # Validation fields
     is_validated = models.BooleanField(
-        default=False,
-        help_text="Whether this mapping has been manually validated"
+        default=False, help_text="Whether this mapping has been manually validated"
     )
     validated_by = models.ForeignKey(
-        'accounts.Staff', on_delete=models.SET_NULL, null=True, blank=True,
-        help_text="Staff member who validated this mapping"
+        "accounts.Staff",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Staff member who validated this mapping",
     )
     validated_at = models.DateTimeField(
-        null=True, blank=True,
-        help_text="When this mapping was validated"
+        null=True, blank=True, help_text="When this mapping was validated"
     )
     validation_notes = models.TextField(
-        blank=True, null=True,
-        help_text="Notes from manual validation"
+        blank=True, null=True, help_text="Notes from manual validation"
     )
-    
+
+    # Xero integration field
+    item_code_is_in_xero = models.BooleanField(
+        default=False,
+        help_text="Whether the mapped item code exists in Xero inventory (Stock model)",
+    )
+
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         verbose_name = "Product Parsing Mapping"
         verbose_name_plural = "Product Parsing Mappings"
@@ -232,6 +264,17 @@ class ProductParsingMapping(models.Model):
             models.Index(fields=["input_hash"]),
             models.Index(fields=["created_at"]),
         ]
-    
+
+    def update_xero_status(self):
+        """Update the item_code_is_in_xero field based on Stock model."""
+        if self.mapped_item_code:
+            from apps.purchasing.models import Stock
+
+            self.item_code_is_in_xero = Stock.objects.filter(
+                item_code=self.mapped_item_code
+            ).exists()
+        else:
+            self.item_code_is_in_xero = False
+
     def __str__(self):
         return f"Mapping: {self.input_hash[:8]}... → {self.mapped_description or 'No description'}"
