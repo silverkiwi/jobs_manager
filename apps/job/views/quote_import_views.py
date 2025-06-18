@@ -23,7 +23,8 @@ from apps.job.services.import_quote_service import (
     import_quote_from_file,
     preview_quote_import,
     QuoteImportError,
-    QuoteImportResult
+    QuoteImportResult,
+    serialize_validation_report
 )
 from apps.job.serializers.costing_serializer import CostSetSerializer
 
@@ -159,12 +160,12 @@ class QuoteImportView(APIView):
                         'deletions': len(result.diff_result.to_delete) if result.diff_result else 0
                     }
                 }
-                
-                # Add validation report if available
+                  # Add validation report if available
                 if result.validation_report:
+                    serialized_report = serialize_validation_report(result.validation_report)
                     response_data['validation'] = {
-                        'warnings_count': len(result.validation_report.warnings),
-                        'has_warnings': len(result.validation_report.warnings) > 0
+                        'warnings_count': len(serialized_report.get('warnings', [])),
+                        'has_warnings': len(serialized_report.get('warnings', [])) > 0
                     }
                 
                 return Response(response_data, status=status.HTTP_201_CREATED)
@@ -175,13 +176,14 @@ class QuoteImportView(APIView):
                     'error': result.error_message,
                     'job_id': str(job.id)
                 }
-                
-                # Add validation details if available
+                  # Add validation details if available
                 if result.validation_report:
+                    serialized_report = serialize_validation_report(result.validation_report)
                     response_data['validation'] = {
-                        'errors_count': len(result.validation_report.errors),
-                        'critical_count': len(result.validation_report.critical_issues),
-                        'can_proceed': result.validation_report.can_proceed
+                        'errors_count': len(serialized_report.get('errors', [])),
+                        'critical_count': len([issue for issue in serialized_report.get('issues', []) 
+                                             if issue.get('severity') == 'error']),
+                        'can_proceed': serialized_report.get('can_proceed', False)
                     }
                 
                 return Response(response_data, status=status.HTTP_400_BAD_REQUEST)

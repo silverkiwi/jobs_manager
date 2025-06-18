@@ -38,6 +38,19 @@ class ValidationError:
     expected_value: Optional[Any] = None
     actual_value: Optional[Any] = None
     suggestion: Optional[str] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert ValidationError to dictionary for JSON serialization."""
+        return {
+            'error_type': self.error_type.value if self.error_type else None,
+            'severity': self.severity.value if self.severity else None,
+            'message': self.message,
+            'row_number': self.row_number,
+            'column': self.column,
+            'expected_value': self.expected_value,
+            'actual_value': self.actual_value,
+            'suggestion': self.suggestion
+        }
 
 @dataclass
 class ValidationReport:
@@ -67,6 +80,34 @@ class ValidationReport:
             summary_parts.append(f"⚠️ {len(self.warnings)} warning(s)")
         
         return " | ".join(summary_parts)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert ValidationReport to dictionary for JSON serialization."""
+        # Combine all issues into a single list with consistent format
+        all_issues = []
+        
+        # Add critical issues
+        for issue in self.critical_issues:
+            issue_dict = issue.to_dict()
+            issue_dict['severity'] = 'error'  # Treat critical as error for frontend
+            all_issues.append(issue_dict)
+        
+        # Add errors
+        for issue in self.errors:
+            all_issues.append(issue.to_dict())
+        
+        # Add warnings
+        for issue in self.warnings:
+            all_issues.append(issue.to_dict())
+        
+        return {
+            'is_valid': self.is_valid,
+            'can_proceed': self.can_proceed,
+            'issues': all_issues,
+            'errors': [issue.message for issue in self.errors],
+            'warnings': [issue.message for issue in self.warnings],
+            'summary': self.summary
+        }
 
 def _d(val):
     """Safely coerce values to Decimal with 2 decimal places precision."""

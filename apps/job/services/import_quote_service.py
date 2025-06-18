@@ -27,6 +27,46 @@ from apps.job.diff import diff_costset, apply_diff, DiffResult
 logger = logging.getLogger(__name__)
 
 
+def serialize_validation_report(validation_report: Optional[ValidationReport]) -> Optional[Dict[str, Any]]:
+    """
+    Convert ValidationReport to a JSON-serializable dictionary.
+    
+    Args:
+        validation_report: ValidationReport instance or None
+        
+    Returns:
+        Dictionary representation or None
+    """
+    if validation_report is None:
+        return None
+    
+    return validation_report.to_dict()
+
+
+def serialize_draft_lines(draft_lines: List[DraftLine]) -> List[Dict[str, Any]]:
+    """
+    Convert list of DraftLine objects to JSON-serializable dictionaries.
+    
+    Args:
+        draft_lines: List of DraftLine objects
+        
+    Returns:
+        List of dictionaries
+    """
+    serialized_lines = []
+    for line in draft_lines:
+        serialized_lines.append({
+            'supplier': line.supplier,
+            'ref': line.ref,
+            'description': line.description,
+            'quantity': float(line.quantity),
+            'unit_cost': float(line.unit_cost),
+            'total_cost': float(line.total_cost),
+            'category': getattr(line, 'category', None)
+        })
+    return serialized_lines
+
+
 class QuoteImportError(Exception):
     """Custom exception for quote import errors"""
     pass
@@ -258,8 +298,8 @@ def preview_quote_import(job: Job, file_path: str) -> Dict[str, Any]:
         
     Returns:
         Dictionary with preview information including:
-        - validation_report: Validation issues found
-        - draft_lines: Parsed draft lines  
+        - validation_report: Validation issues found (serialized)
+        - draft_lines: Parsed draft lines (serialized)
         - diff_preview: What changes would be made
         - can_proceed: Whether import can proceed
     """
@@ -270,10 +310,11 @@ def preview_quote_import(job: Job, file_path: str) -> Dict[str, Any]:
         result = parse_xlsx_with_validation(file_path)
         
         preview_data = {
-            'validation_report': result['validation_report'],
+            'validation_report': serialize_validation_report(result['validation_report']),
             'can_proceed': result['can_proceed'],
-            'draft_lines': result['draft_lines'],
-            'diff_preview': None
+            'draft_lines': serialize_draft_lines(result['draft_lines']),
+            'diff_preview': None,
+            'success': result['success']
         }
           # If parsing succeeded, calculate diff preview using hybrid approach
         if result['success'] and result['draft_lines']:
@@ -326,8 +367,7 @@ def preview_quote_import(job: Job, file_path: str) -> Dict[str, Any]:
                     'additions_count': len(result['draft_lines']),
                     'updates_count': 0,
                     'deletions_count': 0,
-                    'total_changes': len(result['draft_lines']),
-                    'next_revision': 1,
+                    'total_changes': len(result['draft_lines']),                    'next_revision': 1,
                     'current_revision': None
                 }
         
@@ -340,5 +380,6 @@ def preview_quote_import(job: Job, file_path: str) -> Dict[str, Any]:
             'can_proceed': False,
             'draft_lines': [],
             'diff_preview': None,
+            'success': False,
             'error': str(e)
         }
