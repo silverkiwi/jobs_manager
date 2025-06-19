@@ -166,14 +166,19 @@ def create_folder(name: str, parent_id: Optional[str] = None) -> str:
         raise RuntimeError(f"Unexpected error creating folder '{name}': {str(e)}")
 
 
-def copy_file(template_id: str, name: str, parent_id: Optional[str] = None) -> str:
+def copy_file(template_id: str, name: str, parent_id: Optional[str] = None, make_public_editable: bool = True) -> str:
     """
-    Copy a file in Google Drive.
+    Copy a file in Google Drive and optionally set public edit permissions.
+    
+    By default, copied files are given "anyone with the link can edit" permissions
+    to enable easy sharing and collaboration. This is ideal for quote spreadsheets
+    that need to be accessible to clients or external collaborators.
     
     Args:
         template_id: Source file ID to copy
         name: Name for the copied file
         parent_id: Optional parent folder ID
+        make_public_editable: If True (default), grants "anyone with link can edit" permissions
         
     Returns:
         str: Copied file ID
@@ -196,13 +201,51 @@ def copy_file(template_id: str, name: str, parent_id: Optional[str] = None) -> s
         ).execute()
         
         copied_id = copied_file.get('id')
+        
+        # Set public edit permissions if requested
+        if make_public_editable:
+            _set_public_edit_permissions(copied_id)
+        
         logger.info(f"Copied file '{name}' with ID: {copied_id}")
         return copied_id
         
-    except HttpError as e:
-        raise RuntimeError(f"Failed to copy file '{name}': {e.reason}")
+    except HttpError as e:        raise RuntimeError(f"Failed to copy file '{name}': {e.reason}")
     except Exception as e:
         raise RuntimeError(f"Unexpected error copying file '{name}': {str(e)}")
+
+
+def _set_public_edit_permissions(file_id: str) -> None:
+    """
+    Set public edit permissions on a Google Drive file.
+    Grants "anyone with the link can edit" access.
+    
+    Args:
+        file_id: Google Drive file ID
+        
+    Raises:
+        RuntimeError: If setting permissions fails
+    """
+    try:
+        drive_service = _svc('drive', 'v3')
+        
+        permission = {
+            'type': 'anyone',
+            'role': 'writer'
+        }
+        
+        drive_service.permissions().create(
+            fileId=file_id,
+            body=permission
+        ).execute()
+        
+        logger.info(f"Set public edit permissions for file: {file_id}")
+        
+    except HttpError as e:
+        logger.warning(f"Failed to set public permissions for file {file_id}: {e.reason}")
+        # Don't raise - this is not critical for file functionality
+    except Exception as e:
+        logger.warning(f"Unexpected error setting permissions for file {file_id}: {str(e)}")
+        # Don't raise - this is not critical for file functionality
 
 
 def fetch_sheet_df(sheet_id: str, sheet_range: str = "Primary Details") -> pd.DataFrame:
@@ -249,3 +292,209 @@ def fetch_sheet_df(sheet_id: str, sheet_range: str = "Primary Details") -> pd.Da
         raise RuntimeError(f"Failed to fetch sheet data: {e.reason}")
     except Exception as e:
         raise RuntimeError(f"Unexpected error fetching sheet data: {str(e)}")
+
+
+def copy_template_for_job(job) -> tuple[str, str]:
+    """
+    Copy a quote template for a specific job.
+    
+    Creates a "Jobs Manager" folder if it doesn't exist, then copies the template
+    spreadsheet with a name following the pattern: "Job {job_number} - {job_name}"
+    
+    Args:
+        job: Job instance with job_number, name, and company_defaults
+        
+    Returns:
+        tuple[str, str]: (file_id, web_url) of the copied spreadsheet
+        
+    Raises:
+        RuntimeError: If template copy fails or company defaults missing
+    """
+    try:
+        from apps.client.models import CompanyDefaults
+        
+        # Get company defaults for the template
+        company_defaults = CompanyDefaults.get_current()
+        if not company_defaults or not company_defaults.master_quote_template_id:
+            raise RuntimeError("No master quote template configured in company defaults")
+        
+        template_id = extract_file_id(company_defaults.master_quote_template_id)
+        
+        # Create or find "Jobs Manager" folder
+        folder_id = _get_or_create_jobs_manager_folder()
+        
+        # Generate file name
+        file_name = f"Job {job.job_number} - {job.name}"
+        
+        # Copy template
+        copied_file_id = copy_file(
+            template_id=template_id,
+            name=file_name,
+            parent_id=folder_id,
+            make_public_editable=True
+        )
+        
+        # Generate web URL
+        web_url = f"https://docs.google.com/spreadsheets/d/{copied_file_id}/edit"
+        
+        logger.info(f"Created quote spreadsheet for job {job.job_number}: {web_url}")
+        return copied_file_id, web_url
+        
+    except Exception as e:
+        logger.error(f"Failed to copy template for job {job.job_number}: {str(e)}")
+        raise RuntimeError(f"Failed to copy template: {str(e)}")
+
+
+def _get_or_create_jobs_manager_folder() -> str:
+    """
+    Get or create the "Jobs Manager" folder in Google Drive.
+    
+    Returns:
+        str: Folder ID
+    """
+    try:
+        drive_service = _svc('drive', 'v3')
+        
+        # Search for existing "Jobs Manager" folder
+        query = "name='Jobs Manager' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+        
+        folders = results.get('files', [])
+        
+        if folders:
+            folder_id = folders[0]['id']
+            logger.debug(f"Found existing Jobs Manager folder: {folder_id}")
+            return folder_id
+        
+        # Create new folder
+        folder_id = create_folder("Jobs Manager")
+        logger.info(f"Created Jobs Manager folder: {folder_id}")
+        return folder_id
+        
+    except Exception as e:
+        logger.error(f"Failed to get/create Jobs Manager folder: {str(e)}")
+        raise RuntimeError(f"Failed to access Jobs Manager folder: {str(e)}")
+
+
+def populate_sheet_from_costset(sheet_id: str, costset) -> None:
+    """
+    Populate a Google Sheet with data from a CostSet.
+    
+    Uses Google Sheets API batch_update to efficiently write cost line data to the spreadsheet.
+    Maps cost line fields to specific columns:
+    - Column B: Quantity
+    - Column C: Description
+    - Column D: Labour minutes (for time entries)
+    - Column K: Unit cost (for material entries)
+    
+    Args:
+        sheet_id: Google Sheets file ID
+        costset: CostSet instance with cost_lines
+        
+    Raises:
+        RuntimeError: If sheet update fails
+    """
+    try:
+        sheets_service = _svc('sheets', 'v4')
+        
+        # Prepare batch update requests
+        requests = []
+        
+        # Process each cost line
+        for idx, cost_line in enumerate(costset.cost_lines.all()):
+            row = idx + 2  # Start from row 2 (assuming row 1 is headers)
+            
+            # Common fields - Quantity (Column B)
+            requests.append({
+                'updateCells': {
+                    'range': {
+                        'sheetId': 0,  # First sheet
+                        'startRowIndex': row - 1,
+                        'endRowIndex': row,
+                        'startColumnIndex': 1,  # Column B (0-based)
+                        'endColumnIndex': 2
+                    },
+                    'rows': [{
+                        'values': [{
+                            'userEnteredValue': {'numberValue': float(cost_line.quantity)}
+                        }]
+                    }],
+                    'fields': 'userEnteredValue'
+                }
+            })
+            
+            # Description (Column C)
+            requests.append({
+                'updateCells': {
+                    'range': {
+                        'sheetId': 0,
+                        'startRowIndex': row - 1,
+                        'endRowIndex': row,
+                        'startColumnIndex': 2,  # Column C (0-based)
+                        'endColumnIndex': 3
+                    },
+                    'rows': [{
+                        'values': [{
+                            'userEnteredValue': {'stringValue': cost_line.desc or ""}
+                        }]
+                    }],
+                    'fields': 'userEnteredValue'
+                }
+            })
+            
+            # Type-specific fields
+            if cost_line.kind == 'time':
+                # Labour minutes (Column D)
+                labour_minutes = cost_line.meta.get('labour_minutes', 0) if cost_line.meta else 0
+                requests.append({
+                    'updateCells': {
+                        'range': {
+                            'sheetId': 0,
+                            'startRowIndex': row - 1,
+                            'endRowIndex': row,
+                            'startColumnIndex': 3,  # Column D (0-based)
+                            'endColumnIndex': 4
+                        },
+                        'rows': [{
+                            'values': [{
+                                'userEnteredValue': {'numberValue': float(labour_minutes)}
+                            }]
+                        }],
+                        'fields': 'userEnteredValue'
+                    }
+                })
+            elif cost_line.kind == 'material':
+                # Unit cost (Column K)
+                requests.append({
+                    'updateCells': {
+                        'range': {
+                            'sheetId': 0,
+                            'startRowIndex': row - 1,
+                            'endRowIndex': row,
+                            'startColumnIndex': 10,  # Column K (0-based)
+                            'endColumnIndex': 11
+                        },
+                        'rows': [{
+                            'values': [{
+                                'userEnteredValue': {'numberValue': float(cost_line.unit_cost)}
+                            }]
+                        }],
+                        'fields': 'userEnteredValue'
+                    }
+                })
+        
+        # Execute batch update if we have requests
+        if requests:
+            body = {'requests': requests}
+            
+            sheets_service.spreadsheets().batchUpdate(
+                spreadsheetId=sheet_id,
+                body=body
+            ).execute()
+            logger.info(f"Updated {len(requests)} cells in sheet {sheet_id} from cost set {costset.id}")
+        else:
+            logger.info(f"No cost lines to populate in sheet {sheet_id}")
+    
+    except Exception as e:
+        logger.error(f"Failed to populate sheet {sheet_id}: {str(e)}")
+        raise RuntimeError(f"Failed to populate sheet: {str(e)}")
