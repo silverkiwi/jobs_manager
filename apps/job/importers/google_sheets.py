@@ -45,9 +45,9 @@ def _get_credentials():
     
     if CREDS is None:
         try:
-            key_file = os.getenv('GSHEETS_KEY_FILE')
+            key_file = os.getenv('GCP_CREDENTIALS')
             if not key_file:
-                raise RuntimeError("GSHEETS_KEY_FILE environment variable not set")
+                raise RuntimeError("GCP_CREDENTIALS environment variable not set")
             
             if not os.path.exists(key_file):
                 raise RuntimeError(f"Google service account key file not found: {key_file}")
