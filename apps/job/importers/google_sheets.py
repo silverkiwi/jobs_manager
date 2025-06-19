@@ -461,17 +461,22 @@ def populate_sheet_from_costset(sheet_id: str, costset) -> None:
             raise RuntimeError("No sheets found in the spreadsheet")
         
         logger.info(f"Populating sheet '{target_sheet_name}' (ID: {target_sheet_id}) with cost data")
-        
-        # Prepare data in a simpler format for batch update
+          # Prepare data in a simpler format for batch update
         cost_lines = list(costset.cost_lines.all())
         if not cost_lines:
             logger.info(f"No cost lines to populate in sheet {sheet_id}")
             return
         
+        # Sort cost lines by quantity in descending order for better organization
+        cost_lines.sort(key=lambda line: line.quantity or 0, reverse=True)
+        
         # Prepare values for range update (simpler than batch update)
         values = []
-        for cost_line in cost_lines:
+        for i, cost_line in enumerate(cost_lines, start=1):
             row_data = [''] * 11  # Prepare 11 columns (A-K)
+            
+            # Column A (index 0): Item number (sequential, starts from 1)
+            row_data[0] = str(i)
             
             # Column B (index 1): Quantity
             row_data[1] = str(cost_line.quantity) if cost_line.quantity else ''

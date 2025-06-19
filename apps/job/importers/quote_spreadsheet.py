@@ -262,35 +262,38 @@ def parse_xlsx(path: str, company=None, skip_validation=False) -> tuple[list[Dra
         skipped_items_count = 0
         
         logger.info(f"🔧 Starting to process rows (max 45 rows)...")
+          # Process rows - only those with valid item numbers in column A or valid quantity
+        auto_item_number = 1  # Counter for auto-assigned item numbers
         
-        # Process rows - only those with valid item numbers in column A
         for idx in range(0, min(45, len(df))):
             row = df.iloc[idx]
             excel_row = idx + 1  # Convert to Excel row number
             
             logger.debug(f"Processing row {excel_row}: {row.to_dict()}")
             
-            # Validate item: must have item number AND quantity
-            # Check 1: Item number (must be valid number)
-            item_number = str(row.get("item", "")).strip()
-            if not item_number or item_number.lower() in ["nan", "none", ""]:
-                logger.debug(f"    ⏭️ Row {excel_row}: No item number, skipping")
-                skipped_items_count += 1
-                continue
-            
-            try:
-                float(item_number)  # Accept floats like 1.0, 2.0
-            except (ValueError, TypeError):
-                logger.debug(f"    ⏭️ Row {excel_row}: Invalid item number '{item_number}', skipping")
-                skipped_items_count += 1
-                continue  # Skip non-numeric item numbers
-            
-            # Check 2: Quantity (must have value and not be zero)
+            # Check 1: Quantity first (must have value and not be zero)
             quantity = _d(row.get(QUANTITY_COL, 1))
             if quantity <= 0:
                 logger.debug(f"    ⏭️ Row {excel_row}: Invalid quantity {quantity}, skipping")
                 skipped_items_count += 1
                 continue
+            
+            # Check 2: Item number - auto-assign if missing or invalid
+            item_number = str(row.get("item", "")).strip()
+            if not item_number or item_number.lower() in ["nan", "none", ""]:
+                # Auto-assign sequential item number
+                item_number = str(auto_item_number)
+                logger.info(f"    🔄 Row {excel_row}: No item number, auto-assigned: {item_number}")
+                auto_item_number += 1
+            else:
+                try:
+                    float(item_number)  # Accept floats like 1.0, 2.0
+                    auto_item_number = max(auto_item_number, int(float(item_number)) + 1)  # Update counter
+                except (ValueError, TypeError):
+                    # Invalid item number, auto-assign
+                    item_number = str(auto_item_number)
+                    logger.info(f"    🔄 Row {excel_row}: Invalid item number, auto-assigned: {item_number}")
+                    auto_item_number += 1
             
             # Check 3: Description (if empty, use item number as fallback)
             description = str(row.get("Description", "")).strip()
@@ -877,15 +880,8 @@ def _validate_totals_consistency(df, labour_col) -> List[ValidationError]:
 
 def _is_valid_item(row) -> bool:
     """Check if a row represents a valid item."""
-    # Must have item number
-    item_num = row.get("item")
-    if pd.isna(item_num) or item_num is None:
-        return False
-    
-    try:
-        float(item_num)  # Must be numeric
-    except (ValueError, TypeError):
-        return False
+    # Item number is optional - we'll auto-assign if missing or invalid
+    # No need to validate item number format since we'll handle that automatically
     
     # Must have quantity
     quantity = row.get("quantity")
