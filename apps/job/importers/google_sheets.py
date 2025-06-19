@@ -276,11 +276,24 @@ def fetch_sheet_df(sheet_id: str, sheet_range: str = "Primary Details") -> pd.Da
         if not values:
             logger.warning(f"No data found in sheet {sheet_id} range {sheet_range}")
             return pd.DataFrame()
-        
-        # Convert to DataFrame
+          # Convert to DataFrame
         # First row is typically headers
         if len(values) > 1:
-            df = pd.DataFrame(values[1:], columns=values[0])
+            headers = values[0]
+            data_rows = values[1:]
+            
+            # Normalize data rows to match header count
+            # Some rows might have fewer columns than headers
+            normalized_rows = []
+            for row in data_rows:
+                # Pad row with empty strings if it has fewer columns than headers
+                while len(row) < len(headers):
+                    row.append('')
+                # Truncate row if it has more columns than headers
+                row = row[:len(headers)]
+                normalized_rows.append(row)
+            
+            df = pd.DataFrame(normalized_rows, columns=headers)
         else:
             # Only headers, no data
             df = pd.DataFrame(columns=values[0])
