@@ -157,7 +157,7 @@ def apply_quote(request: Request, pk: str) -> Response:
             cost_set_data = None
             if result.cost_set:
                 cost_set_data = CostSetSerializer(result.cost_set).data
-              return Response({
+            return Response({
                 "success": True,
                 "cost_set": cost_set_data,
                 "changes": {
