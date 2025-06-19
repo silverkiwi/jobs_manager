@@ -188,7 +188,7 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f"  ❌ Job latest_quote pointer not updated correctly")
                 
-        else:
+        else: 
             self.stdout.write(self.style.ERROR("\n❌ Quote import failed!"))
             self.stdout.write(f"  Error: {result.error_message}")
             if result.validation_report:
