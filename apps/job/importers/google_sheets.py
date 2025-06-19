@@ -380,12 +380,9 @@ def populate_sheet_from_costset(sheet_id: str, costset) -> None:
     """
     Populate a Google Sheet with data from a CostSet.
     
-    Uses Google Sheets API batch_update to efficiently write cost line data to the spreadsheet.
-    Maps cost line fields to specific columns:
-    - Column B: Quantity
-    - Column C: Description
-    - Column D: Labour minutes (for time entries)
-    - Column K: Unit cost (for material entries)
+    Uses Google Sheets API to write cost line data to the spreadsheet.
+    Attempts to populate a worksheet named "Primary Details" if it exists,
+    otherwise uses the first available sheet.
     
     Args:
         sheet_id: Google Sheets file ID
@@ -397,103 +394,80 @@ def populate_sheet_from_costset(sheet_id: str, costset) -> None:
     try:
         sheets_service = _svc('sheets', 'v4')
         
-        # Prepare batch update requests
-        requests = []
+        # First, get sheet metadata to find the correct sheet/tab to update
+        sheet_metadata = sheets_service.spreadsheets().get(
+            spreadsheetId=sheet_id
+        ).execute()
         
-        # Process each cost line
-        for idx, cost_line in enumerate(costset.cost_lines.all()):
-            row = idx + 2  # Start from row 2 (assuming row 1 is headers)
+        # Find the "Primary Details" sheet or use the first sheet
+        target_sheet_id = None
+        target_sheet_name = None
+        
+        for sheet in sheet_metadata.get('sheets', []):
+            sheet_props = sheet.get('properties', {})
+            sheet_name = sheet_props.get('title', '')
             
-            # Common fields - Quantity (Column B)
-            requests.append({
-                'updateCells': {
-                    'range': {
-                        'sheetId': 0,  # First sheet
-                        'startRowIndex': row - 1,
-                        'endRowIndex': row,
-                        'startColumnIndex': 1,  # Column B (0-based)
-                        'endColumnIndex': 2
-                    },
-                    'rows': [{
-                        'values': [{
-                            'userEnteredValue': {'numberValue': float(cost_line.quantity)}
-                        }]
-                    }],
-                    'fields': 'userEnteredValue'
-                }
-            })
+            if sheet_name == 'Primary Details':
+                target_sheet_id = sheet_props.get('sheetId')
+                target_sheet_name = sheet_name
+                break
+        
+        # If "Primary Details" not found, use the first sheet
+        if target_sheet_id is None and sheet_metadata.get('sheets'):
+            first_sheet = sheet_metadata['sheets'][0]
+            target_sheet_id = first_sheet['properties']['sheetId']
+            target_sheet_name = first_sheet['properties']['title']
+        
+        if target_sheet_id is None:
+            raise RuntimeError("No sheets found in the spreadsheet")
+        
+        logger.info(f"Populating sheet '{target_sheet_name}' (ID: {target_sheet_id}) with cost data")
+        
+        # Prepare data in a simpler format for batch update
+        cost_lines = list(costset.cost_lines.all())
+        if not cost_lines:
+            logger.info(f"No cost lines to populate in sheet {sheet_id}")
+            return
+        
+        # Prepare values for range update (simpler than batch update)
+        values = []
+        for cost_line in cost_lines:
+            row_data = [''] * 11  # Prepare 11 columns (A-K)
             
-            # Description (Column C)
-            requests.append({
-                'updateCells': {
-                    'range': {
-                        'sheetId': 0,
-                        'startRowIndex': row - 1,
-                        'endRowIndex': row,
-                        'startColumnIndex': 2,  # Column C (0-based)
-                        'endColumnIndex': 3
-                    },
-                    'rows': [{
-                        'values': [{
-                            'userEnteredValue': {'stringValue': cost_line.desc or ""}
-                        }]
-                    }],
-                    'fields': 'userEnteredValue'
-                }
-            })
+            # Column B (index 1): Quantity
+            row_data[1] = str(cost_line.quantity) if cost_line.quantity else ''
+            
+            # Column C (index 2): Description
+            row_data[2] = cost_line.desc or ''
             
             # Type-specific fields
             if cost_line.kind == 'time':
-                # Labour minutes (Column D)
+                # Column D (index 3): Labour minutes
                 labour_minutes = cost_line.meta.get('labour_minutes', 0) if cost_line.meta else 0
-                requests.append({
-                    'updateCells': {
-                        'range': {
-                            'sheetId': 0,
-                            'startRowIndex': row - 1,
-                            'endRowIndex': row,
-                            'startColumnIndex': 3,  # Column D (0-based)
-                            'endColumnIndex': 4
-                        },
-                        'rows': [{
-                            'values': [{
-                                'userEnteredValue': {'numberValue': float(labour_minutes)}
-                            }]
-                        }],
-                        'fields': 'userEnteredValue'
-                    }
-                })
+                row_data[3] = str(labour_minutes) if labour_minutes else ''
             elif cost_line.kind == 'material':
-                # Unit cost (Column K)
-                requests.append({
-                    'updateCells': {
-                        'range': {
-                            'sheetId': 0,
-                            'startRowIndex': row - 1,
-                            'endRowIndex': row,
-                            'startColumnIndex': 10,  # Column K (0-based)
-                            'endColumnIndex': 11
-                        },
-                        'rows': [{
-                            'values': [{
-                                'userEnteredValue': {'numberValue': float(cost_line.unit_cost)}
-                            }]
-                        }],
-                        'fields': 'userEnteredValue'
-                    }
-                })
-        
-        # Execute batch update if we have requests
-        if requests:
-            body = {'requests': requests}
+                # Column K (index 10): Unit cost
+                row_data[10] = str(cost_line.unit_cost) if cost_line.unit_cost else ''
             
-            sheets_service.spreadsheets().batchUpdate(
-                spreadsheetId=sheet_id,
-                body=body
-            ).execute()
-            logger.info(f"Updated {len(requests)} cells in sheet {sheet_id} from cost set {costset.id}")
-        else:
-            logger.info(f"No cost lines to populate in sheet {sheet_id}")
+            values.append(row_data)
+        
+        # Update the sheet using values.update (simpler than batchUpdate)
+        range_name = f"'{target_sheet_name}'!A2:K{len(values) + 1}"
+        
+        body = {
+            'values': values,
+            'majorDimension': 'ROWS'
+        }
+        
+        result = sheets_service.spreadsheets().values().update(
+            spreadsheetId=sheet_id,
+            range=range_name,
+            valueInputOption='USER_ENTERED',
+            body=body
+        ).execute()
+        
+        updated_cells = result.get('updatedCells', 0)
+        logger.info(f"Updated {updated_cells} cells in sheet {sheet_id} from cost set {costset.id}")
     
     except Exception as e:
         logger.error(f"Failed to populate sheet {sheet_id}: {str(e)}")
