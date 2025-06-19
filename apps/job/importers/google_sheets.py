@@ -265,6 +265,8 @@ def fetch_sheet_df(sheet_id: str, sheet_range: str = "Primary Details") -> pd.Da
     try:
         sheets_service = _svc('sheets', 'v4')
         
+        logger.info(f"🔍 Fetching sheet data for ID: {sheet_id}, range: {sheet_range}")
+        
         # Fetch the data
         result = sheets_service.spreadsheets().values().get(
             spreadsheetId=sheet_id,
@@ -272,38 +274,62 @@ def fetch_sheet_df(sheet_id: str, sheet_range: str = "Primary Details") -> pd.Da
         ).execute()
         
         values = result.get('values', [])
+        logger.info(f"📊 Raw Google Sheets API response: {len(values)} rows")
+        
+        # Log first few rows for debugging
+        for i, row in enumerate(values[:5]):  # Log first 5 rows
+            logger.info(f"    Row {i}: {row}")
         
         if not values:
-            logger.warning(f"No data found in sheet {sheet_id} range {sheet_range}")
+            logger.warning(f"⚠️ No data found in sheet {sheet_id} range {sheet_range}")
             return pd.DataFrame()
-          # Convert to DataFrame
+            
+        # Convert to DataFrame
         # First row is typically headers
         if len(values) > 1:
             headers = values[0]
             data_rows = values[1:]
             
+            logger.info(f"📋 Headers: {headers}")
+            logger.info(f"📝 Data rows count: {len(data_rows)}")
+            
             # Normalize data rows to match header count
             # Some rows might have fewer columns than headers
             normalized_rows = []
-            for row in data_rows:
+            for i, row in enumerate(data_rows):
+                original_length = len(row)
                 # Pad row with empty strings if it has fewer columns than headers
                 while len(row) < len(headers):
                     row.append('')
                 # Truncate row if it has more columns than headers
                 row = row[:len(headers)]
+                
+                # Log first few normalized rows
+                if i < 3:
+                    logger.info(f"    Data row {i}: {row} (original length: {original_length})")
+                
                 normalized_rows.append(row)
             
             df = pd.DataFrame(normalized_rows, columns=headers)
         else:
             # Only headers, no data
+            logger.info(f"📋 Only headers found: {values[0]}")
             df = pd.DataFrame(columns=values[0])
         
-        logger.info(f"Fetched {len(df)} rows from sheet {sheet_id} range {sheet_range}")
+        logger.info(f"✅ Created DataFrame with shape: {df.shape}")
+        logger.info(f"📊 DataFrame columns: {list(df.columns)}")
+        
+        # Log non-empty rows
+        non_empty_rows = df.dropna(how='all')
+        logger.info(f"🔢 Non-empty rows in DataFrame: {len(non_empty_rows)}")
+        
         return df
         
     except HttpError as e:
+        logger.error(f"❌ Google Sheets API error: {e.reason}")
         raise RuntimeError(f"Failed to fetch sheet data: {e.reason}")
     except Exception as e:
+        logger.error(f"❌ Unexpected error fetching sheet data: {str(e)}")
         raise RuntimeError(f"Unexpected error fetching sheet data: {str(e)}")
 
 

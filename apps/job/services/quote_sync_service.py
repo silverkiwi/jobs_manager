@@ -133,26 +133,46 @@ def _fetch_drafts(job: Job):
         
         quote_sheet = job.quote_sheet
         sheet_id = quote_sheet.sheet_id
-        tab = quote_sheet.tab or "Primary Details"
-          # Download sheet data as DataFrame
+        tab = quote_sheet.tab or "Primary Details"        # Download sheet data as DataFrame
+        logger.info(f"🔍 About to fetch sheet data for job {job.job_number}")
         df = fetch_sheet_df(str(sheet_id), tab)
         
+        logger.info(f"📊 Received DataFrame with shape: {df.shape}")
+        logger.info(f"📋 DataFrame columns: {list(df.columns)}")
+        
         if df.empty:
-            logger.warning(f"Empty data from sheet {sheet_id}")
+            logger.warning(f"⚠️ Empty data from sheet {sheet_id}")
             return []
         
+        # Log sample of data
+        logger.info(f"📝 Sample DataFrame data (first 3 rows):")
+        for i, row in df.head(3).iterrows():
+            logger.info(f"    Row {i}: {row.to_dict()}")
+        
         # Save DataFrame to temporary XLSX file
+        logger.info(f"💾 Saving DataFrame to temporary Excel file...")
         with NamedTemporaryFile(suffix='.xlsx', delete=False) as temp_file:
             temp_path = temp_file.name
             
             # Convert DataFrame to Excel
             with pd.ExcelWriter(temp_path, engine='openpyxl') as writer:
                 df.to_excel(writer, sheet_name=tab, index=False)
+                
+        logger.info(f"📁 Temporary file created: {temp_path}")
         
         try:
             # Parse using existing quote parser
+            logger.info(f"🔧 About to parse Excel file with parse_xlsx...")
             draft_lines, validation_issues = parse_xlsx(temp_path, skip_validation=True)
-            logger.info(f"Parsed {len(draft_lines)} draft lines from linked sheet")
+            logger.info(f"✅ Parsed {len(draft_lines)} draft lines from linked sheet")
+            
+            # Log sample of parsed lines
+            for i, line in enumerate(draft_lines[:3]):
+                logger.info(f"    Draft line {i}: {line}")
+            
+            if validation_issues:
+                logger.warning(f"⚠️ Validation issues found: {validation_issues}")
+            
             return draft_lines
             
         finally:

@@ -118,7 +118,6 @@ def preview_quote_import_from_drafts(job: Job, draft_lines: List[DraftLine]) -> 
         
         # Calculate diff preview using hybrid approach
         if draft_lines:
-            # Use same hybrid logic as import function for consistency
             db_latest_rev = job.cost_sets.filter(kind='quote').aggregate(
                 max_rev=models.Max('rev')
             )['max_rev']
@@ -126,7 +125,6 @@ def preview_quote_import_from_drafts(job: Job, draft_lines: List[DraftLine]) -> 
             pointer_cost_set = job.get_latest('quote')
             pointer_rev = pointer_cost_set.rev if pointer_cost_set else None
             
-            # Determine the most reliable latest revision and cost set
             actual_latest_rev = None
             old_cost_set = None
             
@@ -156,9 +154,11 @@ def preview_quote_import_from_drafts(job: Job, draft_lines: List[DraftLine]) -> 
                     'additions_count': len(diff_result.to_add),
                     'updates_count': len(diff_result.to_update),
                     'deletions_count': len(diff_result.to_delete),
-                    'total_changes': (len(diff_result.to_add) + 
-                                    len(diff_result.to_update) + 
-                                    len(diff_result.to_delete)),
+                    'total_changes': (
+                        len(diff_result.to_add) +
+                        len(diff_result.to_update) +
+                        len(diff_result.to_delete)
+                    ),
                     'next_revision': next_revision,
                     'current_revision': actual_latest_rev
                 }
@@ -171,9 +171,20 @@ def preview_quote_import_from_drafts(job: Job, draft_lines: List[DraftLine]) -> 
                     'next_revision': 1,
                     'current_revision': None
                 }
+        else:
+            pointer_cost_set = job.get_latest('quote')
+            current_rev = pointer_cost_set.rev if pointer_cost_set else 0
+            preview_data['diff_preview'] = {
+                'additions_count': 0,
+                'updates_count': 0,
+                'deletions_count': 0,
+                'total_changes': 0,
+                'next_revision': current_rev + 1,
+                'current_revision': current_rev
+            }
         
         return preview_data
-        
+
     except Exception as e:
         logger.error(f"Error previewing quote import from drafts for job {job.id}: {str(e)}")
         return {
@@ -184,6 +195,7 @@ def preview_quote_import_from_drafts(job: Job, draft_lines: List[DraftLine]) -> 
             'success': False,
             'error': str(e)
         }
+
 
 
 def import_quote_from_drafts(job: Job, draft_lines: List[DraftLine]) -> QuoteImportResult:

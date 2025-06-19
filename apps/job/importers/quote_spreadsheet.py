@@ -1,9 +1,12 @@
 import pandas as pd
+import logging
 from decimal import Decimal
 from enum import Enum
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Any
 from .draft import DraftLine
+
+logger = logging.getLogger(__name__)
 
 class ErrorSeverity(Enum):
     """Severity levels for validation errors."""
@@ -207,15 +210,25 @@ def parse_xlsx(path: str, company=None, skip_validation=False) -> tuple[list[Dra
                 
                 # Return empty results with detailed error report
                 return [], error_summary
-        
         # Read the Primary Details sheet
+        logger.info(f"🔍 Reading Primary Details sheet from: {path}")
         df = pd.read_excel(path, sheet_name=PRIMARY_SHEET)
+        logger.info(f"📊 Loaded DataFrame with shape: {df.shape}")
+        logger.info(f"📋 DataFrame columns: {list(df.columns)}")
+        
+        # Log sample of raw data
+        logger.info(f"📝 Sample raw data (first 3 rows):")
+        for i in range(min(3, len(df))):
+            row_data = df.iloc[i].to_dict()
+            logger.info(f"    Row {i}: {row_data}")
         
         # Read pricing details for validation
         pricing_df = None
         try:
             pricing_df = pd.read_excel(path, sheet_name="pricing details - inhouse")
+            logger.info(f"📊 Also loaded pricing details sheet")
         except Exception:
+            logger.info(f"📊 No pricing details sheet found (optional)")
             pass  # Optional sheet for validation
         
         # Detect columns
@@ -237,38 +250,55 @@ def parse_xlsx(path: str, company=None, skip_validation=False) -> tuple[list[Dra
                 else:
                     wage_rate = DEFAULT_WAGE_RATE
                     charge_out_rate = DEFAULT_CHARGE_OUT_RATE
-                    materials_markup = DEFAULT_MATERIALS_MARKUP
+                    materials_markup = DEFAULT_MATERIALS_MARKUP            
             except (ImportError, Exception):
                 wage_rate = DEFAULT_WAGE_RATE
                 charge_out_rate = DEFAULT_CHARGE_OUT_RATE
                 materials_markup = DEFAULT_MATERIALS_MARKUP
         
         draft_lines = []
-        total_minutes = Decimal("0")        # Process rows - only those with valid item numbers in column A
+        total_minutes = Decimal("0")
+        valid_items_count = 0
+        skipped_items_count = 0
+        
+        logger.info(f"🔧 Starting to process rows (max 45 rows)...")
+        
+        # Process rows - only those with valid item numbers in column A
         for idx in range(0, min(45, len(df))):
             row = df.iloc[idx]
             excel_row = idx + 1  # Convert to Excel row number
+            
+            logger.debug(f"Processing row {excel_row}: {row.to_dict()}")
             
             # Validate item: must have item number AND quantity
             # Check 1: Item number (must be valid number)
             item_number = str(row.get("item", "")).strip()
             if not item_number or item_number.lower() in ["nan", "none", ""]:
+                logger.debug(f"    ⏭️ Row {excel_row}: No item number, skipping")
+                skipped_items_count += 1
                 continue
             
             try:
                 float(item_number)  # Accept floats like 1.0, 2.0
             except (ValueError, TypeError):
+                logger.debug(f"    ⏭️ Row {excel_row}: Invalid item number '{item_number}', skipping")
+                skipped_items_count += 1
                 continue  # Skip non-numeric item numbers
             
             # Check 2: Quantity (must have value and not be zero)
             quantity = _d(row.get(QUANTITY_COL, 1))
             if quantity <= 0:
+                logger.debug(f"    ⏭️ Row {excel_row}: Invalid quantity {quantity}, skipping")
+                skipped_items_count += 1
                 continue
             
             # Check 3: Description (if empty, use item number as fallback)
             description = str(row.get("Description", "")).strip()
             if not description or description.lower() in ["nan", "none", ""]:
                 description = f"Item {item_number}"  # Use item number as description if blank
+                
+            logger.info(f"    ✅ Row {excel_row}: Valid item - {item_number}, qty: {quantity}, desc: '{description}'")
+            valid_items_count += 1
               # Get values from key columns only (A, B, C, D, N, O)
             minutes = _d(row.get(labour_col, 0)) if labour_col else Decimal("0")
             material_total_cost = _d(row.get(material_total_col, 0)) if material_total_col else Decimal("0")
@@ -317,6 +347,18 @@ def parse_xlsx(path: str, company=None, skip_validation=False) -> tuple[list[Dra
             
             # If neither labour nor material, skip this item        # Validation - collect totals from summary rows
         validation_report = validate_totals(df, draft_lines, total_minutes, labour_col, materials_markup, pricing_df)
+        
+        logger.info(f"✅ Parsing completed!")
+        logger.info(f"📊 Final statistics:")
+        logger.info(f"    Valid items processed: {valid_items_count}")
+        logger.info(f"    Items skipped: {skipped_items_count}")
+        logger.info(f"    Draft lines created: {len(draft_lines)}")
+        logger.info(f"    Total minutes: {total_minutes}")
+        
+        # Log sample of created draft lines
+        logger.info(f"📝 Sample draft lines created:")
+        for i, line in enumerate(draft_lines[:3]):
+            logger.info(f"    Line {i}: {line}")
         
         return draft_lines, validation_report
         
