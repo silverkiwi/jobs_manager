@@ -148,8 +148,7 @@ def apply_quote(request: Request, pk: str) -> Response:
                 {"error": "Job not found"}, 
                 status=status.HTTP_404_NOT_FOUND
             )
-        
-        # Apply quote
+          # Apply quote
         result = quote_sync_service.apply_quote(job)
         
         if result.success:
@@ -157,13 +156,27 @@ def apply_quote(request: Request, pk: str) -> Response:
             cost_set_data = None
             if result.cost_set:
                 cost_set_data = CostSetSerializer(result.cost_set).data
+            
+            # Convert DraftLine objects to dictionaries for JSON serialization
+            def draft_line_to_dict(draft_line):
+                return {
+                    "kind": draft_line.kind,
+                    "desc": draft_line.desc,
+                    "quantity": float(draft_line.quantity),
+                    "unit_cost": float(draft_line.unit_cost),
+                    "unit_rev": float(draft_line.unit_rev),
+                    "total_cost": float(draft_line.quantity * draft_line.unit_cost),
+                    "total_rev": float(draft_line.quantity * draft_line.unit_rev)
+                }
+            
             return Response({
                 "success": True,
                 "cost_set": cost_set_data,
+                "draft_lines": [draft_line_to_dict(line) for line in result.diff_result.to_add] if result.diff_result else [],
                 "changes": {
-                    "additions": result.diff_result.to_add,
-                    "updates": result.diff_result.to_update,
-                    "deletions": result.diff_result.to_delete
+                    "additions": [draft_line_to_dict(line) for line in result.diff_result.to_add] if result.diff_result else [],
+                    "updates": [draft_line_to_dict(line) for line in result.diff_result.to_update] if result.diff_result else [],
+                    "deletions": [draft_line_to_dict(line) for line in result.diff_result.to_delete] if result.diff_result else []
                 }
             }, status=status.HTTP_200_OK)
         else:
