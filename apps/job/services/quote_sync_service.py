@@ -91,16 +91,23 @@ def link_quote_sheet(job: Job, template_url: str | None = None) -> QuoteSpreadsh
             quote_sheet.sheet_id = quote_file_id
             quote_sheet.sheet_url = f"https://docs.google.com/spreadsheets/d/{quote_file_id}/edit"
             quote_sheet.save()
-        
-        # Pre-populate sheet with estimate data if available
+          # Pre-populate sheet with estimate data if available AND copy to quote costset
         estimate_cost_set = getattr(job, 'latest_estimate', None)
         if estimate_cost_set and hasattr(estimate_cost_set, 'cost_lines'):
             cost_lines_count = estimate_cost_set.cost_lines.count()
             if cost_lines_count > 0:
                 logger.info(f"Pre-populating quote sheet with {cost_lines_count} estimate lines")
                 try:
+                    # 1. Populate the Google Sheet
                     populate_sheet_from_costset(quote_file_id, estimate_cost_set)
                     logger.info(f"Successfully pre-populated quote sheet with estimate data")
+                    
+                    # 2. Copy estimate data to quote costset in database
+                    quote_cost_set = getattr(job, 'latest_quote', None)
+                    if quote_cost_set:
+                        _copy_estimate_to_quote_costset(estimate_cost_set, quote_cost_set)
+                        logger.info(f"Successfully copied estimate data to quote costset")
+                    
                 except Exception as e:
                     logger.warning(f"Failed to pre-populate quote sheet: {str(e)} - Sheet created but empty")
         
@@ -266,3 +273,41 @@ def _create_or_get_job_folder(parent_folder_id: str, folder_name: str) -> str:
         
     except Exception as e:
         raise RuntimeError(f"Failed to create/get job folder '{folder_name}': {str(e)}") from e
+
+
+def _copy_estimate_to_quote_costset(estimate_cost_set, quote_cost_set):
+    """
+    Copy cost lines from estimate to quote costset.
+    
+    Args:
+        estimate_cost_set: Source estimate costset
+        quote_cost_set: Target quote costset
+    """
+    try:
+        # Import here to avoid circular imports
+        from apps.job.models.costing import CostLine
+        
+        # Clear existing quote cost lines
+        quote_cost_set.cost_lines.all().delete()
+        
+        # Copy cost lines from estimate to quote
+        for estimate_line in estimate_cost_set.cost_lines.all():
+            CostLine.objects.create(
+                cost_set=quote_cost_set,
+                kind=estimate_line.kind,
+                desc=estimate_line.desc,
+                quantity=estimate_line.quantity,
+                unit_cost=estimate_line.unit_cost,
+                unit_rev=estimate_line.unit_rev,
+                # Copy any other relevant fields
+            )
+        
+        # Update quote costset totals
+        quote_cost_set.calculate_totals()
+        quote_cost_set.save()
+        
+        logger.info(f"Copied {estimate_cost_set.cost_lines.count()} lines from estimate to quote")
+        
+    except Exception as e:
+        logger.error(f"Error copying estimate to quote costset: {str(e)}")
+        raise
