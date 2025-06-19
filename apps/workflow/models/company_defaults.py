@@ -34,10 +34,11 @@ class CompanyDefaults(models.Model):
         help_text="URL to the master Google Sheets quote template",
     )
 
-    master_quote_template_id = models.UUIDField(
+    master_quote_template_id = models.CharField(
         null=True,
         blank=True,
         help_text="Google Sheets ID for the quote template",
+        max_length=100
     )
 
     gdrive_quotes_folder_url = models.URLField(
@@ -46,10 +47,11 @@ class CompanyDefaults(models.Model):
         help_text="URL to the Google Drive folder for storing quotes",
     )
 
-    gdrive_quotes_folder_id = models.UUIDField(
+    gdrive_quotes_folder_id = models.CharField(
         null=True,
         blank=True,
         help_text="Google Drive folder ID for storing quotes",
+        max_length=100
     )
 
     # Xero integration
