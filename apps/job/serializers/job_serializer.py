@@ -8,6 +8,7 @@ from apps.job.models import Job, JobFile
 
 from .job_file_serializer import JobFileSerializer
 from .job_pricing_serializer import JobPricingSerializer
+from .quote_spreadsheet_serializer import QuoteSpreadsheetSerializer
 
 logger = logging.getLogger(__name__)
 DEBUG_SERIALIZER = False
@@ -17,7 +18,6 @@ class JobSerializer(serializers.ModelSerializer):
     latest_estimate_pricing = JobPricingSerializer(required=False)
     latest_quote_pricing = JobPricingSerializer(required=False)
     latest_reality_pricing = JobPricingSerializer(required=False)
-    
     client_id = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
         source="client",
@@ -27,13 +27,18 @@ class JobSerializer(serializers.ModelSerializer):
     contact_id = serializers.PrimaryKeyRelatedField(
         queryset=ClientContact.objects.all(),
         source="contact",
-        write_only=False,  # Allow read access        required=False,        allow_null=True,
+        write_only=False,  # Allow read access
+        required=False,
+        allow_null=True,
     )
     contact_name = serializers.CharField(source="contact.name", read_only=True, required=False)
     job_status = serializers.CharField(source="status")
     job_files = JobFileSerializer(
         source="files", many=True, required=False
     )  # To prevent conflicts with PUTTING only one file
+    
+    # Quote spreadsheet relationship
+    quote_sheet = QuoteSpreadsheetSerializer(read_only=True, required=False)
 
     class Meta:
         model = Job
@@ -62,9 +67,9 @@ class JobSerializer(serializers.ModelSerializer):
             "paid",
             "quote_acceptance_date",
             "job_is_valid",
-            "job_files",
-            "charge_out_rate",
+            "job_files",            "charge_out_rate",
             "pricing_methodology",
+            "quote_sheet",
         ]
 
     def validate(self, attrs):

@@ -29,6 +29,7 @@ from apps.job.importers.google_sheets import (
     create_folder,
     fetch_sheet_df,
     extract_file_id,
+    populate_sheet_from_costset,
 )
 from apps.workflow.models import CompanyDefaults
 
@@ -85,12 +86,23 @@ def link_quote_sheet(job: Job, template_url: str | None = None) -> QuoteSpreadsh
                 'tab': "Primary Details"
             }
         )
-        
         if not created:
             # Update existing
             quote_sheet.sheet_id = quote_file_id
             quote_sheet.sheet_url = f"https://docs.google.com/spreadsheets/d/{quote_file_id}/edit"
             quote_sheet.save()
+        
+        # Pre-populate sheet with estimate data if available
+        estimate_cost_set = getattr(job, 'latest_estimate', None)
+        if estimate_cost_set and hasattr(estimate_cost_set, 'cost_lines'):
+            cost_lines_count = estimate_cost_set.cost_lines.count()
+            if cost_lines_count > 0:
+                logger.info(f"Pre-populating quote sheet with {cost_lines_count} estimate lines")
+                try:
+                    populate_sheet_from_costset(quote_file_id, estimate_cost_set)
+                    logger.info(f"Successfully pre-populated quote sheet with estimate data")
+                except Exception as e:
+                    logger.warning(f"Failed to pre-populate quote sheet: {str(e)} - Sheet created but empty")
         
         logger.info(f"Successfully linked quote sheet for job {job.job_number}: {quote_sheet.sheet_url}")
         return quote_sheet
