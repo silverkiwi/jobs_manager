@@ -87,3 +87,4 @@ class CostLine(models.Model):
             raise ValidationError("Unit cost must be non-negative")
         if self.unit_rev < 0:
             raise ValidationError("Unit revenue must be non-negative")
+        

@@ -27,11 +27,29 @@ class CompanyDefaults(models.Model):
         help_text="Prefix for purchase order numbers (e.g., PO-, JO-)",
     )
 
-    # Quote templates
+    # Google Sheets integration for Job Quotes
     master_quote_template_url = models.URLField(
         null=True,
         blank=True,
         help_text="URL to the master Google Sheets quote template",
+    )
+
+    master_quote_template_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text="Google Sheets ID for the quote template",
+    )
+
+    gdrive_quotes_folder_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="URL to the Google Drive folder for storing quotes",
+    )
+
+    gdrive_quotes_folder_id = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text="Google Drive folder ID for storing quotes",
     )
 
     # Xero integration
