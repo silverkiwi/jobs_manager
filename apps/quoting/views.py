@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from .services.ai_price_extraction import extract_price_data
-from .services.product_parser import ProductParser
+from .services.product_parser import ProductParser, create_mapping_record, populate_all_mappings_with_llm
 from .models import SupplierPriceList, SupplierProduct, ProductParsingMapping
 from apps.client.models import Client
 
@@ -135,6 +135,10 @@ class UploadSupplierPricingView(LoginRequiredMixin, TemplateView):
                                 variant_price=variant_price,
                                 url=''  # PDF uploads don't have URLs
                             )
+                            
+                            # Create mapping record (LLM called at end of batch)
+                            create_mapping_record(product)
+                            
                             items_saved += 1
                             
                             if items_saved % 50 == 0:
@@ -154,6 +158,9 @@ class UploadSupplierPricingView(LoginRequiredMixin, TemplateView):
                             logger.info(f"Parsing stats - Total lines: {stats.get('total_lines', 0)}, "
                                       f"Items found: {stats.get('items_found', 0)}, "
                                       f"Pages processed: {stats.get('pages_processed', 0)}")
+                        
+                        # Batch process all new mappings with LLM
+                        populate_all_mappings_with_llm()
                         
                         # Success - transaction will commit
                         messages.success(

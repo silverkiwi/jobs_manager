@@ -5,7 +5,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from decimal import Decimal
 
-from apps.quoting.models import ProductParsingMapping
+from apps.quoting.models import ProductParsingMapping, SupplierProduct
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +100,23 @@ def validate_mapping(request, mapping_id):
 
         mapping.save()
 
+        # Backflow: Update all SupplierProducts that use this mapping
+        supplier_products = SupplierProduct.objects.filter(mapping_hash=mapping.input_hash)
+        update_count = supplier_products.update(
+            parsed_item_code=mapping.mapped_item_code,
+            parsed_description=mapping.mapped_description,
+            parsed_metal_type=mapping.mapped_metal_type,
+            parsed_alloy=mapping.mapped_alloy,
+            parsed_specifics=mapping.mapped_specifics,
+            parsed_dimensions=mapping.mapped_dimensions,
+            parsed_unit_cost=mapping.mapped_unit_cost,
+            parsed_price_unit=mapping.mapped_price_unit,
+        )
+        
+        logger.info(f"Updated {update_count} SupplierProducts with validated mapping {mapping_id}")
+
         return JsonResponse(
-            {"success": True, "message": "Mapping validated successfully"}
+            {"success": True, "message": f"Mapping validated successfully. Updated {update_count} related products."}
         )
 
     except ProductParsingMapping.DoesNotExist:

@@ -18,14 +18,14 @@ class Command(BaseCommand):
         parser.add_argument(
             '--batch-size',
             type=int,
-            default=10,
-            help='Number of products to process per batch (default: 10)'
+            default=50,
+            help='Number of products to process per batch (default: 50)'
         )
         parser.add_argument(
             '--delay',
             type=float,
             default=2.0,
-            help='Delay in seconds between API calls (default: 2.0)'
+            help='Delay in seconds between API calls (default: 5.0)'
         )
         parser.add_argument(
             '--max-products',
@@ -121,6 +121,7 @@ class Command(BaseCommand):
                         'variant_length': product.variant_length,
                         'variant_price': product.variant_price,
                         'price_unit': product.price_unit,
+                        'supplier_name': product.supplier.name,
                     })
 
                 # Process batch with error handling
@@ -215,6 +216,7 @@ class Command(BaseCommand):
                 'variant_length': product.variant_length,
                 'variant_price': product.variant_price,
                 'price_unit': product.price_unit,
+                'supplier_name': product.supplier.name,
             }
             input_hash = parser._calculate_input_hash(product_data)
             

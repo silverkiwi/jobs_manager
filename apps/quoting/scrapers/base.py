@@ -6,6 +6,8 @@ from django.utils import timezone
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+from apps.quoting.services.product_parser import create_mapping_record
+
 
 class BaseScraper(ABC):
     """Base class for all supplier scrapers"""
@@ -207,6 +209,10 @@ class BaseScraper(ABC):
                     variant_id=product_data["variant_id"],
                     defaults=product_data,
                 )
+                
+                # Create mapping record for new products (LLM called at end of batch)
+                if created:
+                    create_mapping_record(product)
 
             except Exception as e:
                 self.logger.error(f"Error saving product: {e}")

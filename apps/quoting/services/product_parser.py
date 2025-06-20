@@ -1,4 +1,3 @@
-import hashlib
 import json
 import logging
 from typing import Dict, Any, Optional, Tuple
@@ -10,7 +9,8 @@ import google.generativeai as genai
 from apps.workflow.helpers import get_company_defaults
 from apps.workflow.enums import AIProviderTypes
 from apps.job.enums import MetalType
-from apps.quoting.models import ProductParsingMapping
+from apps.quoting.models import ProductParsingMapping, SupplierProduct
+from apps.quoting.utils import calculate_product_mapping_hash, calculate_supplier_product_hash
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +47,7 @@ class ProductParser:
     
     def _calculate_input_hash(self, product_data: Dict[str, Any]) -> str:
         """Calculate SHA-256 hash based on description only."""
-        description = str(product_data.get('description', '') or product_data.get('product_name', ''))
-        return hashlib.sha256(description.encode()).hexdigest()
+        return calculate_product_mapping_hash(product_data)
     
     def _get_cached_mapping(self, input_hash: str) -> Optional[ProductParsingMapping]:
         """Retrieve existing mapping from database."""
@@ -278,7 +277,7 @@ Price: {product_data.get('variant_price', 'N/A')} {product_data.get('price_unit'
         )
         
         if not created:
-            logger.info(f"Mapping already exists for hash {input_hash[:8]}... (race condition avoided)")
+            logger.info(f"Mapping already exists for hash {input_hash[:8]}... (already processed)")
         
         return mapping
     
@@ -440,3 +439,87 @@ def parse_supplier_product(product_data: Dict[str, Any]) -> Tuple[Dict[str, Any]
     """
     parser = ProductParser()
     return parser.parse_product(product_data)
+
+
+def create_mapping_record(instance):
+    """Create mapping record and set hash on SupplierProduct."""
+    # Set mapping_hash on SupplierProduct
+    mapping_hash = calculate_supplier_product_hash(instance)
+    SupplierProduct.objects.filter(id=instance.id).update(mapping_hash=mapping_hash)
+    
+    # Create empty ProductParsingMapping record if it doesn't exist
+    ProductParsingMapping.objects.get_or_create(
+        input_hash=mapping_hash,
+        defaults={
+            'input_description': instance.description or instance.product_name or '',
+            'input_product_name': instance.product_name or '',
+            'input_specifications': instance.specifications or '',
+            'created_at': timezone.now(),
+        }
+    )
+
+
+def populate_all_mappings_with_llm():
+    """Batch process all unpopulated ProductParsingMapping records with LLM."""
+    # Find all unpopulated mappings
+    unpopulated_mappings = ProductParsingMapping.objects.filter(
+        mapped_item_code__isnull=True
+    )
+    
+    if not unpopulated_mappings.exists():
+        logger.info("No unpopulated mappings to process")
+        return
+    
+    logger.info(f"Processing {unpopulated_mappings.count()} unpopulated mappings with LLM")
+    
+    # Use existing batch processing
+    parser = ProductParser()
+    
+    # Prepare product data for all mappings
+    product_data_list = []
+    for mapping in unpopulated_mappings:
+        product_data = {
+            'product_name': mapping.input_product_name,
+            'description': mapping.input_description,
+            'specifications': mapping.input_specifications,
+        }
+        product_data_list.append(product_data)
+    
+    # Batch process with LLM
+    results = parser.parse_products_batch(product_data_list)
+    
+    # Update mappings and corresponding SupplierProducts
+    for mapping, (parsed_data, was_cached) in zip(unpopulated_mappings, results):
+        if parsed_data:
+            # Update the mapping
+            mapping.mapped_item_code = parsed_data.get('item_code')
+            mapping.mapped_description = parsed_data.get('description')
+            mapping.mapped_metal_type = parsed_data.get('metal_type')
+            mapping.mapped_alloy = parsed_data.get('alloy')
+            mapping.mapped_specifics = parsed_data.get('specifics')
+            mapping.mapped_dimensions = parsed_data.get('dimensions')
+            mapping.mapped_unit_cost = parsed_data.get('unit_cost')
+            mapping.mapped_price_unit = parsed_data.get('price_unit')
+            mapping.parser_confidence = parsed_data.get('confidence')
+            mapping.parser_version = parsed_data.get('parser_version')
+            mapping.save()
+            
+            # Update corresponding SupplierProducts via backflow
+            SupplierProduct.objects.filter(mapping_hash=mapping.input_hash).update(
+                parsed_item_code=parsed_data.get('item_code'),
+                parsed_description=parsed_data.get('description'),
+                parsed_metal_type=parsed_data.get('metal_type'),
+                parsed_alloy=parsed_data.get('alloy'),
+                parsed_specifics=parsed_data.get('specifics'),
+                parsed_dimensions=parsed_data.get('dimensions'),
+                parsed_unit_cost=parsed_data.get('unit_cost'),
+                parsed_price_unit=parsed_data.get('price_unit'),
+                parsed_at=timezone.now(),
+                parser_version=parsed_data.get('parser_version'),
+                parser_confidence=parsed_data.get('confidence'),
+            )
+            
+            status = "from cache" if was_cached else "newly parsed"
+            logger.info(f"Processed mapping {mapping.input_hash[:8]}... ({status})")
+    
+    logger.info(f"Completed batch processing of {unpopulated_mappings.count()} mappings")

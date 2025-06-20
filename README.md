@@ -24,6 +24,13 @@ For detailed documentation including business context, technical details, and se
 
 See [docs/initial_install.md](docs/initial_install.md) for installation instructions.
 
+### Starting
+
+1. Launch the backend: python manage.py runserver
+2. Launch the frontend: npm run dev
+
+Note - both are documented properly in their respective folders (e.g. npm install)
+
 ## License
 
 This project is proprietary to **Morris Sheetmetal**. For inquiries or usage permissions, contact the repository maintainer.
