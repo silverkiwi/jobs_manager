@@ -459,9 +459,9 @@ class Command(BaseCommand):
         categories = {}
         for day in random_days[:good_days]:
             categories[day] = "green"
-        for day in random_days[good_days : good_days + medium_days]:
+        for day in random_days[good_days:good_days + medium_days]:
             categories[day] = "amber"
-        for day in random_days[good_days + medium_days :]:
+        for day in random_days[good_days + medium_days:]:
             categories[day] = "red"
 
         return categories

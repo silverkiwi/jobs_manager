@@ -12,14 +12,14 @@ def cleanup_company_defaults(apps, schema_editor):
     2. Existing database with a company defaults already
     """
     CompanyDefaults = apps.get_model('workflow', 'CompanyDefaults')
-    
+
     # Get all records
     records = list(CompanyDefaults.objects.all())
-    
+
     if records:
         # Keep the first record
         keep_record = records[0]
-        
+
         # Delete any other records
         CompanyDefaults.objects.exclude(pk=keep_record.pk).delete()
     else:
@@ -27,6 +27,7 @@ def cleanup_company_defaults(apps, schema_editor):
         # We'll skip creating a default record if we're in a fresh database setup
         # This allows fixtures to create the CompanyDefaults record instead
         pass
+
 
 class Migration(migrations.Migration):
     dependencies = [

@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.DeleteModel(name="PurchaseOrder"),
-                migrations.DeleteModel(name="PurchaseOrderLine"), 
+                migrations.DeleteModel(name="PurchaseOrderLine"),
                 migrations.DeleteModel(name="PurchaseOrderSupplierQuote"),
                 migrations.CreateModel(
                     name="PurchaseOrder",

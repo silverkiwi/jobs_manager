@@ -79,7 +79,6 @@ class QuoteImportError(Exception):
     """Custom exception for quote import errors"""
 
 
-
 class QuoteImportResult:
     """Result object for quote import operations"""
 

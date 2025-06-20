@@ -19,11 +19,11 @@ class Migration(migrations.Migration):
             model_name='materialentry',
             name='purchase_order_line',
             field=models.ForeignKey(
-                blank=True, 
-                help_text='Convenience link to original PO line (derived via source_stock)', 
-                null=True, 
-                on_delete=django.db.models.deletion.SET_NULL, 
-                related_name='material_entries', 
+                blank=True,
+                help_text='Convenience link to original PO line (derived via source_stock)',
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name='material_entries',
                 to='purchasing.PurchaseOrderLine' # Now referencing the new app
             ),
         ),

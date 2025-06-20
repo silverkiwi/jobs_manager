@@ -78,6 +78,7 @@ pylint-django = "^2.6.1"
 pytest = "^8.4.0"
 flake8-pyproject = "^1.2.3"
 autoflake = "^2.3.1"
+autopep8 = "^2.3.2"
 
 [build-system]
 requires = ["poetry-core"]

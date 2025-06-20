@@ -522,7 +522,6 @@ class Migration(migrations.Migration):
         ),
     ]
 
-
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[],

@@ -104,7 +104,7 @@ class Command(BaseCommand):
             start_time = timezone.now()
 
             for i in range(0, total_to_process, batch_size):
-                batch = unprocessed_products[i : i + batch_size]
+                batch = unprocessed_products[i:i + batch_size]
                 batch_num = (i // batch_size) + 1
                 total_batches = (total_to_process + batch_size - 1) // batch_size
 
