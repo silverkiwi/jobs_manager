@@ -8,6 +8,7 @@ from .job_file import JobFile
 from .job_part import JobPart
 from .job_pricing import JobPricing, QuotePricing
 from .material_entry import MaterialEntry
+from .spreadsheet import QuoteSpreadsheet
 
 __all__ = [
     "AdjustmentEntry",
@@ -20,4 +21,5 @@ __all__ = [
     "JobPricing",
     "QuotePricing",
     "MaterialEntry",
+    "QuoteSpreadsheet",
 ]

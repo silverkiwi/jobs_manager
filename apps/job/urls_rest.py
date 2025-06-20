@@ -42,6 +42,15 @@ from apps.job.views.quote_import_views import (
     QuoteImportStatusView,
 )
 
+from apps.job.views.quote_sync_views import (
+    link_quote_sheet,
+    preview_quote,
+    apply_quote,
+)
+
+from django.http import HttpResponse
+from rest_framework import status
+
 
 # URLs for new REST views
 rest_urlpatterns = [
@@ -83,9 +92,25 @@ rest_urlpatterns = [
     path('rest/jobs/files/<path:file_path>/', JobFileView.as_view(), name='job_file_download'),
     path('rest/jobs/files/<int:file_path>/', JobFileView.as_view(), name='job_file_delete'),
     path('rest/jobs/files/<uuid:file_id>/thumbnail/', JobFileThumbnailView.as_view(), name='job_file_thumbnail'),
+      # Quote Import (NEW - Google Sheets sync)
+    path('rest/jobs/<uuid:pk>/quote/link/', link_quote_sheet, name='quote_link_sheet'),
+    path('rest/jobs/<uuid:pk>/quote/preview/', preview_quote, name='quote_preview'),
+    path('rest/jobs/<uuid:pk>/quote/apply/', apply_quote, name='quote_apply'),
     
-    # Quote Import
-    path('rest/jobs/<uuid:job_id>/quote/import/preview/', QuoteImportPreviewView.as_view(), name='quote_import_preview'),
-    path('rest/jobs/<uuid:job_id>/quote/import/', QuoteImportView.as_view(), name='quote_import'),
+    # Quote Import (DEPRECATED - file upload based)
+    path('rest/jobs/<uuid:job_id>/quote/import/preview/', 
+         lambda request, *args, **kwargs: HttpResponse(
+             '{"error": "This endpoint has been deprecated. Use /quote/link/, /quote/preview/, and /quote/apply/ instead."}',
+             status=status.HTTP_410_GONE,
+             content_type='application/json'
+         ), 
+         name='quote_import_preview_deprecated'),
+    path('rest/jobs/<uuid:job_id>/quote/import/', 
+         lambda request, *args, **kwargs: HttpResponse(
+             '{"error": "This endpoint has been deprecated. Use /quote/link/, /quote/preview/, and /quote/apply/ instead."}',
+             status=status.HTTP_410_GONE,
+             content_type='application/json'
+         ), 
+         name='quote_import_deprecated'),
     path('rest/jobs/<uuid:job_id>/quote/status/', QuoteImportStatusView.as_view(), name='quote_import_status'),
 ]

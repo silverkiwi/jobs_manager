@@ -122,17 +122,16 @@ class Command(BaseCommand):
         
         self.stdout.write("\n📋 Preview Results:")
         self.stdout.write(f"  Can proceed: {preview_data.get('can_proceed', False)}")
-        
-        # Show validation report
+          # Show validation report
         validation_report = preview_data.get('validation_report')
         if validation_report:
-            self.stdout.write(f"  Validation issues: {validation_report.summary.get('total_issues', 0)}")
-            if validation_report.critical_issues:
-                self.stdout.write(f"    🚨 Critical: {len(validation_report.critical_issues)}")
-            if validation_report.errors:
-                self.stdout.write(f"    ❌ Errors: {len(validation_report.errors)}")
-            if validation_report.warnings:
-                self.stdout.write(f"    ⚠️ Warnings: {len(validation_report.warnings)}")
+            self.stdout.write(f"  Validation issues: {validation_report.get('summary', {}).get('total_issues', 0)}")
+            if validation_report.get('critical_issues'):
+                self.stdout.write(f"    🚨 Critical: {len(validation_report['critical_issues'])}")
+            if validation_report.get('errors'):
+                self.stdout.write(f"    ❌ Errors: {len(validation_report['errors'])}")
+            if validation_report.get('warnings'):
+                self.stdout.write(f"    ⚠️ Warnings: {len(validation_report['warnings'])}")
         
         # Show draft lines count
         draft_lines = preview_data.get('draft_lines', [])
@@ -189,13 +188,12 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f"  ❌ Job latest_quote pointer not updated correctly")
                 
-        else:
+        else: 
             self.stdout.write(self.style.ERROR("\n❌ Quote import failed!"))
             self.stdout.write(f"  Error: {result.error_message}")
-            
             if result.validation_report:
                 self.stdout.write(f"  Validation issues:")
-                for issue in result.validation_report.critical_issues:
-                    self.stdout.write(f"    🚨 CRITICAL: {issue.message}")
-                for issue in result.validation_report.errors:
-                    self.stdout.write(f"    ❌ ERROR: {issue.message}")
+                for issue in result.validation_report.get('critical_issues', []):
+                    self.stdout.write(f"    🚨 CRITICAL: {issue.get('message', issue)}")
+                for issue in result.validation_report.get('errors', []):
+                    self.stdout.write(f"    ❌ ERROR: {issue.get('message', issue)}")

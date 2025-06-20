@@ -81,6 +81,18 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
             },
         ),
         (
+            "Google Sheets Integration (for Job Quotes)",
+            {
+                "fields": (
+                    "master_quote_template_url",
+                    "master_quote_template_id",
+                    "gdrive_quotes_folder_url",
+                    "gdrive_quotes_folder_id",
+                ),
+                "description": "These fields are used to configure the Google Sheets integration for job quotes. The master template is used to generate new quotes, and the folder is where all quotes are stored.",
+            }
+        ),
+        (
             "Xero Integration",
             {
                 "fields": (
