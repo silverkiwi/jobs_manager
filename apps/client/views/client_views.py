@@ -67,17 +67,20 @@ def get_client_contact_persons(request, client_id):
                         logger.debug(f"Added additional contact: {additional_contact}")
                 else:
                     logger.warning(
-                        f"Skipping invalid item in additional_contact_persons for client {client_id}: {person_dict}"
+                        f"Skipping invalid item in additional_contact_persons for "
+                        f"client {client_id}: {person_dict}"
                     )
 
         logger.info(
-            f"Successfully retrieved {len(contact_persons_data)} contact persons for client {client_id} from model."
+            f"Successfully retrieved {len(contact_persons_data)} contact persons "
+            f"for client {client_id} from model."
         )
         return JsonResponse(contact_persons_data, safe=False)
 
     except Exception as e:
         logger.error(
-            f"Error fetching contact persons for client {client_id} from model: {str(e)}",
+            f"Error fetching contact persons for client {client_id} from model: "
+            f"{str(e)}",
             exc_info=True,
         )
         return JsonResponse(
@@ -100,7 +103,8 @@ def get_client_phones(request, client_id):
         phones_data = []
 
         logger.debug(
-            f"Fetching phone numbers for client ID: {client_id} from model field 'all_phones'."
+            f"Fetching phone numbers for client ID: {client_id} from "
+            f"model field 'all_phones'."
         )
 
         if client.all_phones and isinstance(client.all_phones, list):
@@ -117,7 +121,8 @@ def get_client_phones(request, client_id):
         # For simplicity, we'll assume all_phones is comprehensive for now.
 
         logger.info(
-            f"Successfully retrieved {len(phones_data)} phone numbers for client {client_id} from model."
+            f"Successfully retrieved {len(phones_data)} phone numbers for "
+            f"client {client_id} from model."
         )
         return JsonResponse(phones_data, safe=False)
 
