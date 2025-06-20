@@ -68,7 +68,7 @@ class Command(BaseCommand):
         diff_result = diff_costset(old_cost_set, draft_lines)
 
         # Show diff results
-        self.stdout.write(f"\n📊 Diff Results:")
+        self.stdout.write("\n📊 Diff Results:")
         self.stdout.write(f"  Additions: {len(diff_result.to_add)}")
         self.stdout.write(f"  Updates: {len(diff_result.to_update)}")
         self.stdout.write(f"  Deletions: {len(diff_result.to_delete)}")
@@ -217,7 +217,7 @@ class Command(BaseCommand):
 
     def _show_draft_lines(self, drafts: list[DraftLine]):
         """Show draft line details"""
-        self.stdout.write(f"\n📝 Draft Lines:")
+        self.stdout.write("\n📝 Draft Lines:")
         for i, draft in enumerate(drafts, 1):
             self.stdout.write(
                 f"  {i}. [{draft.kind}] {draft.desc} "

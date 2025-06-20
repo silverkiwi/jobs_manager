@@ -354,9 +354,9 @@ class MistralPriceExtractionProvider:
                     logger.debug("No text content available for preview")
             else:
                 logger.warning("No pages found in the OCR response.")
-            logger.info(f"Full results have been saved to:")
+            logger.info("Full results have been saved to:")
             logger.info(f"- {os.path.abspath(json_output_file)}")
-            logger.info(f"JSON output saved for testing/debugging")
+            logger.info("JSON output saved for testing/debugging")
 
             # Now parse the OCR text into structured price data
             return self._parse_ocr_to_price_data(client, ocr_response)

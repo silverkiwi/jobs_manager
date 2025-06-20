@@ -86,7 +86,7 @@ class JobRestService:
                 job=job,
                 staff=user,
                 event_type="job_created",
-                description=f"New job created",
+                description="New job created",
             )
 
         return job

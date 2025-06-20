@@ -197,7 +197,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Cost lines: {result.cost_set.cost_lines.count()}")
 
             if result.diff_result:
-                self.stdout.write(f"  Changes applied:")
+                self.stdout.write("  Changes applied:")
                 self.stdout.write(
                     f"    ➕ Added: {len(result.diff_result.to_add)} lines"
                 )
@@ -212,17 +212,17 @@ class Command(BaseCommand):
             updated_job = Job.objects.get(pk=job.pk)
             latest_quote = updated_job.get_latest("quote")
             if latest_quote and latest_quote.id == result.cost_set.id:
-                self.stdout.write(f"  ✅ Job latest_quote pointer updated correctly")
+                self.stdout.write("  ✅ Job latest_quote pointer updated correctly")
             else:
                 self.stdout.write(
-                    f"  ❌ Job latest_quote pointer not updated correctly"
+                    "  ❌ Job latest_quote pointer not updated correctly"
                 )
 
         else:
             self.stdout.write(self.style.ERROR("\n❌ Quote import failed!"))
             self.stdout.write(f"  Error: {result.error_message}")
             if result.validation_report:
-                self.stdout.write(f"  Validation issues:")
+                self.stdout.write("  Validation issues:")
                 for issue in result.validation_report.get("critical_issues", []):
                     self.stdout.write(f"    🚨 CRITICAL: {issue.get('message', issue)}")
                 for issue in result.validation_report.get("errors", []):

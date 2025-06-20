@@ -88,7 +88,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.black]
 line-length = 88
 target-version = ["py312"]
-exclude = '\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist|migrations'
+exclude = '\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist|migrations|mediafiles'
 
 [tool.isort]
 profile = "black"  # This ensures compatibility if you're also using the Black formatter
@@ -99,6 +99,7 @@ include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
+skip_glob = ["migrations/*", "mediafiles/*", ".git/*"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -106,7 +107,7 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 mypy_path = "./"
-exclude = "migrations|__pycache__|.tox|venv"
+exclude = "migrations|__pycache__|.tox|venv|mediafiles|.git"
 plugins = ["mypy_django_plugin.main"]
 strict = true
 show_error_codes = true
@@ -150,7 +151,7 @@ enable = [
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-exclude = ["migrations", "mediafiles", "__pycache__", ".tox", ".venv"]
+exclude = ["migrations", "mediafiles", "__pycache__", ".tox", ".venv", ".git"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]  # Enable flake8-compatible rules
@@ -163,7 +164,7 @@ line-ending = "auto"
 
 [tool.flake8]
 max-line-length = 88
-exclude = ["migrations", "__pycache__", ".tox", "venv", ".venv", "mediafiles", "adhoc"]
+exclude = ["migrations", "__pycache__", ".tox", "venv", ".venv", "mediafiles", "adhoc", ".git"]
 
 [tool.django-stubs]
 django_settings_module = "jobs_manager.settings"

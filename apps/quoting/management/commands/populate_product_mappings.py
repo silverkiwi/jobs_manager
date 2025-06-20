@@ -50,7 +50,7 @@ class Command(BaseCommand):
         options["resume"]
 
         self.stdout.write(
-            self.style.SUCCESS(f"Starting ProductParsingMapping population")
+            self.style.SUCCESS("Starting ProductParsingMapping population")
         )
         self.stdout.write(f"Batch size: {batch_size}")
         self.stdout.write(f"Delay between batches: {delay}s")

@@ -19,6 +19,7 @@ import traceback
 from datetime import date
 
 import django
+from apps.accounting.services import KPIService
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -26,8 +27,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Setup Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jobs_manager.settings.local")
 django.setup()
-
-from apps.accounting.services import KPIService
 
 
 def test_kpi_calendar(year=None, month=None):
@@ -45,7 +44,7 @@ def test_kpi_calendar(year=None, month=None):
         monthly_totals = result.get("monthly_totals", {})
 
         print(f"\n✓ Success! Got {len(calendar_data)} days of data")
-        print(f"\nMonthly summary:")
+        print("\nMonthly summary:")
         print(f"  - Working days: {monthly_totals.get('working_days', 0)}")
         print(f"  - Billable hours: {monthly_totals.get('billable_hours', 0):.1f}")
         print(f"  - Total hours: {monthly_totals.get('total_hours', 0):.1f}")

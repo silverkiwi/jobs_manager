@@ -4,7 +4,8 @@ import os
 
 from mistralai import Mistral
 
-# THIS FILE NEEDS FIXING.  print! erorr eating!  Gross repeated breaches of architecture.
+# THIS FILE NEEDS FIXING.  print! erorr eating!
+# Gross repeated breaches of architecture.
 
 
 def encode_pdf(pdf_path):
@@ -70,7 +71,7 @@ def main():
                         f.write(f"# Page {i}\n\n")
                         f.write(page.markdown)
                         f.write("\n\n---\n\n")  # Add separator between pages
-        print(f"\nOCR processing complete!")
+        print("\nOCR processing complete!")
         print(f"- JSON results saved to: {os.path.abspath(json_output_file)}")
         print(f"- Markdown results saved to: {os.path.abspath(md_output_file)}")
         # Print a preview of the results
@@ -91,14 +92,15 @@ def main():
         else:
             print("No pages found in the OCR response.")
         print("\n" + "=" * 50)
-        print(f"Full results have been saved to:")
+        print("Full results have been saved to:")
         print(f"- {os.path.abspath(json_output_file)}")
         print(f"- {os.path.abspath(md_output_file)}")
     except Exception as e:
         print(f"\nAn error occurred: {str(e)}")
         if "retry_after" in str(e).lower():
             print(
-                "The server is processing your request. Please try again in a few moments."
+                "The server is processing your request. "
+                " Please try again in a few moments."
             )
 
 

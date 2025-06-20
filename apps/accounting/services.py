@@ -156,10 +156,10 @@ class KPIService:
         )
 
         # Get material entries for the date
-        aware_start = timezone.make_aware(
+        timezone.make_aware(
             datetime.datetime.combine(target_date, datetime.time.min), cls.nz_timezone
         )
-        aware_end = timezone.make_aware(
+        timezone.make_aware(
             datetime.datetime.combine(target_date, datetime.time.max), cls.nz_timezone
         )
 
@@ -382,10 +382,10 @@ class KPIService:
             )
         }
 
-        aware_start = timezone.make_aware(
+        timezone.make_aware(
             datetime.datetime.combine(start_date, datetime.time.min), cls.nz_timezone
         )
-        aware_end = timezone.make_aware(
+        timezone.make_aware(
             datetime.datetime.combine(end_date, datetime.time.max), cls.nz_timezone
         )
 

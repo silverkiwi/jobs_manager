@@ -111,17 +111,11 @@ def refresh_xero_data(request):
 
 # workflow/views/xero_sync_events.py
 
-import json
 import logging
-import time
 
-from django.core.cache import cache
-from django.http import HttpRequest, StreamingHttpResponse
-from django.utils import timezone
+from django.http import HttpRequest
 from django.views.decorators.http import require_GET
 
-from apps.workflow.api.xero.xero import get_valid_token
-from apps.workflow.services.xero_sync_service import XeroSyncService
 
 logger = logging.getLogger("xero.events")
 

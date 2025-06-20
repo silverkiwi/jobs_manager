@@ -344,7 +344,7 @@ class SteelAndTubeScraper(BaseScraper):
     ):
         """Extract variants directly when no width options available"""
         try:
-            variant_select_element = WebDriverWait(self.driver, 15).until(
+            WebDriverWait(self.driver, 15).until(
                 EC.presence_of_element_located((By.ID, "variantId"))
             )
 

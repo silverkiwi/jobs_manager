@@ -361,7 +361,7 @@ Price: {product_data.get("variant_price", "N/A")} {product_data.get("price_unit"
                     )
             else:
                 logger.error(
-                    f"Batch parsing failed or returned wrong number of results"
+                    "Batch parsing failed or returned wrong number of results"
                 )
                 # Fall back to individual parsing
                 for j, product_data in enumerate(uncached_products):

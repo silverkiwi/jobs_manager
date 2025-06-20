@@ -683,7 +683,7 @@ def create_linked_quote_api(request, job_id):
         JobEvent.objects.create(
             job=job,
             event_type="quote_created",
-            description=f"Quote spreadsheet created and linked",
+            description="Quote spreadsheet created and linked",
             staff=request.user,
         )
 

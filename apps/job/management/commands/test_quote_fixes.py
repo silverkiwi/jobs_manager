@@ -125,8 +125,8 @@ class Command(BaseCommand):
             # Test the parsing function
             result = parse_xlsx(df)
 
-            self.stdout.write(f"\n✅ Parsing completed successfully!")
-            self.stdout.write(f"📈 Results summary:")
+            self.stdout.write("\n✅ Parsing completed successfully!")
+            self.stdout.write("📈 Results summary:")
             self.stdout.write(
                 f"  - Draft lines created: {len(result.get('draft_lines', []))}"
             )

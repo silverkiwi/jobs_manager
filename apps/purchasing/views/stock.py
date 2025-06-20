@@ -67,10 +67,9 @@ def use_stock_view(request, job_id=None):
         )
 
     # If job_id is provided, get the job object to pass to the template
-    default_job = None
     if job_id:
         try:
-            default_job = next(
+            next(
                 (job for job in active_jobs if str(job.id) == str(job_id)), None
             )
         except Exception as e:

@@ -85,7 +85,7 @@ class Command(BaseCommand):
 
             # Show validation report
             if validation_report:
-                self.stdout.write(self.style.WARNING(f"⚠ Validation issues found:"))
+                self.stdout.write(self.style.WARNING("⚠ Validation issues found:"))
                 for issue in validation_report:
                     self.stdout.write(f"  - {issue}")
             else:
@@ -129,12 +129,12 @@ class Command(BaseCommand):
             if material_cost > 0 and time_revenue > 0:
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"✓ Both material costs and time revenue present"
+                        "✓ Both material costs and time revenue present"
                     )
                 )
             else:
                 self.stdout.write(
-                    self.style.WARNING(f"⚠ Missing material costs or time revenue")
+                    self.style.WARNING("⚠ Missing material costs or time revenue")
                 )
 
             # Validate each line
@@ -157,23 +157,23 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS("✓ All lines are valid"))
 
             # Show summary with detailed breakdown
-            self.stdout.write(f"\n📊 Summary:")
+            self.stdout.write("\n📊 Summary:")
             self.stdout.write(f"  Total lines: {summary['total_lines']}")
             self.stdout.write(f"  Time lines: {summary['time_lines']}")
             self.stdout.write(f"  Material lines: {summary['material_lines']}")
             self.stdout.write(f"  Adjust lines: {summary['adjust_lines']}")
-            self.stdout.write(f"")
-            self.stdout.write(f"  💰 Cost Breakdown:")
+            self.stdout.write("")
+            self.stdout.write("  💰 Cost Breakdown:")
             self.stdout.write(f"    Material costs: ${material_cost:.2f}")
             self.stdout.write(f"    Time costs (wages): ${time_cost:.2f}")
             self.stdout.write(f"    Total cost: ${summary['total_cost']:.2f}")
-            self.stdout.write(f"")
-            self.stdout.write(f"  💸 Revenue Breakdown:")
+            self.stdout.write("")
+            self.stdout.write("  💸 Revenue Breakdown:")
             self.stdout.write(f"    Material revenue: ${material_revenue:.2f}")
             self.stdout.write(f"    Time revenue: ${time_revenue:.2f}")
             self.stdout.write(f"    Total revenue: ${summary['total_revenue']:.2f}")
-            self.stdout.write(f"")
-            self.stdout.write(f"  📈 Profit Analysis:")
+            self.stdout.write("")
+            self.stdout.write("  📈 Profit Analysis:")
             material_profit = material_revenue - material_cost
             time_profit = time_revenue - time_cost
             total_profit = summary["total_revenue"] - summary["total_cost"]
@@ -201,7 +201,7 @@ class Command(BaseCommand):
 
             # Show detailed output if requested
             if options["verbose"]:
-                self.stdout.write(f"\n📝 Detailed lines:")
+                self.stdout.write("\n📝 Detailed lines:")
                 for i, line in enumerate(lines):
                     self.stdout.write(
                         f"  {i + 1:3d}. [{line.kind:8s}] {line.desc[:50]:50s} "
@@ -222,13 +222,13 @@ class Command(BaseCommand):
             ):
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"\n🎉 Parser test PASSED! All checks successful."
+                        "\n🎉 Parser test PASSED! All checks successful."
                     )
                 )
             else:
                 self.stdout.write(
                     self.style.ERROR(
-                        f"\n❌ Parser test FAILED. Please review issues above."
+                        "\n❌ Parser test FAILED. Please review issues above."
                     )
                 )
 

@@ -131,7 +131,7 @@ class XeroDocumentManager(ABC):
         self.validate_client()
 
         if not self.state_valid_for_xero():
-            raise ValueError(f"Document is not in a valid state for Xero submission.")
+            raise ValueError("Document is not in a valid state for Xero submission.")
 
         # Use 'create' type for initial creation attempt
         xero_document = self.get_xero_document(type="create")

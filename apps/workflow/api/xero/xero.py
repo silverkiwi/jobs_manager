@@ -154,7 +154,7 @@ def refresh_token() -> Optional[Dict[str, Any]]:
     # Log the current token state
     current_expiry = datetime.fromtimestamp(token["expires_at"], tz=timezone.utc)
     current_token = token["access_token"][:10] + "..."
-    logger.debug(f"Current token before refresh:")
+    logger.debug("Current token before refresh:")
     logger.debug(f"  Access token: {current_token}")
     logger.debug(f"  Expires at: {current_expiry}")
 

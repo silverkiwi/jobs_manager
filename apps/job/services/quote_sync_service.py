@@ -112,7 +112,7 @@ def link_quote_sheet(job: Job, template_url: str | None = None) -> QuoteSpreadsh
                     # 1. Populate the Google Sheet
                     populate_sheet_from_costset(quote_file_id, estimate_cost_set)
                     logger.info(
-                        f"Successfully pre-populated quote sheet with estimate data"
+                        "Successfully pre-populated quote sheet with estimate data"
                     )
 
                     # 2. Copy estimate data to quote costset in database
@@ -122,7 +122,7 @@ def link_quote_sheet(job: Job, template_url: str | None = None) -> QuoteSpreadsh
                             estimate_cost_set, quote_cost_set
                         )
                         logger.info(
-                            f"Successfully copied estimate data to quote costset"
+                            "Successfully copied estimate data to quote costset"
                         )
 
                 except Exception as e:
@@ -166,12 +166,12 @@ def _fetch_drafts(job: Job):
             return []
 
         # Log sample of data
-        logger.info(f"📝 Sample DataFrame data (first 3 rows):")
+        logger.info("📝 Sample DataFrame data (first 3 rows):")
         for i, row in df.head(3).iterrows():
             logger.info(f"    Row {i}: {row.to_dict()}")
 
         # Save DataFrame to temporary XLSX file
-        logger.info(f"💾 Saving DataFrame to temporary Excel file...")
+        logger.info("💾 Saving DataFrame to temporary Excel file...")
         with NamedTemporaryFile(suffix=".xlsx", delete=False) as temp_file:
             temp_path = temp_file.name
 
@@ -183,7 +183,7 @@ def _fetch_drafts(job: Job):
 
         try:
             # Parse using existing quote parser
-            logger.info(f"🔧 About to parse Excel file with parse_xlsx...")
+            logger.info("🔧 About to parse Excel file with parse_xlsx...")
             draft_lines, validation_issues = parse_xlsx(temp_path, skip_validation=True)
             logger.info(f"✅ Parsed {len(draft_lines)} draft lines from linked sheet")
 

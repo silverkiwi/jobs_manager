@@ -34,7 +34,7 @@ class KPICalendarAPIView(APIView):
             if not year.isdigit() or not month.isdigit():
                 return Response(
                     {
-                        "error": f"The provided query param 'year' or 'month' is not in the correct format (not a digit). Please try again."
+                        "error": "The provided query param 'year' or 'month' is not in the correct format (not a digit). Please try again."
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )

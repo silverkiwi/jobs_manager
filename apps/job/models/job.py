@@ -428,7 +428,7 @@ class Job(models.Model):
                     JobEvent.objects.create(
                         job=self,
                         event_type="job_created",
-                        description=f"New job created",
+                        description="New job created",
                         staff=staff,
                     )
 
