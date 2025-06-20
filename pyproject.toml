@@ -83,7 +83,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 88
-target-version = ["py39"]
+target-version = ["py312"]
 exclude = '\.git|\.hg|\.mypy_cache|\.tox|\.venv|_build|buck-out|build|dist|migrations'
 
 [tool.isort]
