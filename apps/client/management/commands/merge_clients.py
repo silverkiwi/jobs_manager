@@ -13,7 +13,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--name",
             type=str,
-            help="Client name to check for duplicates. If not provided, uses shop_client_name from CompanyDefaults",
+            help="Client name to check for duplicates. If not provided, "
+            "then raise a value error",
         )
         parser.add_argument(
             "--auto",
@@ -57,7 +58,8 @@ class Command(BaseCommand):
         elif count == 1:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Only one client found with name '{client_name}' - no duplicates to fix"
+                    f"Only one client found with name '{client_name}' - "
+                    f"no duplicates to fix"
                 )
             )
             return
@@ -84,7 +86,8 @@ class Command(BaseCommand):
         primary_client = clients_with_job_counts[0][0]
         self.stdout.write(
             self.style.SUCCESS(
-                f"\nRecommended primary client: {primary_client.pk} (has {clients_with_job_counts[0][1]} jobs)"
+                f"\nRecommended primary client: {primary_client.pk} "
+                f"(has {clients_with_job_counts[0][1]} jobs)"
             )
         )
 
@@ -121,6 +124,7 @@ class Command(BaseCommand):
         )
         self.stdout.write(
             self.style.SUCCESS(
-                f"Total jobs now associated with this client: {Job.objects.filter(client=primary_client).count()}"
+                f"Total jobs now associated with this client: "
+                f"{Job.objects.filter(client=primary_client).count()}"
             )
         )
