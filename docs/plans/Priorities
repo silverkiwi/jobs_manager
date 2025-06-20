@@ -7,6 +7,3 @@ Priorities:
     6. Write a new schedule for refreshing prices in the scraper.  Regularly ordered products should be refreshed.  E.g. whenever the MCP server returns a product, add it to a products to refresh.
     7. Get a mistral API key
     8. Fix the update init script
-    9. add a config to company defaults for the AI to select a specific model, 
-        e.g. gemini-2-flash-lite-preview-06-17
-    10. The xero api refresh token should 

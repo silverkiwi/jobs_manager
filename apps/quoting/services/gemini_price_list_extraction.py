@@ -11,9 +11,9 @@ import pdfplumber
 
 from django.conf import settings
 
-from apps.workflow.helpers import get_company_defaults
 from apps.job.enums import MetalType
 from apps.workflow.enums import AIProviderTypes
+from apps.workflow.models import AIProvider
 
 logger = logging.getLogger(__name__)
 
@@ -162,22 +162,21 @@ def extract_data_from_supplier_price_list_gemini(
                                                and an error message (if any).
     """
     try:
-        company_defaults = get_company_defaults()
-        active_ai_provider = company_defaults.get_active_ai_provider()
+        default_ai_provider = AIProvider.objects.filter(default=True).first()
 
-        if not active_ai_provider:
+        if not default_ai_provider:
             return (
                 None,
                 "No active AI provider configured. Please set one in company settings.",
             )
 
-        if active_ai_provider.provider_type != AIProviderTypes.GOOGLE:
+        if default_ai_provider.provider_type != AIProviderTypes.GOOGLE:
             return (
                 None,
-                f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Google (Gemini).",
+                f"Configured AI provider is {default_ai_provider.provider_type}, but this function requires Google (Gemini).",
             )
 
-        gemini_api_key = active_ai_provider.api_key
+        gemini_api_key = default_ai_provider.api_key
 
         if not gemini_api_key:
             return (
@@ -193,7 +192,12 @@ def extract_data_from_supplier_price_list_gemini(
             temperature=0.1,  # Lower temperature for more consistent extraction
         )
         
-        model = genai.GenerativeModel("gemini-2.5-flash-lite-preview-06-17", generation_config=generation_config)
+        # Get the Gemini AI provider and model name
+        ai_provider = AIProvider.objects.filter(provider_type=AIProviderTypes.GOOGLE).first()
+        if not ai_provider or not ai_provider.model_name:
+            raise ValueError("No Gemini AI provider configured with model_name")
+        
+        model = genai.GenerativeModel(ai_provider.model_name, generation_config=generation_config)
 
         # Extract text from PDF using pdfplumber
         text_pages = []

@@ -4,7 +4,7 @@ import os
 from decimal import Decimal
 
 from django.conf import settings
-from apps.workflow.models import CompanyDefaults
+from apps.workflow.models import CompanyDefaults, AIProvider
 
 
 def get_company_defaults():

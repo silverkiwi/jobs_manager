@@ -60,7 +60,7 @@ def get_prioritized_active_providers():
     Priority order: Mistral > Claude > Gemini
     """
     company_defaults = get_company_defaults()
-    active_providers = company_defaults.ai_providers.filter(active=True, api_key__isnull=False).exclude(api_key='')
+    active_providers = company_defaults.ai_providers.filter(default=True, api_key__isnull=False).exclude(api_key='')
     
     # Define priority order (lower number = higher priority)
     priority_map = {

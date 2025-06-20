@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 import pdfplumber
 import anthropic
 
-from apps.workflow.helpers import get_company_defaults
+from apps.workflow.models import AIProvider
 from apps.workflow.enums import AIProviderTypes
 
 logger = logging.getLogger(__name__)
@@ -113,22 +113,21 @@ def extract_data_from_supplier_price_list_claude(
                                                and an error message (if any).
     """
     try:
-        company_defaults = get_company_defaults()
-        active_ai_provider = company_defaults.get_active_ai_provider()
+        default_ai_provider = AIProvider.objects.filter(default=True).first()
 
-        if not active_ai_provider:
+        if not default_ai_provider:
             return (
                 None,
                 "No active AI provider configured. Please set one in company settings.",
             )
 
-        if active_ai_provider.provider_type != AIProviderTypes.ANTHROPIC:
+        if default_ai_provider.provider_type != AIProviderTypes.ANTHROPIC:
             return (
                 None,
-                f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Anthropic (Claude).",
+                f"Configured AI provider is {default_ai_provider.provider_type}, but this function requires Anthropic (Claude).",
             )
 
-        claude_api_key = active_ai_provider.api_key
+        claude_api_key = default_ai_provider.api_key
 
         if not claude_api_key:
             return (
