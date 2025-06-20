@@ -80,6 +80,8 @@ flake8-pyproject = "^1.2.3"
 autoflake = "^2.3.1"
 autopep8 = "^2.3.2"
 ruff = "^0.12.0"
+types-requests = "^2.32.4.20250611"
+types-python-dateutil = "^2.9.0.20250516"
 
 [build-system]
 requires = ["poetry-core"]
@@ -107,7 +109,7 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 mypy_path = "./"
-exclude = "migrations|__pycache__|.tox|venv|mediafiles|.git"
+exclude = "migrations|__pycache__|.tox|venv|.venv|mediafiles|.git"
 plugins = ["mypy_django_plugin.main"]
 strict = true
 show_error_codes = true

@@ -3868,6 +3868,18 @@ trio = ">=0.11"
 wsproto = ">=0.14"
 
 [[package]]
+name = "types-python-dateutil"
+version = "2.9.0.20250516"
+description = "Typing stubs for python-dateutil"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "types_python_dateutil-2.9.0.20250516-py3-none-any.whl", hash = "sha256:2b2b3f57f9c6a61fba26a9c0ffb9ea5681c9b83e69cd897c6b5f668d9c0cab93"},
+    {file = "types_python_dateutil-2.9.0.20250516.tar.gz", hash = "sha256:13e80d6c9c47df23ad773d54b2826bd52dbbb41be87c3f339381c1700ad21ee5"},
+]
+
+[[package]]
 name = "types-pytz"
 version = "2024.2.0.20241221"
 description = "Typing stubs for pytz"
@@ -3890,6 +3902,21 @@ files = [
     {file = "types_PyYAML-6.0.12.20241230-py3-none-any.whl", hash = "sha256:fa4d32565219b68e6dee5f67534c722e53c00d1cfc09c435ef04d7353e1e96e6"},
     {file = "types_pyyaml-6.0.12.20241230.tar.gz", hash = "sha256:7f07622dbd34bb9c8b264fe860a17e0efcad00d50b5f27e93984909d9363498c"},
 ]
+
+[[package]]
+name = "types-requests"
+version = "2.32.4.20250611"
+description = "Typing stubs for requests"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "types_requests-2.32.4.20250611-py3-none-any.whl", hash = "sha256:ad2fe5d3b0cb3c2c902c8815a70e7fb2302c4b8c1f77bdcd738192cdb3878072"},
+    {file = "types_requests-2.32.4.20250611.tar.gz", hash = "sha256:741c8777ed6425830bf51e54d6abe245f79b4dcb9019f1622b773463946bf826"},
+]
+
+[package.dependencies]
+urllib3 = ">=2"
 
 [[package]]
 name = "typing-extensions"
@@ -3967,7 +3994,7 @@ version = "2.3.0"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.9"
-groups = ["main"]
+groups = ["main", "dev"]
 files = [
     {file = "urllib3-2.3.0-py3-none-any.whl", hash = "sha256:1cee9ad369867bfdbbb48b7dd50374c0967a0bb7710050facf0dd6911440e3df"},
     {file = "urllib3-2.3.0.tar.gz", hash = "sha256:f8c5449b3cf0861679ce7e0503c7b44b5ec981bec0d1d3795a07f1ba96f0204d"},
@@ -4165,4 +4192,4 @@ urllib3 = "*"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "782fa02c491eb1a8d0f257671acc252ac626a743886a7881e6c0dfa9aa76fa11"
+content-hash = "968ff012e10c9ca264c2bd1753295f2dca5e1ffadb3489432ad803cec492d685"
