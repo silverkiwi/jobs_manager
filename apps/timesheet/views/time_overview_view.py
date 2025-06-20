@@ -57,8 +57,8 @@ EXCLUDED_JOBS = [
 class TimesheetOverviewView(TemplateView):
     """View for displaying timesheet overview including staff hours, job statistics and graphics."""
 
-    template_name = "timesheet/timesheet_overview.html"    
-    
+    template_name = "timesheet/timesheet_overview.html"
+
     @classmethod
     def get_filtered_staff(cls) -> List[Staff]:
         """Get filtered staff list excluding certain staff members.
