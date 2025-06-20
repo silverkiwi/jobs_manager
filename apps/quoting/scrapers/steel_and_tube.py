@@ -156,7 +156,8 @@ class SteelAndTubeScraper(BaseScraper):
                 return [
                     {
                         "product_name": "Page Not Found",
-                        "item_no": f"404-{url.split('/')[-1][-7:]}",  # Use last 7 chars of URL as item number
+                        # Use last 7 chars of URL as item number
+                        "item_no": f"404-{url.split('/')[-1][-7:]}",
                         "description": "Page not found (404)",
                         "specifications": "N/A",
                         "variant_id": f"404-{url.split('/')[-1]}",
