@@ -6,19 +6,16 @@ from decimal import Decimal
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from apps.accounting.models import BillLineItem
-from apps.workflow.models import XeroJournal, XeroJournalLineItem
-
-from apps.client.models import Client
-
 from apps.accounting.models import (
     Bill,
+    BillLineItem,
     CreditNote,
     CreditNoteLineItem,
     Invoice,
     InvoiceLineItem,
 )
-from apps.workflow.models import XeroAccount
+from apps.client.models import Client
+from apps.workflow.models import XeroAccount, XeroJournal, XeroJournalLineItem
 
 logger = logging.getLogger("xero")
 
@@ -175,12 +172,12 @@ def set_client_fields(client, new_from_xero=False):
     xero_contact_id_from_json = raw_json.get("_contact_id")
     if xero_contact_id_from_json:
         client.xero_contact_id = xero_contact_id_from_json
-    
+
     # Check for archived/merged status from raw_json
     contact_status = raw_json.get("_contact_status", "ACTIVE")
     if contact_status == "ARCHIVED":
         client.xero_archived = True
-        
+
     # Check for merge information
     merged_to_contact_id = raw_json.get("_merged_to_contact_id")
     if merged_to_contact_id:
@@ -241,7 +238,6 @@ def set_client_fields(client, new_from_xero=False):
             client.xero_last_modified = client.xero_last_modified or timezone.now()
     else:
         client.xero_last_modified = client.xero_last_modified or timezone.now()
-
 
     client.xero_last_synced = timezone.now()
     client.save()

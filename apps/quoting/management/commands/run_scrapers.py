@@ -1,9 +1,11 @@
 # quoting/management/commands/run_scrapers.py
-import os
 import importlib
 import inspect
 import logging
+import os
+
 from django.core.management.base import BaseCommand
+
 from apps.client.models import Supplier
 
 logger = logging.getLogger(__name__)
@@ -95,7 +97,9 @@ class Command(BaseCommand):
 
                 try:
                     # Import the module
-                    module = importlib.import_module(f"apps.quoting.scrapers.{module_name}")
+                    module = importlib.import_module(
+                        f"apps.quoting.scrapers.{module_name}"
+                    )
 
                     # Look for classes that end with 'Scraper' (except BaseScraper)
                     for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -168,11 +172,15 @@ class Command(BaseCommand):
         # Hardcoded supplier mappings
         if scraper_class_name == "SteelAndTubeScraper":
             try:
-                supplier = Supplier.objects.get(xero_contact_id="92bd100c-b0e5-45e7-84d9-1ed883050353")
+                supplier = Supplier.objects.get(
+                    xero_contact_id="92bd100c-b0e5-45e7-84d9-1ed883050353"
+                )
                 logger.info(f"Found supplier by hardcoded Xero ID: {supplier.name}")
                 return supplier
             except Supplier.DoesNotExist:
-                logger.error("S&T Stainless Limited supplier not found with Xero ID 92bd100c-b0e5-45e7-84d9-1ed883050353")
+                logger.error(
+                    "S&T Stainless Limited supplier not found with Xero ID 92bd100c-b0e5-45e7-84d9-1ed883050353"
+                )
                 return None
 
         # Otherwise, try to match by scraper name to supplier name

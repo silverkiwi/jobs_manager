@@ -33,7 +33,7 @@ class AdjustmentEntry(models.Model):
     )
     is_quote_adjustment = models.BooleanField(
         default=False,
-        help_text="True if this adjustment was automatically created to match quoted revenue"
+        help_text="True if this adjustment was automatically created to match quoted revenue",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

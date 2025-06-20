@@ -4,13 +4,10 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 
-from apps.workflow.models import CompanyDefaults
-
-from apps.job.models import Job, JobPricing, AdjustmentEntry, MaterialEntry
-
-from apps.timesheet.models import TimeEntry
-
 from apps.accounts.models import Staff
+from apps.job.models import AdjustmentEntry, Job, JobPricing, MaterialEntry
+from apps.timesheet.models import TimeEntry
+from apps.workflow.models import CompanyDefaults
 
 logger = logging.getLogger(__name__)
 

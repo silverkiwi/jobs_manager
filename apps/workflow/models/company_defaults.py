@@ -27,11 +27,31 @@ class CompanyDefaults(models.Model):
         help_text="Prefix for purchase order numbers (e.g., PO-, JO-)",
     )
 
-    # Quote templates
+    # Google Sheets integration for Job Quotes
     master_quote_template_url = models.URLField(
         null=True,
         blank=True,
         help_text="URL to the master Google Sheets quote template",
+    )
+
+    master_quote_template_id = models.CharField(
+        null=True,
+        blank=True,
+        help_text="Google Sheets ID for the quote template",
+        max_length=100,
+    )
+
+    gdrive_quotes_folder_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="URL to the Google Drive folder for storing quotes",
+    )
+
+    gdrive_quotes_folder_id = models.CharField(
+        null=True,
+        blank=True,
+        help_text="Google Drive folder ID for storing quotes",
+        max_length=100,
     )
 
     # Xero integration
@@ -121,15 +141,14 @@ class CompanyDefaults(models.Model):
         with transaction.atomic():
             return cls.objects.get()
 
-    def get_active_ai_provider(self):
-        return self.ai_providers.filter(active=True).first()
-
     @property
     def llm_api_key(self):
         """
         Returns the API key of the active LLM provider.
         """
-        active_provider = self.get_active_ai_provider()
+        from .ai_provider import AIProvider
+
+        active_provider = AIProvider.objects.filter(default=True).first()
         return active_provider.api_key if active_provider else None
 
     def __str__(self):

@@ -7,13 +7,12 @@ from urllib.parse import urlencode
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from xero_python.accounting import AccountingApi
 from xero_python.api_client import ApiClient, Configuration
 from xero_python.api_client.oauth2 import OAuth2Token, TokenApi
 from xero_python.identity import IdentityApi
-from xero_python.accounting import AccountingApi
 
-from apps.workflow.models import XeroToken
-from apps.workflow.models import CompanyDefaults
+from apps.workflow.models import CompanyDefaults, XeroToken
 
 logger = logging.getLogger("xero")
 
@@ -155,7 +154,7 @@ def refresh_token() -> Optional[Dict[str, Any]]:
     # Log the current token state
     current_expiry = datetime.fromtimestamp(token["expires_at"], tz=timezone.utc)
     current_token = token["access_token"][:10] + "..."
-    logger.debug(f"Current token before refresh:")
+    logger.debug("Current token before refresh:")
     logger.debug(f"  Access token: {current_token}")
     logger.debug(f"  Expires at: {current_expiry}")
 

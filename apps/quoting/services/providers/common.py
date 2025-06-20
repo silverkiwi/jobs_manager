@@ -107,19 +107,19 @@ def clean_json_response(text: str) -> str:
 
 def log_token_usage(usage, api_name):
     """Log token usage from AI API response."""
-    if hasattr(usage, 'input_tokens'):
+    if hasattr(usage, "input_tokens"):
         input_tokens = usage.input_tokens
         output_tokens = usage.output_tokens
-    elif hasattr(usage, 'prompt_tokens'):
+    elif hasattr(usage, "prompt_tokens"):
         input_tokens = usage.prompt_tokens
         output_tokens = usage.completion_tokens
     elif isinstance(usage, dict):
-        input_tokens = usage.get('prompt_tokens', 0)
-        output_tokens = usage.get('completion_tokens', 0)
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
     else:
         input_tokens = 0
         output_tokens = 0
-    
+
     total_tokens = input_tokens + output_tokens
 
     logger.info(

@@ -1,11 +1,12 @@
 import logging
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.utils import timezone
 from decimal import Decimal
 
-from apps.quoting.models import ProductParsingMapping
+from django.http import HttpResponseBadRequest, JsonResponse
+from django.shortcuts import render
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+
+from apps.quoting.models import ProductParsingMapping, SupplierProduct
 
 logger = logging.getLogger(__name__)
 
@@ -15,15 +16,17 @@ def product_mapping_validation(request):
     Modern interface for validating product parsing mappings.
     """
     # Get all mappings, prioritizing unvalidated ones first
-    all_mappings = list(ProductParsingMapping.objects.filter(
-        is_validated=False
-    ).order_by("-created_at"))  # Unvalidated first
-    
+    all_mappings = list(
+        ProductParsingMapping.objects.filter(is_validated=False).order_by("-created_at")
+    )  # Unvalidated first
+
     # Add validated mappings for context
-    validated_mappings = list(ProductParsingMapping.objects.filter(
-        is_validated=True
-    ).order_by("-validated_at"))
-    
+    validated_mappings = list(
+        ProductParsingMapping.objects.filter(is_validated=True).order_by(
+            "-validated_at"
+        )
+    )
+
     # Combine all mappings
     all_mappings.extend(validated_mappings)
 
@@ -88,8 +91,10 @@ def validate_mapping(request, mapping_id):
         if unit_cost:
             try:
                 mapping.mapped_unit_cost = Decimal(unit_cost)
-            except:
-                pass
+            except (ValueError, TypeError) as e:
+                return HttpResponseBadRequest(
+                    f"Invalid unit cost format: {unit_cost}. Error: {str(e)}"
+                )
 
         mapping.mapped_price_unit = request.POST.get(
             "mapped_price_unit", mapping.mapped_price_unit
@@ -100,8 +105,30 @@ def validate_mapping(request, mapping_id):
 
         mapping.save()
 
+        # Backflow: Update all SupplierProducts that use this mapping
+        supplier_products = SupplierProduct.objects.filter(
+            mapping_hash=mapping.input_hash
+        )
+        update_count = supplier_products.update(
+            parsed_item_code=mapping.mapped_item_code,
+            parsed_description=mapping.mapped_description,
+            parsed_metal_type=mapping.mapped_metal_type,
+            parsed_alloy=mapping.mapped_alloy,
+            parsed_specifics=mapping.mapped_specifics,
+            parsed_dimensions=mapping.mapped_dimensions,
+            parsed_unit_cost=mapping.mapped_unit_cost,
+            parsed_price_unit=mapping.mapped_price_unit,
+        )
+
+        logger.info(
+            f"Updated {update_count} SupplierProducts with validated mapping {mapping_id}"
+        )
+
         return JsonResponse(
-            {"success": True, "message": "Mapping validated successfully"}
+            {
+                "success": True,
+                "message": f"Mapping validated successfully. Updated {update_count} related products.",
+            }
         )
 
     except ProductParsingMapping.DoesNotExist:

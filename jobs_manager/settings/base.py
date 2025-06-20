@@ -1,8 +1,7 @@
-from datetime import timedelta
 import os
+from datetime import timedelta
 from pathlib import Path
 
-from concurrent_log_handler import ConcurrentRotatingFileHandler
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -14,6 +13,7 @@ AUTH_USER_MODEL = "accounts.Staff"
 # Application definition
 
 INSTALLED_APPS = [
+    "corsheaders",
     "crispy_forms",
     "crispy_bootstrap5",
     "django_apscheduler",
@@ -44,6 +44,7 @@ INSTALLED_APPS = [
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -58,8 +59,8 @@ MIDDLEWARE = [
 
 # JWT/general authentication settings
 
-ENABLE_JWT_AUTH = False
-ENABLE_DUAL_AUTHENTICATION = True
+ENABLE_JWT_AUTH = True
+ENABLE_DUAL_AUTHENTICATION = False
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [],
@@ -102,11 +103,25 @@ LOGIN_REDIRECT_URL = "/"
 LOGIN_EXEMPT_URLS = [
     "accounts:login",
     "accounts:logout",
+    "accounts:api_logout",
     "accounts:password_reset",
     "accounts:password_reset_done",
     "accounts:reset",
     "accounts:password_reset_confirm",
     "accounts:password_reset_complete",
+    "accounts:token_obtain_pair",
+    "accounts:token_refresh",
+    "accounts:token_verify",
+    "api/",  # Exempt all API endpoints from session authentication
+    "accounts/api/",  # Include accounts API endpoints
+    "accounts/me/",  # Include user info endpoint
+    "accounts/logout/",  # Include logout API endpoint explicitly
+    "clients/rest/",  # Include client REST endpoints
+    "clients/api/",  # Include client API endpoints
+    "job/rest/",  # Include job REST endpoints
+    "job/api/",  # Include job API endpoints
+    "rest/",  # Include all REST endpoints
+    "timesheets/api/",  # Include timesheet API endpoints
     "xero_webhook",
 ]
 
@@ -276,7 +291,12 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(os.getenv("REDIS_HOST", "127.0.0.1"), int(os.getenv("REDIS_PORT", 6379)))],
+            "hosts": [
+                (
+                    os.getenv("REDIS_HOST", "127.0.0.1"),
+                    int(os.getenv("REDIS_PORT", 6379)),
+                )
+            ],
         },
     },
 }
@@ -377,7 +397,13 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Load SECRET_KEY from environment - critical security requirement
 SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "SECRET_KEY environment variable must be set. "
+        "Generate one using: from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+    )
 
 # ===========================
 # CUSTOM SETTINGS

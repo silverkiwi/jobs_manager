@@ -1,14 +1,15 @@
 import logging
 import os
 import sys
+
 from django.apps import AppConfig
 from django.conf import settings
 
 # Import standalone job functions
 from apps.workflow.scheduler_jobs import (
+    xero_30_day_sync_job,
     xero_heartbeat_job,
     xero_regular_sync_job,
-    xero_30_day_sync_job,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,8 +36,10 @@ class WorkflowConfig(AppConfig):
         # ── guard #2: skip all ad-hoc manage.py commands ──────────────────
         if sys.argv[0].endswith("manage.py"):
             cmd = sys.argv[1] if len(sys.argv) > 1 else ""
-            if cmd not in {"runserver"}:          # list any long-running cmds you *do* want
-                logger.info("Skipping APScheduler setup inside manage.py %s", cmd or "<no-cmd>")
+            if cmd not in {"runserver"}:  # list any long-running cmds you *do* want
+                logger.info(
+                    "Skipping APScheduler setup inside manage.py %s", cmd or "<no-cmd>"
+                )
                 return
 
         # Only start the scheduler if it hasn't been started already
@@ -71,11 +74,14 @@ class WorkflowConfig(AppConfig):
             )
             logger.info("Added 'xero_heartbeat' job to scheduler.")
 
-            # Xero Regular Sync: Perform full Xero synchronization every 1 hour
+            # Xero Regular Sync: Perform full Xero synchronization weekly on Saturdays
             scheduler.add_job(
                 xero_regular_sync_job,  # Use standalone function
-                trigger="interval",
-                hours=1,
+                trigger="cron",
+                day_of_week="sat",  # Saturday
+                hour=1,  # 1 AM
+                minute=0,
+                timezone="Pacific/Auckland",  # Explicitly set NZT
                 id="xero_regular_sync",
                 max_instances=1,
                 replace_existing=True,

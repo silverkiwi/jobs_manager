@@ -40,7 +40,6 @@ import debug_toolbar
 from django.urls import include, path
 from django.views.generic import RedirectView
 
-from apps.workflow.api import server
 from apps.workflow.api.enums import get_enum_choices
 from apps.workflow.views.xero import xero_view
 from apps.workflow.xero_webhooks import XeroWebhookView
@@ -48,7 +47,6 @@ from apps.workflow.xero_webhooks import XeroWebhookView
 urlpatterns = [
     # Redirect to Kanban board
     path("", RedirectView.as_view(url="/kanban/"), name="home"),
-    path("api/get-env-variable/", server.get_env_variable, name="get_env_variable"),
     path("api/enums/<str:enum_name>/", get_enum_choices, name="get_enum_choices"),
     path(
         "api/xero/authenticate/",

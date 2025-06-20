@@ -1,12 +1,12 @@
-import logging
 import json
-import base64
+import logging
 from typing import Optional, Tuple
-import pdfplumber
-import anthropic
 
-from apps.workflow.helpers import get_company_defaults
+import anthropic
+import pdfplumber
+
 from apps.workflow.enums import AIProviderTypes
+from apps.workflow.models import AIProvider
 
 logger = logging.getLogger(__name__)
 
@@ -113,22 +113,21 @@ def extract_data_from_supplier_price_list_claude(
                                                and an error message (if any).
     """
     try:
-        company_defaults = get_company_defaults()
-        active_ai_provider = company_defaults.get_active_ai_provider()
+        default_ai_provider = AIProvider.objects.filter(default=True).first()
 
-        if not active_ai_provider:
+        if not default_ai_provider:
             return (
                 None,
                 "No active AI provider configured. Please set one in company settings.",
             )
 
-        if active_ai_provider.provider_type != AIProviderTypes.ANTHROPIC:
+        if default_ai_provider.provider_type != AIProviderTypes.ANTHROPIC:
             return (
                 None,
-                f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Anthropic (Claude).",
+                f"Configured AI provider is {default_ai_provider.provider_type}, but this function requires Anthropic (Claude).",
             )
 
-        claude_api_key = active_ai_provider.api_key
+        claude_api_key = default_ai_provider.api_key
 
         if not claude_api_key:
             return (
@@ -146,25 +145,20 @@ def extract_data_from_supplier_price_list_claude(
                 if not page_text:
                     return None, f"Failed to extract text from page {page_num} of PDF"
                 text_pages.append(page_text)
-        
+
         extracted_text = "\n\n".join(text_pages)
         logger.info(f"Extracted {len(extracted_text)} characters from PDF")
-        
+
         # Send extracted text to Claude
         prompt = create_supplier_extraction_prompt()
         full_prompt = f"{prompt}\n\nExtracted text from PDF:\n{extracted_text}"
 
         logger.info(f"Calling Claude API for price list extraction: {file_path}")
-        
+
         message = client.messages.create(
             model="claude-3-5-sonnet-20241022",
             max_tokens=8192,
-            messages=[
-                {
-                    "role": "user",
-                    "content": full_prompt
-                }
-            ]
+            messages=[{"role": "user", "content": full_prompt}],
         )
 
         if not message.content:
@@ -172,7 +166,7 @@ def extract_data_from_supplier_price_list_claude(
 
         # Extract JSON from response
         json_text = message.content[0].text if message.content else ""
-        
+
         price_list_data = json.loads(clean_json_response(json_text))
 
         return price_list_data, None

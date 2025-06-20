@@ -1,18 +1,19 @@
 import json
 import logging
 from decimal import Decimal, InvalidOperation
+from uuid import UUID
 
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import JsonResponse, Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
 
-from apps.workflow.models import CompanyDefaults
-from apps.purchasing.models import Stock
-from apps.job.models import Job, JobPricing, MaterialEntry
 from apps.job.enums import JobPricingStage
+from apps.job.models import Job, JobPricing, MaterialEntry
 from apps.job.utils import get_active_jobs
+from apps.purchasing.models import Stock
+from apps.workflow.models import CompanyDefaults
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +68,9 @@ def use_stock_view(request, job_id=None):
         )
 
     # If job_id is provided, get the job object to pass to the template
-    default_job = None
     if job_id:
-        try:
-            default_job = next(
-                (job for job in active_jobs if str(job.id) == str(job_id)), None
-            )
-        except Exception as e:
-            logger.error(f"Error finding job with ID {job_id}: {e}")
-            # redirect to the error page here
+        target_id = UUID(job_id)
+        job = next(j for j in active_jobs if j.id == target_id)  # StopIteration if none
 
     context = {
         "title": "Use Stock",
