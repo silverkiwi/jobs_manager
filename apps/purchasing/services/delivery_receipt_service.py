@@ -251,8 +251,8 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                         )
                         logger.info(
                             f"""
-                            Created Material entry {material_entry.id} for line {line.id}, 
-                            allocated to Job {target_job.id}, qty {alloc_qty}, 
+                            Created Material entry {material_entry.id} for line {line.id},
+                            allocated to Job {target_job.id}, qty {alloc_qty},
                             retail rate {retail_rate:.2%}.
                             """.strip()
                         )
