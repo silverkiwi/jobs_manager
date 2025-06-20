@@ -21,8 +21,6 @@ from apps.job.models import Job
 from apps.job.serializers.costing_serializer import CostSetSerializer
 from apps.job.services.import_quote_service import (
     QuoteImportError,
-    import_quote_from_file,
-    preview_quote_import,
     serialize_validation_report,
 )
 
