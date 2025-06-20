@@ -23,7 +23,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
     1. Validates the submitted allocation data for each PO line.
     2. Updates the received quantity on each PurchaseOrderLine.
     3. Deletes any previous Stock entries originating from these PO lines for this PO.
-    4. Creates new Stock entries based on the provided allocations 
+    4. Creates new Stock entries based on the provided allocations
        (linking to target jobs or stock holding job).
     5. Updates the overall PurchaseOrder status.
 
@@ -43,7 +43,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
         bool: True if successful.
 
     Raises:
-        DeliveryReceiptValidationError: If validation fails 
+        DeliveryReceiptValidationError: If validation fails
             (e.g., allocation mismatch, invalid job ID).
         PurchaseOrder.DoesNotExist: If the purchase_order_id is invalid.
         PurchaseOrderLine.DoesNotExist: If a line_id in the input is invalid.
@@ -62,9 +62,9 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
             )
             logger.debug(f"Found PO {purchase_order.po_number}")
 
-            # Log unexpected PO statuses but proceed 
+            # Log unexpected PO statuses but proceed
             # (unless DoesNotExist error occurred)
-            # Errors for draft/void should ideally be caught 
+            # Errors for draft/void should ideally be caught
             # before reaching this service
             if purchase_order.status not in [
                 "submitted",
@@ -72,11 +72,11 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                 "fully_received",
             ]:
                 logger.warning(
-                    (
-                        f"Processing delivery receipt for PO {purchase_order.po_number} "
-                        f"which has an unexpected status: {purchase_order.status}. "
-                        "This might indicate an issue elsewhere."
-                    )
+                    f"""
+                    Processing delivery receipt for PO {purchase_order.po_number} 
+                    with unexpected status: {purchase_order.status}. 
+                    This might indicate an issue elsewhere.
+                    """.strip()
                 )
 
             processed_line_ids = set(line_allocations.keys())
@@ -141,16 +141,19 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                         job_id = alloc.get("jobId")
                         if alloc_qty < 0:
                             raise DeliveryReceiptValidationError(
-                                f"Negative allocation quantity not allowed for line {line.id}."
+                                f"Negative allocation quantity not allowed for "
+                                f"line {line.id}."
                             )
                         if alloc_qty > 0:  # Only process non-zero allocations
                             if not job_id:
                                 raise DeliveryReceiptValidationError(
-                                    f"Missing job ID for non-zero allocation quantity on line {line.id}."
+                                    f"Missing job ID for non-zero allocation quantity "
+                                    f"on line {line.id}."
                                 )
                             if job_id not in jobs:
                                 raise DeliveryReceiptValidationError(
-                                    f"Invalid job ID '{job_id}' in allocation for line {line.id}."
+                                    f"Invalid job ID '{job_id}' in allocation "
+                                    f"for line {line.id}."
                                 )
                             calculated_allocation_sum += alloc_qty
                             valid_allocations.append(
@@ -167,10 +170,15 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                         )
 
                 # Validate sum vs total
-                if abs(calculated_allocation_sum - total_received) > Decimal("0.001"):
+                allocation_diff = abs(calculated_allocation_sum - total_received)
+                if allocation_diff > Decimal("0.001"):
                     raise DeliveryReceiptValidationError(
-                        f"Allocation quantity mismatch for line '{line.description}' (Line ID: {line.id}). "
-                        f"Total Received: {total_received}, Sum of Allocations: {calculated_allocation_sum}."
+                        f"""
+                        Allocation quantity mismatch for line '{line.description}' 
+                        (Line ID: {line.id}). 
+                        Total Received: {total_received}, 
+                        Sum of Allocations: {calculated_allocation_sum}.
+                        """.strip()
                     )
 
                 # --- Passed Validation - Update Database ---
@@ -180,7 +188,8 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                 ).delete()
                 if deleted_count > 0:
                     logger.debug(
-                        f"Deleted {deleted_count} existing stock entries for line {line.id}."
+                        f"Deleted {deleted_count} existing stock entries "
+                        f"for line {line.id}."
                     )
 
                 # Update PO Line received quantity
@@ -202,7 +211,8 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                         unit_revenue = line.unit_cost * Decimal(1.0 + retail_rate)
                     except TypeError:
                         raise DeliveryReceiptValidationError(
-                            "Price not confirmed for line, can't save the material to a job."
+                            "Price not confirmed for line, "
+                            "can't save the material to a job."
                         )
 
                     if str(job_id) == str(STOCK_HOLDING_JOB_ID):
@@ -225,7 +235,10 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                             notes=f"Received from PO {purchase_order.po_number}",
                         )
                         logger.info(
-                            f"Created Stock entry {stock_item.id} for line {line.id}, allocated to Job {target_job.id}, qty {alloc_qty}."
+                            f"""
+                            Created Stock entry {stock_item.id} for line {line.id}, 
+                            allocated to Job {target_job.id}, qty {alloc_qty}.
+                            """.strip()
                         )
                     else:
                         material_entry = MaterialEntry.objects.create(
@@ -237,7 +250,11 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                             purchase_order_line=line,
                         )
                         logger.info(
-                            f"Created Material entry {material_entry.id} for line {line.id}, allocated to Job {target_job.id}, qty {alloc_qty}, retail rate {retail_rate:.2%}."
+                            f"""
+                            Created Material entry {material_entry.id} for line {line.id}, 
+                            allocated to Job {target_job.id}, qty {alloc_qty}, 
+                            retail rate {retail_rate:.2%}.
+                            """.strip()
                         )
 
             # --- Update Overall PO Status ---
@@ -250,7 +267,10 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
             )
 
             logger.debug(
-                f"Updating PO status - Current Total Received: {current_total_received}, Current Total Ordered: {current_total_ordered}"
+                f"""
+                Updating PO status - Current Total Received: {current_total_received}, 
+                Current Total Ordered: {current_total_ordered}
+                """.strip()
             )
             new_status = purchase_order.status  # Default to current
             if current_total_received <= 0:
@@ -265,25 +285,30 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                 purchase_order.status = new_status
                 purchase_order.save(update_fields=["status"])
                 logger.debug(
-                    f"Set PO {purchase_order.po_number} status to {purchase_order.status}"
+                    f"Set PO {purchase_order.po_number} status "
+                    f"to {purchase_order.status}"
                 )
             else:
                 logger.debug(
-                    f"PO {purchase_order.po_number} status remains {purchase_order.status}"
+                    f"PO {purchase_order.po_number} status "
+                    f"remains {purchase_order.status}"
                 )
 
             logger.info(
-                f"Successfully processed delivery receipt allocations for PO {purchase_order.po_number}"
+                f"Successfully processed delivery receipt allocations "
+                f"for PO {purchase_order.po_number}"
             )
             return True
 
     except DeliveryReceiptValidationError as ve:
         logger.error(
-            f"Validation Error processing delivery receipt for PO {purchase_order_id}: {ve}"
+            f"Validation Error processing delivery receipt "
+            f"for PO {purchase_order_id}: {ve}"
         )
         raise  # Re-raise validation errors to be caught by the view
     except Exception as e:
         logger.exception(
-            f"Unexpected Error processing delivery receipt for PO {purchase_order_id}: {str(e)}"
+            f"Unexpected Error processing delivery receipt "
+            f"for PO {purchase_order_id}: {str(e)}"
         )
         raise Exception(f"An unexpected error occurred: {str(e)}")
