@@ -289,7 +289,8 @@ class KPIService:
         cls._ensure_shop_client_id()
         thresholds = cls.get_company_thresholds()
         logger.debug(
-            f"Using thresholds: green={thresholds['billable_threshold_green']}, amber={thresholds['billable_threshold_amber']}"
+            f"Using thresholds: green={thresholds['billable_threshold_green']}, "
+            f"amber={thresholds['billable_threshold_amber']}"
         )
 
         start_date, end_date, _ = cls.get_month_days_range(year, month)

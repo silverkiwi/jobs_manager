@@ -16,7 +16,8 @@ from apps.job.models import AdjustmentEntry, Job, JobPricing, MaterialEntry
 from apps.timesheet.models import TimeEntry
 from apps.workflow.models import CompanyDefaults
 
-STOCK_CLIENT_ID = "00000000-0000-0000-0000-000000000001" # TODO: Change to a proper import
+STOCK_CLIENT_ID = "00000000-0000-0000-0000-000000000001"  
+# TODO: Change to a proper import: Client.get_shop_client_id()
 
 class Command(BaseCommand):
     help = (
@@ -171,7 +172,8 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR("No job pricings found"))
                 return
 
-            # Get shop job pricings for non-billable work (using client_id instead of shop_job)
+            # Get shop job pricings for non-billable work (using client_id instead
+            # of shop_job)
             shop_job_pricings = [
                 jp
                 for jp in job_pricings
@@ -242,11 +244,13 @@ class Command(BaseCommand):
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Successfully created {total_entries} mock entries for {calendar.month_name[month]} {year}\n"
+                    f"Successfully created {total_entries} mock entries for "
+                    f"{calendar.month_name[month]} {year}\n"
                     f"- Green days: {good_days}\n"
                     f"- Amber days: {medium_days}\n"
                     f"- Red days: {bad_days}\n"
-                    f"KPI thresholds: Green ≥ {green_threshold}, Amber ≥ {amber_threshold}"
+                    f"KPI thresholds: Green ≥ {green_threshold}, "
+                    f"Amber ≥ {amber_threshold}"
                 )
             )
 
@@ -277,7 +281,8 @@ class Command(BaseCommand):
         if not shop_client_exists:
             self.stdout.write(
                 self.style.WARNING(
-                    "Shop client not found. Please run `python manage.py create_shop_jobs` first"
+                    "Shop client not found. Please run "
+                    "`python manage.py create_shop_jobs` first"
                 )
             )
             self.stdout.write(self.style.WARNING("Creating dummy data for testing..."))
@@ -734,7 +739,8 @@ class Command(BaseCommand):
                         )
                         entries_created += 1
 
-                # Create non-billable entries if we have non-billable hours and shop jobs
+                # Create non-billable entries if we have non-billable hours and
+                # shop jobs
                 if non_billable_hours > 0 and shop_job_pricings:
                     # Pick 1-2 shop jobs
                     num_jobs = min(random.randint(1, 2), len(shop_job_pricings))
