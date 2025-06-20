@@ -12,216 +12,58 @@ import logging
 
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.job.models import Job
 from apps.job.serializers.costing_serializer import CostSetSerializer
-from apps.job.services.import_quote_service import (
-    QuoteImportError,
-    serialize_validation_report,
-)
 
 logger = logging.getLogger(__name__)
 
 
 class QuoteImportPreviewView(APIView):
     """
-    Preview quote import changes without actually importing.
+    DEPRECATED: Excel import functionality has been removed.
+    Use Google Sheets integration instead via /quote/sync/ endpoints.
 
     POST /jobs/<job_id>/quote/import/preview/
     """
 
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, job_id):
-        """Preview quote import from uploaded file"""
-        # Early return: validate job exists
-        job = get_object_or_404(Job, pk=job_id)
-
-        # Early return: validate file upload
-        if "file" not in request.FILES:
-            return Response(
-                {"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        uploaded_file = request.FILES["file"]
-
-        # Early return: validate file type
-        if not uploaded_file.name.endswith((".xlsx", ".xls")):
-            return Response(
-                {"error": "Only Excel files (.xlsx, .xls) are supported"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            # Save uploaded file temporarily
-            import os
-            import tempfile
-
-            temp_dir = tempfile.gettempdir()
-            temp_path = os.path.join(temp_dir, f"quote_preview_{uploaded_file.name}")
-
-            with open(temp_path, "wb+") as destination:
-                for chunk in uploaded_file.chunks():
-                    destination.write(chunk)
-
-            # Preview the import
-            preview_data = preview_quote_import(job, temp_path)
-
-            # Clean up temp file
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-
-            # Format response
-            response_data = {
-                "job_id": str(job.id),
-                "job_name": job.name,
-                "preview": preview_data,
-            }
-
-            return Response(response_data, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            logger.error(f"Error previewing quote import for job {job_id}: {str(e)}")
-            return Response(
-                {"error": f"Preview failed: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        """Return deprecation notice"""
+        return Response(
+            {
+                "error": "Excel import functionality has been removed. Please use Google Sheets integration instead.",
+                "deprecated": True,
+                "alternative": f"/jobs/{job_id}/quote/sync/preview/"
+            },
+            status=status.HTTP_410_GONE
+        )
 
 
 class QuoteImportView(APIView):
     """
-    Import quote from spreadsheet file.
+    DEPRECATED: Excel import functionality has been removed.
+    Use Google Sheets integration instead via /quote/sync/ endpoints.
 
     POST /jobs/<job_id>/quote/import/
     """
 
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, job_id):
-        """Import quote from uploaded file"""
-        # Early return: validate job exists
-        job = get_object_or_404(Job, pk=job_id)
-
-        # Early return: validate file upload
-        if "file" not in request.FILES:
-            return Response(
-                {"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        uploaded_file = request.FILES["file"]
-
-        # Early return: validate file type
-        if not uploaded_file.name.endswith((".xlsx", ".xls")):
-            return Response(
-                {"error": "Only Excel files (.xlsx, .xls) are supported"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        # Get options from request
-        skip_validation = request.data.get("skip_validation", "false").lower() == "true"
-
-        try:
-            # Save uploaded file temporarily
-            import os
-            import tempfile
-
-            temp_dir = tempfile.gettempdir()
-            temp_path = os.path.join(temp_dir, f"quote_import_{uploaded_file.name}")
-
-            with open(temp_path, "wb+") as destination:
-                for chunk in uploaded_file.chunks():
-                    destination.write(chunk)
-
-            # Import the quote
-            result = import_quote_from_file(
-                job, temp_path, skip_validation=skip_validation
-            )
-
-            # Clean up temp file
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-
-            # Format response based on result
-            if result.success:
-                response_data = {
-                    "success": True,
-                    "message": "Quote imported successfully",
-                    "job_id": str(job.id),
-                    "cost_set": (
-                        CostSetSerializer(result.cost_set).data
-                        if result.cost_set
-                        else None
-                    ),
-                    "changes": {
-                        "additions": (
-                            len(result.diff_result.to_add) if result.diff_result else 0
-                        ),
-                        "updates": (
-                            len(result.diff_result.to_update)
-                            if result.diff_result
-                            else 0
-                        ),
-                        "deletions": (
-                            len(result.diff_result.to_delete)
-                            if result.diff_result
-                            else 0
-                        ),
-                    },
-                }
-                # Add validation report if available
-                if result.validation_report:
-                    serialized_report = serialize_validation_report(
-                        result.validation_report
-                    )
-                    response_data["validation"] = {
-                        "warnings_count": len(serialized_report.get("warnings", [])),
-                        "has_warnings": len(serialized_report.get("warnings", [])) > 0,
-                    }
-
-                return Response(response_data, status=status.HTTP_201_CREATED)
-            else:
-                # Import failed
-                response_data = {
-                    "success": False,
-                    "error": result.error_message,
-                    "job_id": str(job.id),
-                }
-                # Add validation details if available
-                if result.validation_report:
-                    serialized_report = serialize_validation_report(
-                        result.validation_report
-                    )
-                    response_data["validation"] = {
-                        "errors_count": len(serialized_report.get("errors", [])),
-                        "critical_count": len(
-                            [
-                                issue
-                                for issue in serialized_report.get("issues", [])
-                                if issue.get("severity") == "error"
-                            ]
-                        ),
-                        "can_proceed": serialized_report.get("can_proceed", False),
-                    }
-
-                return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-
-        except QuoteImportError as e:
-            logger.error(f"Quote import error for job {job_id}: {str(e)}")
-            return Response(
-                {"error": str(e), "job_id": str(job.id)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except Exception as e:
-            logger.error(f"Unexpected error importing quote for job {job_id}: {str(e)}")
-            return Response(
-                {"error": f"Import failed: {str(e)}", "job_id": str(job.id)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        """Return deprecation notice"""
+        return Response(
+            {
+                "error": "Excel import functionality has been removed. Please use Google Sheets integration instead.",
+                "deprecated": True,
+                "alternative": f"/jobs/{job_id}/quote/sync/apply/"
+            },
+            status=status.HTTP_410_GONE
+        )
 
 
 class QuoteImportStatusView(APIView):
