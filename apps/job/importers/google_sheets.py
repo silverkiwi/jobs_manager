@@ -183,7 +183,7 @@ def copy_file(
         template_id: Source file ID to copy
         name: Name for the copied file
         parent_id: Optional parent folder ID
-        make_public_editable: If True (default), grants 
+        make_public_editable: If True (default), grants
             "anyone with link can edit" permissions
 
     Returns:
@@ -474,9 +474,7 @@ def populate_sheet_from_costset(sheet_id: str, costset) -> None:
             target_sheet_name = first_sheet["properties"]["title"]
 
         if target_sheet_id is None:
-            raise RuntimeError(
-                "No sheets found in the spreadsheet"
-            )
+            raise RuntimeError("No sheets found in the spreadsheet")
 
         logger.info(
             f"Populating sheet '{target_sheet_name}' (ID: {target_sheet_id}) "

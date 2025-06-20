@@ -330,7 +330,7 @@ def AddClient(request):
                     # Get client info from existing contact
                     xero_client = existing_contacts.contacts[0]
                     xero_contact_id = getattr(xero_client, "contact_id", "")
-                    client_name = form.cleaned_data['name']
+                    client_name = form.cleaned_data["name"]
 
                     # Return error with the existing client info
                     return JsonResponse(

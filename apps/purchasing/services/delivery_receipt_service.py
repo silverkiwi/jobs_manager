@@ -23,7 +23,8 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
     1. Validates the submitted allocation data for each PO line.
     2. Updates the received quantity on each PurchaseOrderLine.
     3. Deletes any previous Stock entries originating from these PO lines for this PO.
-    4. Creates new Stock entries based on the provided allocations (linking to target jobs or stock holding job).
+    4. Creates new Stock entries based on the provided allocations 
+       (linking to target jobs or stock holding job).
     5. Updates the overall PurchaseOrder status.
 
     Args:
@@ -42,7 +43,8 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
         bool: True if successful.
 
     Raises:
-        DeliveryReceiptValidationError: If validation fails (e.g., allocation mismatch, invalid job ID).
+        DeliveryReceiptValidationError: If validation fails 
+            (e.g., allocation mismatch, invalid job ID).
         PurchaseOrder.DoesNotExist: If the purchase_order_id is invalid.
         PurchaseOrderLine.DoesNotExist: If a line_id in the input is invalid.
         Job.DoesNotExist: If a job_id in the allocations is invalid.
@@ -60,8 +62,10 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
             )
             logger.debug(f"Found PO {purchase_order.po_number}")
 
-            # Log unexpected PO statuses but proceed (unless DoesNotExist error occurred)
-            # Errors for draft/void should ideally be caught before reaching this service
+            # Log unexpected PO statuses but proceed 
+            # (unless DoesNotExist error occurred)
+            # Errors for draft/void should ideally be caught 
+            # before reaching this service
             if purchase_order.status not in [
                 "submitted",
                 "partially_received",
