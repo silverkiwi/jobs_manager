@@ -274,7 +274,6 @@ class Command(BaseCommand):
 
     def _create_test_data(self):
         """Create minimal test data for the command to run"""
-        from django.conf import settings
 
         try:
             # Import models here to avoid circular imports

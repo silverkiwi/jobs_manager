@@ -6,8 +6,7 @@ from logging import getLogger
 from typing import Any, Dict, List, Tuple
 
 import holidays
-from django.db.models import Case, DecimalField, F, Q, Sum, Value, When
-from django.db.models.functions import TruncDate
+from django.db.models import Case, DecimalField, F, Sum, Value, When
 from django.utils import timezone
 
 from apps.accounting.utils import get_nz_tz
@@ -144,7 +143,6 @@ class KPIService:
         Returns:
             List of job breakdowns with profit details
         """
-        from apps.job.models import Job
 
         cls._ensure_shop_client_id()
         excluded_staff_ids = get_excluded_staff()
