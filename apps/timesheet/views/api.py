@@ -19,10 +19,7 @@ from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
 from apps.job.models import Job, JobPricing
 from apps.timesheet.models import TimeEntry
-from apps.timesheet.serializers import (
-    TimeEntryAPISerializer,
-    TimesheetJobAPISerializer,
-)
+from apps.timesheet.serializers import TimeEntryAPISerializer, TimesheetJobAPISerializer
 from apps.timesheet.serializers.daily_timesheet_serializers import (
     DailyTimesheetSummarySerializer,
 )

@@ -33,7 +33,9 @@ class QuotingTool(MCPToolset):
             | Q(description__icontains=query)
             | Q(specifications__icontains=query)
             | Q(parsed_description__icontains=query)
-        )[:20]  # Limit results
+        )[
+            :20
+        ]  # Limit results
 
         if not products:
             return "No products found matching your search criteria."

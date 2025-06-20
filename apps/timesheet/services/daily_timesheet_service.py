@@ -12,7 +12,6 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict, List
 
-
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
 from apps.job.models.costing import CostLine

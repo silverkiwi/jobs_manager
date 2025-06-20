@@ -1,4 +1,5 @@
 import logging
+
 from django.contrib import messages
 from django.db.models import Q
 from django.http import JsonResponse
@@ -11,10 +12,7 @@ from xero_python.accounting import AccountingApi
 from apps.client.forms import ClientForm
 from apps.client.models import Client, ClientContact
 from apps.client.serializers import ClientContactSerializer
-from apps.workflow.api.xero.sync import (
-    sync_client_to_xero,
-    sync_clients,
-)
+from apps.workflow.api.xero.sync import sync_client_to_xero, sync_clients
 from apps.workflow.api.xero.xero import api_client, get_tenant_id, get_valid_token
 
 logger = logging.getLogger(__name__)

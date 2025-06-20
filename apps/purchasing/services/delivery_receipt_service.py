@@ -48,9 +48,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
         Job.DoesNotExist: If a job_id in the allocations is invalid.
         Exception: For other unexpected errors during processing.
     """
-    logger.info(
-        f"Starting delivery receipt processing for PO ID: {purchase_order_id}"
-    )
+    logger.info(f"Starting delivery receipt processing for PO ID: {purchase_order_id}")
     logger.debug(f"Received line_allocations data: {line_allocations}")
 
     STOCK_HOLDING_JOB_ID = Job.objects.get(name="Worker Admin").id

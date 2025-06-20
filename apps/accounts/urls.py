@@ -2,10 +2,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path
 from rest_framework_simplejwt.views import TokenVerifyView
 
-from apps.accounts.views import (
-    get_current_user,
-    logout_user,
-)
+from apps.accounts.views import get_current_user, logout_user
 from apps.accounts.views.password_views import SecurityPasswordChangeView
 from apps.accounts.views.staff_views import (
     StaffCreateView,

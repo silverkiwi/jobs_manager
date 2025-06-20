@@ -229,9 +229,7 @@ class TimesheetEntryView(TemplateView):
                     if job.latest_reality_pricing
                     else 0
                 ),
-                "client_name": (
-                    job.client.name if job.client else "NO CLIENT!?"
-                ),
+                "client_name": (job.client.name if job.client else "NO CLIENT!?"),
                 "charge_out_rate": float(job.charge_out_rate),
                 "job_status": job.status,
             }
@@ -466,18 +464,12 @@ def autosave_timesheet_view(request):
                             raise ValueError("Staff ID not provided")
                     # Identify old job before changing
                     old_job_id = (
-                        entry.job_pricing.job.id
-                        if entry.job_pricing.job
-                        else None
+                        entry.job_pricing.job.id if entry.job_pricing.job else None
                     )
-                    old_job = (
-                        Job.objects.get(id=old_job_id) if old_job_id else None
-                    )
+                    old_job = Job.objects.get(id=old_job_id) if old_job_id else None
 
                     if job_id != str(entry.job_pricing.job.id):
-                        logger.info(
-                            f"Job for entry {entry_id} changed to {job_id}"
-                        )
+                        logger.info(f"Job for entry {entry_id} changed to {job_id}")
                         new_job = Job.objects.get(id=job_id)
                         entry.job_pricing = new_job.latest_reality_pricing
 

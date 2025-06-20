@@ -11,7 +11,6 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Table, TableStyle
 
-
 logger = logging.getLogger(__name__)
 
 # A4 page dimensions

@@ -2,7 +2,6 @@ import decimal
 import json
 from decimal import Decimal
 
-
 from apps.workflow.models import CompanyDefaults
 
 

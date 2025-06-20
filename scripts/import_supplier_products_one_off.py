@@ -5,9 +5,7 @@ import sys
 from collections import defaultdict
 from decimal import Decimal
 
-from apps.quoting.services.product_parser import (
-    populate_all_mappings_with_llm,
-)
+from apps.quoting.services.product_parser import populate_all_mappings_with_llm
 
 # Configure logging
 logging.basicConfig(
