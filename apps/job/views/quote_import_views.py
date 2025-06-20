@@ -38,9 +38,9 @@ class QuoteImportPreviewView(APIView):
             {
                 "error": "Excel import functionality has been removed. Please use Google Sheets integration instead.",
                 "deprecated": True,
-                "alternative": f"/jobs/{job_id}/quote/sync/preview/"
+                "alternative": f"/jobs/{job_id}/quote/sync/preview/",
             },
-            status=status.HTTP_410_GONE
+            status=status.HTTP_410_GONE,
         )
 
 
@@ -60,9 +60,9 @@ class QuoteImportView(APIView):
             {
                 "error": "Excel import functionality has been removed. Please use Google Sheets integration instead.",
                 "deprecated": True,
-                "alternative": f"/jobs/{job_id}/quote/sync/apply/"
+                "alternative": f"/jobs/{job_id}/quote/sync/apply/",
             },
-            status=status.HTTP_410_GONE
+            status=status.HTTP_410_GONE,
         )
 
 

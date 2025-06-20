@@ -43,7 +43,7 @@ def sanitize_decimal_input(raw_value, default=Decimal(0)):
         logger.warning(f"Sanitizing invalid float {raw_value} to {default}.")
         return default
     try:
-        # Convert to string first to handle floats safely 
+        # Convert to string first to handle floats safely
         # and allow Decimal to parse strings.
         val_str = str(raw_value)
         d = decimal.Decimal(val_str)  # Use decimal.Decimal to avoid conflict
@@ -79,12 +79,12 @@ class TimesheetEntryView(TemplateView):
 
     Attributes:
     - `template_name` (str): Path to the template used for rendering the view.
-    - `EXCLUDED_STAFF_IDS` (list): List of Django staff IDs to be excluded 
+    - `EXCLUDED_STAFF_IDS` (list): List of Django staff IDs to be excluded
       from timesheet views.
 
     Usage:
     - Accessed via a URL pattern that includes the date and staff ID as parameters.
-    - Provides the back-end logic for the 
+    - Provides the back-end logic for the
       `time_entries/timesheet_entry.html` template.
     """
 
@@ -97,18 +97,18 @@ class TimesheetEntryView(TemplateView):
 
     def get(self, request, date, staff_id, *args, **kwargs):
         """
-        Handles GET requests to display the timesheet entry page for a given 
+        Handles GET requests to display the timesheet entry page for a given
         staff member and date.
 
         Purpose:
-        - Retrieves and validates the date and staff member based on 
+        - Retrieves and validates the date and staff member based on
           URL parameters.
-        - Fetches timesheet entries, open jobs, and navigation details 
+        - Fetches timesheet entries, open jobs, and navigation details
           for the UI.
         - Ensures the context contains all data needed to render the page.
 
         Workflow:
-        1. Validates the `date` parameter to ensure it is in the correct 
+        1. Validates the `date` parameter to ensure it is in the correct
            format (YYYY-MM-DD).
         2. Checks if the `staff_id` is excluded. If so, denies access.
         3. Retrieves the staff member and raises a 404 error if not found.
@@ -124,7 +124,7 @@ class TimesheetEntryView(TemplateView):
         - `staff_id` (UUID): The ID of the staff member.
 
         Returns:
-        - Rendered HTML template with the context for the timesheet 
+        - Rendered HTML template with the context for the timesheet
           entry page.
 
         Error Handling:
@@ -133,7 +133,7 @@ class TimesheetEntryView(TemplateView):
         - Raises `Http404` if the staff member is not found.
 
         Context:
-        - Includes data for the staff member, timesheet entries, open jobs, 
+        - Includes data for the staff member, timesheet entries, open jobs,
           and navigation links.
 
         Dependencies:
@@ -143,7 +143,7 @@ class TimesheetEntryView(TemplateView):
         - Template: `time_entries/timesheet_entry.html`.
 
         Notes:
-        - The `EXCLUDED_STAFF_IDS` attribute should be updated as needed to 
+        - The `EXCLUDED_STAFF_IDS` attribute should be updated as needed to
           reflect changes in app/system users.
         """
         try:
@@ -264,9 +264,7 @@ class TimesheetEntryView(TemplateView):
                 cls=DjangoJSONEncoder,
             ),
             "timesheet_date": target_date.strftime("%Y-%m-%d"),
-            "timesheet_entries_json": json.dumps(
-                timesheet_data, cls=DjangoJSONEncoder
-            ),
+            "timesheet_entries_json": json.dumps(timesheet_data, cls=DjangoJSONEncoder),
             "jobs_json": json.dumps(jobs_data, cls=DjangoJSONEncoder),
             "next_staff": next_staff,
             "prev_staff": prev_staff,
@@ -274,25 +272,23 @@ class TimesheetEntryView(TemplateView):
 
         return render(request, self.template_name, context)
 
-    def _get_staff_navigation_list(
-        self, excluded_ids, cache_timeout=3600
-    ):
+    def _get_staff_navigation_list(self, excluded_ids, cache_timeout=3600):
         """
-        Retrieves the ordered staff list for navigation, annotated with a 
+        Retrieves the ordered staff list for navigation, annotated with a
         computed display_full_name.
 
         Intention:
-        - Compute the display_first_name using only the first token of the 
+        - Compute the display_first_name using only the first token of the
           preferred_name (or first_name).
-        - Concatenate it with the full last_name to get 
+        - Concatenate it with the full last_name to get
           display_full_name.
         - Order by display_full_name.
-        - Cache the resulting list to reduce database load if the staff 
+        - Cache the resulting list to reduce database load if the staff
           list does not change frequently.
 
         Parameters:
         - excluded_ids: List or set of staff IDs to exclude.
-        - cache_timeout (int): The time in seconds for which the result 
+        - cache_timeout (int): The time in seconds for which the result
           should be cached.
 
         Returns:
@@ -331,16 +327,16 @@ def autosave_timesheet_view(request):
     Handles autosave requests for timesheet data.
 
     Purpose:
-    - Automates the saving of timesheet changes, including updates, 
+    - Automates the saving of timesheet changes, including updates,
       creations, and deletions.
     - Dynamically updates related jobs and entries in the front-end.
-    - Ensures data consistency and prevents duplication during 
+    - Ensures data consistency and prevents duplication during
       processing.
 
     Workflow:
     1. Parsing and Validation:
     - Parses the incoming request body as JSON.
-    - Separates entries into `time_entries` (to save or update) and 
+    - Separates entries into `time_entries` (to save or update) and
       `deleted_entries` (to remove).
 
     2. Deletion Processing:
@@ -350,17 +346,17 @@ def autosave_timesheet_view(request):
 
     3. Time Entry Processing:
     - Skips incomplete or invalid entries.
-    - Updates existing entries or creates new ones while avoiding 
+    - Updates existing entries or creates new ones while avoiding
       duplicates.
     - Adds or updates jobs related to new or updated entries.
 
     4. Response:
-    - Returns success responses with related jobs, action type 
+    - Returns success responses with related jobs, action type
       (`add` or `remove`), and feedback messages.
     - Sends error responses for invalid data or unexpected issues.
 
     Parameters:
-    - `request` (HttpRequest): The HTTP POST request containing timesheet 
+    - `request` (HttpRequest): The HTTP POST request containing timesheet
       data in JSON format.
 
     Error Handling:
@@ -562,12 +558,10 @@ def autosave_timesheet_view(request):
                     )
 
                 except TimeEntry.DoesNotExist:
-                    logger.error(
-                        f"TimeEntry with ID {entry_id} not found"
-                    )
+                    logger.error(f"TimeEntry with ID {entry_id} not found")
 
             else:
-                # Verify if there's already a registry with same data to avoid 
+                # Verify if there's already a registry with same data to avoid
                 # creating multiple entries
                 job = Job.objects.get(id=job_id)
                 job_pricing = job.latest_reality_pricing

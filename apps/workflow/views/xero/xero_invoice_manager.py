@@ -145,8 +145,8 @@ class XeroInvoiceManager(XeroDocumentManager):
         # xero_line_items.append(LineItem(description="Price as quoted"))
         # Consider if this is needed
         job_suffix = (
-            f" - {self.job.description} (Fixed Price)" 
-            if self.job.description 
+            f" - {self.job.description} (Fixed Price)"
+            if self.job.description
             else " (Fixed Price)"
         )
         xero_line_items.append(
@@ -315,7 +315,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                 {"success": False, "message": error_message}, status=e.status
             )
         except ApiException as e:
-            job_id = self.job.id if self.job else 'Unknown'
+            job_id = self.job.id if self.job else "Unknown"
             logger.error(
                 f"""
                 Xero API Exception during invoice creation for job {job_id}: 
@@ -328,7 +328,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                 status=e.status,
             )
         except Exception as e:
-            job_id = self.job.id if self.job else 'Unknown'
+            job_id = self.job.id if self.job else "Unknown"
             logger.exception(
                 f"Unexpected error during invoice creation for job {job_id}"
             )
@@ -381,7 +381,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                     )
                 else:
                     error_msg = "Xero response did not confirm invoice deletion."
-                    status = getattr(xero_invoice_data, 'status', 'Unknown')
+                    status = getattr(xero_invoice_data, "status", "Unknown")
                     logger.error(f"{error_msg} Status: {status}")
                     return JsonResponse(
                         {"success": False, "message": error_msg}, status=400
@@ -395,7 +395,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                     {"success": False, "message": error_msg}, status=400
                 )  # Changed "error" to "message"
         except AccountingBadRequestException as e:
-            job_id = self.job.id if self.job else 'Unknown'
+            job_id = self.job.id if self.job else "Unknown"
             logger.error(
                 f"""
                 Xero API BadRequest during invoice deletion for job {job_id}: 
@@ -414,7 +414,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                 {"success": False, "message": error_message}, status=e.status
             )
         except ApiException as e:
-            job_id = self.job.id if self.job else 'Unknown'
+            job_id = self.job.id if self.job else "Unknown"
             logger.error(
                 f"""
                 Xero API Exception during invoice deletion for job {job_id}: 
@@ -427,7 +427,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                 status=e.status,
             )
         except Exception as e:
-            job_id = self.job.id if self.job else 'Unknown'
+            job_id = self.job.id if self.job else "Unknown"
             logger.exception(
                 f"Unexpected error during invoice deletion for job {job_id}"
             )

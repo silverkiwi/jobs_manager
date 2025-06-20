@@ -22,6 +22,7 @@ from apps.job.importers.google_sheets import (
     fetch_sheet_df,
     populate_sheet_from_costset,
 )
+
 # Excel import functionality removed - no longer supported
 from apps.job.models import Job
 from apps.job.models.spreadsheet import QuoteSpreadsheet
@@ -155,7 +156,7 @@ def _fetch_drafts(job: Job):
         quote_sheet = job.quote_sheet
         sheet_id = quote_sheet.sheet_id
         tab = quote_sheet.tab or "Primary Details"
-        
+
         # Download sheet data as DataFrame
         logger.info(f"🔍 About to fetch sheet data for job {job.job_number}")
         df = fetch_sheet_df(str(sheet_id), tab)
@@ -174,47 +175,54 @@ def _fetch_drafts(job: Job):
 
         # Process DataFrame directly to create DraftLine objects
         logger.info("🔧 Processing DataFrame to create draft lines...")
-        
+
         # Import DraftLine here to avoid circular imports
         from apps.job.importers.draft import DraftLine, Kind
-        
+
         draft_lines = []
-        
+
         # Process each row in the DataFrame
         for idx, row in df.iterrows():
             try:
                 # Skip rows that don't have required data
-                if pd.isna(row.get('desc', '')) or row.get('desc', '').strip() == '':
+                if pd.isna(row.get("desc", "")) or row.get("desc", "").strip() == "":
                     continue
-                    
+
                 # Extract values from row (adjust column names as needed)
-                desc = str(row.get('desc', '')).strip()
-                quantity = float(row.get('quantity', 0)) if pd.notna(row.get('quantity')) else 0
-                unit_cost = float(row.get('unit_cost', 0)) if pd.notna(row.get('unit_cost')) else 0
-                
+                desc = str(row.get("desc", "")).strip()
+                quantity = (
+                    float(row.get("quantity", 0))
+                    if pd.notna(row.get("quantity"))
+                    else 0
+                )
+                unit_cost = (
+                    float(row.get("unit_cost", 0))
+                    if pd.notna(row.get("unit_cost"))
+                    else 0
+                )
+
                 # Determine kind (labor vs material) - adjust logic as needed
-                kind_str = str(row.get('kind', '')).strip().lower()
-                if kind_str in ['labor', 'labour']:
+                kind_str = str(row.get("kind", "")).strip().lower()
+                if kind_str in ["labor", "labour"]:
                     kind = Kind.LABOR
                 else:
                     kind = Kind.MATERIAL
-                
+
                 # Create DraftLine
                 draft_line = DraftLine(
-                    kind=kind,
-                    desc=desc,
-                    quantity=quantity,
-                    unit_cost=unit_cost
+                    kind=kind, desc=desc, quantity=quantity, unit_cost=unit_cost
                 )
-                
+
                 draft_lines.append(draft_line)
-                
+
             except (ValueError, TypeError) as e:
                 logger.warning(f"⚠️ Skipping invalid row {idx}: {e}")
                 continue
-        
-        logger.info(f"✅ Created {len(draft_lines)} draft lines from Google Sheets data")
-        
+
+        logger.info(
+            f"✅ Created {len(draft_lines)} draft lines from Google Sheets data"
+        )
+
         # Log sample of parsed lines
         for i, line in enumerate(draft_lines[:3]):
             logger.info(f"    Draft line {i}: {line}")
@@ -224,7 +232,6 @@ def _fetch_drafts(job: Job):
     except Exception as e:
         logger.error(f"Error fetching drafts for job {job.job_number}: {str(e)}")
         raise RuntimeError(f"Failed to fetch drafts: {str(e)}") from e
-
 
 
 def preview_quote(job: Job):

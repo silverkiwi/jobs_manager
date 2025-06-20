@@ -22,6 +22,7 @@ from django.db import models, transaction
 
 from apps.job.diff import DiffResult, apply_diff, diff_costset
 from apps.job.importers.draft import DraftLine
+
 # Excel import functionality removed - no longer supported
 from apps.job.models import CostSet, Job
 
