@@ -57,6 +57,8 @@ mcp = "^1.9.4"
 anthropic = "^0.54.0"
 pandas = "^2.3.0"
 numpy = "^2.3.0"
+httpcore = "^1.0.9"
+httpx = "^0.28.1"
 
 [tool.poetry.scripts]
 post-install = "scripts.post_install:install_system_deps"  # Script to install system dependencies like poppler-utils
@@ -109,7 +111,7 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 mypy_path = "./"
-exclude = "migrations|__pycache__|.tox|venv|.venv|mediafiles|.git"
+exclude = "(?x)(migrations/|__pycache__/|\\.tox/|venv/|\\.venv/|mediafiles/|\\.git/)"
 plugins = ["mypy_django_plugin.main"]
 strict = true
 show_error_codes = true

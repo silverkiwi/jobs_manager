@@ -4192,4 +4192,4 @@ urllib3 = "*"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "968ff012e10c9ca264c2bd1753295f2dca5e1ffadb3489432ad803cec492d685"
+content-hash = "9fa3367acaa64b6847e499db1a0dc3cdb6f5112c422f9cb90332fd3f2a146480"
