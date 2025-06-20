@@ -516,7 +516,8 @@ class KPIService:
 
             # Only count performance for elapsed days (not future days)
             if current_date <= current_date_system:
-                # Separate labour performance counting (≥45h green, ≥40h amber, <40h red)
+                # Separate labour performance counting
+                # (>=45h green, >=40h amber, <40h red)
                 if billable_hours >= 45:
                     monthly_totals["labour_green_days"] += 1
                 elif billable_hours >= 40:
@@ -524,7 +525,8 @@ class KPIService:
                 else:
                     monthly_totals["labour_red_days"] += 1
 
-                # Separate profit performance counting (≥$1250 green, ≥$1000 amber, <$1000 red)
+                # Separate profit performance counting
+                # (>=$1250 green, >=$1000 amber, <$1000 red)
                 if gross_profit >= 1250:
                     monthly_totals["profit_green_days"] += 1
                 elif gross_profit >= 1000:
@@ -620,10 +622,12 @@ class KPIService:
         )
 
         logger.info(
-            f"Monthly totals: billable: {monthly_totals['billable_hours']:.1f}h, billable %: {monthly_totals['billable_percentage']:.1f}%"
+            f"Monthly totals: billable: {monthly_totals['billable_hours']:.1f}h, "
+            f"billable %: {monthly_totals['billable_percentage']:.1f}%"
         )
         logger.info(
-            f"Performance: green days: {monthly_totals['days_green']}, amber: {monthly_totals['days_amber']}, red: {monthly_totals['days_red']}"
+            f"Performance: green days: {monthly_totals['days_green']}, "
+            f"amber: {monthly_totals['days_amber']}, red: {monthly_totals['days_red']}"
         )
         response_data = {
             "calendar_data": calendar_data,
@@ -666,7 +670,8 @@ class KPIService:
                 1,
             )
             logger.debug(
-                f"Calculated billable percentage: {monthly_totals['billable_percentage']}%, shop percentage: {monthly_totals['shop_percentage']}%"
+                f"Calculated billable %: {monthly_totals['billable_percentage']}%, "
+                f"shop percentage: {monthly_totals['shop_percentage']}%"
             )
 
         # Calculate average daily gross profit if we have working days
@@ -678,12 +683,16 @@ class KPIService:
                 2,
             )
             logger.debug(
-                f"Calculated average daily gross profit: ${monthly_totals['avg_daily_gp']}"
+                f"Calculated average daily gross profit: "
+                f"${monthly_totals['avg_daily_gp']}"
             )
         else:
-            logger.warning("No working days found for month - average GP will be zero")
+            logger.warning(
+                "No working days found for month - average GP will be zero"
+            )
 
-        # Calculate average daily gross profit and billable hours so far based on elapsed days
+        # Calculate average daily gross profit and billable hours so far
+        # based on elapsed days
         if monthly_totals["elapsed_workdays"] > 0:
             monthly_totals["avg_daily_gp_so_far"] = round(
                 Decimal(monthly_totals["gross_profit"])

@@ -50,7 +50,8 @@ class StaffAdmin(UserAdmin, SimpleHistoryAdmin):
                     "hours_sat",
                     "hours_sun",
                 ),
-                "description": "Set standard working hours for each day of the week. Use 0 for non-working days.",
+                "description": "Set standard working hours for each day of the week. "
+                "Use 0 for non-working days.",
             },
         ),
         (
