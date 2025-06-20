@@ -148,7 +148,8 @@ def apply_quote(request: Request, pk: str) -> Response:
                 {"error": "Job not found"}, 
                 status=status.HTTP_404_NOT_FOUND
             )
-          # Apply quote
+        
+        # Apply quote
         result = quote_sync_service.apply_quote(job)
         
         if result.success:
@@ -175,8 +176,8 @@ def apply_quote(request: Request, pk: str) -> Response:
                 "draft_lines": [draft_line_to_dict(line) for line in result.diff_result.to_add] if result.diff_result else [],
                 "changes": {
                     "additions": [draft_line_to_dict(line) for line in result.diff_result.to_add] if result.diff_result else [],
-                    "updates": [draft_line_to_dict(line) for line in result.diff_result.to_update] if result.diff_result else [],
-                    "deletions": [draft_line_to_dict(line) for line in result.diff_result.to_delete] if result.diff_result else []
+                    "updates": [draft_line_to_dict(draft_line) for _, draft_line in result.diff_result.to_update] if result.diff_result else [],
+                    "deletions": [{"kind": line.kind, "desc": line.desc, "quantity": float(line.quantity), "unit_cost": float(line.unit_cost), "unit_rev": float(line.unit_rev)} for line in result.diff_result.to_delete] if result.diff_result else []
                 }
             }, status=status.HTTP_200_OK)
         else:
