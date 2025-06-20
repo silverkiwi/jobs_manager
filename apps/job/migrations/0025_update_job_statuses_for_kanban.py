@@ -40,7 +40,8 @@ def reverse_job_statuses(apps, schema_editor):
         # Only reverse if the old status existed
         updated_count = Job.objects.filter(status=new_status).update(status=old_status)
         if updated_count > 0:
-            print(f"Reverted {updated_count} jobs from '{new_status}' to '{old_status}'")
+            print(
+                f"Reverted {updated_count} jobs from '{new_status}' to '{old_status}'")
 
 
 class Migration(migrations.Migration):

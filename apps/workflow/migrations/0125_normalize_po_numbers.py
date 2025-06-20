@@ -11,7 +11,8 @@ def normalize_po_numbers(apps, schema_editor):
             try:
                 num_part = po.po_number.split('-')[1]
                 if len(num_part) < 4:  # Check if numeric part has less than 4 digits
-                    normalized_num = num_part.zfill(4)  # Pad with leading zeros to 4 digits
+                    # Pad with leading zeros to 4 digits
+                    normalized_num = num_part.zfill(4)
                     po.po_number = f"PO-{normalized_num}"
                     try:
                         po.save()

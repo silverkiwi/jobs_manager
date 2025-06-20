@@ -38,9 +38,11 @@ def parse_existing_products(apps, schema_editor):
 
             try:
                 results = parser.parse_products_batch(product_data_list)
-                print(f"Processed batch {i//parser.BATCH_SIZE + 1}: {len(results)} products")
+                print(
+                    f"Processed batch {i//parser.BATCH_SIZE + 1}: {len(results)} products")
             except Exception as e:
-                print(f"Error parsing supplier product batch {i//parser.BATCH_SIZE + 1}: {e}")
+                print(
+                    f"Error parsing supplier product batch {i//parser.BATCH_SIZE + 1}: {e}")
 
         print("Parsing existing stock items in batches...")
         stock_items = list(Stock.objects.all())
@@ -61,7 +63,8 @@ def parse_existing_products(apps, schema_editor):
 
             try:
                 results = parser.parse_products_batch(stock_data_list)
-                print(f"Processed stock batch {i//parser.BATCH_SIZE + 1}: {len(results)} items")
+                print(
+                    f"Processed stock batch {i//parser.BATCH_SIZE + 1}: {len(results)} items")
             except Exception as e:
                 print(f"Error parsing stock batch {i//parser.BATCH_SIZE + 1}: {e}")
 

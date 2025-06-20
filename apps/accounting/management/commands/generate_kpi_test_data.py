@@ -41,7 +41,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--days",
             type=str,
-            help='Days pattern (good:medium:bad) e.g. "10:5:5" for 10 good, 5 medium, 5 bad days',
+            help=(
+                'Days pattern (good:medium:bad) e.g. "10:5:5" for '
+                '10 good, 5 medium, 5 bad days'
+            ),
             default="10:6:4",
         )
 

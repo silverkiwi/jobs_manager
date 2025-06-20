@@ -250,7 +250,7 @@ def autosave_purchase_order_view(request):
         try:
             data = json.loads(request.body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as e:
-            logger.warning("Malformed JSON body")
+            logger.error(f"Malformed JSON body: {str(e)}")
             return JsonResponse({"error": "Malformed JSON input"}, status=400)
 
         purchase_order_data = data.get("purchase_order", {})

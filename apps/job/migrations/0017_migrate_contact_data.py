@@ -30,7 +30,8 @@ def migrate_contact_data(apps, schema_editor):
 
     for job in jobs_with_contacts:
         if not job.client:
-            logger.warning(f"Job {job.job_number} has contact info but no client - skipping")
+            logger.warning(
+                f"Job {job.job_number} has contact info but no client - skipping")
             continue
 
         # Create a key for caching based on client and contact details
@@ -64,7 +65,8 @@ def migrate_contact_data(apps, schema_editor):
                     email=job.contact_email or '',
                     is_primary=False  # We'll set primary contacts in a separate step
                 )
-                logger.info(f"Created contact '{contact.name}' for client '{job.client.name}'")
+                logger.info(
+                    f"Created contact '{contact.name}' for client '{job.client.name}'")
 
             created_contacts[cache_key] = contact
 
@@ -104,7 +106,8 @@ def reverse_migration(apps, schema_editor):
     """
     Job = apps.get_model('job', 'Job')
 
-    jobs_with_contacts = Job.objects.filter(contact__isnull=False).select_related('contact')
+    jobs_with_contacts = Job.objects.filter(
+        contact__isnull=False).select_related('contact')
 
     for job in jobs_with_contacts:
         job.contact_person = job.contact.name

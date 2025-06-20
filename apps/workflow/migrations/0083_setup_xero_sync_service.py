@@ -65,7 +65,8 @@ WantedBy=multi-user.target"""
     # If we get here, either sudo failed or we don't have access
     print("\nTo set up the Xero sync service, run these commands as root:")
     print("\n# Create service file")
-    print(f"cat > /etc/systemd/system/xero-sync.service << 'EOL'\n{service_content}\nEOL")
+    print(
+        f"cat > /etc/systemd/system/xero-sync.service << 'EOL'\n{service_content}\nEOL")
     print("\n# Reload systemd and start service")
     print("systemctl daemon-reload")
     print("systemctl enable xero-sync")

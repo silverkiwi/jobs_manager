@@ -16,12 +16,16 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='CostSet',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('kind', models.CharField(choices=[('estimate', 'Estimate'), ('quote', 'Quote'), ('actual', 'Actual')], max_length=20)),
+                ('id', models.BigAutoField(auto_created=True,
+                 primary_key=True, serialize=False, verbose_name='ID')),
+                ('kind', models.CharField(choices=[
+                 ('estimate', 'Estimate'), ('quote', 'Quote'), ('actual', 'Actual')], max_length=20)),
                 ('rev', models.IntegerField()),
-                ('summary', models.JSONField(default=dict, help_text='Summary data for this cost set')),
+                ('summary', models.JSONField(default=dict,
+                 help_text='Summary data for this cost set')),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('job', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='cost_sets', to='job.job')),
+                ('job', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,
+                 related_name='cost_sets', to='job.job')),
             ],
             options={
                 'ordering': ['-created'],
@@ -30,15 +34,23 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='CostLine',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('kind', models.CharField(choices=[('time', 'Time'), ('material', 'Material'), ('adjust', 'Adjustment')], max_length=20)),
-                ('desc', models.CharField(help_text='Description of this cost line', max_length=255)),
-                ('quantity', models.DecimalField(decimal_places=3, default=Decimal('1.000'), max_digits=10)),
-                ('unit_cost', models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10)),
-                ('unit_rev', models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10)),
-                ('ext_refs', models.JSONField(default=dict, help_text='External references (e.g., time entry IDs, material IDs)')),
+                ('id', models.BigAutoField(auto_created=True,
+                 primary_key=True, serialize=False, verbose_name='ID')),
+                ('kind', models.CharField(choices=[
+                 ('time', 'Time'), ('material', 'Material'), ('adjust', 'Adjustment')], max_length=20)),
+                ('desc', models.CharField(
+                    help_text='Description of this cost line', max_length=255)),
+                ('quantity', models.DecimalField(decimal_places=3,
+                 default=Decimal('1.000'), max_digits=10)),
+                ('unit_cost', models.DecimalField(
+                    decimal_places=2, default=Decimal('0.00'), max_digits=10)),
+                ('unit_rev', models.DecimalField(decimal_places=2,
+                 default=Decimal('0.00'), max_digits=10)),
+                ('ext_refs', models.JSONField(default=dict,
+                 help_text='External references (e.g., time entry IDs, material IDs)')),
                 ('meta', models.JSONField(default=dict, help_text='Additional metadata')),
-                ('cost_set', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='cost_lines', to='job.costset')),
+                ('cost_set', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,
+                 related_name='cost_lines', to='job.costset')),
             ],
             options={
                 'ordering': ['id'],
@@ -46,10 +58,12 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='costset',
-            constraint=models.UniqueConstraint(fields=('job', 'kind', 'rev'), name='unique_job_kind_rev'),
+            constraint=models.UniqueConstraint(
+                fields=('job', 'kind', 'rev'), name='unique_job_kind_rev'),
         ),
         migrations.AddIndex(
             model_name='costline',
-            index=models.Index(fields=['cost_set_id', 'kind'], name='job_costlin_cost_se_5afccf_idx'),
+            index=models.Index(fields=['cost_set_id', 'kind'],
+                               name='job_costlin_cost_se_5afccf_idx'),
         ),
     ]
