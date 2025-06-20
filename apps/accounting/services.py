@@ -687,9 +687,7 @@ class KPIService:
                 f"${monthly_totals['avg_daily_gp']}"
             )
         else:
-            logger.warning(
-                "No working days found for month - average GP will be zero"
-            )
+            logger.warning("No working days found for month - average GP will be zero")
 
         # Calculate average daily gross profit and billable hours so far
         # based on elapsed days

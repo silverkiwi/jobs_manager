@@ -3,6 +3,7 @@ import os
 import sys
 
 import django
+
 from apps.quoting.services.gemini_price_list_extraction import (
     extract_data_from_supplier_price_list_gemini,
 )

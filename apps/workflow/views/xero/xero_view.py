@@ -114,7 +114,6 @@ import logging
 from django.http import HttpRequest
 from django.views.decorators.http import require_GET
 
-
 logger = logging.getLogger("xero.events")
 
 

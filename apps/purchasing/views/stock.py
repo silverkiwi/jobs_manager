@@ -70,7 +70,7 @@ def use_stock_view(request, job_id=None):
     # If job_id is provided, get the job object to pass to the template
     if job_id:
         target_id = UUID(job_id)
-        job = next(j for j in active_jobs if j.id == target_id)   # StopIteration if none
+        job = next(j for j in active_jobs if j.id == target_id)  # StopIteration if none
 
     context = {
         "title": "Use Stock",
