@@ -2,17 +2,13 @@ import logging
 import time
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Any, Callable, Dict, List, Optional, Type
 from uuid import UUID
 
 from django.conf import settings
 from django.core.cache import cache
-from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.db import models, transaction
-from django.db.utils import IntegrityError
+from django.db import models
 from django.utils import timezone
 from xero_python.accounting import AccountingApi
-from xero_python.exceptions.http_status_exceptions import RateLimitException
 
 from apps.accounting.models import Bill, CreditNote, Invoice, Quote
 from apps.client.models import Client

@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from apps.accounting.models import Invoice, Quote
-from apps.job.enums import JobPricingMethodology, JobPricingStage
+from apps.job.enums import JobPricingStage
 from apps.job.helpers import DecimalEncoder, get_company_defaults
 from apps.job.models import Job, JobEvent
 from apps.job.serializers import JobPricingSerializer, JobSerializer

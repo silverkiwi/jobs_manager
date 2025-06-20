@@ -8,17 +8,14 @@ Following SRP principles and clean architecture
 import logging
 import traceback
 import uuid
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-from django.db.models import Q, Sum
-from django.utils import timezone
 
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
-from apps.job.models import Job
-from apps.job.models.costing import CostLine, CostSet
+from apps.job.models.costing import CostLine
 
 logger = logging.getLogger(__name__)
 

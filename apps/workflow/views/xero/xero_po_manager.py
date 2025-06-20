@@ -2,13 +2,11 @@
 import json
 import logging
 from datetime import date, datetime
-from decimal import Decimal
 
 from django.http import JsonResponse
 from django.utils import timezone
 from xero_python.accounting.models import LineItem
 from xero_python.accounting.models import PurchaseOrder as XeroPurchaseOrder
-from xero_python.exceptions import AccountingBadRequestException
 
 # Import models
 from apps.purchasing.models import PurchaseOrder

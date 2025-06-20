@@ -4,7 +4,6 @@ from rest_framework_simplejwt.authentication import (
     JWTAuthentication as BaseJWTAuthentication,
 )
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.settings import api_settings as jwt_settings
 
 
 class JWTAuthentication(BaseJWTAuthentication):

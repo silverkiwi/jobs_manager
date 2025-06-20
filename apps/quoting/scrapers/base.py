@@ -1,6 +1,5 @@
 # quoting/scrapers/base.py
 import logging
-import os
 from abc import ABC, abstractmethod
 
 from django.utils import timezone
@@ -76,17 +75,14 @@ class BaseScraper(ABC):
     @abstractmethod
     def get_product_urls(self):
         """Get list of product URLs to scrape"""
-        pass
 
     @abstractmethod
     def scrape_product(self, url):
         """Scrape a single product page"""
-        pass
 
     @abstractmethod
     def login(self):
         """Handle login process"""
-        pass
 
     def run(self):
         """Main scraper execution"""

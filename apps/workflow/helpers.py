@@ -1,11 +1,9 @@
 import decimal
 import json
-import os
 from decimal import Decimal
 
-from django.conf import settings
 
-from apps.workflow.models import AIProvider, CompanyDefaults
+from apps.workflow.models import CompanyDefaults
 
 
 def get_company_defaults():

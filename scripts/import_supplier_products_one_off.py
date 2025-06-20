@@ -3,10 +3,9 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from apps.quoting.services.product_parser import (
-    create_mapping_record,
     populate_all_mappings_with_llm,
 )
 
@@ -23,7 +22,7 @@ import django
 
 django.setup()
 
-from django.db import IntegrityError, transaction
+from django.db import transaction
 
 from apps.client.models import Client
 from apps.quoting.models import SupplierProduct

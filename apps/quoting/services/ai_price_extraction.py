@@ -29,12 +29,10 @@ class PriceExtractionProvider(abc.ABC):
         Returns:
             Tuple containing extracted data dict and error message if any
         """
-        pass
 
     @abc.abstractmethod
     def get_provider_name(self) -> str:
         """Return the name of this provider."""
-        pass
 
 
 class PriceExtractionFactory:

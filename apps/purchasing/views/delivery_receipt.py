@@ -8,7 +8,7 @@ from django.views.generic import ListView, TemplateView
 
 from apps.job.models import Job
 from apps.job.utils import get_active_jobs
-from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
+from apps.purchasing.models import PurchaseOrder
 from apps.purchasing.services.delivery_receipt_service import process_delivery_receipt
 
 logger = logging.getLogger(__name__)

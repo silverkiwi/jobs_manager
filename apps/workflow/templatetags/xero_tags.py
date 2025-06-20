@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
 from django import template
-from django.core.cache import cache
 
 from apps.workflow.api.xero.xero import get_token
 from apps.workflow.models import CompanyDefaults

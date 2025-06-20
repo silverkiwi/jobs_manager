@@ -32,9 +32,7 @@ from apps.job.views.modern_timesheet_views import (
     ModernTimesheetJobView,
 )
 from apps.job.views.quote_import_views import (
-    QuoteImportPreviewView,
     QuoteImportStatusView,
-    QuoteImportView,
 )
 from apps.job.views.quote_sync_views import apply_quote, link_quote_sheet, preview_quote
 from apps.job.views.workshop_view import WorkshopPDFView

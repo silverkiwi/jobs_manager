@@ -21,7 +21,6 @@ def populate_accounting_dates(apps, schema_editor):
 
 def reverse_populate_accounting_dates(apps, schema_editor):
     """Reverse function does nothing as we can't reverse this operation"""
-    pass
 
 
 class Migration(migrations.Migration):

@@ -9,7 +9,6 @@ Provides functionality to:
 """
 
 import logging
-from typing import Any, Dict
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes

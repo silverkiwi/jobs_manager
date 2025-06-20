@@ -6,7 +6,6 @@ Provides dedicated REST endpoint for IMS export with proper data transformation.
 import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any, Dict, List
 
 from django.utils import timezone
 from rest_framework import status

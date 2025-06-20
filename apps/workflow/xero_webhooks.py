@@ -8,7 +8,6 @@ import logging
 from typing import Any, Dict
 
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone

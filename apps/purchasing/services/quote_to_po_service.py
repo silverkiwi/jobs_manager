@@ -1,17 +1,12 @@
 import base64
 import json
 import logging
-import mimetypes
 import os
-import re
-import tempfile
-from decimal import Decimal, InvalidOperation
-from typing import Literal, Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import pdfplumber
 import requests
 from django.conf import settings
-from django.db.models import Q
 from google import genai
 from rapidfuzz import fuzz, process
 
@@ -369,7 +364,6 @@ def extract_data_from_supplier_quote(
                 }
         except (KeyError, TypeError):
             logging.warning("Supplier name not found in quote JSON")
-            pass
 
         # Return the extracted data
         return quote_data, None

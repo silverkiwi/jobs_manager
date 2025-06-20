@@ -9,16 +9,15 @@ Service layer for handling weekly timesheet business logic including:
 """
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from django.db.models import Avg, Count, Q, Sum
-from django.utils import timezone
+from django.db.models import Q, Sum
 
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
-from apps.job.models import CostLine, CostSet, Job, JobPricing
+from apps.job.models import Job, JobPricing
 from apps.timesheet.models import TimeEntry
 
 logger = logging.getLogger(__name__)

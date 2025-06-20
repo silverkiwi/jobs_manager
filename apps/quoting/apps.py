@@ -4,7 +4,6 @@ import sys
 
 from django.apps import AppConfig
 from django.conf import settings
-from django.db import close_old_connections
 
 logger = logging.getLogger(__name__)
 

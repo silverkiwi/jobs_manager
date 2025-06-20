@@ -2,7 +2,7 @@ import logging
 import os
 
 from django.conf import settings
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.renderers import BaseRenderer, JSONRenderer

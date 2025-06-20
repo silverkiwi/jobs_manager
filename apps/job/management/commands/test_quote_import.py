@@ -7,9 +7,8 @@ Command to test the complete quote import service functionality.
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 
-from apps.job.models import CostSet, Job
+from apps.job.models import Job
 from apps.job.services.import_quote_service import (
     QuoteImportError,
     import_quote_from_file,

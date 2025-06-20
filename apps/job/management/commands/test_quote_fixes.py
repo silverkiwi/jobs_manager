@@ -7,11 +7,10 @@ import logging
 
 import pandas as pd
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from apps.job.importers.google_sheets import populate_sheet_from_costset
 from apps.job.importers.quote_spreadsheet import _is_valid_item, parse_xlsx
-from apps.job.models import CostLine, CostSet, Job
+from apps.job.models import Job
 
 logger = logging.getLogger(__name__)
 

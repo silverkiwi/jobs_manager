@@ -1,8 +1,5 @@
-import json
 import logging
-import traceback
 
-from django.db import transaction
 from django.views.generic import TemplateView
 from rest_framework import status
 from rest_framework.generics import ListAPIView

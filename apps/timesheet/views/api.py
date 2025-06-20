@@ -6,9 +6,8 @@ Provides endpoints for the Vue.js frontend to interact with timesheet data.
 import logging
 import traceback
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List
 
-from django.db.models import Prefetch, Q, Sum
+from django.db.models import Q
 from django.utils.dateparse import parse_date
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -18,13 +17,9 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
-from apps.job.models import CostSet, Job, JobPricing
-from apps.job.serializers.costing_serializer import CostSetSerializer
-from apps.timesheet.enums import RateType
+from apps.job.models import Job, JobPricing
 from apps.timesheet.models import TimeEntry
 from apps.timesheet.serializers import (
-    JobPricingAPISerializer,
-    StaffAPISerializer,
     TimeEntryAPISerializer,
     TimesheetJobAPISerializer,
 )

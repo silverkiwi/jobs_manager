@@ -1,16 +1,10 @@
-import base64
 import json
 import logging
-import mimetypes
-import os
 from typing import Optional, Tuple
 
 import google.generativeai as genai
 import pdfplumber
-import requests
-from django.conf import settings
 
-from apps.job.enums import MetalType
 from apps.workflow.enums import AIProviderTypes
 from apps.workflow.models import AIProvider
 

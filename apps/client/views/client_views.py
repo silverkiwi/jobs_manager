@@ -1,25 +1,17 @@
 import logging
 from django.contrib import messages
-from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.http import require_POST
-from django.views.generic import TemplateView, UpdateView
+from django.views.generic import UpdateView
 from django_tables2 import SingleTableView
 from xero_python.accounting import AccountingApi
 
-from apps.accounting.models import Bill, Invoice
 from apps.client.forms import ClientForm
 from apps.client.models import Client, ClientContact
 from apps.client.serializers import ClientContactSerializer
-from apps.job.models import Job
-from apps.workflow.api.xero.reprocess_xero import set_client_fields
 from apps.workflow.api.xero.sync import (
-    serialize_xero_object,
     sync_client_to_xero,
     sync_clients,
 )

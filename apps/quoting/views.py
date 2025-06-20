@@ -12,10 +12,9 @@ from django.views.generic import TemplateView
 
 from apps.client.models import Client
 
-from .models import ProductParsingMapping, SupplierPriceList, SupplierProduct
+from .models import SupplierPriceList, SupplierProduct
 from .services.ai_price_extraction import extract_price_data
 from .services.product_parser import (
-    ProductParser,
     create_mapping_record,
     populate_all_mappings_with_llm,
 )

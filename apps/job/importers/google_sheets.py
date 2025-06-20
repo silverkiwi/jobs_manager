@@ -11,10 +11,9 @@ Includes functions for:
 import logging
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import pandas as pd
-from django.conf import settings
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError

@@ -4,10 +4,9 @@ from django.db.models import Q
 from mcp_server import MCPToolset, ModelQueryToolset
 
 from apps.client.models import Client
-from apps.job.models import Job, JobPricing
-from apps.purchasing.models import Stock
+from apps.job.models import Job
 
-from .models import ProductParsingMapping, ScrapeJob, SupplierPriceList, SupplierProduct
+from .models import ScrapeJob, SupplierPriceList, SupplierProduct
 
 
 class SupplierProductQueryTool(ModelQueryToolset):

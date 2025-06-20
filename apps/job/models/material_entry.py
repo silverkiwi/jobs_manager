@@ -1,5 +1,4 @@
 import uuid
-from datetime import date
 from decimal import Decimal
 
 from django.db import models

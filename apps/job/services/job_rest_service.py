@@ -7,7 +7,7 @@ All business logic for Job REST operations should be implemented here.
 
 import logging
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 from uuid import UUID
 
 from django.db import transaction
@@ -16,8 +16,8 @@ from django.utils import timezone
 
 from apps.accounts.models import Staff
 from apps.client.models import Client, ClientContact
-from apps.job.enums import JobPricingMethodology, JobPricingStage
-from apps.job.models import Job, JobEvent, JobPricing
+from apps.job.enums import JobPricingStage
+from apps.job.models import Job, JobEvent
 from apps.job.serializers import JobPricingSerializer, JobSerializer
 from apps.job.services.job_service import get_job_with_pricings
 

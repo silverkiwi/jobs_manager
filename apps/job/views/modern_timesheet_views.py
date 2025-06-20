@@ -6,12 +6,9 @@ Provides a bridge between legacy TimeEntry system and modern CostLine system.
 """
 
 import logging
-from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Dict
 
 from django.db import transaction
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_date
 from rest_framework import status
@@ -20,7 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Staff
-from apps.job.models import CostLine, CostSet, Job
+from apps.job.models import CostLine, Job
 from apps.job.serializers.costing_serializer import (
     CostLineSerializer,
     TimesheetCostLineSerializer,

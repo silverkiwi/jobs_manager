@@ -3,7 +3,6 @@ Kanban views - API endpoints for kanban board functionality.
 All business logic delegated to KanbanService.
 """
 
-import json
 import logging
 from uuid import UUID
 
@@ -14,7 +13,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.job.models import Job
-from apps.job.services.kanban_categorization_service import KanbanCategorizationService
 from apps.job.services.kanban_service import KanbanService
 
 logger = logging.getLogger(__name__)

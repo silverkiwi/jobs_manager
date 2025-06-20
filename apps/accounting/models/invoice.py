@@ -45,7 +45,6 @@ class BaseXeroInvoiceDocument(models.Model):
     @abstractmethod
     def get_line_items(self):
         """Return the queryset of line items related to this document."""
-        pass
 
     @property
     def total_amount(self):

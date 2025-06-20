@@ -5,7 +5,6 @@ from django.db import close_old_connections
 from xero_python.identity import IdentityApi
 
 from apps.client.models import Client
-from apps.workflow.api.xero.sync import single_sync_client
 from apps.workflow.api.xero.xero import api_client, get_valid_token
 from apps.workflow.models import CompanyDefaults
 

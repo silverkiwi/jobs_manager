@@ -9,9 +9,7 @@ Follows clean code principles:
 """
 
 import logging
-from typing import Any, Dict
 
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -23,7 +21,6 @@ from apps.job.models import Job
 from apps.job.serializers.costing_serializer import CostSetSerializer
 from apps.job.services.import_quote_service import (
     QuoteImportError,
-    QuoteImportResult,
     import_quote_from_file,
     preview_quote_import,
     serialize_validation_report,
