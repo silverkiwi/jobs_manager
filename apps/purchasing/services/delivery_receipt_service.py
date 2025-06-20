@@ -24,6 +24,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
     2. Updates the received quantity on each PurchaseOrderLine.
     3. Deletes any previous Stock entries originating from these PO lines for this PO.
     4. Creates new Stock entries based on the provided allocations
+    4. Creates new Stock entries based on the provided allocations
        (linking to target jobs or stock holding job).
     5. Updates the overall PurchaseOrder status.
 
