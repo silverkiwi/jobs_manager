@@ -71,11 +71,14 @@ class WorkflowConfig(AppConfig):
             )
             logger.info("Added 'xero_heartbeat' job to scheduler.")
 
-            # Xero Regular Sync: Perform full Xero synchronization every 1 hour
+            # Xero Regular Sync: Perform full Xero synchronization weekly on Saturdays
             scheduler.add_job(
                 xero_regular_sync_job,  # Use standalone function
-                trigger="interval",
-                hours=1,
+                trigger="cron",
+                day_of_week="sat",  # Saturday
+                hour=1,  # 1 AM
+                minute=0,
+                timezone="Pacific/Auckland",  # Explicitly set NZT
                 id="xero_regular_sync",
                 max_instances=1,
                 replace_existing=True,
