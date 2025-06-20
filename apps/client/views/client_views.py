@@ -162,7 +162,8 @@ def get_all_clients_api(request):
                 }
             )
         logger.info(
-            f"Successfully retrieved {len(clients_data)} clients for API (include_archived={include_archived})."
+            f"Successfully retrieved {len(clients_data)} clients for API "
+            f"(include_archived={include_archived})."
         )
         return JsonResponse(clients_data, safe=False)
     except Exception as e:
@@ -329,12 +330,13 @@ def AddClient(request):
                     # Get client info from existing contact
                     xero_client = existing_contacts.contacts[0]
                     xero_contact_id = getattr(xero_client, "contact_id", "")
+                    client_name = form.cleaned_data['name']
 
                     # Return error with the existing client info
                     return JsonResponse(
                         {
                             "success": False,
-                            "error": f"Client '{form.cleaned_data['name']}' already exists in Xero",
+                            "error": f"Client '{client_name}' already exists in Xero",
                             "error_details": error_details,
                             "existing_client": {
                                 "name": form.cleaned_data["name"],

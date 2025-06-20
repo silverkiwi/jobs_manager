@@ -183,7 +183,8 @@ def copy_file(
         template_id: Source file ID to copy
         name: Name for the copied file
         parent_id: Optional parent folder ID
-        make_public_editable: If True (default), grants "anyone with link can edit" permissions
+        make_public_editable: If True (default), grants 
+            "anyone with link can edit" permissions
 
     Returns:
         str: Copied file ID
@@ -405,7 +406,10 @@ def _get_or_create_jobs_manager_folder() -> str:
         drive_service = _svc("drive", "v3")
 
         # Search for existing "Jobs Manager" folder
-        query = "name='Jobs Manager' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        query = (
+            "name='Jobs Manager' and mimeType='application/vnd.google-apps.folder' "
+            "and trashed=false"
+        )
         results = (
             drive_service.files().list(q=query, fields="files(id, name)").execute()
         )
@@ -470,10 +474,13 @@ def populate_sheet_from_costset(sheet_id: str, costset) -> None:
             target_sheet_name = first_sheet["properties"]["title"]
 
         if target_sheet_id is None:
-            raise RuntimeError("No sheets found in the spreadsheet")
+            raise RuntimeError(
+                "No sheets found in the spreadsheet"
+            )
 
         logger.info(
-            f"Populating sheet '{target_sheet_name}' (ID: {target_sheet_id}) with cost data"
+            f"Populating sheet '{target_sheet_name}' (ID: {target_sheet_id}) "
+            f"with cost data"
         )
         # Prepare data in a simpler format for batch update
         cost_lines = list(costset.cost_lines.all())
@@ -530,7 +537,8 @@ def populate_sheet_from_costset(sheet_id: str, costset) -> None:
 
         updated_cells = result.get("updatedCells", 0)
         logger.info(
-            f"Updated {updated_cells} cells in sheet {sheet_id} from cost set {costset.id}"
+            f"Updated {updated_cells} cells in sheet {sheet_id} "
+            f"from cost set {costset.id}"
         )
 
     except Exception as e:

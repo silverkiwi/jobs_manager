@@ -202,7 +202,7 @@ class Client(models.Model):
     def get_final_client(self):
         """
         Follow the merge chain to get the final client.
-        If this client was merged into another, return that client 
+        If this client was merged into another, return that client
         (following the chain).
         Otherwise return self.
         """
