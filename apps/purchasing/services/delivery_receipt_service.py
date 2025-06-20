@@ -48,7 +48,9 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
         Job.DoesNotExist: If a job_id in the allocations is invalid.
         Exception: For other unexpected errors during processing.
     """
-    logger.info(f"Starting delivery receipt processing for PO ID: {purchase_order_id}")
+    logger.info(
+        f"Starting delivery receipt processing for PO ID: {purchase_order_id}"
+    )
     logger.debug(f"Received line_allocations data: {line_allocations}")
 
     STOCK_HOLDING_JOB_ID = Job.objects.get(name="Worker Admin").id
@@ -68,7 +70,11 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                 "fully_received",
             ]:
                 logger.warning(
-                    f"Processing delivery receipt for PO {purchase_order.po_number} which has an unexpected status: {purchase_order.status}. This might indicate an issue elsewhere."
+                    (
+                        f"Processing delivery receipt for PO {purchase_order.po_number} "
+                        f"which has an unexpected status: {purchase_order.status}. "
+                        "This might indicate an issue elsewhere."
+                    )
                 )
 
             processed_line_ids = set(line_allocations.keys())
@@ -83,7 +89,10 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
             if len(lines) != len(processed_line_ids):
                 missing_lines = processed_line_ids - set(lines.keys())
                 raise DeliveryReceiptValidationError(
-                    f"Invalid or mismatched PurchaseOrderLine IDs provided: {missing_lines}"
+                    (
+                        "Invalid or mismatched PurchaseOrderLine IDs provided: "
+                        f"{missing_lines}"
+                    )
                 )
 
             all_job_ids = set()
@@ -109,7 +118,10 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                     total_received = Decimal(str(line_data.get("total_received", 0)))
                     if total_received < 0:
                         raise DeliveryReceiptValidationError(
-                            f"Negative total received quantity not allowed for line {line.id}."
+                            (
+                                "Negative total received quantity not allowed for "
+                                f"line {line.id}."
+                            )
                         )
                 except (InvalidOperation, TypeError):
                     raise DeliveryReceiptValidationError(

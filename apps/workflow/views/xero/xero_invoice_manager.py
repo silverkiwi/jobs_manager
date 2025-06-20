@@ -102,13 +102,19 @@ class XeroInvoiceManager(XeroDocumentManager):
             or not self.job.latest_reality_pricing
         ):
             raise ValueError(
-                f"Job {self.job.id if self.job else 'Unknown'} is missing reality pricing information for T&M invoice."
+                (
+                    f"Job {self.job.id if self.job else 'Unknown'} is missing "
+                    "reality pricing information for T&M invoice."
+                )
             )
 
         xero_line_items = []
         xero_line_items.append(
             LineItem(
-                description=f"{f'Job: {self.job.job_number}{(" - " + self.job.description)}' if self.job.description else ''}",
+                description=(
+                    f"Job: {self.job.job_number}"
+                    f"{(' - ' + self.job.description) if self.job.description else ''}"
+                ),
                 quantity=1,  # Typically T&M is invoiced as a single line item sum
                 unit_amount=float(self.job.latest_reality_pricing.total_revenue)
                 or 0.00,
@@ -127,7 +133,10 @@ class XeroInvoiceManager(XeroDocumentManager):
             or not self.job.latest_quote_pricing
         ):
             raise ValueError(
-                f"Job {self.job.id if self.job else 'Unknown'} is missing quote pricing information for Fixed Price invoice."
+                (
+                    f"Job {self.job.id if self.job else 'Unknown'} is missing "
+                    "quote pricing information for Fixed Price invoice."
+                )
             )
 
         xero_line_items: list[LineItem] = []
@@ -135,9 +144,14 @@ class XeroInvoiceManager(XeroDocumentManager):
         # xero_line_items.append(LineItem(description="Price as quoted")) # Consider if this is needed
         xero_line_items.append(
             LineItem(
-                description=f"{f'Job: {self.job.job_number}{(" - " + self.job.description)} (Fixed Price)' if self.job.description else ''}",
+                description=(
+                    f"Job: {self.job.job_number}"
+                    f"{(' - ' + self.job.description + ' (Fixed Price)') if self.job.description else ' (Fixed Price)'}"
+                ),
                 quantity=1,
-                unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
+                unit_amount=(
+                    float(self.job.latest_quote_pricing.total_revenue) or 0.00
+                ),
                 account_code=self._get_account_code(),
             )
         )
@@ -274,12 +288,18 @@ class XeroInvoiceManager(XeroDocumentManager):
                 )
         except AccountingBadRequestException as e:
             logger.error(
-                f"Xero API BadRequest during invoice creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}",
+                (
+                    f"Xero API BadRequest during invoice creation for job "
+                    f"{self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}"
+                ),
                 exc_info=True,
             )
             error_message = parse_xero_api_error_message(
                 exception_body=e.body,
-                default_message=f"Xero validation error ({e.status}): {e.reason}. Please contact support to check the data sent.",
+                default_message=(
+                    f"Xero validation error ({e.status}): {e.reason}. "
+                    "Please contact support to check the data sent."
+                ),
             )
             return JsonResponse(
                 {"success": False, "message": error_message}, status=e.status

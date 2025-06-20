@@ -82,12 +82,16 @@ class Command(BaseCommand):
         except ValueError:
             self.stdout.write(
                 self.style.ERROR(
-                    'Invalid days pattern format. Use format "good:medium:bad" e.g. "10:5:5"'
+                    (
+                        'Invalid days pattern format. Use format '
+                        '"good:medium:bad" e.g. "10:5:5"'
+                    )
                 )
             )
             return
 
-        # Generate the data - explicitly pass the values instead of relying on options dictionary
+        # Generate the data - explicitly pass the values instead of
+        # relying on options dictionary
         self._generate_mock_data(
             int(year), int(month), good_days, medium_days, bad_days
         )
@@ -123,7 +127,9 @@ class Command(BaseCommand):
                 )
             )
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f"Error deleting mock data: {str(e)}"))
+            self.stdout.write(
+                self.style.ERROR(f"Error deleting mock data: {str(e)}")
+            )
 
     def _generate_mock_data(self, year, month, good_days, medium_days, bad_days):
         """Generate mock time entries for the specified month"""
@@ -148,8 +154,12 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR("Company defaults not found"))
                 return
 
-            green_threshold = float(company_defaults.billable_threshold_green or 45)
-            amber_threshold = float(company_defaults.billable_threshold_amber or 30)
+            green_threshold = float(
+                company_defaults.billable_threshold_green or 45
+            )
+            amber_threshold = float(
+                company_defaults.billable_threshold_amber or 30
+            )
 
             # Get staff members (exclude admin users)
             staff_members = Staff.objects.filter(is_staff=False)

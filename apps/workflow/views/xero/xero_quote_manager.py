@@ -88,15 +88,23 @@ class XeroQuoteManager(XeroDocumentManager):
             or not self.job.latest_quote_pricing
         ):
             raise ValueError(
-                f"Job {self.job.id if self.job else 'Unknown'} is missing quote pricing information."
+                (
+                    f"Job {self.job.id if self.job else 'Unknown'} is missing "
+                    "quote pricing information."
+                )
             )
 
         line_items = [
             LineItem(
                 # Xero requires a description for quote line items, so we'll have to keep the placeholder in case there's no job description
-                description=f"Quote for job: {self.job.job_number}{(' - ' + self.job.description) if self.job.description else ''}",
+                description=(
+                    f"Quote for job: {self.job.job_number}"
+                    f"{(' - ' + self.job.description) if self.job.description else ''}"
+                ),
                 quantity=1,
-                unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
+                unit_amount=(
+                    float(self.job.latest_quote_pricing.total_revenue) or 0.00
+                ),
                 account_code=self._get_account_code(),
             )
         ]
@@ -218,12 +226,18 @@ class XeroQuoteManager(XeroDocumentManager):
                 )
         except AccountingBadRequestException as e:
             logger.error(
-                f"Xero API BadRequest during quote creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}",
+                (
+                    f"Xero API BadRequest during quote creation for job "
+                    f"{self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}"
+                ),
                 exc_info=True,
             )
             error_message = parse_xero_api_error_message(
                 exception_body=e.body,
-                default_message=f"Xero validation error ({e.status}): {e.reason} during quote creation. Please contact support.",
+                default_message=(
+                    f"Xero validation error ({e.status}): {e.reason} during "
+                    "quote creation. Please contact support."
+                ),
             )
             return JsonResponse(
                 {"success": False, "message": error_message}, status=e.status

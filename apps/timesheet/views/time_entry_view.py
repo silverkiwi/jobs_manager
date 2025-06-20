@@ -52,7 +52,10 @@ def sanitize_decimal_input(raw_value, default=Decimal(0)):
         return d
     except (decimal.InvalidOperation, TypeError, ValueError) as e:
         logger.warning(
-            f"Sanitizing invalid decimal input '{raw_value}' (type: {type(raw_value)}) to {default} due to {e}."
+            (
+                f"Sanitizing invalid decimal input '{raw_value}' "
+                f"(type: {type(raw_value)}) to {default} due to {e}."
+            )
         )
         return default
 
@@ -190,7 +193,9 @@ class TimesheetEntryView(TemplateView):
                 "job_pricing_id": entry["job_pricing_id"],
                 "job_number": entry["job_pricing__job__job_number"],
                 "job_name": entry["job_pricing__job__name"],
-                "client_name": entry["job_pricing__job__client__name"] or "No client!?",
+                "client_name": (
+                    entry["job_pricing__job__client__name"] or "No client!?"
+                ),
                 "description": entry["description"] or "",
                 "hours": float(entry["hours"]),
                 "rate_multiplier": float(entry["wage_rate_multiplier"]),
@@ -224,7 +229,9 @@ class TimesheetEntryView(TemplateView):
                     if job.latest_reality_pricing
                     else 0
                 ),
-                "client_name": job.client.name if job.client else "NO CLIENT!?",
+                "client_name": (
+                    job.client.name if job.client else "NO CLIENT!?"
+                ),
                 "charge_out_rate": float(job.charge_out_rate),
                 "job_status": job.status,
             }
@@ -447,7 +454,10 @@ def autosave_timesheet_view(request):
                                 staff = Staff.objects.get(id=staff_id)
                                 entry.staff = staff
                                 logger.info(
-                                    f"Restored staff {staff.name} assignment for entry {entry.id}"
+                                    (
+                                        f"Restored staff {staff.name} assignment "
+                                        f"for entry {entry.id}"
+                                    )
                                 )
                             except Staff.DoesNotExist:
                                 logger.error(f"Staff with ID {staff_id} not found")
@@ -456,12 +466,18 @@ def autosave_timesheet_view(request):
                             raise ValueError("Staff ID not provided")
                     # Identify old job before changing
                     old_job_id = (
-                        entry.job_pricing.job.id if entry.job_pricing.job else None
+                        entry.job_pricing.job.id
+                        if entry.job_pricing.job
+                        else None
                     )
-                    old_job = Job.objects.get(id=old_job_id) if old_job_id else None
+                    old_job = (
+                        Job.objects.get(id=old_job_id) if old_job_id else None
+                    )
 
                     if job_id != str(entry.job_pricing.job.id):
-                        logger.info(f"Job for entry {entry_id} changed to {job_id}")
+                        logger.info(
+                            f"Job for entry {entry_id} changed to {job_id}"
+                        )
                         new_job = Job.objects.get(id=job_id)
                         entry.job_pricing = new_job.latest_reality_pricing
 
