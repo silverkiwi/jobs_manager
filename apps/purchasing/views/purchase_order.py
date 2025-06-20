@@ -43,8 +43,6 @@ from apps.workflow.views.xero.xero_po_manager import XeroPurchaseOrderManager
 # Apps Forms
 
 
-
-
 logger = logging.getLogger(__name__)
 
 

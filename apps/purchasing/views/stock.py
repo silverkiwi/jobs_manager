@@ -68,13 +68,8 @@ def use_stock_view(request, job_id=None):
 
     # If job_id is provided, get the job object to pass to the template
     if job_id:
-        try:
-            next(
-                (job for job in active_jobs if str(job.id) == str(job_id)), None
-            )
-        except Exception as e:
-            logger.error(f"Error finding job with ID {job_id}: {e}")
-            # redirect to the error page here
+        target_id = UUID(job_id)
+        job = next(j for j in active_jobs if j.id == target_id)   # StopIteration if none
 
     context = {
         "title": "Use Stock",

@@ -128,9 +128,7 @@ class Command(BaseCommand):
             # Basic sanity check - should have some reasonable values
             if material_cost > 0 and time_revenue > 0:
                 self.stdout.write(
-                    self.style.SUCCESS(
-                        "✓ Both material costs and time revenue present"
-                    )
+                    self.style.SUCCESS("✓ Both material costs and time revenue present")
                 )
             else:
                 self.stdout.write(

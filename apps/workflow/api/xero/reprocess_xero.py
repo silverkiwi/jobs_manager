@@ -93,15 +93,14 @@ def set_invoice_or_bill_fields(document, document_type):
 
     # Determine which line item model to use
     LineItemModel = (
-        InvoiceLineItem if is_invoice
+        InvoiceLineItem
+        if is_invoice
         else BillLineItem if is_bill else CreditNoteLineItem if is_credit_note else None
     )
     document_field = (
         "invoice"
         if is_invoice
-        else "bill" if is_bill
-        else "credit_note" if is_credit_note
-        else None
+        else "bill" if is_bill else "credit_note" if is_credit_note else None
     )
 
     for line_item_data in line_items_data:

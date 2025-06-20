@@ -214,9 +214,7 @@ class Command(BaseCommand):
             if latest_quote and latest_quote.id == result.cost_set.id:
                 self.stdout.write("  ✅ Job latest_quote pointer updated correctly")
             else:
-                self.stdout.write(
-                    "  ❌ Job latest_quote pointer not updated correctly"
-                )
+                self.stdout.write("  ❌ Job latest_quote pointer not updated correctly")
 
         else:
             self.stdout.write(self.style.ERROR("\n❌ Quote import failed!"))
