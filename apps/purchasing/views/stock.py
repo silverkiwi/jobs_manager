@@ -2,17 +2,17 @@ import json
 import logging
 from decimal import Decimal, InvalidOperation
 
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import JsonResponse, Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
 
-from apps.workflow.models import CompanyDefaults
-from apps.purchasing.models import Stock
-from apps.job.models import Job, JobPricing, MaterialEntry
 from apps.job.enums import JobPricingStage
+from apps.job.models import Job, JobPricing, MaterialEntry
 from apps.job.utils import get_active_jobs
+from apps.purchasing.models import Stock
+from apps.workflow.models import CompanyDefaults
 
 logger = logging.getLogger(__name__)
 

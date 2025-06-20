@@ -1,19 +1,18 @@
-from django.core.management.base import BaseCommand
-from django.db import close_old_connections
+import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from django.core.management.base import BaseCommand
+from django.db import close_old_connections
 from django.utils import timezone
-from apps.workflow.api.xero.xero import refresh_token
 
-import logging
-
-from apps.workflow.services.xero_sync_service import XeroSyncService
 from apps.workflow.api.xero.sync import (
-    synchronise_xero_data, 
     deep_sync_xero_data,
-    one_way_sync_all_xero_data
+    one_way_sync_all_xero_data,
+    synchronise_xero_data,
 )
+from apps.workflow.api.xero.xero import refresh_token
+from apps.workflow.services.xero_sync_service import XeroSyncService
 
 logger = logging.getLogger("xero")
 
@@ -23,28 +22,38 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--deep-sync',
-            action='store_true',
-            help='Force a deep sync going back many days instead of normal incremental sync'
+            "--deep-sync",
+            action="store_true",
+            help="Force a deep sync going back many days instead of normal incremental sync",
         )
         parser.add_argument(
-            '--days-back',
+            "--days-back",
             type=int,
             default=90,
-            help='Number of days to look back for deep sync (default: 90)'
+            help="Number of days to look back for deep sync (default: 90)",
         )
         parser.add_argument(
-            '--entity',
-            choices=['contacts', 'invoices', 'bills', 'quotes', 'accounts', 'journals', 'purchase_orders', 'credit_notes', 'stock'],
-            help='Sync only the specified entity type (default: sync all)'
+            "--entity",
+            choices=[
+                "contacts",
+                "invoices",
+                "bills",
+                "quotes",
+                "accounts",
+                "journals",
+                "purchase_orders",
+                "credit_notes",
+                "stock",
+            ],
+            help="Sync only the specified entity type (default: sync all)",
         )
 
     def handle(self, *args, **options):
 
         # Parse options
-        deep_sync = options['deep_sync']
-        days_back = options['days_back']
-        entity = options['entity']
+        deep_sync = options["deep_sync"]
+        days_back = options["days_back"]
+        entity = options["entity"]
 
         # Convert single entity to list
         entities = [entity] if entity else None
@@ -58,13 +67,15 @@ class Command(BaseCommand):
             sync_type = "normal incremental sync"
 
         logger.info(f"Starting manual Xero synchronization: {sync_type}")
-        
+
         try:
             # Choose the appropriate sync function
             if entity or deep_sync:
                 if deep_sync:
                     logger.info(f"Starting deep sync looking back {days_back} days")
-                    sync_generator = deep_sync_xero_data(days_back=days_back, entities=entities)
+                    sync_generator = deep_sync_xero_data(
+                        days_back=days_back, entities=entities
+                    )
                 else:
                     logger.info(f"Starting incremental sync for {entity}")
                     sync_generator = one_way_sync_all_xero_data(entities=entities)
@@ -91,7 +102,7 @@ class Command(BaseCommand):
                 )
 
             logger.info("Manual Xero synchronization completed successfully.")
-                
+
         except Exception as e:
             logger.error(
                 f"Error during manual Xero synchronization: {e}", exc_info=True

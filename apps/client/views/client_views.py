@@ -1,35 +1,32 @@
 import logging
-
-from typing import Dict, Any
+from typing import Any, Dict
 
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import redirect, render, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import UpdateView, TemplateView
-from django_tables2 import SingleTableView
-from django.core.paginator import Paginator
-from django.views.decorators.http import require_POST
-from django.utils.decorators import method_decorator
-from django.db import transaction
 from django.utils import timezone
-
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
+from django.views.generic import TemplateView, UpdateView
+from django_tables2 import SingleTableView
 from xero_python.accounting import AccountingApi
+
+from apps.accounting.models import Bill, Invoice
+from apps.client.forms import ClientForm
+from apps.client.models import Client, ClientContact
+from apps.client.serializers import ClientContactSerializer
+from apps.job.models import Job
 from apps.workflow.api.xero.reprocess_xero import set_client_fields
 from apps.workflow.api.xero.sync import (
-    sync_client_to_xero,
     serialize_xero_object,
+    sync_client_to_xero,
     sync_clients,
 )
-from apps.workflow.api.xero.xero import get_valid_token, api_client, get_tenant_id
-from apps.accounting.models import Invoice, Bill
-
-from apps.client.models import Client, ClientContact
-from apps.client.forms import ClientForm
-from apps.client.serializers import ClientContactSerializer
-
-from apps.job.models import Job
+from apps.workflow.api.xero.xero import api_client, get_tenant_id, get_valid_token
 
 logger = logging.getLogger(__name__)
 
@@ -151,18 +148,18 @@ def get_all_clients_api(request):
     """
     API endpoint to retrieve all clients.
     Returns a list of clients with their ID and name.
-    
+
     Query parameters:
     - include_archived: Set to 'true' to include archived clients (default: false)
     """
     try:
-        include_archived = request.GET.get('include_archived', '').lower() == 'true'
-        
+        include_archived = request.GET.get("include_archived", "").lower() == "true"
+
         if include_archived:
             clients = Client.objects.all().order_by("name")
         else:
             clients = Client.objects.exclude(xero_archived=True).order_by("name")
-            
+
         clients_data = []
         for client in clients:
             clients_data.append(
@@ -172,7 +169,9 @@ def get_all_clients_api(request):
                     "xero_contact_id": client.xero_contact_id,  # Might be useful
                 }
             )
-        logger.info(f"Successfully retrieved {len(clients_data)} clients for API (include_archived={include_archived}).")
+        logger.info(
+            f"Successfully retrieved {len(clients_data)} clients for API (include_archived={include_archived})."
+        )
         return JsonResponse(clients_data, safe=False)
     except Exception as e:
         logger.error(f"Error fetching all clients for API: {str(e)}", exc_info=True)
@@ -220,7 +219,9 @@ class ClientUpdateView(UpdateView):
 def ClientSearch(request):
     query = request.GET.get("q", "")
     if query and len(query) >= 3:  # Only search when the query is 3+ characters
-        clients = Client.objects.filter(Q(name__icontains=query)).exclude(xero_archived=True)[:10]
+        clients = Client.objects.filter(Q(name__icontains=query)).exclude(
+            xero_archived=True
+        )[:10]
         results = [
             {
                 "id": client.id,
@@ -458,32 +459,33 @@ def AddClient(request):
             )
 
 
-
 # API views for ClientContact management
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def get_client_contacts_api(request, client_id):
     """
     API endpoint to retrieve all contacts for a specific client.
     """
     try:
         client = get_object_or_404(Client, id=client_id)
-        contacts = ClientContact.objects.filter(client=client).order_by('-is_primary', 'name')
+        contacts = ClientContact.objects.filter(client=client).order_by(
+            "-is_primary", "name"
+        )
         serializer = ClientContactSerializer(contacts, many=True)
         return Response(serializer.data)
     except Exception as e:
         logger.error(f"Error fetching contacts for client {client_id}: {str(e)}")
         return Response(
-            {"error": f"Error fetching contacts: {str(e)}"}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            {"error": f"Error fetching contacts: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def create_client_contact_api(request):
     """
     API endpoint to create a new contact for a client.
@@ -497,29 +499,29 @@ def create_client_contact_api(request):
     except Exception as e:
         logger.error(f"Error creating contact: {str(e)}")
         return Response(
-            {"error": f"Error creating contact: {str(e)}"}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            {"error": f"Error creating contact: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(["GET", "PUT", "DELETE"])
 def client_contact_detail_api(request, contact_id):
     """
     API endpoint to retrieve, update, or delete a specific contact.
     """
     contact = get_object_or_404(ClientContact, id=contact_id)
-    
-    if request.method == 'GET':
+
+    if request.method == "GET":
         serializer = ClientContactSerializer(contact)
         return Response(serializer.data)
-    
-    elif request.method == 'PUT':
+
+    elif request.method == "PUT":
         serializer = ClientContactSerializer(contact, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    elif request.method == 'DELETE':
+
+    elif request.method == "DELETE":
         contact.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

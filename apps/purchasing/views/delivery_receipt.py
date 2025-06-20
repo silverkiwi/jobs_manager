@@ -1,16 +1,15 @@
 import json
 import logging
 
-from django.views.generic import ListView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.generic import ListView, TemplateView
 
-
-from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
 from apps.job.models import Job
-from apps.purchasing.services.delivery_receipt_service import process_delivery_receipt
 from apps.job.utils import get_active_jobs
+from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
+from apps.purchasing.services.delivery_receipt_service import process_delivery_receipt
 
 logger = logging.getLogger(__name__)
 

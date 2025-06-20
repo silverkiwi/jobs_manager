@@ -1,7 +1,7 @@
 import logging
 import os
-from io import BytesIO
 from datetime import datetime
+from io import BytesIO
 
 from django.conf import settings
 from PIL import Image, ImageFile

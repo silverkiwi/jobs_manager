@@ -9,7 +9,7 @@ This module contains all URL patterns related to client management:
 - etc.
 """
 
-from django.urls import path, include
+from django.urls import include, path
 
 from apps.client.views import client_views
 
@@ -18,7 +18,6 @@ app_name = "clients"
 urlpatterns = [
     # REST API endpoints
     path("rest/", include("apps.client.urls_rest")),
-    
     # ClientContact API endpoints
     path(
         "api/client/<uuid:client_id>/contacts/",

@@ -1,10 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from simple_history.admin import SimpleHistoryAdmin
 
 from apps.accounts.forms import StaffChangeForm, StaffCreationForm
 from apps.accounts.models import Staff
-
-from simple_history.admin import SimpleHistoryAdmin
 
 
 @admin.register(Staff)

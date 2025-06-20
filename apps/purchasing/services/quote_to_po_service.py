@@ -1,30 +1,29 @@
-import logging
-import os
-import json
 import base64
-import tempfile
-from typing import Literal, Optional, Tuple, Union
-import requests
+import json
+import logging
 import mimetypes
-import pdfplumber
+import os
 import re
+import tempfile
 from decimal import Decimal, InvalidOperation
-from rapidfuzz import process, fuzz
+from typing import Literal, Optional, Tuple, Union
 
-from google import genai
-
+import pdfplumber
+import requests
 from django.conf import settings
 from django.db.models import Q
+from google import genai
+from rapidfuzz import fuzz, process
 
+from apps.client.models import Client
+from apps.job.enums import MetalType
 from apps.purchasing.models import (
     PurchaseOrder,
     PurchaseOrderLine,
     PurchaseOrderSupplierQuote,
 )
-from apps.client.models import Client
-from apps.job.enums import MetalType
-from apps.workflow.models import AIProvider
 from apps.workflow.enums import AIProviderTypes
+from apps.workflow.models import AIProvider
 
 logger = logging.getLogger(__name__)
 

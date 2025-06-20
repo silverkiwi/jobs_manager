@@ -1,27 +1,29 @@
 import base64
 import json
 import logging
-
 from datetime import datetime
 
-from django.urls import reverse
-from django.views.generic import ListView, TemplateView
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect, get_object_or_404
-from django.http import JsonResponse, FileResponse
 from django.contrib import messages
-from django.views.decorators.http import require_http_methods
-from django.utils import timezone
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-
-from rest_framework.views import APIView
+from django.http import FileResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+from django.views.generic import ListView, TemplateView
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.views import APIView
+
+from apps.client.models import Client
 
 # Django and Python Standard Library imports first
 from apps.job.models import Job
+
+# Apps Forms
+from apps.purchasing.forms import PurchaseOrderForm, PurchaseOrderLineForm
 
 # Apps Models
 from apps.purchasing.models import (
@@ -29,11 +31,6 @@ from apps.purchasing.models import (
     PurchaseOrderLine,
     PurchaseOrderSupplierQuote,
 )
-from apps.client.models import Client
-from apps.workflow.models import CompanyDefaults, AIProvider
-
-# Apps Forms
-from apps.purchasing.forms import PurchaseOrderForm, PurchaseOrderLineForm
 
 # Apps Services
 from apps.purchasing.services.purchase_order_email_service import (
@@ -43,10 +40,11 @@ from apps.purchasing.services.purchase_order_pdf_service import (
     create_purchase_order_pdf,
 )
 from apps.purchasing.services.quote_to_po_service import (
-    save_quote_file,
     create_po_from_quote,
     extract_data_from_supplier_quote,
+    save_quote_file,
 )
+from apps.workflow.models import AIProvider, CompanyDefaults
 
 # Apps Utils and Managers
 from apps.workflow.utils import extract_messages

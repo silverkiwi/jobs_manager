@@ -1,5 +1,5 @@
 # Generated migration to normalize PO numbers with leading zeros and reassign non-standard formats
-from django.db import migrations, IntegrityError
+from django.db import IntegrityError, migrations
 
 
 def normalize_po_numbers(apps, schema_editor):

@@ -1,5 +1,7 @@
 import os
+
 from django.db import migrations
+
 
 def cleanup_company_defaults(apps, schema_editor):
     """

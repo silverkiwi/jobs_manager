@@ -1,6 +1,6 @@
-import random
 import calendar
 import datetime
+import random
 from datetime import date
 from decimal import Decimal
 
@@ -8,19 +8,13 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from apps.workflow.models import CompanyDefaults
-
-from apps.job.enums import JobPricingStage
-
-from apps.job.models import Job, JobPricing, AdjustmentEntry, MaterialEntry
-
-from apps.timesheet.models import TimeEntry
-
-from apps.client.models import Client
-
 from apps.accounting.utils import get_nz_tz
-
 from apps.accounts.models import Staff
+from apps.client.models import Client
+from apps.job.enums import JobPricingStage
+from apps.job.models import AdjustmentEntry, Job, JobPricing, MaterialEntry
+from apps.timesheet.models import TimeEntry
+from apps.workflow.models import CompanyDefaults
 
 
 class Command(BaseCommand):
@@ -284,8 +278,8 @@ class Command(BaseCommand):
 
         try:
             # Import models here to avoid circular imports
-            from apps.job.models import Job
             from apps.client.models import Client
+            from apps.job.models import Job
 
             # Create company defaults if needed
             if not CompanyDefaults.objects.exists():

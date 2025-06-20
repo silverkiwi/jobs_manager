@@ -1,27 +1,29 @@
 # workflow/views/xero_quote_creator.py
-import logging
 import json
-from decimal import Decimal
+import logging
 from datetime import timedelta
+from decimal import Decimal
 
 from django.http import JsonResponse
 from django.utils import timezone
+from xero_python.accounting.models import LineItem
+from xero_python.accounting.models import Quote as XeroQuote
+from xero_python.exceptions import (  # If specific exceptions handled
+    AccountingBadRequestException,
+    ApiException,
+)
 
-# Import base class and helpers
-from .xero_base_manager import XeroDocumentManager
-from .xero_helpers import (
-    format_date,
-    parse_xero_api_error_message,
-)  # Assuming format_date is needed
+from apps.accounting.enums import QuoteStatus
 
 # Import models
 from apps.accounting.models import Quote
-from apps.accounting.enums import QuoteStatus
-from xero_python.accounting.models import LineItem, Quote as XeroQuote
-from xero_python.exceptions import (
-    AccountingBadRequestException,
-    ApiException,
-)  # If specific exceptions handled
+
+# Import base class and helpers
+from .xero_base_manager import XeroDocumentManager
+from .xero_helpers import (  # Assuming format_date is needed
+    format_date,
+    parse_xero_api_error_message,
+)
 
 logger = logging.getLogger("xero")
 

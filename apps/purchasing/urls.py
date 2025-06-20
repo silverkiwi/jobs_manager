@@ -4,6 +4,7 @@ Following REST conventions with clear resource-based naming.
 """
 
 from django.urls import path
+
 from . import views
 
 app_name = "purchasing"

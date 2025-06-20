@@ -2,8 +2,9 @@
 
 import uuid
 
-from django.db import migrations, models
 import django.db.models.deletion
+from django.db import migrations, models
+
 
 # This migration is meant to be faked in existing dbs. Its only purpose is to create the tables when creating a fresh db.
 class Migration(migrations.Migration):

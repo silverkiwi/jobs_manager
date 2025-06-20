@@ -2,6 +2,7 @@
 
 from django.db import migrations
 
+
 # Meant to be faked in existing DBs
 class Migration(migrations.Migration):
 

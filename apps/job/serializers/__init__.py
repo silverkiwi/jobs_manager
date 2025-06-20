@@ -4,7 +4,7 @@ from .adjustment_entry_serializer import AdjustmentEntrySerializer
 from .costing_serializer import CostLineSerializer, CostSetSerializer
 from .job_file_serializer import JobFileSerializer
 from .job_pricing_serializer import JobPricingSerializer
-from .job_serializer import JobSerializer, CompleteJobSerializer
+from .job_serializer import CompleteJobSerializer, JobSerializer
 from .material_entry_serializer import MaterialEntrySerializer
 from .quote_spreadsheet_serializer import QuoteSpreadsheetSerializer
 

@@ -3,11 +3,11 @@ Service layer for Kanban functionality.
 Handles all business logic related to job management in the Kanban board.
 """
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
 from django.db import transaction
-from django.db.models import Q, Max, QuerySet
+from django.db.models import Max, Q, QuerySet
 from django.http import HttpRequest
 
 from apps.job.models import Job

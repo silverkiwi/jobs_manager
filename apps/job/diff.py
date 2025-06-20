@@ -8,9 +8,9 @@ Follows clean code principles:
 - Clear separation of concerns
 """
 
-from typing import Tuple, List, Dict, Optional, Set
-from decimal import Decimal
 from dataclasses import dataclass
+from decimal import Decimal
+from typing import Dict, List, Optional, Set, Tuple
 
 from apps.job.importers.draft import DraftLine
 from apps.job.models import CostLine, CostSet

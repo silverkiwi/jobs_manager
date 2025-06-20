@@ -1,8 +1,10 @@
-from django.db import migrations
 import os
 import platform
-from pathlib import Path
 import subprocess
+from pathlib import Path
+
+from django.db import migrations
+
 
 def create_systemd_service(apps, schema_editor):
     """

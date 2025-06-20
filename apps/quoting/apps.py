@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+
 from django.apps import AppConfig
 from django.conf import settings
 from django.db import close_old_connections
@@ -14,12 +15,9 @@ class QuotingConfig(AppConfig):
 
     def ready(self):
         # Import signals to ensure they're connected
-        import apps.quoting.signals  # noqa
-        
         # This app (quoting) is responsible for scheduling scraper jobs.
         # The 'workflow' app handles its own scheduled jobs (e.g., Xero syncs).
         # Both apps use the same DjangoJobStore for persistence.
-
         # Import scheduler-related modules here, when apps are ready
         # These imports are placed here to avoid AppRegistryNotReady errors
         # during Django management commands (like migrate) where the app registry
@@ -27,17 +25,21 @@ class QuotingConfig(AppConfig):
         from apscheduler.schedulers.background import BackgroundScheduler
         from django_apscheduler.jobstores import DjangoJobStore
 
+        import apps.quoting.signals  # noqa
+
         # Skip scheduler in one-off manage.py commands (migrate, shell, etc.)
         if sys.argv[0].endswith("manage.py"):
             cmd = sys.argv[1] if len(sys.argv) > 1 else ""
-            if cmd != "runserver":          # runserver still needs the scheduler
-                logger.info("Skipping APScheduler setup inside manage.py %s", cmd or "<no-cmd>")
+            if cmd != "runserver":  # runserver still needs the scheduler
+                logger.info(
+                    "Skipping APScheduler setup inside manage.py %s", cmd or "<no-cmd>"
+                )
                 return
 
         # Import the standalone job functions
         from apps.quoting.scheduler_jobs import (
-            run_all_scrapers_job,
             delete_old_job_executions,
+            run_all_scrapers_job,
         )
 
         # Ensure Django is ready before starting the scheduler

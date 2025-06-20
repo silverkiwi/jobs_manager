@@ -1,26 +1,24 @@
 import json
 import logging
 
+from django.db import transaction
 from django.forms import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
-from django.db import transaction
 
+from apps.accounting.models import Invoice, Quote
 from apps.job.enums import JobPricingMethodology, JobPricingStage
 from apps.job.helpers import DecimalEncoder, get_company_defaults
-from apps.accounting.models import Quote, Invoice
-from apps.job.serializers import JobPricingSerializer, JobSerializer
-
 from apps.job.models import Job, JobEvent
-
+from apps.job.serializers import JobPricingSerializer, JobSerializer
 from apps.job.services.file_service import sync_job_folder
 from apps.job.services.job_service import (
+    archive_and_reset_job_pricing,
     get_historical_job_pricings,
     get_job_with_pricings,
     get_latest_job_pricings,
-    archive_and_reset_job_pricing,
 )
 
 logger = logging.getLogger(__name__)
@@ -683,7 +681,7 @@ def create_linked_quote_api(request, job_id):
 
         # Update the job with the new quote URL
         job.linked_quote = quote_url
-        job.save(staff=request.user)        # Create a job event to record this action
+        job.save(staff=request.user)  # Create a job event to record this action
         JobEvent.objects.create(
             job=job,
             event_type="quote_created",

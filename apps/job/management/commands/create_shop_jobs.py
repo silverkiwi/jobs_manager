@@ -1,10 +1,8 @@
 from django.core.management.base import BaseCommand
 
-from apps.workflow.models import CompanyDefaults
-
 from apps.client.models import Client
-
 from apps.job.models import Job
+from apps.workflow.models import CompanyDefaults
 
 
 class Command(BaseCommand):
@@ -52,26 +50,32 @@ class Command(BaseCommand):
         company_defaults = CompanyDefaults.objects.first()
         if not company_defaults:
             self.stdout.write(
-                self.style.ERROR("CompanyDefaults not found. Please configure company defaults first.")
+                self.style.ERROR(
+                    "CompanyDefaults not found. Please configure company defaults first."
+                )
             )
             return
-        
+
         if not company_defaults.shop_client_name:
             self.stdout.write(
                 self.style.ERROR("Shop client name not configured in CompanyDefaults.")
             )
             return
-        
+
         try:
             shop_client = Client.objects.get(name=company_defaults.shop_client_name)
         except Client.DoesNotExist:
             self.stdout.write(
-                self.style.ERROR(f"Shop client '{company_defaults.shop_client_name}' not found.")
+                self.style.ERROR(
+                    f"Shop client '{company_defaults.shop_client_name}' not found."
+                )
             )
             return
         except Client.MultipleObjectsReturned:
             self.stdout.write(
-                self.style.ERROR(f"Multiple clients found with name '{company_defaults.shop_client_name}'. Please resolve duplicates.")
+                self.style.ERROR(
+                    f"Multiple clients found with name '{company_defaults.shop_client_name}'. Please resolve duplicates."
+                )
             )
             return
 

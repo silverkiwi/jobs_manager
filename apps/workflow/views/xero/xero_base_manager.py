@@ -1,28 +1,27 @@
 # workflow/views/xero/xero_base_manager.py
-import logging
 import json
+import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
 from django.http import JsonResponse
-
+from django.utils import timezone
 from xero_python.accounting import AccountingApi
 from xero_python.accounting.models import Contact
 
-from django.utils import timezone
+from apps.client.models import Client
 
 # Import models used in type hints or logic
 from apps.job.models import Job
+from apps.workflow.api.xero.xero import api_client, get_tenant_id
 
-from apps.client.models import Client
+from .xero_helpers import clean_payload, convert_to_pascal_case  # Import helpers
 
 # Type hints will use string literals to avoid circular imports
 # from .xero_invoice_manager import XeroInvoiceManager
 # from .xero_quote_manager import XeroQuoteManager
 # from .xero_po_manager import XeroPurchaseOrderManager
 
-from apps.workflow.api.xero.xero import api_client, get_tenant_id
-from .xero_helpers import clean_payload, convert_to_pascal_case  # Import helpers
 
 logger = logging.getLogger("xero")
 
@@ -157,8 +156,8 @@ class XeroDocumentManager(ABC):
             # We need to import the specific creator types here eventually
             # Defer imports to avoid circular dependencies until files are created
             from .xero_invoice_manager import XeroInvoiceManager
-            from .xero_quote_manager import XeroQuoteManager
             from .xero_po_manager import XeroPurchaseOrderManager
+            from .xero_quote_manager import XeroQuoteManager
 
             if hasattr(self, "_is_invoice_manager"):
                 api_payload = {"Invoices": [payload]}

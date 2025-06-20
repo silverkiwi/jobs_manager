@@ -9,6 +9,7 @@ from rest_framework import serializers
 
 class JobBreakdownSerializer(serializers.Serializer):
     """Serializer for job breakdown data"""
+
     job_id = serializers.CharField()
     job_number = serializers.CharField()
     job_name = serializers.CharField()
@@ -21,6 +22,7 @@ class JobBreakdownSerializer(serializers.Serializer):
 
 class StaffDailyDataSerializer(serializers.Serializer):
     """Serializer for individual staff daily timesheet data"""
+
     staff_id = serializers.CharField()
     staff_name = serializers.CharField()
     staff_initials = serializers.CharField()
@@ -42,6 +44,7 @@ class StaffDailyDataSerializer(serializers.Serializer):
 
 class DailyTotalsSerializer(serializers.Serializer):
     """Serializer for daily totals"""
+
     total_scheduled_hours = serializers.FloatField()
     total_actual_hours = serializers.FloatField()
     total_billable_hours = serializers.FloatField()
@@ -56,6 +59,7 @@ class DailyTotalsSerializer(serializers.Serializer):
 
 class SummaryStatsSerializer(serializers.Serializer):
     """Serializer for summary statistics"""
+
     total_staff = serializers.IntegerField()
     complete_staff = serializers.IntegerField()
     partial_staff = serializers.IntegerField()
@@ -65,6 +69,7 @@ class SummaryStatsSerializer(serializers.Serializer):
 
 class DailyTimesheetSummarySerializer(serializers.Serializer):
     """Serializer for complete daily timesheet summary"""
+
     date = serializers.DateField()
     staff_data = StaffDailyDataSerializer(many=True)
     daily_totals = DailyTotalsSerializer()

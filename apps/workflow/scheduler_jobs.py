@@ -5,6 +5,7 @@ These functions must be independent to ensure they can be properly serialized.
 
 import logging
 from datetime import datetime
+
 from django.db import close_old_connections
 
 logger = logging.getLogger(__name__)

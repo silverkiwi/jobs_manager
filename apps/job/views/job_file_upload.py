@@ -1,22 +1,19 @@
-import os
-
 import logging
-
-from rest_framework import status
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.response import Response
-from rest_framework.views import APIView
+import os
 
 # Use django.conf.settings to access the fully configured Django settings
 # This ensures we get settings after all imports and env vars are processed
 from django.conf import settings
-
-from apps.job.serializers.job_file_serializer import JobFileSerializer
+from rest_framework import status
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.job.models import Job, JobFile
-
+from apps.job.serializers.job_file_serializer import JobFileSerializer
 
 logger = logging.getLogger(__name__)
+
 
 class JobFileUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -65,21 +62,19 @@ class JobFileUploadView(APIView):
                     "file_path": relative_path,
                     "mime_type": file.content_type,
                     "print_on_jobsheet": False,
-                    "status": "active"
-                }
+                    "status": "active",
+                },
             )
             uploaded_instances.append(job_file)
-        
+
         serializer = JobFileSerializer(
-            uploaded_instances,
-            many=True,
-            context={"request": request}
+            uploaded_instances, many=True, context={"request": request}
         )
 
         return Response(
             {
                 "status": "success",
                 "uploaded": serializer.data,
-                "message": "Files uploaded successfully"
+                "message": "Files uploaded successfully",
             }
         )

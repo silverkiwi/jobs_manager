@@ -1,9 +1,9 @@
+import decimal
 import json
 import logging
+import math
 from datetime import datetime
 from decimal import Decimal
-import math
-import decimal
 
 from django.contrib import messages
 from django.core.cache import cache
@@ -15,19 +15,16 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 
-from apps.timesheet.enums import RateType
-from apps.job.models import Job
-from apps.job.utils import get_active_jobs, get_jobs_data
-
-from apps.workflow.utils import extract_messages
-
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
-
+from apps.job.models import Job
+from apps.job.utils import get_active_jobs, get_jobs_data
+from apps.timesheet.enums import RateType
 from apps.timesheet.models import TimeEntry
 from apps.timesheet.serializers import (
     TimeEntryForTimeEntryViewSerializer as TimeEntrySerializer,
 )
+from apps.workflow.utils import extract_messages
 
 logger = logging.getLogger(__name__)
 

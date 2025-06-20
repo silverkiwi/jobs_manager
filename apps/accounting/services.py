@@ -1,33 +1,22 @@
-import datetime
-
 import calendar
+import datetime
+from datetime import date, timedelta
+from decimal import Decimal
+from logging import getLogger
+from typing import Any, Dict, List, Tuple
 
 import holidays
-
-from decimal import Decimal
-
-from typing import List, Dict, Any, Tuple
-
-from datetime import date, timedelta
-
-from django.db.models import Sum, Case, When, F, DecimalField, Value, Q
-
+from django.db.models import Case, DecimalField, F, Q, Sum, Value, When
 from django.db.models.functions import TruncDate
-
 from django.utils import timezone
 
-from logging import getLogger
-
-from apps.workflow.models import CompanyDefaults
 from apps.accounting.utils import get_nz_tz
-
 from apps.accounts.utils import get_excluded_staff
-
-from apps.timesheet.models import TimeEntry
-
-from apps.job.models import AdjustmentEntry, MaterialEntry
 from apps.client.models import Client
 from apps.job.enums import JobPricingStage
+from apps.job.models import AdjustmentEntry, MaterialEntry
+from apps.timesheet.models import TimeEntry
+from apps.workflow.models import CompanyDefaults
 
 logger = getLogger(__name__)
 

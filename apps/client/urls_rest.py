@@ -8,12 +8,13 @@ REST URLs for Client module following RESTful patterns:
 """
 
 from django.urls import path
+
 from apps.client.views.client_rest_views import (
-    ClientSearchRestView,
-    ClientContactsRestView,
     ClientContactCreateRestView,
-    ClientListAllRestView,
+    ClientContactsRestView,
     ClientCreateRestView,
+    ClientListAllRestView,
+    ClientSearchRestView,
 )
 
 app_name = "clients_rest"
@@ -25,28 +26,24 @@ urlpatterns = [
         ClientListAllRestView.as_view(),
         name="client_list_all_rest",
     ),
-    
     # Client creation REST endpoint
     path(
         "create/",
         ClientCreateRestView.as_view(),
         name="client_create_rest",
     ),
-    
     # Client search REST endpoint
     path(
         "search/",
         ClientSearchRestView.as_view(),
         name="client_search_rest",
     ),
-    
     # Client contacts REST endpoint
     path(
         "<uuid:client_id>/contacts/",
         ClientContactsRestView.as_view(),
         name="client_contacts_rest",
     ),
-    
     # Client contact creation REST endpoint
     path(
         "contacts/",

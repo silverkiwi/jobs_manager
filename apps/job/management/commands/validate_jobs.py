@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.db.models import Count, Q
-from apps.job.models import Job, JobPricing
+
 from apps.job.enums import JobPricingStage
+from apps.job.models import Job, JobPricing
 
 
 class Command(BaseCommand):

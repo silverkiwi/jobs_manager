@@ -7,13 +7,12 @@ from urllib.parse import urlencode
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from xero_python.accounting import AccountingApi
 from xero_python.api_client import ApiClient, Configuration
 from xero_python.api_client.oauth2 import OAuth2Token, TokenApi
 from xero_python.identity import IdentityApi
-from xero_python.accounting import AccountingApi
 
-from apps.workflow.models import XeroToken
-from apps.workflow.models import CompanyDefaults
+from apps.workflow.models import CompanyDefaults, XeroToken
 
 logger = logging.getLogger("xero")
 

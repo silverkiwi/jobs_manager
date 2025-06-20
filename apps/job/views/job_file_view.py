@@ -1,15 +1,13 @@
 import logging
 import os
 
+from django.conf import settings
 from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404
-
 from rest_framework import status
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from django.conf import settings
 
 from apps.job.models import Job, JobFile
 from apps.job.serializers.job_file_serializer import JobFileSerializer
@@ -170,14 +168,14 @@ class JobFileView(APIView):
         """
         Return the file list of a job.
         """
-        try: 
+        try:
             job = Job.objects.get(job_number=job_number)
         except Job.DoesNotExist:
             return Response(
                 {"status": "error", "message": "Job not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        
+
         qs = JobFile.objects.filter(job=job, status="active")
         serializer = JobFileSerializer(qs, many=True, context={"request": self.request})
         return Response(serializer.data, status=200)
@@ -420,4 +418,3 @@ class JobFileThumbnailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         return FileResponse(open(thumb, "rb"), content_type="image/jpeg")
-

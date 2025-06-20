@@ -1,11 +1,11 @@
+import logging
 from decimal import Decimal, InvalidOperation
+
 from django.db import transaction
 from django.utils import timezone
-import logging
 
-from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine
-from apps.purchasing.models import Stock
 from apps.job.models import Job, MaterialEntry
+from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, Stock
 
 logger = logging.getLogger(__name__)
 

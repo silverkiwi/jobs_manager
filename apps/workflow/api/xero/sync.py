@@ -1,21 +1,22 @@
-from decimal import Decimal
 import logging
 import time
 from datetime import date, datetime, timedelta
+from decimal import Decimal
+from typing import Any, Callable, Dict, List, Optional, Type
 from uuid import UUID
-from typing import Dict, Any, List, Optional, Callable, Type
 
+from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import models, transaction
 from django.db.utils import IntegrityError
 from django.utils import timezone
-from django.conf import settings
-
 from xero_python.accounting import AccountingApi
 from xero_python.exceptions.http_status_exceptions import RateLimitException
-from apps.workflow.utils import get_machine_id
-from apps.workflow.models import CompanyDefaults
+
+from apps.accounting.models import Bill, CreditNote, Invoice, Quote
+from apps.client.models import Client
+from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, Stock
 from apps.workflow.api.xero.reprocess_xero import (
     set_client_fields,
     set_invoice_or_bill_fields,
@@ -27,10 +28,8 @@ from apps.workflow.api.xero.xero import (
     get_token,
     get_xero_items,
 )
-from apps.workflow.models import XeroJournal, XeroAccount
-from apps.accounting.models import Quote, Bill, CreditNote, Invoice
-from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, Stock
-from apps.client.models import Client
+from apps.workflow.models import CompanyDefaults, XeroAccount, XeroJournal
+from apps.workflow.utils import get_machine_id
 
 logger = logging.getLogger("xero")
 SLEEP_TIME = 1  # Sleep after every API call to avoid hitting rate limits
@@ -58,25 +57,38 @@ def clean_json(data):
     """Remove Xero's internal fields and bulky repeated data"""
     if not isinstance(data, dict):
         return data
-    
+
     exclude_keys = {
-        "_currency_code", "_currency_rate",
-        "_value2member_map_", "_generate_next_value_",
-        "_member_names_", "__objclass__"
+        "_currency_code",
+        "_currency_rate",
+        "_value2member_map_",
+        "_generate_next_value_",
+        "_member_names_",
+        "__objclass__",
     }
-    
+
     cleaned = {}
     for key, value in data.items():
-        if key in exclude_keys or any(pattern in key for pattern in ["_value2member_map_", "_generate_next_value_", "_member_names_", "__objclass__"]):
+        if key in exclude_keys or any(
+            pattern in key
+            for pattern in [
+                "_value2member_map_",
+                "_generate_next_value_",
+                "_member_names_",
+                "__objclass__",
+            ]
+        ):
             continue
-        
+
         if isinstance(value, dict):
             cleaned[key] = clean_json(value)
         elif isinstance(value, list):
-            cleaned[key] = [clean_json(item) if isinstance(item, dict) else item for item in value]
+            cleaned[key] = [
+                clean_json(item) if isinstance(item, dict) else item for item in value
+            ]
         else:
             cleaned[key] = value
-    
+
     return cleaned
 
 
@@ -90,21 +102,19 @@ def get_or_fetch_client(contact_id, reference=None):
     client = Client.objects.filter(xero_contact_id=contact_id).first()
     if client:
         return client.get_final_client()
-    
+
     response = AccountingApi(api_client).get_contacts(
-        get_tenant_id(),
-        i_ds=[contact_id],
-        include_archived=True
+        get_tenant_id(), i_ds=[contact_id], include_archived=True
     )
     time.sleep(SLEEP_TIME)
-    
+
     if not response.contacts:
         raise ValueError(f"Client not found for {reference or contact_id}")
-    
+
     synced = sync_clients([response.contacts[0]])
     if not synced:
         raise ValueError(f"Failed to sync client for {reference or contact_id}")
-    
+
     return synced[0].get_final_client()
 
 
@@ -112,23 +122,29 @@ def sync_entities(items, model_class, xero_id_attr, transform_func):
     """Generic sync function for all entity types."""
     for item in items:
         xero_id = getattr(item, xero_id_attr)
-        
+
         # Skip deleted items that don't exist locally
-        if getattr(item, 'status', None) == 'DELETED':
+        if getattr(item, "status", None) == "DELETED":
             if not model_class.objects.filter(xero_id=xero_id).exists():
-                logger.info(f"Skipping deleted {model_class.__name__} {xero_id} - doesn't exist locally")
+                logger.info(
+                    f"Skipping deleted {model_class.__name__} {xero_id} - doesn't exist locally"
+                )
                 continue
-        
+
         instance = transform_func(item, xero_id)
         if instance:
-            logger.info(f"Synced {model_class.__name__}: {getattr(instance, 'number', getattr(instance, 'name', xero_id))}")
+            logger.info(
+                f"Synced {model_class.__name__}: {getattr(instance, 'number', getattr(instance, 'name', xero_id))}"
+            )
 
 
 # Transform functions
 def transform_invoice(xero_invoice, xero_id):
     """Transform Xero invoice to our Invoice model"""
-    client = get_or_fetch_client(xero_invoice.contact.contact_id, xero_invoice.invoice_number)
-    
+    client = get_or_fetch_client(
+        xero_invoice.contact.contact_id, xero_invoice.invoice_number
+    )
+
     invoice, _ = Invoice.objects.get_or_create(xero_id=xero_id)
     invoice.client = client
     invoice.raw_json = process_xero_data(xero_invoice)
@@ -140,13 +156,13 @@ def transform_bill(xero_bill, xero_id):
     """Transform Xero bill to our Bill model"""
     raw_json = process_xero_data(xero_bill)
     bill_number = raw_json.get("_invoice_number")
-    
+
     if not bill_number:
         logger.warning(f"Skipping bill {xero_id}: missing invoice_number")
         return None
-    
+
     client = get_or_fetch_client(xero_bill.contact.contact_id, bill_number)
-    
+
     bill, _ = Bill.objects.get_or_create(xero_id=xero_id)
     bill.client = client
     bill.raw_json = raw_json
@@ -156,8 +172,10 @@ def transform_bill(xero_bill, xero_id):
 
 def transform_credit_note(xero_note, xero_id):
     """Transform Xero credit note to our CreditNote model"""
-    client = get_or_fetch_client(xero_note.contact.contact_id, xero_note.credit_note_number)
-    
+    client = get_or_fetch_client(
+        xero_note.contact.contact_id, xero_note.credit_note_number
+    )
+
     note, _ = CreditNote.objects.get_or_create(xero_id=xero_id)
     note.client = client
     note.raw_json = process_xero_data(xero_note)
@@ -176,23 +194,23 @@ def transform_journal(xero_journal, xero_id):
 def transform_stock(xero_item, xero_id):
     """Transform Xero item to our Stock model"""
     stock, _ = Stock.objects.get_or_create(xero_id=xero_id)
-    
+
     stock.item_code = xero_item.code or ""
     stock.description = xero_item.name or ""
     stock.notes = xero_item.description or ""
     stock.quantity = Decimal("0.00")
-    
+
     if xero_item.purchase_details:
         stock.unit_cost = Decimal(str(xero_item.purchase_details.unit_price or 0))
     if xero_item.sales_details:
         stock.retail_rate = Decimal(str(xero_item.sales_details.unit_price or 0))
-    
+
     stock.raw_json = process_xero_data(xero_item)
     stock.xero_last_modified = xero_item.updated_date_utc
-    
+
     if not stock.xero_last_modified:
         raise ValueError(f"Xero Item {xero_id} missing updated_date_utc")
-    
+
     stock.save()
     return stock
 
@@ -201,12 +219,12 @@ def transform_quote(xero_quote, xero_id):
     """Transform Xero quote to our Quote model"""
     client = get_or_fetch_client(xero_quote.contact.contact_id, f"quote {xero_id}")
     raw_json = process_xero_data(xero_quote)
-    
+
     status_data = raw_json.get("_status", {})
     status = status_data.get("_value_") if isinstance(status_data, dict) else None
     if not status:
         raise ValueError(f"Quote {xero_id} has invalid status structure")
-    
+
     quote, _ = Quote.objects.update_or_create(
         xero_id=xero_id,
         defaults={
@@ -219,36 +237,37 @@ def transform_quote(xero_quote, xero_id):
             "xero_last_synced": timezone.now(),
             "online_url": f"https://go.xero.com/app/quotes/edit/{xero_id}",
             "raw_json": raw_json,
-        }
+        },
     )
     return quote
 
 
 def transform_purchase_order(xero_po, xero_id):
     """Transform Xero purchase order to our PurchaseOrder model"""
-    supplier = get_or_fetch_client(xero_po.contact.contact_id, xero_po.purchase_order_number)
-    
-    po, _ = PurchaseOrder.objects.get_or_create(
-        xero_id=xero_id,
-        defaults={"supplier": supplier}
+    supplier = get_or_fetch_client(
+        xero_po.contact.contact_id, xero_po.purchase_order_number
     )
-    
+
+    po, _ = PurchaseOrder.objects.get_or_create(
+        xero_id=xero_id, defaults={"supplier": supplier}
+    )
+
     po.po_number = xero_po.purchase_order_number
     po.order_date = xero_po.date
     po.expected_delivery = xero_po.delivery_date
     po.xero_last_modified = xero_po.updated_date_utc
     po.xero_last_synced = timezone.now()
-    
+
     status_map = {
         "DRAFT": "draft",
-        "SUBMITTED": "submitted", 
+        "SUBMITTED": "submitted",
         "AUTHORISED": "submitted",
         "BILLED": "fully_received",
-        "DELETED": "void"
+        "DELETED": "void",
     }
     po.status = status_map.get(xero_po.status, "draft")
     po.save()
-    
+
     if xero_po.line_items:
         for line in xero_po.line_items:
             PurchaseOrderLine.objects.update_or_create(
@@ -258,19 +277,19 @@ def transform_purchase_order(xero_po, xero_id):
                 defaults={
                     "quantity": line.quantity,
                     "unit_cost": line.unit_amount,
-                }
+                },
             )
-    
+
     return po
 
 
 def sync_clients(xero_contacts):
     """Sync Xero contacts to Client model"""
     clients = []
-    
+
     for contact in xero_contacts:
         raw_json = process_xero_data(contact)
-        
+
         client, created = Client.objects.update_or_create(
             xero_contact_id=contact.contact_id,
             defaults={
@@ -278,21 +297,23 @@ def sync_clients(xero_contacts):
                 "xero_last_modified": timezone.now(),
                 "xero_archived": contact.contact_status == "ARCHIVED",
                 "xero_merged_into_id": getattr(contact, "merged_to_contact_id", None),
-            }
+            },
         )
-        
+
         set_client_fields(client, new_from_xero=created)
         clients.append(client)
         time.sleep(SLEEP_TIME)  # Rate limit
-    
+
     # Resolve merges
     for client in clients:
         if client.xero_merged_into_id and not client.merged_into:
-            merged_into = Client.objects.filter(xero_contact_id=client.xero_merged_into_id).first()
+            merged_into = Client.objects.filter(
+                xero_contact_id=client.xero_merged_into_id
+            ).first()
             if merged_into:
                 client.merged_into = merged_into
                 client.save()
-    
+
     return clients
 
 
@@ -307,41 +328,52 @@ def sync_accounts(xero_accounts):
                 "description": getattr(account, "description", None),
                 "account_type": account.type,
                 "tax_type": account.tax_type,
-                "enable_payments": getattr(account, "enable_payments_to_account", False),
+                "enable_payments": getattr(
+                    account, "enable_payments_to_account", False
+                ),
                 "xero_last_modified": account._updated_date_utc,
                 "xero_last_synced": timezone.now(),
                 "raw_json": process_xero_data(account),
-            }
+            },
         )
 
 
 def get_last_modified_time(model):
     """Get the latest modification time for a model"""
-    last_modified = model.objects.aggregate(
-        models.Max("xero_last_modified")
-    )["xero_last_modified__max"]
-    
+    last_modified = model.objects.aggregate(models.Max("xero_last_modified"))[
+        "xero_last_modified__max"
+    ]
+
     if last_modified:
         last_modified = last_modified - timedelta(seconds=1)
         return last_modified.isoformat()
-    
+
     return "2000-01-01T00:00:00Z"
 
 
-def sync_xero_data(xero_entity_type, our_entity_type, xero_api_fetch_function,
-                  sync_function, last_modified_time, additional_params=None,
-                  pagination_mode="single", xero_tenant_id=None):
+def sync_xero_data(
+    xero_entity_type,
+    our_entity_type,
+    xero_api_fetch_function,
+    sync_function,
+    last_modified_time,
+    additional_params=None,
+    pagination_mode="single",
+    xero_tenant_id=None,
+):
     """Sync data from Xero with pagination support."""
-    
+
     if xero_tenant_id is None:
         xero_tenant_id = get_tenant_id()
-    
+
     # Production safety check
     current_machine_id = get_machine_id()
     is_production = current_machine_id == settings.PRODUCTION_MACHINE_ID
-    
+
     if is_production and xero_tenant_id != settings.PRODUCTION_XERO_TENANT_ID:
-        logger.warning(f"Attempted to sync in production with non-production tenant ID: {xero_tenant_id}")
+        logger.warning(
+            f"Attempted to sync in production with non-production tenant ID: {xero_tenant_id}"
+        )
         yield {
             "datetime": timezone.now().isoformat(),
             "entity": our_entity_type,
@@ -350,54 +382,58 @@ def sync_xero_data(xero_entity_type, our_entity_type, xero_api_fetch_function,
             "progress": 0.0,
         }
         return
-    
+
     # Setup parameters
     params = {
         "if_modified_since": last_modified_time,
         "xero_tenant_id": xero_tenant_id,
     }
-    
+
     # API quirk: get_xero_items doesn't support tenant_id
     if xero_api_fetch_function == get_xero_items:
         params.pop("xero_tenant_id", None)
-    
+
     # Pagination setup
     page_size = 100
     if pagination_mode == "page" and xero_entity_type not in ["quotes", "accounts"]:
         params.update({"page_size": page_size, "order": "UpdatedDateUTC ASC"})
-    
+
     if additional_params:
         params.update(additional_params)
-    
+
     # Fetch and process data
     page = 1
     offset = 0
     total_processed = 0
-    
+
     while True:
         # Update pagination params
         if pagination_mode == "offset":
             params["offset"] = offset
         elif pagination_mode == "page":
             params["page"] = page
-        
+
         # Fetch data
         entities = xero_api_fetch_function(**params)
         time.sleep(SLEEP_TIME)
-        
+
         if entities is None:
             raise ValueError(f"API returned None for {xero_entity_type}")
-        
+
         # Extract items
-        items = entities if isinstance(entities, list) else getattr(entities, xero_entity_type)
-        
+        items = (
+            entities
+            if isinstance(entities, list)
+            else getattr(entities, xero_entity_type)
+        )
+
         if not items:
             break
-        
+
         # Process items
         sync_function(items)
         total_processed += len(items)
-        
+
         yield {
             "datetime": timezone.now().isoformat(),
             "entity": our_entity_type,
@@ -405,11 +441,11 @@ def sync_xero_data(xero_entity_type, our_entity_type, xero_api_fetch_function,
             "message": f"Processed {len(items)} {our_entity_type}",
             "progress": None,
         }
-        
+
         # Check if done
         if len(items) < page_size or pagination_mode == "single":
             break
-        
+
         # Update pagination
         if pagination_mode == "page":
             page += 1
@@ -419,15 +455,93 @@ def sync_xero_data(xero_entity_type, our_entity_type, xero_api_fetch_function,
 
 # Entity configurations
 ENTITY_CONFIGS = {
-    "accounts": ("accounts", "accounts", XeroAccount, "get_accounts", sync_accounts, None, "single"),
-    "contacts": ("contacts", "contacts", Client, "get_contacts", sync_clients, {"include_archived": True}, "page"),
-    "invoices": ("invoices", "invoices", Invoice, "get_invoices", lambda items: sync_entities(items, Invoice, "invoice_id", transform_invoice), {"where": 'Type=="ACCREC"'}, "page"),
-    "bills": ("invoices", "bills", Bill, "get_invoices", lambda items: sync_entities(items, Bill, "invoice_id", transform_bill), {"where": 'Type=="ACCPAY"'}, "page"),
-    "quotes": ("quotes", "quotes", Quote, "get_quotes", lambda items: sync_entities(items, Quote, "quote_id", transform_quote), None, "single"),
-    "credit_notes": ("credit_notes", "credit_notes", CreditNote, "get_credit_notes", lambda items: sync_entities(items, CreditNote, "credit_note_id", transform_credit_note), None, "page"),
-    "purchase_orders": ("purchase_orders", "purchase_orders", PurchaseOrder, "get_purchase_orders", lambda items: sync_entities(items, PurchaseOrder, "purchase_order_id", transform_purchase_order), None, "page"),
-    "stock": ("items", "stock", Stock, "get_xero_items", lambda items: sync_entities(items, Stock, "item_id", transform_stock), None, "single"),
-    "journals": ("journals", "journals", XeroJournal, "get_journals", lambda items: sync_entities(items, XeroJournal, "journal_id", transform_journal), None, "offset"),
+    "accounts": (
+        "accounts",
+        "accounts",
+        XeroAccount,
+        "get_accounts",
+        sync_accounts,
+        None,
+        "single",
+    ),
+    "contacts": (
+        "contacts",
+        "contacts",
+        Client,
+        "get_contacts",
+        sync_clients,
+        {"include_archived": True},
+        "page",
+    ),
+    "invoices": (
+        "invoices",
+        "invoices",
+        Invoice,
+        "get_invoices",
+        lambda items: sync_entities(items, Invoice, "invoice_id", transform_invoice),
+        {"where": 'Type=="ACCREC"'},
+        "page",
+    ),
+    "bills": (
+        "invoices",
+        "bills",
+        Bill,
+        "get_invoices",
+        lambda items: sync_entities(items, Bill, "invoice_id", transform_bill),
+        {"where": 'Type=="ACCPAY"'},
+        "page",
+    ),
+    "quotes": (
+        "quotes",
+        "quotes",
+        Quote,
+        "get_quotes",
+        lambda items: sync_entities(items, Quote, "quote_id", transform_quote),
+        None,
+        "single",
+    ),
+    "credit_notes": (
+        "credit_notes",
+        "credit_notes",
+        CreditNote,
+        "get_credit_notes",
+        lambda items: sync_entities(
+            items, CreditNote, "credit_note_id", transform_credit_note
+        ),
+        None,
+        "page",
+    ),
+    "purchase_orders": (
+        "purchase_orders",
+        "purchase_orders",
+        PurchaseOrder,
+        "get_purchase_orders",
+        lambda items: sync_entities(
+            items, PurchaseOrder, "purchase_order_id", transform_purchase_order
+        ),
+        None,
+        "page",
+    ),
+    "stock": (
+        "items",
+        "stock",
+        Stock,
+        "get_xero_items",
+        lambda items: sync_entities(items, Stock, "item_id", transform_stock),
+        None,
+        "single",
+    ),
+    "journals": (
+        "journals",
+        "journals",
+        XeroJournal,
+        "get_journals",
+        lambda items: sync_entities(
+            items, XeroJournal, "journal_id", transform_journal
+        ),
+        None,
+        "offset",
+    ),
 }
 
 
@@ -437,10 +551,10 @@ def sync_all_xero_data(use_latest_timestamps=True, days_back=30, entities=None):
     if not token:
         logger.warning("No valid Xero token found")
         return
-    
+
     if entities is None:
         entities = list(ENTITY_CONFIGS.keys())
-    
+
     # Get timestamps
     if use_latest_timestamps:
         timestamps = {
@@ -450,21 +564,23 @@ def sync_all_xero_data(use_latest_timestamps=True, days_back=30, entities=None):
     else:
         older_time = (timezone.now() - timedelta(days=days_back)).isoformat()
         timestamps = {entity: older_time for entity in ENTITY_CONFIGS}
-    
+
     # Sync each entity
     for entity in entities:
         if entity not in ENTITY_CONFIGS:
             logger.error(f"Unknown entity type: {entity}")
             continue
-        
-        xero_type, our_type, model, api_method, sync_func, params, pagination = ENTITY_CONFIGS[entity]
-        
+
+        xero_type, our_type, model, api_method, sync_func, params, pagination = (
+            ENTITY_CONFIGS[entity]
+        )
+
         # Get API function
         if api_method == "get_xero_items":
             api_func = get_xero_items
         else:
             api_func = getattr(AccountingApi(api_client), api_method)
-        
+
         yield from sync_xero_data(
             xero_entity_type=xero_type,
             our_entity_type=our_type,
@@ -483,12 +599,14 @@ def one_way_sync_all_xero_data(entities=None):
 
 def deep_sync_xero_data(days_back=30, entities=None):
     """Deep sync looking back N days"""
-    yield from sync_all_xero_data(use_latest_timestamps=False, days_back=days_back, entities=entities)
+    yield from sync_all_xero_data(
+        use_latest_timestamps=False, days_back=days_back, entities=entities
+    )
 
 
 def synchronise_xero_data(delay_between_requests=1):
     """Main entry point for bidirectional sync"""
-    if not cache.add("xero_sync_lock", True, timeout=60*60*4):
+    if not cache.add("xero_sync_lock", True, timeout=60 * 60 * 4):
         logger.info("Skipping sync - another sync is running")
         yield {
             "datetime": timezone.now().isoformat(),
@@ -497,26 +615,29 @@ def synchronise_xero_data(delay_between_requests=1):
             "message": "Skipping sync - another sync is already running",
         }
         return
-    
+
     try:
         company_defaults = CompanyDefaults.objects.get()
         now = timezone.now()
-        
+
         # Check if deep sync needed
-        if not company_defaults.last_xero_deep_sync or (now - company_defaults.last_xero_deep_sync).days >= 30:
+        if (
+            not company_defaults.last_xero_deep_sync
+            or (now - company_defaults.last_xero_deep_sync).days >= 30
+        ):
             is_first_sync = company_defaults.last_xero_deep_sync is None
             days_to_sync = 5000 if is_first_sync else 90
-            
+
             yield from deep_sync_xero_data(days_back=days_to_sync)
             company_defaults.last_xero_deep_sync = now
             company_defaults.save()
-        
+
         # Normal sync
         yield from one_way_sync_all_xero_data()
-        
+
         company_defaults.last_xero_sync = now
         company_defaults.save()
-        
+
     finally:
         cache.delete("xero_sync_lock")
 
@@ -526,14 +647,14 @@ def sync_client_to_xero(client):
     if not client.validate_for_xero():
         logger.error(f"Client {client.id} failed validation")
         return False
-    
+
     accounting_api = AccountingApi(api_client)
     contact_data = client.get_client_for_xero()
-    
+
     if not contact_data:
         logger.error(f"Client {client.id} failed to generate Xero data")
         return False
-    
+
     if client.xero_contact_id:
         contact_data["ContactID"] = client.xero_contact_id
         response = accounting_api.update_contact(
@@ -545,14 +666,15 @@ def sync_client_to_xero(client):
         logger.info(f"Updated client {client.name} in Xero")
     else:
         response = accounting_api.create_contacts(
-            get_tenant_id(),
-            contacts={"contacts": [contact_data]}
+            get_tenant_id(), contacts={"contacts": [contact_data]}
         )
         time.sleep(SLEEP_TIME)
         client.xero_contact_id = response.contacts[0].contact_id
         client.save()
-        logger.info(f"Created client {client.name} in Xero with ID {client.xero_contact_id}")
-    
+        logger.info(
+            f"Created client {client.name} in Xero with ID {client.xero_contact_id}"
+        )
+
     return True
 
 
@@ -560,21 +682,19 @@ def sync_single_contact(sync_service, contact_id):
     """Fetch and sync a single contact from Xero by ID"""
     if not contact_id:
         raise ValueError("No contact_id provided")
-    
+
     accounting_api = AccountingApi(api_client)
     response = accounting_api.get_contacts(
-        sync_service.tenant_id,
-        i_ds=[contact_id],
-        include_archived=True
+        sync_service.tenant_id, i_ds=[contact_id], include_archived=True
     )
     time.sleep(SLEEP_TIME)
-    
+
     if not response or not response.contacts:
         raise ValueError(f"No contact found with ID {contact_id}")
-    
+
     contact = response.contacts[0]
     raw_json = process_xero_data(contact)
-    
+
     client, created = Client.objects.update_or_create(
         xero_contact_id=contact.contact_id,
         defaults={
@@ -582,18 +702,20 @@ def sync_single_contact(sync_service, contact_id):
             "xero_last_modified": timezone.now(),
             "xero_archived": contact.contact_status == "ARCHIVED",
             "xero_merged_into_id": getattr(contact, "merged_to_contact_id", None),
-        }
+        },
     )
-    
+
     set_client_fields(client, new_from_xero=created)
-    
+
     # Handle merge if needed
     if client.xero_merged_into_id and not client.merged_into:
-        merged_into = Client.objects.filter(xero_contact_id=client.xero_merged_into_id).first()
+        merged_into = Client.objects.filter(
+            xero_contact_id=client.xero_merged_into_id
+        ).first()
         if merged_into:
             client.merged_into = merged_into
             client.save()
-    
+
     logger.info(f"Synced contact {contact_id} from webhook")
 
 
@@ -601,19 +723,16 @@ def sync_single_invoice(sync_service, invoice_id):
     """Fetch and sync a single invoice from Xero by ID"""
     if not invoice_id:
         raise ValueError("No invoice_id provided")
-    
+
     accounting_api = AccountingApi(api_client)
-    response = accounting_api.get_invoice(
-        sync_service.tenant_id,
-        invoice_id=invoice_id
-    )
+    response = accounting_api.get_invoice(sync_service.tenant_id, invoice_id=invoice_id)
     time.sleep(SLEEP_TIME)
-    
+
     if not response or not response.invoices:
         raise ValueError(f"No invoice found with ID {invoice_id}")
-    
+
     xero_invoice = response.invoices[0]
-    
+
     # Route to correct model based on type
     if xero_invoice.type == "ACCPAY":
         # It's a bill
@@ -624,11 +743,11 @@ def sync_single_invoice(sync_service, invoice_id):
                 "raw_json": raw_json,
                 "xero_last_modified": xero_invoice._updated_date_utc,
                 "xero_last_synced": timezone.now(),
-            }
+            },
         )
         set_invoice_or_bill_fields(bill, new_from_xero=created)
         logger.info(f"Synced bill {invoice_id} from webhook")
-        
+
     elif xero_invoice.type == "ACCREC":
         # It's an invoice
         raw_json = process_xero_data(xero_invoice)
@@ -638,10 +757,9 @@ def sync_single_invoice(sync_service, invoice_id):
                 "raw_json": raw_json,
                 "xero_last_modified": xero_invoice._updated_date_utc,
                 "xero_last_synced": timezone.now(),
-            }
+            },
         )
         set_invoice_or_bill_fields(invoice, new_from_xero=created)
         logger.info(f"Synced invoice {invoice_id} from webhook")
     else:
         raise ValueError(f"Unknown invoice type {xero_invoice.type} for {invoice_id}")
-
