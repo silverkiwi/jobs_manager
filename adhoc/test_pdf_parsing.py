@@ -8,7 +8,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'jobs_manager.settings.local')
 django.setup()
 
 from apps.quoting.services.gemini_price_list_extraction import extract_data_from_supplier_price_list_gemini
-from apps.workflow.helpers import get_company_defaults
+from apps.workflow.models import AIProvider
 
 def test_pdf_parsing():
     """Test PDF parsing functionality with sample files."""
@@ -22,8 +22,7 @@ def test_pdf_parsing():
     
     # Check if we have API credentials
     try:
-        company_defaults = get_company_defaults()
-        ai_provider = company_defaults.get_active_ai_provider()
+        ai_provider = AIProvider.objects.filter(default=True).first()
         print(f"AI Provider: {ai_provider.provider_type}")
         print(f"API Key configured: {'Yes' if ai_provider.api_key else 'No'}")
     except Exception as e:

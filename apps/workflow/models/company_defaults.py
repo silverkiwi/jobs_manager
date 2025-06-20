@@ -141,15 +141,13 @@ class CompanyDefaults(models.Model):
         with transaction.atomic():
             return cls.objects.get()
 
-    def get_active_ai_provider(self):
-        return self.ai_providers.filter(active=True).first()
-
     @property
     def llm_api_key(self):
         """
         Returns the API key of the active LLM provider.
         """
-        active_provider = self.get_active_ai_provider()
+        from .ai_provider import AIProvider
+        active_provider = AIProvider.objects.filter(default=True).first()
         return active_provider.api_key if active_provider else None
 
     def __str__(self):

@@ -30,7 +30,7 @@ from apps.purchasing.models import (
     PurchaseOrderSupplierQuote,
 )
 from apps.client.models import Client
-from apps.workflow.models import CompanyDefaults
+from apps.workflow.models import CompanyDefaults, AIProvider
 
 # Apps Forms
 from apps.purchasing.forms import PurchaseOrderForm, PurchaseOrderLineForm
@@ -444,7 +444,7 @@ def extract_supplier_quote_data_view(request):
 
         quote_file = request.FILES["quote_file"]
 
-        ai_provider = CompanyDefaults.get_instance().get_active_ai_provider()
+        ai_provider = AIProvider.objects.filter(default=True).first()
 
         logger.info(f"Processing quote with {ai_provider} AI provider")
 

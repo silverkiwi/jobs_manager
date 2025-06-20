@@ -22,7 +22,6 @@ from apps.purchasing.models import (
     PurchaseOrderSupplierQuote,
 )
 from apps.client.models import Client
-from apps.workflow.helpers import get_company_defaults
 from apps.job.enums import MetalType
 from apps.workflow.models import AIProvider
 from apps.workflow.enums import AIProviderTypes
@@ -126,22 +125,21 @@ def extract_data_from_supplier_quote(
     """Extract data from a supplier quote file using Claude."""
     try:
         # Get the active AI provider and its API key
-        company_defaults = get_company_defaults()
-        active_ai_provider = company_defaults.get_active_ai_provider()
+        default_ai_provider = AIProvider.objects.filter(default=True).first()
 
-        if not active_ai_provider:
+        if not default_ai_provider:
             return (
                 None,
                 "No active AI provider configured. Please set one in company settings.",
             )
 
-        if active_ai_provider.provider_type != AIProviderTypes.ANTHROPIC:
+        if default_ai_provider.provider_type != AIProviderTypes.ANTHROPIC:
             return (
                 None,
-                f"Configured AI provider is {active_ai_provider.provider_type}, but this function requires Anthropic (Claude).",
+                f"Configured AI provider is {default_ai_provider.provider_type}, but this function requires Anthropic (Claude).",
             )
 
-        api_key = active_ai_provider.api_key
+        api_key = default_ai_provider.api_key
 
         if not api_key:
             return (
@@ -560,8 +558,7 @@ def extract_data_from_supplier_quote_gemini(
     """
     try:
         if not ai_provider:
-            company_defaults = get_company_defaults()
-            ai_provider = company_defaults.get_active_ai_provider()
+            ai_provider = AIProvider.objects.filter(default=True).first()
 
         if not ai_provider:
             return (
