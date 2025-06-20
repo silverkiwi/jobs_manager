@@ -16,6 +16,7 @@ from apps.job.models import AdjustmentEntry, Job, JobPricing, MaterialEntry
 from apps.timesheet.models import TimeEntry
 from apps.workflow.models import CompanyDefaults
 
+STOCK_CLIENT_ID = "00000000-0000-0000-0000-000000000001" # TODO: Change to a proper import
 
 class Command(BaseCommand):
     help = (
@@ -174,7 +175,7 @@ class Command(BaseCommand):
             shop_job_pricings = [
                 jp
                 for jp in job_pricings
-                if str(jp.job.client_id) == "00000000-0000-0000-0000-000000000001"
+                if str(jp.job.client_id) == STOCK_CLIENT_ID
             ]
 
             # Regular job pricings for billable work
@@ -466,9 +467,9 @@ class Command(BaseCommand):
         categories = {}
         for day in random_days[:good_days]:
             categories[day] = "green"
-        for day in random_days[good_days : good_days + medium_days]:
+        for day in random_days[good_days: good_days + medium_days]:
             categories[day] = "amber"
-        for day in random_days[good_days + medium_days :]:
+        for day in random_days[good_days + medium_days:]:
             categories[day] = "red"
 
         return categories

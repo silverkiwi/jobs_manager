@@ -1,6 +1,7 @@
 import json
 import logging
 from decimal import Decimal, InvalidOperation
+from uuid import UUID
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction

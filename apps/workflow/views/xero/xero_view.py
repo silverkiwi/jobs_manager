@@ -5,8 +5,6 @@ import time
 import uuid
 
 # from abc import ABC, abstractmethod # No longer needed here
-from datetime import timezone
-
 from django.contrib import messages
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
