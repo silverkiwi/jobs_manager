@@ -21,8 +21,11 @@ def xero_heartbeat_job():
         # Import models/services here to avoid AppRegistryNotReady errors during Django startup
         from apps.workflow.api.xero.xero import refresh_token
 
-        refresh_token()
-        scheduler_logger.info("Xero API token refreshed successfully.")
+        result = refresh_token()
+        if result:
+            scheduler_logger.info("Xero API token refreshed successfully.")
+        else:
+            scheduler_logger.error("Error: No Xero token available to refresh.")
     except Exception as e:
         scheduler_logger.error(f"Error during Xero Heartbeat job: {e}", exc_info=True)
 
