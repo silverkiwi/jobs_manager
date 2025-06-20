@@ -121,7 +121,7 @@ def convert_html_to_reportlab(html_content):
         for i, item in enumerate(items):
             # Use the correct prefix based on list type
             if list_type == "ol":
-                prefix = f"{i+1}. "
+                prefix = f"{i + 1}. "
             else:  # list_type == "ul"
                 prefix = "• "
             result += f"{prefix}{item}<br/>"

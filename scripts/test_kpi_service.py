@@ -7,7 +7,7 @@ needing to run the full web server. Useful for debugging KPI calculation issues.
 
 Usage:
     python scripts/test_kpi_service.py [year] [month]
-    
+
 Examples:
     python scripts/test_kpi_service.py  # Tests current month
     python scripts/test_kpi_service.py 2025 6  # Tests June 2025

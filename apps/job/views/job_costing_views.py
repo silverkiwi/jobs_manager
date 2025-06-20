@@ -42,7 +42,7 @@ class JobCostSetView(APIView):
         valid_kinds = ["estimate", "quote", "actual"]
         if kind not in valid_kinds:
             return Response(
-                {"error": f'Invalid kind. Must be one of: {", ".join(valid_kinds)}'},
+                {"error": f"Invalid kind. Must be one of: {', '.join(valid_kinds)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

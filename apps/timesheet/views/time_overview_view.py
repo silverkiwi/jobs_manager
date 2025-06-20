@@ -89,7 +89,7 @@ class TimesheetOverviewView(TemplateView):
             action = request.GET.get("export_to_ims")
         logger.info(f"Logging action {action}")
         start_date = self._get_start_date(start_date)
-        match (action):
+        match action:
             case "export_to_ims" | "1":
                 # Get date from query parameters instead of headers
                 query_date = request.GET.get("date")
@@ -615,7 +615,7 @@ class TimesheetOverviewView(TemplateView):
             JsonResponse with result or error
         """
         action = request.POST.get("action")
-        match (action):
+        match action:
             case "load_paid_absence_form":
                 return self.load_paid_absence_form(request)
             case "submit_paid_absence":

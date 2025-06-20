@@ -2,7 +2,7 @@
 Client REST Views
 
 REST views for Client module following clean code principles:
-- SRP (Single Responsibility Principle) 
+- SRP (Single Responsibility Principle)
 - Early return and guard clauses
 - Delegation to service layer
 - Views as orchestrators only

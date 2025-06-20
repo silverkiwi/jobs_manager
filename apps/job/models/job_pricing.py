@@ -193,9 +193,7 @@ class JobPricing(models.Model):
 
         job = self.job
         job_name = job.name if job else "No Job"
-        job_name_str = (
-            f"{job_name} - " f"{self.get_pricing_stage_display()}" f"{revision_str}"
-        )
+        job_name_str = f"{job_name} - {self.get_pricing_stage_display()}{revision_str}"
         return job_name_str
 
 

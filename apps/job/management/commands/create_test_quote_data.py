@@ -148,7 +148,7 @@ class Command(BaseCommand):
 
         except Job.DoesNotExist:
             self.stdout.write(
-                self.style.ERROR(f'Job with ID {options["job_id"]} not found')
+                self.style.ERROR(f"Job with ID {options['job_id']} not found")
             )
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error creating test data: {str(e)}"))

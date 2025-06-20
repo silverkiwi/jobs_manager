@@ -72,7 +72,7 @@ class Command(BaseCommand):
             job_count = Job.objects.filter(client=client).count()
             clients_with_job_counts.append((client, job_count))
 
-            self.stdout.write(f"\n{i+1}. Client ID: {client.pk}")
+            self.stdout.write(f"\n{i + 1}. Client ID: {client.pk}")
             self.stdout.write(f"   Created: {client.django_created_at}")
             self.stdout.write(f"   Jobs: {job_count}")
             if client.xero_contact_id:

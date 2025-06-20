@@ -428,7 +428,7 @@ def autosave_timesheet_view(request):
                 target_date = datetime.strptime(timesheet_date, "%Y-%m-%d").date()
             except (ValueError, TypeError):
                 logger.error(
-                    f"Invalid timesheet_date format: {entry_data.get("timesheet_date")}"
+                    f"Invalid timesheet_date format: {entry_data.get('timesheet_date')}"
                 )
                 continue
 
@@ -505,8 +505,7 @@ def autosave_timesheet_view(request):
                     elif job.status in ["completed", "quoting"]:
                         messages.error(
                             request,
-                            f"Timesheet saved, but note job status "
-                            f"is {job.status}.",
+                            f"Timesheet saved, but note job status is {job.status}.",
                         )
                     else:
                         messages.success(

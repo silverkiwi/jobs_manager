@@ -3,7 +3,7 @@ Weekly Timesheet Service
 
 Service layer for handling weekly timesheet business logic including:
 - Weekly data aggregation
-- IMS export functionality  
+- IMS export functionality
 - Staff summary calculations
 - Job metrics
 """

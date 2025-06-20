@@ -581,7 +581,7 @@ class JobRestService:
                 job=job,
                 staff=user,
                 event_type="entry_added",
-                description=f'Time entry added: {entry_data["description"]}',
+                description=f"Time entry added: {entry_data['description']}",
             )
 
         # Return minimal success response instead of full job data to avoid request dependency
@@ -642,7 +642,7 @@ class JobRestService:
                 job=job,
                 staff=user,
                 event_type="entry_added",
-                description=f'Material entry added: {entry_data["description"]}',
+                description=f"Material entry added: {entry_data['description']}",
             )
 
         # Return minimal success response
@@ -698,7 +698,7 @@ class JobRestService:
                 job=job,
                 staff=user,
                 event_type="entry_added",
-                description=f'Adjustment entry added: {entry_data["description"]}',
+                description=f"Adjustment entry added: {entry_data['description']}",
             )
 
         # Return minimal success response

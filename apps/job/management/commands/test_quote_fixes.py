@@ -128,10 +128,10 @@ class Command(BaseCommand):
             self.stdout.write(f"\n✅ Parsing completed successfully!")
             self.stdout.write(f"📈 Results summary:")
             self.stdout.write(
-                f'  - Draft lines created: {len(result.get("draft_lines", []))}'
+                f"  - Draft lines created: {len(result.get('draft_lines', []))}"
             )
             self.stdout.write(
-                f'  - Validation report: {result.get("validation_report", {})}'
+                f"  - Validation report: {result.get('validation_report', {})}"
             )
 
             # Show draft lines with auto-assigned item numbers
@@ -140,8 +140,8 @@ class Command(BaseCommand):
                 self.stdout.write("\n📝 Draft lines with auto-assigned item numbers:")
                 for line in draft_lines:
                     self.stdout.write(
-                        f'  - Item {line.get("item", "?")}: {line.get("desc", "No description")} '
-                        f'(qty: {line.get("quantity", 0)})'
+                        f"  - Item {line.get('item', '?')}: {line.get('desc', 'No description')} "
+                        f"(qty: {line.get('quantity', 0)})"
                     )
 
         except Exception as e:

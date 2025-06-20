@@ -44,7 +44,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-
         # Parse options
         deep_sync = options["deep_sync"]
         days_back = options["days_back"]

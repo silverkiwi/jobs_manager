@@ -299,7 +299,7 @@ def send_quote_email(request, job_id):
             else f"Please find the attached quote summary for {job.name}."
         )
 
-        mailto_url = f"mailto:{email}" f"?subject={subject}" f"&body={body}"
+        mailto_url = f"mailto:{email}?subject={subject}&body={body}"
 
         logger.info(f"Email prepared successfully for job {job_id}")
         return JsonResponse(

@@ -4,7 +4,7 @@ CostSet Diff Engine
 Compares an existing CostSet with a list of DraftLines and generates diff operations.
 Follows clean code principles:
 - Single Responsibility Principle
-- Early return and guard clauses  
+- Early return and guard clauses
 - Clear separation of concerns
 """
 

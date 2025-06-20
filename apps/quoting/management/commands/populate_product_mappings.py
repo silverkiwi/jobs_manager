@@ -90,7 +90,7 @@ class Command(BaseCommand):
             if dry_run:
                 self.stdout.write("Dry run complete. Products that would be processed:")
                 for i, product in enumerate(unprocessed_products[:10]):  # Show first 10
-                    self.stdout.write(f"  {i+1}. {product.product_name[:50]}...")
+                    self.stdout.write(f"  {i + 1}. {product.product_name[:50]}...")
                 if total_to_process > 10:
                     self.stdout.write(f"  ... and {total_to_process - 10} more")
                 return
@@ -104,7 +104,7 @@ class Command(BaseCommand):
             start_time = timezone.now()
 
             for i in range(0, total_to_process, batch_size):
-                batch = unprocessed_products[i:i + batch_size]
+                batch = unprocessed_products[i : i + batch_size]
                 batch_num = (i // batch_size) + 1
                 total_batches = (total_to_process + batch_size - 1) // batch_size
 

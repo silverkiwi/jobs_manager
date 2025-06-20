@@ -94,7 +94,7 @@ class XeroQuoteManager(XeroDocumentManager):
         line_items = [
             LineItem(
                 # Xero requires a description for quote line items, so we'll have to keep the placeholder in case there's no job description
-                description=f"Quote for job: {self.job.job_number}{(" - " + self.job.description) if self.job.description else ''}",
+                description=f"Quote for job: {self.job.job_number}{(' - ' + self.job.description) if self.job.description else ''}",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
                 account_code=self._get_account_code(),
@@ -110,7 +110,7 @@ class XeroQuoteManager(XeroDocumentManager):
         if not self.job:
             raise ValueError("Job is required to get Xero document for a quote.")
 
-        match (type):
+        match type:
             case "create":
                 # Use job.client which is guaranteed by __init__
                 contact = self.get_xero_contact()

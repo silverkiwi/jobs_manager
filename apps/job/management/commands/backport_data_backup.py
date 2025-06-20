@@ -45,7 +45,7 @@ class Command(BaseCommand):
         output_path = os.path.join(backup_dir, output_filename)
 
         self.stdout.write(f"Backup will be saved to: {output_path}")
-        self.stdout.write(f'Models to be backed up: {", ".join(INCLUDE_MODELS)}')
+        self.stdout.write(f"Models to be backed up: {', '.join(INCLUDE_MODELS)}")
 
         try:
             # Step 1: Use Django's dumpdata for clean serialization

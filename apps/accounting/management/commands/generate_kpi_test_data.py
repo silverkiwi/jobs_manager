@@ -43,7 +43,7 @@ class Command(BaseCommand):
             type=str,
             help=(
                 'Days pattern (good:medium:bad) e.g. "10:5:5" for '
-                '10 good, 5 medium, 5 bad days'
+                "10 good, 5 medium, 5 bad days"
             ),
             default="10:6:4",
         )
@@ -462,9 +462,9 @@ class Command(BaseCommand):
         categories = {}
         for day in random_days[:good_days]:
             categories[day] = "green"
-        for day in random_days[good_days:good_days + medium_days]:
+        for day in random_days[good_days : good_days + medium_days]:
             categories[day] = "amber"
-        for day in random_days[good_days + medium_days:]:
+        for day in random_days[good_days + medium_days :]:
             categories[day] = "red"
 
         return categories

@@ -39,7 +39,7 @@ class Command(BaseCommand):
 
                 self.stdout.write(
                     self.style.ERROR(
-                        f'Job ID: {job.id} - Missing fields: {", ".join(missing_fields)}'
+                        f"Job ID: {job.id} - Missing fields: {', '.join(missing_fields)}"
                     )
                 )
         else:

@@ -232,7 +232,8 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
             )  # Re-fetch needed? Or can we trust the loop? Re-fetch is safer.
             current_total_ordered = sum(line.quantity for line in all_po_lines)
             current_total_received = sum(
-                line.received_quantity for line in all_po_lines)
+                line.received_quantity for line in all_po_lines
+            )
 
             logger.debug(
                 f"Updating PO status - Current Total Received: {current_total_received}, Current Total Ordered: {current_total_ordered}"

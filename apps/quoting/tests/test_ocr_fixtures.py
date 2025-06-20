@@ -82,7 +82,6 @@ class TestOCRFixtures(TestCase):
                         return_value="mock_base64",
                     ),
                 ):
-
                     result, error = provider.extract_price_data("mock_file_path.pdf")
 
                 # Basic assertions - no API calls involved

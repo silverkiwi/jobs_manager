@@ -276,9 +276,8 @@ def extract_data_from_supplier_quote(
                             # If we have extracted text, send it as text
                             [{"type": "text", "text": extracted_text}]
                             if extracted_text
-                            else
                             # Otherwise send the file
-                            [
+                            else [
                                 {
                                     "type": api_content_type,
                                     "source": {

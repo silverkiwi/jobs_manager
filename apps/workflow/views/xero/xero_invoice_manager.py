@@ -108,7 +108,7 @@ class XeroInvoiceManager(XeroDocumentManager):
         xero_line_items = []
         xero_line_items.append(
             LineItem(
-                description=f"{f"Job: {self.job.job_number}{(" - " + self.job.description)}" if self.job.description else ''}",
+                description=f"{f'Job: {self.job.job_number}{(" - " + self.job.description)}' if self.job.description else ''}",
                 quantity=1,  # Typically T&M is invoiced as a single line item sum
                 unit_amount=float(self.job.latest_reality_pricing.total_revenue)
                 or 0.00,
@@ -135,7 +135,7 @@ class XeroInvoiceManager(XeroDocumentManager):
         # xero_line_items.append(LineItem(description="Price as quoted")) # Consider if this is needed
         xero_line_items.append(
             LineItem(
-                description=f"{f"Job: {self.job.job_number}{(" - " + self.job.description)} (Fixed Price)" if self.job.description else ''}",
+                description=f"{f'Job: {self.job.job_number}{(" - " + self.job.description)} (Fixed Price)' if self.job.description else ''}",
                 quantity=1,
                 unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
                 account_code=self._get_account_code(),
@@ -150,7 +150,7 @@ class XeroInvoiceManager(XeroDocumentManager):
         if not self.job:
             raise ValueError("Job is required to get Xero document for an invoice.")
 
-        match (type):
+        match type:
             case "create":
                 contact = self.get_xero_contact()
                 line_items = self.get_line_items()

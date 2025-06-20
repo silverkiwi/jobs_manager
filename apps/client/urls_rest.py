@@ -3,7 +3,7 @@ Client REST URLs
 
 REST URLs for Client module following RESTful patterns:
 - Clearly defined endpoints
-- Appropriate HTTP verbs  
+- Appropriate HTTP verbs
 - Consistent structure with other REST modules
 """
 

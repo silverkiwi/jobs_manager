@@ -204,7 +204,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"\n📝 Detailed lines:")
                 for i, line in enumerate(lines):
                     self.stdout.write(
-                        f"  {i+1:3d}. [{line.kind:8s}] {line.desc[:50]:50s} "
+                        f"  {i + 1:3d}. [{line.kind:8s}] {line.desc[:50]:50s} "
                         f"qty={line.quantity:>6} cost=${line.unit_cost:>8} "
                         f"rev=${line.unit_rev:>8} (row {line.source_row})"
                     )

@@ -153,7 +153,7 @@ RULES:
 - Keep descriptions concise but informative
 - Ensure all dimensions follow consistent format
 - Extract numeric price only (remove currency symbols, "from", etc.)
-- Metal types must be one of: {', '.join(metal_types)} or null
+- Metal types must be one of: {", ".join(metal_types)} or null
 
 OUTPUT FORMAT:
 Return a JSON array with one object per input product. Each object should have these fields:
@@ -175,13 +175,13 @@ INPUT DATA TO PARSE:
         for i, product_data in enumerate(product_data_list, 1):
             prompt += f"""
 Product {i}:
-Product Name: {product_data.get('product_name', 'N/A')}
-Description: {product_data.get('description', 'N/A')}
-Specifications: {product_data.get('specifications', 'N/A')}
-Item Number: {product_data.get('item_no', 'N/A')}
-Variant Info: {product_data.get('variant_id', 'N/A')}
-Dimensions: {product_data.get('variant_width', 'N/A')} x {product_data.get('variant_length', 'N/A')}
-Price: {product_data.get('variant_price', 'N/A')} {product_data.get('price_unit', 'N/A')}
+Product Name: {product_data.get("product_name", "N/A")}
+Description: {product_data.get("description", "N/A")}
+Specifications: {product_data.get("specifications", "N/A")}
+Item Number: {product_data.get("item_no", "N/A")}
+Variant Info: {product_data.get("variant_id", "N/A")}
+Dimensions: {product_data.get("variant_width", "N/A")} x {product_data.get("variant_length", "N/A")}
+Price: {product_data.get("variant_price", "N/A")} {product_data.get("price_unit", "N/A")}
 """
 
         return prompt

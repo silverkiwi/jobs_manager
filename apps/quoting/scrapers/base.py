@@ -18,7 +18,7 @@ class BaseScraper(ABC):
         self.force = force
         self.driver = None
         self.logger = logging.getLogger(
-            f'scraper.{supplier.name.lower().replace(" ", "_")}'
+            f"scraper.{supplier.name.lower().replace(' ', '_')}"
         )
 
     def setup_driver(self):

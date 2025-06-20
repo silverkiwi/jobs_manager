@@ -10,7 +10,7 @@ Follows clean code principles:
 
 This module provides both file-based and draft-based import functions:
 - import_quote_from_file(): Full file-based import with validation
-- import_quote_from_drafts(): Core business logic for draft-based import 
+- import_quote_from_drafts(): Core business logic for draft-based import
 - preview_quote_import(): File-based preview with validation
 - preview_quote_import_from_drafts(): Core preview logic for drafts
 """
