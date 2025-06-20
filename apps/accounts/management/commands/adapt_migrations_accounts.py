@@ -33,7 +33,10 @@ class Command(BaseCommand):
         # Check if the migrations are already applied
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT * FROM django_migrations WHERE app='accounts' AND name='0001_initial'"
+                """
+                SELECT * FROM django_migrations 
+                WHERE app='accounts' AND name='0001_initial'
+                """
             )
             if cursor.fetchone():
                 self.stdout.write(
@@ -45,7 +48,10 @@ class Command(BaseCommand):
 
             # Get the date of admin.0001_initial migration
             cursor.execute(
-                "SELECT applied FROM django_migrations WHERE app='auth' AND name='0001_initial'"
+                """
+                SELECT applied FROM django_migrations 
+                WHERE app='auth' AND name='0001_initial'
+                """
             )
             result = cursor.fetchone()
             if not result:
@@ -68,7 +74,8 @@ class Command(BaseCommand):
             )
             self.stdout.write(
                 self.style.WARNING(
-                    f"Will insert accounts migrations with date: {accounts_applied_date}"
+                    f"Will insert accounts migrations with date: "
+                    f"{accounts_applied_date}"
                 )
             )
 
@@ -82,23 +89,25 @@ class Command(BaseCommand):
                     return
 
             # Insert the migration records
+            accounts_0002_date = accounts_applied_date + datetime.timedelta(seconds=1)
             if not dry_run:
                 try:
                     cursor.execute(
-                        "INSERT INTO django_migrations (app, name, applied) VALUES (%s, %s, %s)",
-                        ["accounts", "0001_initial", accounts_applied_date],
+                        f"""
+                        INSERT INTO django_migrations (app, name, applied) 
+                        VALUES ('accounts', '0001_initial', '{accounts_applied_date}')
+                        """
                     )
                     cursor.execute(
-                        "INSERT INTO django_migrations (app, name, applied) VALUES (%s, %s, %s)",
-                        [
-                            "accounts",
-                            "0002_initial",
-                            accounts_applied_date + datetime.timedelta(seconds=1),
-                        ],
+                        f"""
+                        INSERT INTO django_migrations (app, name, applied) 
+                        VALUES ('accounts', '0002_initial', '{accounts_0002_date}')
+                        """
                     )
                     self.stdout.write(
                         self.style.SUCCESS(
-                            "Successfully inserted migration records in django_migrations table"
+                            "Successfully inserted migration records in "
+                            "django_migrations table"
                         )
                     )
                     self.stdout.write(
@@ -123,6 +132,6 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(
                     self.style.WARNING(
-                        f"accounts.0002_initial with date {accounts_applied_date + datetime.timedelta(seconds=1)}"
+                        f"accounts.0002_initial with date {accounts_0002_date}"
                     )
                 )
