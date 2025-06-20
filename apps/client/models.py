@@ -140,13 +140,15 @@ class Client(models.Model):
     @classmethod
     def get_shop_client_id(cls) -> str:
         """
-        Get the shop client ID. Enforces singleton pattern - exactly one shop client must exist.
+        Get the shop client ID. Enforces singleton pattern -
+        exactly one shop client must exist.
 
         Returns:
             str: UUID of the shop client
 
         Raises:
-            ValueError: If zero or multiple shop clients found, or if shop_client_name not configured
+            ValueError: If zero or multiple shop clients found,
+                or if shop_client_name not configured
             RuntimeError: If CompanyDefaults singleton is violated
         """
         from apps.workflow.models import CompanyDefaults
@@ -159,7 +161,8 @@ class Client(models.Model):
             )
         elif company_count > 1:
             raise RuntimeError(
-                f"Multiple CompanyDefaults found ({company_count}) - singleton violated!"
+                f"Multiple CompanyDefaults found ({company_count}) - "
+                f"singleton violated!"
             )
 
         company_defaults = CompanyDefaults.objects.get()
@@ -167,7 +170,8 @@ class Client(models.Model):
         # Require explicit shop_client_name configuration
         if not company_defaults.shop_client_name:
             raise ValueError(
-                "CompanyDefaults.shop_client_name is not configured. Please set the exact name of your shop client."
+                "CompanyDefaults.shop_client_name is not configured. "
+                "Please set the exact name of your shop client."
             )
 
         shop_name = company_defaults.shop_client_name
@@ -180,7 +184,8 @@ class Client(models.Model):
             raise ValueError(f"No shop client found with name '{shop_name}'")
         elif shop_count > 1:
             raise RuntimeError(
-                f"Multiple shop clients found ({shop_count}) with name '{shop_name}' - singleton violated!"
+                f"Multiple shop clients found ({shop_count}) with name "
+                f"'{shop_name}' - singleton violated!"
             )
 
         shop_client = shop_clients.get()
@@ -188,7 +193,8 @@ class Client(models.Model):
         # Validate the shop client has proper Xero integration
         if not shop_client.xero_contact_id:
             raise ValueError(
-                f"Shop client '{shop_name}' has no Xero contact ID - not properly synced"
+                f"Shop client '{shop_name}' has no Xero contact ID - "
+                f"not properly synced"
             )
 
         return str(shop_client.id)
@@ -196,7 +202,8 @@ class Client(models.Model):
     def get_final_client(self):
         """
         Follow the merge chain to get the final client.
-        If this client was merged into another, return that client (following the chain).
+        If this client was merged into another, return that client 
+        (following the chain).
         Otherwise return self.
         """
         current = self
