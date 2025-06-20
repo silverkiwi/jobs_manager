@@ -5,6 +5,8 @@ import logging
 from decimal import Decimal, InvalidOperation
 from collections import defaultdict
 
+from apps.quoting.services.product_parser import create_mapping_record, populate_all_mappings_with_llm
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -178,6 +180,9 @@ def import_products(csv_file_path):
     logging.info(
         f"Successfully imported {imported_count} new products and updated {updated_count} existing products."
     )
+    
+    # Batch process all new mappings with LLM
+    populate_all_mappings_with_llm()
 
 
 if __name__ == "__main__":
