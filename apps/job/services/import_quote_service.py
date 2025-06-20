@@ -115,8 +115,7 @@ def preview_quote_import_from_drafts(job: Job, draft_lines: List[DraftLine]) -> 
             'diff_preview': None,
             'success': True
         }
-        
-        # Calculate diff preview using hybrid approach
+          # Calculate diff preview using hybrid approach
         if draft_lines:
             db_latest_rev = job.cost_sets.filter(kind='quote').aggregate(
                 max_rev=models.Max('rev')
@@ -150,6 +149,20 @@ def preview_quote_import_from_drafts(job: Job, draft_lines: List[DraftLine]) -> 
             if old_cost_set:
                 diff_result = diff_costset(old_cost_set, draft_lines)
                 next_revision = actual_latest_rev + 1
+                
+                # Reorganize draft_lines to match categorization order for frontend slicing
+                # Order: additions first, then updates (draft parts), then we don't include deletions in draft_lines
+                categorized_draft_lines = []
+                
+                # Add all additions first
+                categorized_draft_lines.extend(diff_result.to_add)
+                
+                # Add all updates (draft parts only) second
+                categorized_draft_lines.extend([draft for _, draft in diff_result.to_update])
+                
+                # Update the draft_lines in preview_data to use categorized order
+                preview_data['draft_lines'] = serialize_draft_lines(categorized_draft_lines)
+                
                 preview_data['diff_preview'] = {
                     'additions_count': len(diff_result.to_add),
                     'updates_count': len(diff_result.to_update),
@@ -163,6 +176,7 @@ def preview_quote_import_from_drafts(job: Job, draft_lines: List[DraftLine]) -> 
                     'current_revision': actual_latest_rev
                 }
             else:
+                # All lines are additions when no existing cost set
                 preview_data['diff_preview'] = {
                     'additions_count': len(draft_lines),
                     'updates_count': 0,
