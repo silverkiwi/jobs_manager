@@ -38,6 +38,6 @@ class PaidAbsenceForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['staff'].queryset = Staff.objects.filter(
+        self.fields["staff"].queryset = Staff.objects.filter(
             is_active=True, is_staff=False
         ).exclude(Q(id__in=get_excluded_staff()))
