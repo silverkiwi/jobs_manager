@@ -3,23 +3,10 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenVerifyView
 
 from apps.accounts.views import (
-    SecurityPasswordChangeView,
-    StaffCreateView,
-    StaffListAPIView,
-    StaffListView,
-    StaffUpdateView,
     get_current_user,
-    get_staff_rates,
     logout_user,
 )
 from apps.accounts.views.password_views import SecurityPasswordChangeView
-from apps.accounts.views.token_view import (
-    CustomTokenObtainPairView,
-    CustomTokenRefreshView,
-)
-
-app_name = "accounts"
-
 from apps.accounts.views.staff_views import (
     StaffCreateView,
     StaffListAPIView,
@@ -27,6 +14,12 @@ from apps.accounts.views.staff_views import (
     StaffUpdateView,
     get_staff_rates,
 )
+from apps.accounts.views.token_view import (
+    CustomTokenObtainPairView,
+    CustomTokenRefreshView,
+)
+
+app_name = "accounts"
 
 urlpatterns = [
     # Staff management

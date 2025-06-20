@@ -20,6 +20,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
+from apps.client.forms import ClientForm
 from apps.client.models import Client, ClientContact
 
 logger = logging.getLogger(__name__)

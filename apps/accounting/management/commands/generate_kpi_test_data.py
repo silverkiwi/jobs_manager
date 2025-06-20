@@ -260,8 +260,11 @@ class Command(BaseCommand):
             shop_client_exists = Client.objects.filter(
                 pk="00000000-0000-0000-0000-000000000001"
             ).exists()
-        except:
-            pass
+        except Exception as e:
+            self.stdout.write(
+                self.style.ERROR(f"Error checking shop client existence: {str(e)}")
+            )
+            shop_client_exists = False
 
         if not shop_client_exists:
             self.stdout.write(
@@ -353,7 +356,7 @@ class Command(BaseCommand):
             # Try alternative method using client name
             try:
                 shop_jobs = Job.objects.filter(client__name__icontains="Shop")
-            except:
+            except Exception:
                 pass
 
         shop_job_pricings = []
@@ -377,7 +380,7 @@ class Command(BaseCommand):
         if not regular_jobs.exists():
             try:
                 regular_jobs = Job.objects.exclude(client__name__icontains="Shop")
-            except:
+            except Exception:
                 pass
 
         regular_job_pricings = []

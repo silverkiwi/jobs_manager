@@ -43,7 +43,6 @@ class XeroInvoiceManager(XeroDocumentManager):
         Initializes the invoice manager. Both client and job are required for invoices.
         Calls the base class __init__ ensuring consistent signature.
         """
-        _is_invoice_manager = True
         if not client or not job:
             raise ValueError("Client and Job are required for XeroInvoiceManager")
         # Call the base class __init__ with the client and the job

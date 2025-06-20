@@ -482,7 +482,7 @@ def create_client_contact_api(request):
     try:
         serializer = ClientContactSerializer(data=request.data)
         if serializer.is_valid():
-            contact = serializer.save()
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:

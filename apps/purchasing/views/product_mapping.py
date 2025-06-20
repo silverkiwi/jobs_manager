@@ -1,7 +1,7 @@
 import logging
 from decimal import Decimal
 
-from django.http import JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -91,8 +91,10 @@ def validate_mapping(request, mapping_id):
         if unit_cost:
             try:
                 mapping.mapped_unit_cost = Decimal(unit_cost)
-            except:
-                pass
+            except (ValueError, TypeError) as e:
+                return HttpResponseBadRequest(
+                    f"Invalid unit cost format: {unit_cost}. Error: {str(e)}"
+                )
 
         mapping.mapped_price_unit = request.POST.get(
             "mapped_price_unit", mapping.mapped_price_unit

@@ -20,6 +20,7 @@ from apps.job.services.job_service import (
     get_job_with_pricings,
     get_latest_job_pricings,
 )
+from apps.job.services.quote_sync_service import link_quote_sheet
 
 logger = logging.getLogger(__name__)
 DEBUG_JSON = False  # Toggle for JSON debugging
@@ -673,14 +674,11 @@ def create_linked_quote_api(request, job_id):
         # Get the job
         job = get_object_or_404(Job, id=job_id)
 
-        # Get the client name
-        client_name = job.client.name if job.client else "No Client"
-
         # Create a new quote from the template
-        quote_url = create_quote_from_template(job.job_number, client_name)
+        quote_spreadsheet = link_quote_sheet(job)
 
         # Update the job with the new quote URL
-        job.linked_quote = quote_url
+        job.linked_quote = quote_spreadsheet.url
         job.save(staff=request.user)  # Create a job event to record this action
         JobEvent.objects.create(
             job=job,
@@ -693,7 +691,7 @@ def create_linked_quote_api(request, job_id):
         return JsonResponse(
             {
                 "success": True,
-                "quote_url": quote_url,
+                "quote_url": quote_spreadsheet.url,
                 "message": "Linked quote created successfully",
             }
         )

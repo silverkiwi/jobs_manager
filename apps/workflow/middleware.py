@@ -19,7 +19,7 @@ class LoginRequiredMiddleware:
                 try:
                     # Try to resolve the URL name to an actual path
                     self.exempt_urls.append(reverse(url_name))
-                except Exception as e:
+                except Exception:
                     # If it fails, we assume it's a prefix and add it directly
                     self.exempt_url_prefixes.append(url_name)
 

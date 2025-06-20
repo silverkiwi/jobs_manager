@@ -186,7 +186,7 @@ class Command(BaseCommand):
                     sync_count += 1
                     # Only show progress messages every 100 items to avoid spam
                     if sync_count % 100 == 0:
-                        severity = message.get("severity", "info")
+                        message.get("severity", "info")
                         msg_text = message.get("message", "No message")
                         entity = message.get("entity", "N/A")
                         progress = message.get("progress", "N/A")

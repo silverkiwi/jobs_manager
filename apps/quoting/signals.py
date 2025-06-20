@@ -5,6 +5,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from apps.purchasing.models import Stock
+from apps.quoting.services.product_parser import ProductParser
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from django.db import models, transaction
 from django.db.models import Index, Max
@@ -15,6 +15,9 @@ from apps.job.helpers import get_company_defaults
 # otherwise it would have a circular import
 from .job_event import JobEvent
 from .job_pricing import JobPricing
+
+if TYPE_CHECKING:
+    from .costing import CostSet
 
 logger = logging.getLogger(__name__)
 
