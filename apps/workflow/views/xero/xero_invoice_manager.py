@@ -1,30 +1,32 @@
 # workflow/views/xero_invoice_manager.py
-import logging
 import json
-from decimal import Decimal
+import logging
 from datetime import timedelta
+from decimal import Decimal
 
 from django.http import JsonResponse
 from django.utils import timezone
+from xero_python.accounting.models import Invoice as XeroInvoice
+from xero_python.accounting.models import LineItem
+from xero_python.exceptions import (  # If specific exceptions handled
+    AccountingBadRequestException,
+    ApiException,
+)
 
-# Import base class and helpers
-from .xero_base_manager import XeroDocumentManager
-from .xero_helpers import (
-    format_date,
-    parse_xero_api_error_message,
-)  # Assuming format_date is needed
+from apps.accounting.enums import InvoiceStatus
 
 # Import models
 from apps.accounting.models import Invoice
 from apps.client.models import Client
-from apps.job.models import Job
 from apps.job.enums import JobPricingMethodology
-from apps.accounting.enums import InvoiceStatus
-from xero_python.accounting.models import LineItem, Invoice as XeroInvoice
-from xero_python.exceptions import (
-    AccountingBadRequestException,
-    ApiException,
-)  # If specific exceptions handled
+from apps.job.models import Job
+
+# Import base class and helpers
+from .xero_base_manager import XeroDocumentManager
+from .xero_helpers import (  # Assuming format_date is needed
+    format_date,
+    parse_xero_api_error_message,
+)
 
 logger = logging.getLogger("xero")
 
@@ -41,7 +43,6 @@ class XeroInvoiceManager(XeroDocumentManager):
         Initializes the invoice manager. Both client and job are required for invoices.
         Calls the base class __init__ ensuring consistent signature.
         """
-        _is_invoice_manager = True
         if not client or not job:
             raise ValueError("Client and Job are required for XeroInvoiceManager")
         # Call the base class __init__ with the client and the job
@@ -101,13 +102,19 @@ class XeroInvoiceManager(XeroDocumentManager):
             or not self.job.latest_reality_pricing
         ):
             raise ValueError(
-                f"Job {self.job.id if self.job else 'Unknown'} is missing reality pricing information for T&M invoice."
+                (
+                    f"Job {self.job.id if self.job else 'Unknown'} is missing "
+                    "reality pricing information for T&M invoice."
+                )
             )
 
         xero_line_items = []
         xero_line_items.append(
             LineItem(
-                description=f"{f"Job: {self.job.job_number}{(" - " + self.job.description)}" if self.job.description else ''}",
+                description=(
+                    f"Job: {self.job.job_number}"
+                    f"{(' - ' + self.job.description) if self.job.description else ''}"
+                ),
                 quantity=1,  # Typically T&M is invoiced as a single line item sum
                 unit_amount=float(self.job.latest_reality_pricing.total_revenue)
                 or 0.00,
@@ -126,17 +133,29 @@ class XeroInvoiceManager(XeroDocumentManager):
             or not self.job.latest_quote_pricing
         ):
             raise ValueError(
-                f"Job {self.job.id if self.job else 'Unknown'} is missing quote pricing information for Fixed Price invoice."
+                (
+                    f"Job {self.job.id if self.job else 'Unknown'} is missing "
+                    "quote pricing information for Fixed Price invoice."
+                )
             )
 
         xero_line_items: list[LineItem] = []
-        # It seems the original code added an empty description line first - keeping for consistency?
-        # xero_line_items.append(LineItem(description="Price as quoted")) # Consider if this is needed
+        # It seems the original code added an empty description line first
+        # - keeping for consistency?
+        # xero_line_items.append(LineItem(description="Price as quoted"))
+        # Consider if this is needed
+        job_suffix = (
+            f" - {self.job.description} (Fixed Price)"
+            if self.job.description
+            else " (Fixed Price)"
+        )
         xero_line_items.append(
             LineItem(
-                description=f"{f"Job: {self.job.job_number}{(" - " + self.job.description)} (Fixed Price)" if self.job.description else ''}",
+                description=f"Job: {self.job.job_number}{job_suffix}",
                 quantity=1,
-                unit_amount=float(self.job.latest_quote_pricing.total_revenue) or 0.00,
+                unit_amount=(
+                    float(self.job.latest_quote_pricing.total_revenue) or 0.00
+                ),
                 account_code=self._get_account_code(),
             )
         )
@@ -149,7 +168,7 @@ class XeroInvoiceManager(XeroDocumentManager):
         if not self.job:
             raise ValueError("Job is required to get Xero document for an invoice.")
 
-        match (type):
+        match type:
             case "create":
                 contact = self.get_xero_contact()
                 line_items = self.get_line_items()
@@ -175,13 +194,15 @@ class XeroInvoiceManager(XeroDocumentManager):
                 xero_id = self.get_xero_id()
                 if not xero_id:
                     raise ValueError("Cannot delete invoice without a Xero ID.")
-                # Deletion via API usually means setting status to DELETED via update
+                # Deletion via API usually means setting status to DELETED
+                # via update
                 return XeroInvoice(
                     invoice_id=xero_id,
                     status="DELETED",
-                    # Other fields might be required by Xero API for update/delete status change
-                    # contact=self.get_xero_contact(), # Likely not needed
-                    # line_items=self.get_line_items(), # Likely not needed
+                    # Other fields might be required by Xero API for
+                    # update/delete status change
+                    # contact=self.get_xero_contact(),  # Likely not needed
+                    # line_items=self.get_line_items(),  # Likely not needed
                     # date=format_date(timezone.now()), # Likely not needed
                 )
             case _:
@@ -225,7 +246,8 @@ class XeroInvoiceManager(XeroDocumentManager):
                     total_incl_tax=Decimal(getattr(xero_invoice_data, "total", 0)),
                     amount_due=Decimal(getattr(xero_invoice_data, "amount_due", 0)),
                     xero_last_synced=timezone.now(),
-                    xero_last_modified=timezone.now(),  # Use current time as approximation
+                    # Use current time as approximation
+                    xero_last_modified=timezone.now(),
                     online_url=invoice_url,
                     raw_json=invoice_json,
                 )
@@ -248,7 +270,9 @@ class XeroInvoiceManager(XeroDocumentManager):
                 )
             else:
                 # Handle non-exception API failures (e.g., empty response)
-                error_msg = "No invoices found in the Xero response or failed to create invoice."
+                error_msg = """
+                No invoices found in the Xero response or failed to create invoice.
+                """.strip()
                 logger.error(error_msg)
                 # Attempt to extract more details if possible
                 if response and hasattr(response, "elements") and response.elements:
@@ -273,19 +297,30 @@ class XeroInvoiceManager(XeroDocumentManager):
                 )
         except AccountingBadRequestException as e:
             logger.error(
-                f"Xero API BadRequest during invoice creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}",
+                (
+                    f"Xero API BadRequest during invoice creation for job "
+                    f"{self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}"
+                ),
                 exc_info=True,
+            )
+            default_message = (
+                f"Xero validation error ({e.status}): {e.reason}. "
+                "Please contact Corrin to check the data sent."
             )
             error_message = parse_xero_api_error_message(
                 exception_body=e.body,
-                default_message=f"Xero validation error ({e.status}): {e.reason}. Please contact support to check the data sent.",
+                default_message=default_message,
             )
             return JsonResponse(
                 {"success": False, "message": error_message}, status=e.status
             )
         except ApiException as e:
+            job_id = self.job.id if self.job else "Unknown"
             logger.error(
-                f"Xero API Exception during invoice creation for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}",
+                f"""
+                Xero API Exception during invoice creation for job {job_id}: 
+                {e.status} - {e.reason}
+                """.strip(),
                 exc_info=True,
             )
             return JsonResponse(
@@ -293,13 +328,17 @@ class XeroInvoiceManager(XeroDocumentManager):
                 status=e.status,
             )
         except Exception as e:
+            job_id = self.job.id if self.job else "Unknown"
             logger.exception(
-                f"Unexpected error during invoice creation for job {self.job.id if self.job else 'Unknown'}"
+                f"Unexpected error during invoice creation for job {job_id}"
             )
             return JsonResponse(
                 {
                     "success": False,
-                    "message": f"An unexpected error occurred ({str(e)}) while creating the invoice with Xero. Please contact support to check the data sent.",
+                    "message": f"""
+                    An unexpected error occurred ({str(e)}) while creating the invoice 
+                    with Xero. Please contact support to check the data sent.
+                    """.strip(),
                 },
                 status=500,
             )
@@ -311,7 +350,8 @@ class XeroInvoiceManager(XeroDocumentManager):
             response = super().delete_document()
 
             if response and response.invoices:
-                # Check if the response indicates successful deletion (e.g., status is DELETED)
+                # Check if the response indicates successful deletion
+                # (e.g., status is DELETED)
                 xero_invoice_data = response.invoices[0]
                 if str(getattr(xero_invoice_data, "status", "")).upper() == "DELETED":
                     # Delete local record only after confirming Xero deletion/update
@@ -319,7 +359,10 @@ class XeroInvoiceManager(XeroDocumentManager):
                         local_invoice_id = self.job.invoice.id
                         self.job.invoice.delete()
                         logger.info(
-                            f"Invoice {local_invoice_id} deleted successfully for job {self.job.id}"
+                            f"""
+                            Invoice {local_invoice_id} deleted successfully 
+                            for job {self.job.id}
+                            """.strip()
                         )
                     else:
                         logger.warning(
@@ -338,33 +381,45 @@ class XeroInvoiceManager(XeroDocumentManager):
                     )
                 else:
                     error_msg = "Xero response did not confirm invoice deletion."
-                    logger.error(
-                        f"{error_msg} Status: {getattr(xero_invoice_data, 'status', 'Unknown')}"
-                    )
+                    status = getattr(xero_invoice_data, "status", "Unknown")
+                    logger.error(f"{error_msg} Status: {status}")
                     return JsonResponse(
                         {"success": False, "message": error_msg}, status=400
                     )  # Changed "error" to "message"
             else:
-                error_msg = "No invoices found in the Xero response or failed to delete invoice."
+                error_msg = """
+                No invoices found in the Xero response or failed to delete invoice.
+                """.strip()
                 logger.error(error_msg)
                 return JsonResponse(
                     {"success": False, "message": error_msg}, status=400
                 )  # Changed "error" to "message"
         except AccountingBadRequestException as e:
+            job_id = self.job.id if self.job else "Unknown"
             logger.error(
-                f"Xero API BadRequest during invoice deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}",
+                f"""
+                Xero API BadRequest during invoice deletion for job {job_id}: 
+                {e.status} - {e.reason}
+                """.strip(),
                 exc_info=True,
             )
             error_message = parse_xero_api_error_message(
                 exception_body=e.body,
-                default_message=f"Xero validation error ({e.status}): {e.reason}. Please contact support to check the data sent during invoice deletion.",
+                default_message=f"""
+                Xero validation error ({e.status}): {e.reason}. 
+                Please contact support to check the data sent during invoice deletion.
+                """.strip(),
             )
             return JsonResponse(
                 {"success": False, "message": error_message}, status=e.status
             )
         except ApiException as e:
+            job_id = self.job.id if self.job else "Unknown"
             logger.error(
-                f"Xero API Exception during invoice deletion for job {self.job.id if self.job else 'Unknown'}: {e.status} - {e.reason}",
+                f"""
+                Xero API Exception during invoice deletion for job {job_id}: 
+                {e.status} - {e.reason}
+                """.strip(),
                 exc_info=True,
             )
             return JsonResponse(
@@ -372,13 +427,17 @@ class XeroInvoiceManager(XeroDocumentManager):
                 status=e.status,
             )
         except Exception as e:
+            job_id = self.job.id if self.job else "Unknown"
             logger.exception(
-                f"Unexpected error during invoice deletion for job {self.job.id if self.job else 'Unknown'}"
+                f"Unexpected error during invoice deletion for job {job_id}"
             )
             return JsonResponse(
                 {
                     "success": False,
-                    "message": f"An unexpected error occurred ({str(e)}) while deleting the invoice with Xero. Please contact support to check the data sent.",
+                    "message": f"""
+                    An unexpected error occurred ({str(e)}) while deleting the invoice 
+                    with Xero. Please contact support to check the data sent.
+                    """.strip(),
                 },
                 status=500,
             )

@@ -3,5 +3,5 @@
 from .xero_sync_service import XeroSyncService
 
 __all__ = [
-    'XeroSyncService',
+    "XeroSyncService",
 ]

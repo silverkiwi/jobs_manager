@@ -3,13 +3,12 @@ import logging
 from rest_framework import serializers
 
 from apps.client.models import Client, ClientContact
-
 from apps.job.models import Job, JobFile
 
+from .costing_serializer import CostSetSerializer
 from .job_file_serializer import JobFileSerializer
 from .job_pricing_serializer import JobPricingSerializer
 from .quote_spreadsheet_serializer import QuoteSpreadsheetSerializer
-from .costing_serializer import CostSetSerializer
 
 logger = logging.getLogger(__name__)
 DEBUG_SERIALIZER = False
@@ -20,11 +19,11 @@ class JobSerializer(serializers.ModelSerializer):
     latest_estimate_pricing = JobPricingSerializer(required=False)
     latest_quote_pricing = JobPricingSerializer(required=False)
     latest_reality_pricing = JobPricingSerializer(required=False)
-      # New CostSet fields (current system)
+    # New CostSet fields (current system)
     latest_estimate = serializers.SerializerMethodField()
     latest_quote = serializers.SerializerMethodField()
     latest_actual = serializers.SerializerMethodField()
-    
+
     client_id = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
         source="client",
@@ -38,26 +37,28 @@ class JobSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
-    contact_name = serializers.CharField(source="contact.name", read_only=True, required=False)
+    contact_name = serializers.CharField(
+        source="contact.name", read_only=True, required=False
+    )
     job_status = serializers.CharField(source="status")
     job_files = JobFileSerializer(
         source="files", many=True, required=False
     )  # To prevent conflicts with PUTTING only one file    # Quote spreadsheet relationship
     quote_sheet = QuoteSpreadsheetSerializer(read_only=True, required=False)
-    
+
     def get_latest_estimate(self, obj):
         """Get the latest estimate CostSet"""
-        cost_set = obj.get_latest('estimate')
+        cost_set = obj.get_latest("estimate")
         return CostSetSerializer(cost_set).data if cost_set else None
-    
+
     def get_latest_quote(self, obj):
         """Get the latest quote CostSet"""
-        cost_set = obj.get_latest('quote')
+        cost_set = obj.get_latest("quote")
         return CostSetSerializer(cost_set).data if cost_set else None
-    
+
     def get_latest_actual(self, obj):
         """Get the latest actual CostSet"""
-        cost_set = obj.get_latest('actual')
+        cost_set = obj.get_latest("actual")
         return CostSetSerializer(cost_set).data if cost_set else None
 
     class Meta:
@@ -78,14 +79,14 @@ class JobSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "material_gauge_quantity",
-            "description",            
+            "description",
             # Legacy JobPricing fields (deprecated but kept for backward compatibility)
             "latest_estimate_pricing",
             "latest_quote_pricing",
             "latest_reality_pricing",
             # New CostSet fields (current system)
             "latest_estimate",
-            "latest_quote", 
+            "latest_quote",
             "latest_actual",
             "job_status",
             "delivery_date",

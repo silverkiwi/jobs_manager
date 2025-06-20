@@ -1,11 +1,8 @@
 # workflow/admin.py
 
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from simple_history.admin import SimpleHistoryAdmin
 
-from apps.workflow.models import CompanyDefaults
-from apps.workflow.models import AIProvider
+from apps.workflow.models import AIProvider, CompanyDefaults
 
 
 class AIProviderInline(admin.TabularInline):
@@ -90,7 +87,7 @@ class CompanyDefaultsAdmin(admin.ModelAdmin):
                     "gdrive_quotes_folder_id",
                 ),
                 "description": "These fields are used to configure the Google Sheets integration for job quotes. The master template is used to generate new quotes, and the folder is where all quotes are stored.",
-            }
+            },
         ),
         (
             "Xero Integration",

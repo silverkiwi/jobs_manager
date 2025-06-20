@@ -1,4 +1,5 @@
 import uuid
+
 from django.db import models
 from django.utils import timezone
 
@@ -111,7 +112,7 @@ class SupplierProduct(models.Model):
         null=True,
         help_text="Parser confidence score 0.00-1.00",
     )
-    
+
     # Mapping relationship
     mapping_hash = models.CharField(
         max_length=64,

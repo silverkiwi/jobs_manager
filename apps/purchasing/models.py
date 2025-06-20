@@ -1,20 +1,17 @@
+import logging
 import os
 import uuid
-import logging
-
 from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Max, IntegerField
+from django.db.models import IntegerField, Max
 from django.db.models.functions import Cast, Substr
 from django.utils import timezone
 
 from apps.job.enums import MetalType
-from apps.workflow.helpers import get_company_defaults
-
 from apps.job.models import Job
-
+from apps.workflow.helpers import get_company_defaults
 
 logger = logging.getLogger(__name__)
 
@@ -348,16 +345,20 @@ class Stock(models.Model):
 
     # Parser tracking fields
     parsed_at = models.DateTimeField(
-        blank=True, null=True,
-        help_text="When this inventory item was parsed by LLM"
+        blank=True, null=True, help_text="When this inventory item was parsed by LLM"
     )
     parser_version = models.CharField(
-        max_length=50, blank=True, null=True,
-        help_text="Version of parser used for this data"
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Version of parser used for this data",
     )
     parser_confidence = models.DecimalField(
-        max_digits=3, decimal_places=2, blank=True, null=True,
-        help_text="Parser confidence score 0.00-1.00"
+        max_digits=3,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        help_text="Parser confidence score 0.00-1.00",
     )
 
     # TODO: Add fields for:

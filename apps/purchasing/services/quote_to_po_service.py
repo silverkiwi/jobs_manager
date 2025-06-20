@@ -1,30 +1,24 @@
+import base64
+import json
 import logging
 import os
-import json
-import base64
-import tempfile
-from typing import Literal, Optional, Tuple, Union
-import requests
-import mimetypes
+from typing import Optional, Tuple
+
 import pdfplumber
-import re
-from decimal import Decimal, InvalidOperation
-from rapidfuzz import process, fuzz
-
-from google import genai
-
+import requests
 from django.conf import settings
-from django.db.models import Q
+from google import genai
+from rapidfuzz import fuzz, process
 
+from apps.client.models import Client
+from apps.job.enums import MetalType
 from apps.purchasing.models import (
     PurchaseOrder,
     PurchaseOrderLine,
     PurchaseOrderSupplierQuote,
 )
-from apps.client.models import Client
-from apps.job.enums import MetalType
-from apps.workflow.models import AIProvider
 from apps.workflow.enums import AIProviderTypes
+from apps.workflow.models import AIProvider
 
 logger = logging.getLogger(__name__)
 
@@ -282,9 +276,8 @@ def extract_data_from_supplier_quote(
                             # If we have extracted text, send it as text
                             [{"type": "text", "text": extracted_text}]
                             if extracted_text
-                            else
                             # Otherwise send the file
-                            [
+                            else [
                                 {
                                     "type": api_content_type,
                                     "source": {
@@ -370,7 +363,6 @@ def extract_data_from_supplier_quote(
                 }
         except (KeyError, TypeError):
             logging.warning("Supplier name not found in quote JSON")
-            pass
 
         # Return the extracted data
         return quote_data, None

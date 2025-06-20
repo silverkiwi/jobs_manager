@@ -1,22 +1,23 @@
 # workflow/views/xero_view.py
 import json
 import logging
-import uuid
 import time
+import uuid
 
 # from abc import ABC, abstractmethod # No longer needed here
-from datetime import timezone
-
+from django.contrib import messages
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
-from django.views.generic import TemplateView
-from django.contrib import messages
 from django.views.decorators.http import require_POST
-
+from django.views.generic import TemplateView
 from xero_python.identity import IdentityApi
 
+from apps.accounting.models import Bill, CreditNote, Invoice, Quote
+from apps.client.models import Client
+from apps.job.models import Job
+from apps.purchasing.models import PurchaseOrder
 from apps.workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
@@ -25,29 +26,15 @@ from apps.workflow.api.xero.xero import (
     get_valid_token,
     refresh_token,
 )
-from apps.accounting.models import (
-    Invoice,
-    Bill,
-    CreditNote,
-    Quote,
-)
-
-from apps.workflow.models import (
-    XeroAccount,
-    XeroJournal,
-    XeroToken,
-)
-
-from apps.purchasing.models import PurchaseOrder
-from apps.job.models import Job
-from apps.client.models import Client
-from apps.workflow.utils import extract_messages
+from apps.workflow.models import XeroAccount, XeroJournal, XeroToken
 from apps.workflow.services.xero_sync_service import XeroSyncService
+from apps.workflow.utils import extract_messages
+
+from .xero_invoice_manager import XeroInvoiceManager
 
 # Import the new creator classes
 from .xero_po_manager import XeroPurchaseOrderManager
 from .xero_quote_manager import XeroQuoteManager
-from .xero_invoice_manager import XeroInvoiceManager
 
 logger = logging.getLogger("xero")
 
@@ -122,17 +109,10 @@ def refresh_xero_data(request):
 
 # workflow/views/xero_sync_events.py
 
-import json
 import logging
-import time
 
-from django.core.cache import cache
-from django.http import StreamingHttpResponse, HttpRequest
-from django.utils import timezone
+from django.http import HttpRequest
 from django.views.decorators.http import require_GET
-
-from apps.workflow.services.xero_sync_service import XeroSyncService
-from apps.workflow.api.xero.xero import get_valid_token
 
 logger = logging.getLogger("xero.events")
 

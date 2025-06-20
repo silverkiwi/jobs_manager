@@ -13,11 +13,13 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='historicaljob',
             name='status',
-            field=models.CharField(choices=[('quoting', 'Quoting'), ('accepted_quote', 'Accepted Quote'), ('awaiting_materials', 'Awaiting Materials'), ('awaiting_staff', 'Awaiting Staff'), ('awaiting_site_availability', 'Awaiting Site Availability'), ('in_progress', 'In Progress'), ('on_hold', 'On Hold'), ('special', 'Special'), ('completed', 'Completed'), ('rejected', 'Rejected'), ('archived', 'Archived')], default='quoting', max_length=30),
+            field=models.CharField(choices=[('quoting', 'Quoting'), ('accepted_quote', 'Accepted Quote'), ('awaiting_materials', 'Awaiting Materials'), ('awaiting_staff', 'Awaiting Staff'), ('awaiting_site_availability', 'Awaiting Site Availability'), (
+                'in_progress', 'In Progress'), ('on_hold', 'On Hold'), ('special', 'Special'), ('completed', 'Completed'), ('rejected', 'Rejected'), ('archived', 'Archived')], default='quoting', max_length=30),
         ),
         migrations.AlterField(
             model_name='job',
             name='status',
-            field=models.CharField(choices=[('quoting', 'Quoting'), ('accepted_quote', 'Accepted Quote'), ('awaiting_materials', 'Awaiting Materials'), ('awaiting_staff', 'Awaiting Staff'), ('awaiting_site_availability', 'Awaiting Site Availability'), ('in_progress', 'In Progress'), ('on_hold', 'On Hold'), ('special', 'Special'), ('completed', 'Completed'), ('rejected', 'Rejected'), ('archived', 'Archived')], default='quoting', max_length=30),
+            field=models.CharField(choices=[('quoting', 'Quoting'), ('accepted_quote', 'Accepted Quote'), ('awaiting_materials', 'Awaiting Materials'), ('awaiting_staff', 'Awaiting Staff'), ('awaiting_site_availability', 'Awaiting Site Availability'), (
+                'in_progress', 'In Progress'), ('on_hold', 'On Hold'), ('special', 'Special'), ('completed', 'Completed'), ('rejected', 'Rejected'), ('archived', 'Archived')], default='quoting', max_length=30),
         ),
     ]

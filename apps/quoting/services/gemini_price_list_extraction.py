@@ -1,17 +1,10 @@
-import logging
-import os
 import json
-import base64
-import mimetypes
+import logging
 from typing import Optional, Tuple
-import requests
 
 import google.generativeai as genai
 import pdfplumber
 
-from django.conf import settings
-
-from apps.job.enums import MetalType
 from apps.workflow.enums import AIProviderTypes
 from apps.workflow.models import AIProvider
 
@@ -191,13 +184,17 @@ def extract_data_from_supplier_price_list_gemini(
             max_output_tokens=200000,  # Required for catalogs with thousands of products
             temperature=0.1,  # Lower temperature for more consistent extraction
         )
-        
+
         # Get the Gemini AI provider and model name
-        ai_provider = AIProvider.objects.filter(provider_type=AIProviderTypes.GOOGLE).first()
+        ai_provider = AIProvider.objects.filter(
+            provider_type=AIProviderTypes.GOOGLE
+        ).first()
         if not ai_provider or not ai_provider.model_name:
             raise ValueError("No Gemini AI provider configured with model_name")
-        
-        model = genai.GenerativeModel(ai_provider.model_name, generation_config=generation_config)
+
+        model = genai.GenerativeModel(
+            ai_provider.model_name, generation_config=generation_config
+        )
 
         # Extract text from PDF using pdfplumber
         text_pages = []
@@ -207,10 +204,10 @@ def extract_data_from_supplier_price_list_gemini(
                 if not page_text:
                     return None, f"Failed to extract text from page {page_num} of PDF"
                 text_pages.append(page_text)
-        
+
         extracted_text = "\n\n".join(text_pages)
         logger.info(f"Extracted {len(extracted_text)} characters from PDF")
-        
+
         # Send extracted text to Gemini
         prompt = create_supplier_extraction_prompt()
         contents = [f"{prompt}\n\nExtracted text from PDF:\n{extracted_text}"]

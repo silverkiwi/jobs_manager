@@ -1,19 +1,15 @@
 import logging
 import os
 from io import BytesIO
-from datetime import datetime
 
 from django.conf import settings
-from PIL import Image, ImageFile
+from PIL import ImageFile
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
-from reportlab.platypus import Paragraph, Table, TableStyle
-
-from apps.purchasing.models import PurchaseOrder
+from reportlab.platypus import Table, TableStyle
 
 logger = logging.getLogger(__name__)
 

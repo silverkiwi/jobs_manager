@@ -3,5 +3,5 @@
 from .daily_timesheet_service import DailyTimesheetService
 
 __all__ = [
-    'DailyTimesheetService',
+    "DailyTimesheetService",
 ]

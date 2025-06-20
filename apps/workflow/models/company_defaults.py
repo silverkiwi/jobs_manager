@@ -38,7 +38,7 @@ class CompanyDefaults(models.Model):
         null=True,
         blank=True,
         help_text="Google Sheets ID for the quote template",
-        max_length=100
+        max_length=100,
     )
 
     gdrive_quotes_folder_url = models.URLField(
@@ -51,7 +51,7 @@ class CompanyDefaults(models.Model):
         null=True,
         blank=True,
         help_text="Google Drive folder ID for storing quotes",
-        max_length=100
+        max_length=100,
     )
 
     # Xero integration
@@ -147,6 +147,7 @@ class CompanyDefaults(models.Model):
         Returns the API key of the active LLM provider.
         """
         from .ai_provider import AIProvider
+
         active_provider = AIProvider.objects.filter(default=True).first()
         return active_provider.api_key if active_provider else None
 

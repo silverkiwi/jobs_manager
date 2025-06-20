@@ -14,6 +14,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from django.contrib import messages
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import models
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
@@ -21,16 +22,13 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.views.generic import TemplateView
-from django.db import models
-
-from apps.job.models import Job, JobPricing
-from apps.workflow.utils import extract_messages
 
 from apps.accounts.models import Staff
 from apps.accounts.utils import get_excluded_staff
-
-from apps.timesheet.models import TimeEntry
+from apps.job.models import Job, JobPricing
 from apps.timesheet.forms import PaidAbsenceForm
+from apps.timesheet.models import TimeEntry
+from apps.workflow.utils import extract_messages
 
 # Configure logging to only show logs from this module
 logger = logging.getLogger(__name__)
@@ -59,8 +57,8 @@ EXCLUDED_JOBS = [
 class TimesheetOverviewView(TemplateView):
     """View for displaying timesheet overview including staff hours, job statistics and graphics."""
 
-    template_name = "timesheet/timesheet_overview.html"    
-    
+    template_name = "timesheet/timesheet_overview.html"
+
     @classmethod
     def get_filtered_staff(cls) -> List[Staff]:
         """Get filtered staff list excluding certain staff members.
@@ -91,7 +89,7 @@ class TimesheetOverviewView(TemplateView):
             action = request.GET.get("export_to_ims")
         logger.info(f"Logging action {action}")
         start_date = self._get_start_date(start_date)
-        match (action):
+        match action:
             case "export_to_ims" | "1":
                 # Get date from query parameters instead of headers
                 query_date = request.GET.get("date")
@@ -617,7 +615,7 @@ class TimesheetOverviewView(TemplateView):
             JsonResponse with result or error
         """
         action = request.POST.get("action")
-        match (action):
+        match action:
             case "load_paid_absence_form":
                 return self.load_paid_absence_form(request)
             case "submit_paid_absence":

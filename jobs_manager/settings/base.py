@@ -1,8 +1,7 @@
-from datetime import timedelta
 import os
+from datetime import timedelta
 from pathlib import Path
 
-from concurrent_log_handler import ConcurrentRotatingFileHandler
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -103,7 +102,7 @@ LOGOUT_URL = "accounts:logout"
 LOGIN_REDIRECT_URL = "/"
 LOGIN_EXEMPT_URLS = [
     "accounts:login",
-    "accounts:logout", 
+    "accounts:logout",
     "accounts:api_logout",
     "accounts:password_reset",
     "accounts:password_reset_done",
@@ -292,7 +291,12 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(os.getenv("REDIS_HOST", "127.0.0.1"), int(os.getenv("REDIS_PORT", 6379)))],
+            "hosts": [
+                (
+                    os.getenv("REDIS_HOST", "127.0.0.1"),
+                    int(os.getenv("REDIS_PORT", 6379)),
+                )
+            ],
         },
     },
 }

@@ -1,10 +1,10 @@
 from typing import Callable
 
 from django.conf import settings
+from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.contrib import messages
 
 
 class LoginRequiredMiddleware:
@@ -18,33 +18,33 @@ class LoginRequiredMiddleware:
                 # Using URL prefixes instead of doing reverse
                 try:
                     # Try to resolve the URL name to an actual path
-                    self.exempt_urls.append(reverse(url_name))                   
-                except Exception as e:
+                    self.exempt_urls.append(reverse(url_name))
+                except Exception:
                     # If it fails, we assume it's a prefix and add it directly
                     self.exempt_url_prefixes.append(url_name)
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         # Check exact path matches first
         if request.path_info in self.exempt_urls:
-            return self.get_response(request)        # Check path prefixes
+            return self.get_response(request)  # Check path prefixes
         path = request.path_info.lstrip("/")
         if any(path.startswith(prefix) for prefix in self.exempt_url_prefixes):
             return self.get_response(request)
-        
+
         # Special handling for API endpoints - they should not redirect to login
-        if request.path_info.startswith('/accounts/') and '/api/' in request.path_info:
+        if request.path_info.startswith("/accounts/") and "/api/" in request.path_info:
             return self.get_response(request)
-        
+
         # Force exemption for all timesheet API endpoints regardless of configuration
-        if request.path_info.startswith('/timesheets/api/'):
+        if request.path_info.startswith("/timesheets/api/"):
             return self.get_response(request)
-        
-        # Force exemption for all other API endpoints  
-        if '/api/' in request.path_info:
+
+        # Force exemption for all other API endpoints
+        if "/api/" in request.path_info:
             return self.get_response(request)
-        
+
         # Handle logout endpoints specifically
-        if request.path_info.endswith('/logout/'):
+        if request.path_info.endswith("/logout/"):
             return self.get_response(request)
 
         if not request.user.is_authenticated:

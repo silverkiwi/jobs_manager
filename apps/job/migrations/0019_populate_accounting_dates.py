@@ -7,12 +7,12 @@ def populate_accounting_dates(apps, schema_editor):
     """Populate accounting_date from created_at for existing records"""
     MaterialEntry = apps.get_model('job', 'MaterialEntry')
     AdjustmentEntry = apps.get_model('job', 'AdjustmentEntry')
-    
+
     # Update MaterialEntry records
     for entry in MaterialEntry.objects.all():
         entry.accounting_date = entry.created_at.date()
         entry.save(update_fields=['accounting_date'])
-    
+
     # Update AdjustmentEntry records
     for entry in AdjustmentEntry.objects.all():
         entry.accounting_date = entry.created_at.date()
@@ -21,7 +21,6 @@ def populate_accounting_dates(apps, schema_editor):
 
 def reverse_populate_accounting_dates(apps, schema_editor):
     """Reverse function does nothing as we can't reverse this operation"""
-    pass
 
 
 class Migration(migrations.Migration):

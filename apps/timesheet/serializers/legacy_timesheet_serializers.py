@@ -3,9 +3,9 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.timesheet.models import TimeEntry
 from apps.accounts.models import Staff
-from apps.job.models import JobPricing, Job
+from apps.job.models import Job, JobPricing
+from apps.timesheet.models import TimeEntry
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +163,9 @@ class TimeEntryAPISerializer(serializers.ModelSerializer):
 
     # Map frontend field names to Django model fields
     jobPricingId = serializers.CharField(source="job_pricing.id", read_only=True)
-    jobNumber = serializers.CharField(source="job_pricing.job.job_number", read_only=True)
+    jobNumber = serializers.CharField(
+        source="job_pricing.job.job_number", read_only=True
+    )
     jobName = serializers.CharField(source="job_pricing.job.name", read_only=True)
     isBillable = serializers.BooleanField(source="is_billable")
     notes = serializers.CharField(source="note", allow_blank=True, required=False)
@@ -172,15 +174,26 @@ class TimeEntryAPISerializer(serializers.ModelSerializer):
     )
     timesheetDate = serializers.DateField(source="date", format="%Y-%m-%d")
     hoursSpent = serializers.DecimalField(
-        source="job_pricing.total_hours", read_only=True, max_digits=10, decimal_places=2
+        source="job_pricing.total_hours",
+        read_only=True,
+        max_digits=10,
+        decimal_places=2,
     )
     estimatedHours = serializers.SerializerMethodField()
     staffId = serializers.CharField(source="staff.id", read_only=True)
     minsPerItem = serializers.DecimalField(
-        source="minutes_per_item", max_digits=8, decimal_places=2, required=False, allow_null=True
+        source="minutes_per_item",
+        max_digits=8,
+        decimal_places=2,
+        required=False,
+        allow_null=True,
     )
-    wageRate = serializers.DecimalField(source="wage_rate", max_digits=10, decimal_places=2)
-    chargeOutRate = serializers.DecimalField(source="charge_out_rate", max_digits=10, decimal_places=2)
+    wageRate = serializers.DecimalField(
+        source="wage_rate", max_digits=10, decimal_places=2
+    )
+    chargeOutRate = serializers.DecimalField(
+        source="charge_out_rate", max_digits=10, decimal_places=2
+    )
 
     class Meta:
         model = TimeEntry
@@ -207,7 +220,11 @@ class TimeEntryAPISerializer(serializers.ModelSerializer):
     def get_estimatedHours(self, obj):
         """Get estimated hours from job's latest estimate pricing."""
         try:
-            if obj.job_pricing and obj.job_pricing.job and obj.job_pricing.job.latest_estimate_pricing:
+            if (
+                obj.job_pricing
+                and obj.job_pricing.job
+                and obj.job_pricing.job.latest_estimate_pricing
+            ):
                 return float(obj.job_pricing.job.latest_estimate_pricing.total_hours)
             return 0.0
         except:
@@ -252,8 +269,9 @@ class StaffAPISerializer(serializers.ModelSerializer):
             "firstName",
             "lastName",
             "email",
-            "avatarUrl",        ]
-        
+            "avatarUrl",
+        ]
+
     def get_name(self, obj):
         """Get full display name."""
         return obj.get_display_name()
@@ -262,7 +280,7 @@ class StaffAPISerializer(serializers.ModelSerializer):
         """Get avatar URL - returns icon URL if available, otherwise None."""
         if obj.icon:
             # Use Django's build_absolute_uri to generate full URL
-            request = self.context.get('request')
+            request = self.context.get("request")
             if request:
                 return request.build_absolute_uri(obj.icon.url)
             return obj.icon.url
@@ -273,7 +291,7 @@ class JobPricingAPISerializer(serializers.ModelSerializer):
     """
     Serializer for JobPricing model optimized for Vue.js frontend.
     """
-    
+
     jobId = serializers.CharField(source="job.id", read_only=True)
     jobNumber = serializers.CharField(source="job.job_number", read_only=True)
     jobName = serializers.CharField(source="job.name", read_only=True)
@@ -285,9 +303,11 @@ class JobPricingAPISerializer(serializers.ModelSerializer):
     estimatedHours = serializers.DecimalField(
         source="estimated_hours", max_digits=10, decimal_places=2, read_only=True
     )
-    totalHours = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    displayName = serializers.SerializerMethodField()    
-    
+    totalHours = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True
+    )
+    displayName = serializers.SerializerMethodField()
+
     class Meta:
         model = JobPricing
         fields = [
@@ -330,7 +350,7 @@ class TimesheetJobAPISerializer(serializers.ModelSerializer):
     Serializer for Job model optimized for timesheet job selection.
     Uses the modern CostSet system instead of JobPricing.
     """
-    
+
     jobId = serializers.CharField(source="id", read_only=True)
     jobNumber = serializers.CharField(source="job_number", read_only=True)
     jobName = serializers.CharField(source="name", read_only=True)
@@ -344,12 +364,12 @@ class TimesheetJobAPISerializer(serializers.ModelSerializer):
     totalHours = serializers.SerializerMethodField()
     displayName = serializers.SerializerMethodField()
     status = serializers.CharField(read_only=True)
-    
+
     class Meta:
         model = Job
         fields = [
             "id",
-            "jobId", 
+            "jobId",
             "jobNumber",
             "jobName",
             "clientName",
@@ -368,16 +388,16 @@ class TimesheetJobAPISerializer(serializers.ModelSerializer):
 
     def get_estimatedHours(self, obj):
         """Get estimated hours from the latest estimate CostSet."""
-        estimate_cost_set = obj.get_latest('estimate')
+        estimate_cost_set = obj.get_latest("estimate")
         if estimate_cost_set and estimate_cost_set.summary:
-            return estimate_cost_set.summary.get('hours', 0)
+            return estimate_cost_set.summary.get("hours", 0)
         return 0
 
     def get_totalHours(self, obj):
         """Get actual hours from the latest actual CostSet."""
-        actual_cost_set = obj.get_latest('actual')
+        actual_cost_set = obj.get_latest("actual")
         if actual_cost_set and actual_cost_set.summary:
-            return actual_cost_set.summary.get('hours', 0)
+            return actual_cost_set.summary.get("hours", 0)
         return 0
 
     def get_displayName(self, obj):

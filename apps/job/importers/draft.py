@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Literal, Dict
+from typing import Dict, Literal
 
 Kind = Literal["time", "material", "adjust"]
+
 
 @dataclass
 class DraftLine:

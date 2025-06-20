@@ -23,5 +23,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(populate_priority_for_existing_jobs, migrations.RunPython.noop),
+        migrations.RunPython(populate_priority_for_existing_jobs,
+                             migrations.RunPython.noop),
     ]

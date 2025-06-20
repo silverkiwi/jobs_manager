@@ -1,8 +1,9 @@
-from django.db import migrations
-import os
 import platform
-from pathlib import Path
 import subprocess
+from pathlib import Path
+
+from django.db import migrations
+
 
 def create_systemd_service(apps, schema_editor):
     """
@@ -14,7 +15,7 @@ def create_systemd_service(apps, schema_editor):
         return
 
     service_path = Path('/etc/systemd/system/xero-sync.service')
-    
+
     # Only proceed if we're in a production environment
     if not service_path.parent.exists():
         print("Not in production environment (no /etc/systemd), skipping service setup")
@@ -45,7 +46,7 @@ WantedBy=multi-user.target"""
             capture_output=True,
             text=True
         )
-        
+
         if test_sudo.returncode == 0:
             # We have sudo access, proceed with automatic setup
             subprocess.run(
@@ -64,13 +65,15 @@ WantedBy=multi-user.target"""
     # If we get here, either sudo failed or we don't have access
     print("\nTo set up the Xero sync service, run these commands as root:")
     print("\n# Create service file")
-    print(f"cat > /etc/systemd/system/xero-sync.service << 'EOL'\n{service_content}\nEOL")
+    print(
+        f"cat > /etc/systemd/system/xero-sync.service << 'EOL'\n{service_content}\nEOL")
     print("\n# Reload systemd and start service")
     print("systemctl daemon-reload")
     print("systemctl enable xero-sync")
     print("systemctl start xero-sync")
     print("\n# Verify it's running")
     print("systemctl status xero-sync")
+
 
 def remove_systemd_service(apps, schema_editor):
     """
@@ -90,7 +93,7 @@ def remove_systemd_service(apps, schema_editor):
             capture_output=True,
             text=True
         )
-        
+
         if test_sudo.returncode == 0:
             # We have sudo access, proceed with automatic removal
             subprocess.run(['sudo', 'systemctl', 'stop', 'xero-sync'], check=True)
@@ -108,6 +111,7 @@ def remove_systemd_service(apps, schema_editor):
     print("systemctl disable xero-sync")
     print("rm /etc/systemd/system/xero-sync.service")
     print("systemctl daemon-reload")
+
 
 class Migration(migrations.Migration):
     dependencies = [

@@ -1,12 +1,13 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from django.db import models, transaction
-from django.db.models import Max, Index
+from django.db.models import Index, Max
 from simple_history.models import HistoricalRecords  # type: ignore
 
+from apps.accounts.models import Staff
 from apps.job.enums import JobPricingMethodology
 from apps.job.helpers import get_company_defaults
 
@@ -15,8 +16,8 @@ from apps.job.helpers import get_company_defaults
 from .job_event import JobEvent
 from .job_pricing import JobPricing
 
-from apps.accounts.models import Staff
-
+if TYPE_CHECKING:
+    from .costing import CostSet
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class Job(models.Model):
     name = models.CharField(max_length=100, null=False, blank=False)
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     JOB_STATUS_CHOICES: List[tuple[str, str]] = [
         ("quoting", "Quoting"),
         ("accepted_quote", "Accepted Quote"),
@@ -63,18 +64,18 @@ class Job(models.Model):
         related_name="jobs",  # Allows reverse lookup of jobs for a client
     )
     order_number = models.CharField(max_length=100, null=True, blank=True)
-    
+
     # Legacy contact fields - to be migrated to ClientContact
-    contact_person = models.CharField(max_length=100, null=True, blank=True) # DEPRECATED: DO NOT USE
-    contact_email = models.EmailField(
-        null=True, blank=True
-    )  # # DEPRECATED: DO NOT USE
+    contact_person = models.CharField(
+        max_length=100, null=True, blank=True
+    )  # DEPRECATED: DO NOT USE
+    contact_email = models.EmailField(null=True, blank=True)  # # DEPRECATED: DO NOT USE
     contact_phone = models.CharField(
         max_length=150,
         null=True,
         blank=True,
-    ) # DEPRECATED: DO NOT USE
-    
+    )  # DEPRECATED: DO NOT USE
+
     # New relationship to ClientContact
     contact = models.ForeignKey(
         "client.ClientContact",
@@ -82,7 +83,7 @@ class Job(models.Model):
         null=True,
         blank=True,
         related_name="jobs",
-        help_text="The contact person for this job"
+        help_text="The contact person for this job",
     )
     job_number = models.IntegerField(unique=True)  # Job 1234
     material_gauge_quantity = models.TextField(
@@ -190,25 +191,25 @@ class Job(models.Model):
         null=True,
         blank=True,
         related_name="+",
-        help_text="Latest estimate cost set snapshot"
+        help_text="Latest estimate cost set snapshot",
     )
-    
+
     latest_quote = models.OneToOneField(
-        "CostSet", 
+        "CostSet",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="+",
-        help_text="Latest quote cost set snapshot"
+        help_text="Latest quote cost set snapshot",
     )
-    
+
     latest_actual = models.OneToOneField(
         "CostSet",
-        on_delete=models.SET_NULL, 
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="+",
-        help_text="Latest actual cost set snapshot"
+        help_text="Latest actual cost set snapshot",
     )
 
     PRIORITY_INCREMENT = 200
@@ -262,57 +263,63 @@ class Job(models.Model):
     def invoiced(self) -> bool:
         if hasattr(self, "invoice") and self.invoice is not None:
             return self.invoice
-        return False    
-    
+        return False
+
     def __str__(self) -> str:
         status_display = self.get_status_display()
         return f"[Job {self.job_number}] {self.name} ({status_display})"
 
-    def get_latest(self, kind: str) -> Optional['CostSet']:
+    def get_latest(self, kind: str) -> Optional["CostSet"]:
         """
         Returns the respective CostSet or None.
-        
+
         Args:
             kind: 'estimate', 'quote' or 'actual'
-            
+
         Returns:
             CostSet instance or None
         """
         field_mapping = {
-            'estimate': 'latest_estimate',
-            'quote': 'latest_quote', 
-            'actual': 'latest_actual'
+            "estimate": "latest_estimate",
+            "quote": "latest_quote",
+            "actual": "latest_actual",
         }
-        
+
         if kind not in field_mapping:
-            raise ValueError(f"Invalid kind '{kind}'. Must be one of: {list(field_mapping.keys())}")
-            
+            raise ValueError(
+                f"Invalid kind '{kind}'. Must be one of: {list(field_mapping.keys())}"
+            )
+
         return getattr(self, field_mapping[kind], None)
-    
-    def set_latest(self, kind: str, cost_set: 'CostSet') -> None:
+
+    def set_latest(self, kind: str, cost_set: "CostSet") -> None:
         """
         Updates pointer and saves.
-        
+
         Args:
             kind: 'estimate', 'quote' or 'actual'
             cost_set: CostSet instance to set as latest
         """
         field_mapping = {
-            'estimate': 'latest_estimate',
-            'quote': 'latest_quote',
-            'actual': 'latest_actual'
+            "estimate": "latest_estimate",
+            "quote": "latest_quote",
+            "actual": "latest_actual",
         }
-        
+
         if kind not in field_mapping:
-            raise ValueError(f"Invalid kind '{kind}'. Must be one of: {list(field_mapping.keys())}")
-            
+            raise ValueError(
+                f"Invalid kind '{kind}'. Must be one of: {list(field_mapping.keys())}"
+            )
+
         # Validate that the cost_set belongs to this job and is of the correct kind
         if cost_set.job != self:
             raise ValueError("CostSet must belong to this job")
-            
+
         if cost_set.kind != kind:
-            raise ValueError(f"CostSet kind '{cost_set.kind}' does not match requested kind '{kind}'")
-            
+            raise ValueError(
+                f"CostSet kind '{cost_set.kind}' does not match requested kind '{kind}'"
+            )
+
         setattr(self, field_mapping[kind], cost_set)
         self.save(update_fields=[field_mapping[kind]])
 
@@ -368,40 +375,32 @@ class Job(models.Model):
 
                 # Creating a new job is tricky because of the circular reference.
                 # We first save the job to the DB without any associated pricings, then we
-                super(Job, self).save(*args, **kwargs)                
-                
+                super(Job, self).save(*args, **kwargs)
+
                 # Create initial CostSet instances (modern system)
                 logger.debug("Creating initial CostSet entries.")
                 from .costing import CostSet
-                
+
                 # Create estimate cost set
                 estimate_cost_set = CostSet.objects.create(
-                    job=self,
-                    kind="estimate",
-                    rev=1
+                    job=self, kind="estimate", rev=1
                 )
                 self.latest_estimate = estimate_cost_set
-                
+
                 # Create quote cost set
-                quote_cost_set = CostSet.objects.create(
-                    job=self,
-                    kind="quote", 
-                    rev=1
-                )
+                quote_cost_set = CostSet.objects.create(job=self, kind="quote", rev=1)
                 self.latest_quote = quote_cost_set
-                
+
                 # Create actual cost set
-                actual_cost_set = CostSet.objects.create(
-                    job=self,
-                    kind="actual",
-                    rev=1
-                )
+                actual_cost_set = CostSet.objects.create(job=self, kind="actual", rev=1)
                 self.latest_actual = actual_cost_set
-                
+
                 logger.debug("Initial CostSets created successfully.")
 
                 # Create legacy JobPricing instances for backward compatibility (deprecated)
-                logger.debug("Creating legacy JobPricing entries for backward compatibility.")
+                logger.debug(
+                    "Creating legacy JobPricing entries for backward compatibility."
+                )
                 self.latest_estimate_pricing = JobPricing.objects.create(
                     pricing_stage="estimate", job=self
                 )
@@ -417,18 +416,19 @@ class Job(models.Model):
                 super(Job, self).save(
                     update_fields=[
                         "latest_estimate",
-                        "latest_quote", 
+                        "latest_quote",
                         "latest_actual",
                         "latest_estimate_pricing",
                         "latest_quote_pricing",
                         "latest_reality_pricing",
-                    ])
-                
+                    ]
+                )
+
                 if create_creation_event and staff:
                     JobEvent.objects.create(
                         job=self,
                         event_type="job_created",
-                        description=f"New job created",                    
+                        description="New job created",
                         staff=staff,
                     )
 

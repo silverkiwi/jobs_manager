@@ -1,7 +1,7 @@
 # quoting/scrapers/base.py
-import os
 import logging
 from abc import ABC, abstractmethod
+
 from django.utils import timezone
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -18,14 +18,14 @@ class BaseScraper(ABC):
         self.force = force
         self.driver = None
         self.logger = logging.getLogger(
-            f'scraper.{supplier.name.lower().replace(" ", "_")}'
+            f"scraper.{supplier.name.lower().replace(' ', '_')}"
         )
 
     def setup_driver(self):
         """Setup Selenium WebDriver - common for all scrapers"""
         import tempfile
         import uuid
-        
+
         chrome_options = Options()
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
@@ -47,18 +47,18 @@ class BaseScraper(ABC):
         chrome_options.add_argument("--disable-renderer-backgrounding")
         chrome_options.add_argument("--disable-features=TranslateUI")
         chrome_options.add_argument("--disable-ipc-flooding-protection")
-        
+
         # Use unique temp directory with timestamp to avoid conflicts
         import time
+
         unique_id = f"{int(time.time())}_{str(uuid.uuid4())[:8]}"
         temp_dir = tempfile.mkdtemp(prefix=f"scraper_chrome_{unique_id}_")
         chrome_options.add_argument(f"--user-data-dir={temp_dir}")
-        
+
         user_agent = (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
         )
         chrome_options.add_argument(f"user-agent={user_agent}")
-        
 
         self.driver = webdriver.Chrome(options=chrome_options)
         return self.driver
@@ -75,31 +75,28 @@ class BaseScraper(ABC):
     @abstractmethod
     def get_product_urls(self):
         """Get list of product URLs to scrape"""
-        pass
 
     @abstractmethod
     def scrape_product(self, url):
         """Scrape a single product page"""
-        pass
 
     @abstractmethod
     def login(self):
         """Handle login process"""
-        pass
 
     def run(self):
         """Main scraper execution"""
-        from apps.quoting.models import ScrapeJob, SupplierProduct, SupplierPriceList
+        from apps.quoting.models import ScrapeJob, SupplierPriceList, SupplierProduct
 
         # Create scrape job
         job = ScrapeJob.objects.create(
             supplier=self.supplier, status="running", started_at=timezone.now()
         )
-        
+
         # Create price list for this scrape session
         self.price_list = SupplierPriceList.objects.create(
             supplier=self.supplier,
-            file_name=f"Web Scrape {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+            file_name=f"Web Scrape {timezone.now().strftime('%Y-%m-%d %H:%M')}",
         )
 
         try:
@@ -199,17 +196,17 @@ class BaseScraper(ABC):
                         f"Name={product_data.get('product_name')}, "
                         f"VariantID={product_data.get('variant_id')}"
                     )
-                
+
                 product_data["supplier"] = self.supplier
                 product_data["price_list"] = self.price_list
-                
+
                 product, created = SupplierProduct.objects.update_or_create(
                     supplier=self.supplier,
                     item_no=product_data["item_no"],
                     variant_id=product_data["variant_id"],
                     defaults=product_data,
                 )
-                
+
                 # Create mapping record for new products (LLM called at end of batch)
                 if created:
                     create_mapping_record(product)
