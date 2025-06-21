@@ -139,11 +139,81 @@ You'd need to order 38m more from suppliers. Stainless Supplies has the best pri
 }
 ```
 
-### 2. Authentication
+#### Job Context API (for "Interactive Quote" button)
+`GET /api/mcp/job_context/{job_id}/`
+
+**Response Format:**
+```json
+{
+  "job": {
+    "id": "uuid",
+    "name": "Johnson Warehouse Extension",
+    "client_name": "Johnson Construction",
+    "description": "Steel frame warehouse extension",
+    "status": "quoting"
+  },
+  "existing_materials": [
+    {
+      "description": "Steel angle preliminary estimate",
+      "quantity": 50.0,
+      "notes": "For main frame"
+    }
+  ],
+  "client_history": [
+    "Previous jobs used Metro Steel supplier",
+    "Typically prefers 12m lengths to minimize cuts"
+  ]
+}
+```
+
+### 2. Vector Embedding Implementation
+
+#### Database Schema
+Add to Django models:
+```python
+class QuoteEmbedding(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    job = models.ForeignKey('job.Job', on_delete=models.CASCADE)
+    content = models.TextField()  # Original quote description
+    embedding = models.JSONField()  # Vector embedding array
+    metadata = models.JSONField()  # Job type, materials, client, etc.
+    created_at = models.DateTimeField(auto_now_add=True)
+```
+
+#### Vector Search Service
+- Use sentence-transformers or OpenAI embeddings API
+- Store embeddings in PostgreSQL with pgvector or in separate vector DB
+- Cosine similarity search for similar quotes
+
+### 3. Quote Request Logging
+
+#### Database Schema
+```python
+class QuoteSession(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    job = models.ForeignKey('job.Job', on_delete=models.CASCADE)
+    started_at = models.DateTimeField(auto_now_add=True)
+    final_pricing = models.JSONField(blank=True, null=True)
+    session_context = models.TextField()  # Full conversation context
+
+class QuoteInteraction(models.Model):
+    session = models.ForeignKey(QuoteSession, on_delete=models.CASCADE)
+    user_input = models.TextField()
+    system_response = models.TextField()
+    mcp_calls = models.JSONField()  # Log of MCP API calls made
+    timestamp = models.DateTimeField(auto_now_add=True)
+```
+
+#### Quote Session APIs
+`POST /api/mcp/start_quote_session/` - Create new session for a job
+`POST /api/mcp/log_interaction/` - Log each user/assistant exchange
+`POST /api/mcp/finalize_quote/` - Save final pricing and generate embedding
+
+### 4. Authentication
 - Simple API key in request header: `X-API-Key: <service_key>`
 - Validate against a hardcoded key or basic API key model
 
-### 3. Response Format
+### 5. Response Format
 Return JSON combining Stock and SupplierProduct data:
 - **Stock items**: description, quantity, unit_cost, retail_price, location, metal_type, alloy
 - **Supplier products**: product_name, supplier_name, variant_price, variant_available_stock, price_unit, metal_type
