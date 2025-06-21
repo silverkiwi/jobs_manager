@@ -40,16 +40,22 @@ You'd need to order 38m more from suppliers. Stainless Supplies has the best pri
 
 ## Implementation:
 
-### 1. API Endpoints (`apps/quoting/views.py`, `apps/quoting/urls.py`)
+### 1. API Endpoints (`apps/quoting/views.py`, `apps/quoting/urls.py`) ✅ COMPLETED
+jlh0vGbiAcpP0w1zabvvbcVLdalN0ojKNAs_E05Xl7nVRrkEnDcFFARwIFIIKRKw
 
-#### Material Search API
-`GET /api/mcp/search_materials/?description=25x25x3mm+angle&metal_type=steel&limit=20`
+#### Stock Search API ✅ COMPLETED
+`GET /api/mcp/search_stock/?description=25x25x3mm+angle&metal_type=steel&limit=20`
+
+**Test Results:**
+- ✅ API endpoint working: `http://localhost:8000/quoting/api/mcp/search_stock/`
+- ✅ Authentication working: Requires X-API-Key header
+- ✅ Returns proper JSON format with stock_items array
 
 **Optional Parameters:**
-- `suppliers=steel-solutions,metro-steel` - Filter by specific suppliers
-- `in_stock_only=true` - Only show items we have in stock
-- `min_quantity=10` - Minimum quantity required
+- `metal_type=steel` - Filter by metal type
 - `alloy=304` - Filter by alloy type
+- `min_quantity=10` - Minimum quantity required
+- `limit=20` - Maximum results (default 20)
 
 **Response Format:**
 ```json
@@ -64,15 +70,40 @@ You'd need to order 38m more from suppliers. Stainless Supplies has the best pri
       "metal_type": "steel",
       "alloy": null
     }
-  ],
-  "supplier_products": [
+  ]
+}
+```
+
+#### Supplier Prices Search API
+`GET /api/mcp/search_supplier_prices/?description=25x25x3mm+angle&metal_type=steel&limit=20`
+
+**Optional Parameters:**
+- `suppliers=steel-solutions,metro-steel` - Filter by specific suppliers
+- `include_internal_stock=true` - Include our stock as "Internal Stock" supplier
+- `metal_type=steel` - Filter by metal type
+- `alloy=304` - Filter by alloy type
+- `limit=20` - Maximum results (default 20)
+
+**Response Format:**
+```json
+{
+  "supplier_prices": [
     {
       "product_name": "25x25x3mm Steel Angle 6m lengths",
       "supplier_name": "Steel Solutions", 
-      "variant_price": 7.20,
-      "variant_available_stock": 50,
+      "price": 7.20,
+      "available_stock": 50,
       "price_unit": "per metre",
-      "metal_type": "steel"
+      "metal_type": "steel",
+      "item_no": "SA25x25x3"
+    },
+    {
+      "product_name": "25x25x3mm Steel Angle",
+      "supplier_name": "Internal Stock",
+      "price": 12.50,
+      "available_stock": 45,
+      "price_unit": "per metre",
+      "location": "Rack A3"
     }
   ]
 }
@@ -139,8 +170,14 @@ You'd need to order 38m more from suppliers. Stainless Supplies has the best pri
 }
 ```
 
-#### Job Context API (for "Interactive Quote" button)
+#### Job Context API (for "Interactive Quote" button) ✅ COMPLETED
 `GET /api/mcp/job_context/{job_id}/`
+
+**Test Results:**
+- ✅ API endpoint working: `http://localhost:8000/quoting/api/mcp/job_context/{job_id}/`
+- ✅ Authentication working: Requires X-API-Key header
+- ✅ Returns job details, existing materials, and client history
+- ✅ Error handling: Returns 404 for non-existent jobs
 
 **Response Format:**
 ```json
@@ -209,9 +246,13 @@ class QuoteInteraction(models.Model):
 `POST /api/mcp/log_interaction/` - Log each user/assistant exchange
 `POST /api/mcp/finalize_quote/` - Save final pricing and generate embedding
 
-### 4. Authentication
-- Simple API key in request header: `X-API-Key: <service_key>`
-- Validate against a hardcoded key or basic API key model
+### 4. Authentication ✅ COMPLETED
+- ✅ ServiceAPIKey model created in `apps/workflow/models/service_api_key.py`
+- ✅ Authentication middleware in `apps/workflow/authentication.py`
+- ✅ Management command to create API keys: `python manage.py create_service_api_key`
+- ✅ Test API key created: `jlh0vGbiAcpP0w1zabvvbcVLdalN0ojKNAs_E05Xl7nVRrkEnDcFFARwIFIIKRKw`
+
+**Usage**: Include `X-API-Key: <service_key>` header in MCP API requests
 
 ### 5. Response Format
 Return JSON combining Stock and SupplierProduct data:
