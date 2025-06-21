@@ -102,7 +102,6 @@ dmypy.json
 
 /.__debug_sql.lock
 /node_modules/
-.github/
 
 # For Docker
 .yaml
