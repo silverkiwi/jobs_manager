@@ -1,7 +1,7 @@
 """
 Client REST Views
 
-REST views for Client module following clean code principles:
+REST views for the Client module following clean code principles:
 - SRP (Single Responsibility Principle)
 - Early return and guard clauses
 - Delegation to service layer
@@ -22,6 +22,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from apps.client.forms import ClientForm
 from apps.client.models import Client, ClientContact
+from apps.client.serializers import ClientNameOnlySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class BaseClientRestView(View):
         self, error: Exception, message: str = "Internal server error"
     ) -> JsonResponse:
         """
-        Centralise error handling following clean code principles.
+        Centralises error handling following clean code principles.
         """
         logger.error(f"{message}: {str(error)}")
         return JsonResponse({"error": message, "details": str(error)}, status=500)
@@ -54,47 +55,14 @@ class ClientListAllRestView(BaseClientRestView):
 
     def get(self, request) -> JsonResponse:
         """
-        Lista todos os clientes seguindo early return pattern.
+        Lists all clients (only id and name) for fast dropdowns.
         """
         try:
-            # Busca todos os clientes ordenados por nome
-            clients = self._get_all_clients()
-            results = self._format_client_results(clients)
-
-            return JsonResponse(results, safe=False)
-
+            clients = Client.objects.all().order_by("name")
+            serializer = ClientNameOnlySerializer(clients, many=True)
+            return JsonResponse(serializer.data, safe=False)
         except Exception as e:
             return self.handle_error(e, "Error fetching all clients")
-
-    def _get_all_clients(self):
-        """
-        Executa busca de todos os clientes seguindo SRP.
-        """
-        return Client.objects.all().order_by("name")
-
-    def _format_client_results(self, clients) -> list:
-        """
-        Formata resultados dos clientes seguindo SRP.
-        """
-        return [
-            {
-                "id": str(client.id),
-                "name": client.name,
-                "email": client.email or "",
-                "phone": client.phone or "",
-                "address": client.address or "",
-                "is_account_customer": client.is_account_customer,
-                "xero_contact_id": client.xero_contact_id or "",
-                "last_invoice_date": (
-                    client.get_last_invoice_date().strftime("%d/%m/%Y")
-                    if client.get_last_invoice_date()
-                    else ""
-                ),
-                "total_spend": f"${client.get_total_spend():,.2f}",
-                "raw_json": client.raw_json,
-            }
-            for client in clients
-        ]
 
 
 class ClientSearchRestView(BaseClientRestView):
@@ -105,19 +73,19 @@ class ClientSearchRestView(BaseClientRestView):
 
     def get(self, request) -> JsonResponse:
         """
-        Busca clientes por nome seguindo early return pattern.
+        Searches clients by name following early return pattern.
         """
         try:
-            # Guard clause: validação de query parameter
+            # Guard clause: validate query parameter
             query = request.GET.get("q", "").strip()
             if not query:
                 return JsonResponse({"results": []})
 
-            # Guard clause: query muito curta
+            # Guard clause: query too short
             if len(query) < 3:
                 return JsonResponse({"results": []})
 
-            # Busca clientes seguindo princípios de clean code
+            # Search clients following clean code principles
             clients = self._search_clients(query)
             results = self._format_client_results(clients)
 
@@ -128,14 +96,14 @@ class ClientSearchRestView(BaseClientRestView):
 
     def _search_clients(self, query: str):
         """
-        Executa busca de clientes com filtros apropriados.
-        SRP: responsabilidade única de buscar clientes.
+        Executes client search with appropriate filters.
+        SRP: single responsibility for searching clients.
         """
         return Client.objects.filter(Q(name__icontains=query)).order_by("name")[:10]
 
     def _format_client_results(self, clients) -> list:
         """
-        Formata resultados da busca seguindo SRP.
+        Formats search results following SRP.
         """
         return [
             {
@@ -160,25 +128,25 @@ class ClientSearchRestView(BaseClientRestView):
 
 class ClientContactsRestView(BaseClientRestView):
     """
-    View REST para busca de contatos de um cliente.
+    REST view for fetching contacts of a client.
     """
 
     def get(self, request, client_id: str) -> JsonResponse:
         """
-        Busca contatos de um cliente específico.
+        Fetches contacts for a specific client.
         """
         try:
-            # Guard clause: validação de client_id
+            # Guard clause: validate client_id
             if not client_id:
                 return JsonResponse({"error": "Client ID is required"}, status=400)
 
-            # Busca cliente seguindo early return
+            # Fetch client with early return
             try:
                 client = Client.objects.get(id=client_id)
             except Client.DoesNotExist:
                 return JsonResponse({"error": "Client not found"}, status=404)
 
-            # Busca contatos do cliente
+            # Fetch client contacts
             contacts = self._get_client_contacts(client)
             results = self._format_contact_results(contacts)
 
@@ -189,13 +157,13 @@ class ClientContactsRestView(BaseClientRestView):
 
     def _get_client_contacts(self, client):
         """
-        Busca contatos do cliente seguindo SRP.
+        Fetches client contacts following SRP.
         """
         return client.contacts.all().order_by("name")
 
     def _format_contact_results(self, contacts) -> list:
         """
-        Formata resultados dos contatos seguindo SRP.
+        Formats contact results following SRP.
         """
         return [
             {
@@ -228,7 +196,8 @@ class ClientContactCreateRestView(BaseClientRestView):
             "phone": "123-456-7890",
             "position": "Job Title",
             "is_primary": false,
-            "notes": "Additional notes"        }
+            "notes": "Additional notes"
+        }
         """
         try:
             data = self._parse_json_body(request)
