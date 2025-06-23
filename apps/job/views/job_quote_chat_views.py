@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 
 from apps.job.models import Job, JobQuoteChat
 from apps.job.serializers import JobQuoteChatSerializer, JobQuoteChatUpdateSerializer
+from apps.job.mixins import JobLookupMixin
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ class BaseJobQuoteChatView(APIView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class JobQuoteChatHistoryView(BaseJobQuoteChatView):
+class JobQuoteChatHistoryView(JobLookupMixin, BaseJobQuoteChatView):
     """
     REST view for getting and managing chat history for a job.
 
@@ -88,6 +89,11 @@ class JobQuoteChatHistoryView(BaseJobQuoteChatView):
         try:
             # Get job using utility method
             job = self.get_job_or_404(job_id)
+
+            # Check if job exists
+            job, error_response = self.get_job_or_404_response(error_format='api')
+            if error_response:
+                return error_response
 
             # Get all chat messages for this job, ordered by timestamp
             messages = JobQuoteChat.objects.filter(job=job).order_by("timestamp")
@@ -132,6 +138,11 @@ class JobQuoteChatHistoryView(BaseJobQuoteChatView):
             # Get job using utility method
             job = self.get_job_or_404(job_id)
 
+            # Check if job exists
+            job, error_response = self.get_job_or_404_response(error_format='api')
+            if error_response:
+                return error_response
+
             # Validate data using serializer
             serializer = JobQuoteChatSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
@@ -160,6 +171,11 @@ class JobQuoteChatHistoryView(BaseJobQuoteChatView):
         try:
             # Get job using utility method
             job = self.get_job_or_404(job_id)
+            
+            # Check if job exists
+            job, error_response = self.get_job_or_404_response(error_format='api')
+            if error_response:
+                return error_response
 
             # Delete all messages for this job
             deleted_count, _ = JobQuoteChat.objects.filter(job=job).delete()
@@ -174,7 +190,7 @@ class JobQuoteChatHistoryView(BaseJobQuoteChatView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class JobQuoteChatMessageView(BaseJobQuoteChatView):
+class JobQuoteChatMessageView(JobLookupMixin, BaseJobQuoteChatView):
     """
     REST view for updating individual chat messages.
 
@@ -195,6 +211,11 @@ class JobQuoteChatMessageView(BaseJobQuoteChatView):
             # Get job and message using utility methods
             job = self.get_job_or_404(job_id)
             message = self.get_message_or_404(job, message_id)
+
+            # Check if job exists
+            job, error_response = self.get_job_or_404_response(error_format='api')
+            if error_response:
+                return error_response
 
             # Validate and update using serializer
             serializer = JobQuoteChatUpdateSerializer(
