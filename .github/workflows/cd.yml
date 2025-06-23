@@ -39,16 +39,16 @@ jobs:
                 git switch $BRANCH_NAME
               else
                 git switch -c $BRANCH_NAME
-              fi            
+              fi
               git pull -f origin $BRANCH_NAME
               source venv/bin/activate
-  
+
               poetry install
               npm install
-  
+
               python manage.py migrate
               python manage.py collectstatic --noinput
-  
+
               sudo systemctl restart workflow
               sudo systemctl reload nginx
             EOF
