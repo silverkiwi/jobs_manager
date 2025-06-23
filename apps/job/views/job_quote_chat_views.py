@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.job.models import Job, JobQuoteChat
+from apps.job.mixins import JobLookupMixin
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ class BaseJobQuoteChatView(APIView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class JobQuoteChatHistoryView(BaseJobQuoteChatView):
+class JobQuoteChatHistoryView(JobLookupMixin, BaseJobQuoteChatView):
     """
     REST view for getting and managing chat history for a job.
     
@@ -80,13 +81,9 @@ class JobQuoteChatHistoryView(BaseJobQuoteChatView):
         """
         try:
             # Check if job exists
-            try:
-                job = Job.objects.get(id=job_id)
-            except Job.DoesNotExist:
-                return Response(
-                    {"success": False, "error": "Job not found", "code": "JOB_NOT_FOUND"},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+            job, error_response = self.get_job_or_404_response(error_format='api')
+            if error_response:
+                return error_response
 
             # Get all chat messages for this job, ordered by timestamp
             messages = JobQuoteChat.objects.filter(job=job).order_by('timestamp')
@@ -127,13 +124,9 @@ class JobQuoteChatHistoryView(BaseJobQuoteChatView):
         """
         try:
             # Check if job exists
-            try:
-                job = Job.objects.get(id=job_id)
-            except Job.DoesNotExist:
-                return Response(
-                    {"success": False, "error": "Job not found", "code": "JOB_NOT_FOUND"},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+            job, error_response = self.get_job_or_404_response(error_format='api')
+            if error_response:
+                return error_response
 
             # Parse request body
             data = self.parse_json_body(request)
@@ -187,13 +180,9 @@ class JobQuoteChatHistoryView(BaseJobQuoteChatView):
         """
         try:
             # Check if job exists
-            try:
-                job = Job.objects.get(id=job_id)
-            except Job.DoesNotExist:
-                return Response(
-                    {"success": False, "error": "Job not found", "code": "JOB_NOT_FOUND"},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+            job, error_response = self.get_job_or_404_response(error_format='api')
+            if error_response:
+                return error_response
 
             # Delete all messages for this job
             deleted_count, _ = JobQuoteChat.objects.filter(job=job).delete()
@@ -210,7 +199,7 @@ class JobQuoteChatHistoryView(BaseJobQuoteChatView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class JobQuoteChatMessageView(BaseJobQuoteChatView):
+class JobQuoteChatMessageView(JobLookupMixin, BaseJobQuoteChatView):
     """
     REST view for updating individual chat messages.
     
@@ -229,13 +218,9 @@ class JobQuoteChatMessageView(BaseJobQuoteChatView):
         """
         try:
             # Check if job exists
-            try:
-                job = Job.objects.get(id=job_id)
-            except Job.DoesNotExist:
-                return Response(
-                    {"success": False, "error": "Job not found", "code": "JOB_NOT_FOUND"},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+            job, error_response = self.get_job_or_404_response(error_format='api')
+            if error_response:
+                return error_response
 
             # Find the message
             try:

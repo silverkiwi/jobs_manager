@@ -11,11 +11,12 @@ from rest_framework.views import APIView
 
 from apps.job.models import Job, JobFile
 from apps.job.serializers.job_file_serializer import JobFileSerializer
+from apps.job.mixins import JobNumberLookupMixin
 
 logger = logging.getLogger(__name__)
 
 
-class JobFileUploadView(APIView):
+class JobFileUploadView(JobNumberLookupMixin, APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
@@ -33,6 +34,11 @@ class JobFileUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Validate job exists first
+        job_obj, error_response = self.get_job_or_404_response(job_number=job_number, error_format='legacy')
+        if error_response:
+            return error_response
+
         # Define the Dropbox sync folder path
         job_folder = os.path.join(settings.DROPBOX_WORKFLOW_FOLDER, f"Job-{job_number}")
         os.makedirs(job_folder, exist_ok=True)
@@ -47,12 +53,6 @@ class JobFileUploadView(APIView):
                 for chunk in file.chunks():
                     destination.write(chunk)
                 os.chmod(file_path, 0o664)
-
-            try:
-                job_obj = Job.objects.get(job_number=job_number)
-            except Job.DoesNotExist:
-                logger.error(f"Job with number {job_number} does not exist.")
-                continue
 
             relative_path = os.path.relpath(file_path, settings.DROPBOX_WORKFLOW_FOLDER)
             job_file, created = JobFile.objects.update_or_create(
