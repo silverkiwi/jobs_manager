@@ -4,10 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0034_alter_materialentry_quantity_and_more"),
     ]
 
-    operations = [
-    ]
+    operations = []

@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("quoting", "0006_alter_supplierproduct_unique_together_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

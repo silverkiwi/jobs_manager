@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0039_historicaljob_charge_out_rate_job_charge_out_rate"),
     ]

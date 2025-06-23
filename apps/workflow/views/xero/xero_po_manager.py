@@ -258,7 +258,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
 
             logger.error(
                 f"""
-                Could not find real UUID for PO {self.purchase_order.id}. 
+                Could not find real UUID for PO {self.purchase_order.id}.
                 Attempting to create it again.
                 """.strip()
                 # CORRIN: WHAT ON EARTH IS THIS?
@@ -297,7 +297,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
                         # Sucesso na segunda tentativa!
                         logger.info(
                             f"""
-                            Successfully created PO on retry with UUID: 
+                            Successfully created PO on retry with UUID:
                             {retry_po.purchase_order_id}
                             """.strip()
                         )
@@ -317,14 +317,14 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
                     else:
                         logger.warning(
                             f"""
-                            Retry still returned zero UUID for PO 
+                            Retry still returned zero UUID for PO
                             {self.purchase_order.id}
                             """.strip()
                         )
                 else:
                     logger.warning(
                         f"""
-                        Retry did not return any purchase orders for PO 
+                        Retry did not return any purchase orders for PO
                         {self.purchase_order.id}
                         """.strip()
                     )
@@ -356,7 +356,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
 
         logger.info(
             f"""
-            Successfully synced PO {self.purchase_order.id} to Xero. 
+            Successfully synced PO {self.purchase_order.id} to Xero.
             Xero ID: {xero_po.purchase_order_id}
             """.strip()
         )
@@ -419,7 +419,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
             except Exception as e:
                 logger.error(
                     f"""
-                    Error creating xero-python LineItem object for PO line 
+                    Error creating xero-python LineItem object for PO line
                     {line.id}: {e}
                     """.strip(),
                     exc_info=True,
@@ -535,7 +535,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
         except Exception as e:
             logger.error(
                 f"""
-                Error preparing or serializing Xero document for PO 
+                Error preparing or serializing Xero document for PO
                 {self.purchase_order.id}: {str(e)}
                 """.strip(),
                 exc_info=True,
@@ -593,7 +593,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
 
         logger.info(
             f"""
-            Attempting to delete purchase order {self.purchase_order.id} 
+            Attempting to delete purchase order {self.purchase_order.id}
             (Xero ID: {xero_id}) by setting status to DELETED.
             """.strip()
         )
@@ -655,7 +655,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
                     )
                     logger.error(
                         f"""
-                        Xero validation errors during delete for PO 
+                        Xero validation errors during delete for PO
                         {self.purchase_order.id}: {error_details}
                         """.strip()
                     )
@@ -686,7 +686,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
 
                     logger.info(
                         f"""
-                        Successfully deleted purchase order {self.purchase_order.id} 
+                        Successfully deleted purchase order {self.purchase_order.id}
                         in Xero (Xero ID: {xero_id}).
                         """.strip()
                     )
@@ -711,7 +711,7 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
         except Exception as e:
             logger.error(
                 f"""
-                Unexpected error deleting PO {self.purchase_order.id} from Xero: 
+                Unexpected error deleting PO {self.purchase_order.id} from Xero:
                 {str(e)}
                 """.strip(),
                 exc_info=True,

@@ -8,7 +8,6 @@ from django.db import migrations, models
 # WARNING - Before applying this migration, check migration 0007_add_materialentry_add_adjustmententry.
 # The existing vs. fresh db situation is the same here.
 class Migration(migrations.Migration):
-
     dependencies = [
         ("job", "0010_populate_priority_for_existing_jobs"),
         ("purchasing", "0002_move_purchase_models_database"),
@@ -16,15 +15,15 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name='materialentry',
-            name='purchase_order_line',
+            model_name="materialentry",
+            name="purchase_order_line",
             field=models.ForeignKey(
                 blank=True,
-                help_text='Convenience link to original PO line (derived via source_stock)',
+                help_text="Convenience link to original PO line (derived via source_stock)",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name='material_entries',
-                to='purchasing.PurchaseOrderLine' # Now referencing the new app
+                related_name="material_entries",
+                to="purchasing.PurchaseOrderLine",  # Now referencing the new app
             ),
         ),
     ]

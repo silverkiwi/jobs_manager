@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Activate Python environment
 poetry shell
 
-# Install dependencies  
+# Install dependencies
 poetry install
 npm install
 
@@ -46,7 +46,7 @@ python manage.py loaddata apps/workflow/fixtures/company_defaults.json
 
 # then EITHER load demo data
 
-python manage.py loaddata apps/workflow/fixtures/initial_data.json 
+python manage.py loaddata apps/workflow/fixtures/initial_data.json
 python manage.py create_shop_jobs
 # OR backport from prod
 python manage.py backport_data_restore restore/prod_backup_20250614_095927.json.gz

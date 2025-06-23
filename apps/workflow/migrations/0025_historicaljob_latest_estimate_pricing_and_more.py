@@ -4,11 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0024_alter_jobpricing_options_jobpricing_revision_number"),
     ]
 
-    operations = [
-
-    ]
+    operations = []

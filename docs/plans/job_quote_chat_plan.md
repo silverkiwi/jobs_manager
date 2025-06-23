@@ -16,7 +16,7 @@ class JobQuoteChat(models.Model):
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     metadata = models.JSONField(default=dict, blank=True)  # For extra data like streaming status, etc.
-    
+
     class Meta:
         ordering = ['timestamp']
         indexes = [
@@ -46,7 +46,7 @@ class JobQuoteChat(models.Model):
         "metadata": {}
       },
       {
-        "message_id": "assistant-1234567891", 
+        "message_id": "assistant-1234567891",
         "role": "assistant",
         "content": "I understand you need 3 stainless steel boxes...",
         "timestamp": "2024-01-15T10:30:05Z",
@@ -83,7 +83,7 @@ class JobQuoteChat(models.Model):
 }
 ```
 
-### 3. Clear Chat History  
+### 3. Clear Chat History
 **Endpoint**: `DELETE /api/jobs/{job_id}/quote-chat/`
 
 **Purpose**: Delete all chat messages for a job (start fresh)

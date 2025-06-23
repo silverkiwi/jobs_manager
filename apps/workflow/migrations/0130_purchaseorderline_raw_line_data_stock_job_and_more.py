@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0129_companydefaults_gemini_api_key_stock_job_and_more"),
     ]

@@ -197,20 +197,20 @@ function collectAdvancedGridData(section) {
           const data = { ...node.data };
           data.minutes_per_item = data.mins_per_item;
           delete data.mins_per_item;
-          
+
           // Round numeric fields to 2 decimal places for material entries
           if (gridName === "MaterialsTable") {
             if (data.quantity !== undefined) data.quantity = Math.round(data.quantity * 100) / 100;
             if (data.unit_cost !== undefined) data.unit_cost = Math.round(data.unit_cost * 100) / 100;
             if (data.unit_revenue !== undefined) data.unit_revenue = Math.round(data.unit_revenue * 100) / 100;
           }
-          
+
           // Round adjustment fields to 2 decimal places
           if (gridName === "AdjustmentsTable") {
             if (data.cost_adjustment !== undefined) data.cost_adjustment = Math.round(data.cost_adjustment * 100) / 100;
             if (data.price_adjustment !== undefined) data.price_adjustment = Math.round(data.price_adjustment * 100) / 100;
           }
-          
+
           rowData.push(data);
           debugLog(`Added row to ${gridKey} data:`, data);
         } else {

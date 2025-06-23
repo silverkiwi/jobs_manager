@@ -5,10 +5,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0074_bill_xero_last_synced_client_xero_last_synced_and_more"),
     ]
 
-    operations = [
-    ]
+    operations = []

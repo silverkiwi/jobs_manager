@@ -4,10 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0056_rename_total_bill_total_excl_tax_and_more"),
     ]
 
-    operations = [
-    ]
+    operations = []

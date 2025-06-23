@@ -4,11 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0015_historicaljob_delivery_date_job_delivery_date"),
     ]
 
-    operations = [
-
-    ]
+    operations = []

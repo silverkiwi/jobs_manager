@@ -85,13 +85,13 @@ function refreshAllColumns() {
 
 function renderJobs(status, jobs) {
   const container = document.querySelector(`#${status} .job-list`);
-  
+
   // Disable Sortable during job loading to prevent reorder events
   if (container && container.sortableJobsInstance) {
     container.sortableJobsInstance.destroy();
     container.sortableJobsInstance = null;
   }
-  
+
   container.innerHTML = "";
 
   if (jobs.length === 0) {
@@ -251,17 +251,17 @@ function initializeDragAndDropForColumn(container) {
 
       switch (true) {
         // top
-        case index === 0:               
+        case index === 0:
           afterId = cards[1] ? cards[1].dataset.id : null;
           break;
-          
+
         // bottom
-        case index === total - 1:      
+        case index === total - 1:
           beforeId = cards[total - 2] ? cards[total - 2].dataset.id : null;
           break;
 
         // middle
-        default:                        
+        default:
           beforeId = cards[index - 1].dataset.id;
           afterId = cards[index + 1].dataset.id;
           break;
@@ -345,17 +345,17 @@ function initializeDragAndDrop() {
 
         switch (true) {
           // top
-          case index === 0:               
+          case index === 0:
             afterId = cards[1] ? cards[1].dataset.id : null;
             break;
-            
+
           // bottom
-          case index === total - 1:      
+          case index === total - 1:
             beforeId = cards[total - 2] ? cards[total - 2].dataset.id : null;
             break;
 
           // middle
-          default:                        
+          default:
             beforeId = cards[index - 1].dataset.id;
             afterId = cards[index + 1].dataset.id;
             break;
@@ -367,7 +367,7 @@ function initializeDragAndDrop() {
           status: newStatus
         };
 
-        fetch(`/job/${jobId}/reorder/`, {              
+        fetch(`/job/${jobId}/reorder/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

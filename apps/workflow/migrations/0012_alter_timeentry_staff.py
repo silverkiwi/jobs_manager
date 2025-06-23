@@ -4,10 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0011_remove_timeentry_minutes_timeentry_description_and_more"),
     ]
 
-    operations = [
-    ]
+    operations = []

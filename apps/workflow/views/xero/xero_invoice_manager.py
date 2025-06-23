@@ -318,7 +318,7 @@ class XeroInvoiceManager(XeroDocumentManager):
             job_id = self.job.id if self.job else "Unknown"
             logger.error(
                 f"""
-                Xero API Exception during invoice creation for job {job_id}: 
+                Xero API Exception during invoice creation for job {job_id}:
                 {e.status} - {e.reason}
                 """.strip(),
                 exc_info=True,
@@ -336,7 +336,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                 {
                     "success": False,
                     "message": f"""
-                    An unexpected error occurred ({str(e)}) while creating the invoice 
+                    An unexpected error occurred ({str(e)}) while creating the invoice
                     with Xero. Please contact support to check the data sent.
                     """.strip(),
                 },
@@ -360,7 +360,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                         self.job.invoice.delete()
                         logger.info(
                             f"""
-                            Invoice {local_invoice_id} deleted successfully 
+                            Invoice {local_invoice_id} deleted successfully
                             for job {self.job.id}
                             """.strip()
                         )
@@ -398,7 +398,7 @@ class XeroInvoiceManager(XeroDocumentManager):
             job_id = self.job.id if self.job else "Unknown"
             logger.error(
                 f"""
-                Xero API BadRequest during invoice deletion for job {job_id}: 
+                Xero API BadRequest during invoice deletion for job {job_id}:
                 {e.status} - {e.reason}
                 """.strip(),
                 exc_info=True,
@@ -406,7 +406,7 @@ class XeroInvoiceManager(XeroDocumentManager):
             error_message = parse_xero_api_error_message(
                 exception_body=e.body,
                 default_message=f"""
-                Xero validation error ({e.status}): {e.reason}. 
+                Xero validation error ({e.status}): {e.reason}.
                 Please contact support to check the data sent during invoice deletion.
                 """.strip(),
             )
@@ -417,7 +417,7 @@ class XeroInvoiceManager(XeroDocumentManager):
             job_id = self.job.id if self.job else "Unknown"
             logger.error(
                 f"""
-                Xero API Exception during invoice deletion for job {job_id}: 
+                Xero API Exception during invoice deletion for job {job_id}:
                 {e.status} - {e.reason}
                 """.strip(),
                 exc_info=True,
@@ -435,7 +435,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                 {
                     "success": False,
                     "message": f"""
-                    An unexpected error occurred ({str(e)}) while deleting the invoice 
+                    An unexpected error occurred ({str(e)}) while deleting the invoice
                     with Xero. Please contact support to check the data sent.
                     """.strip(),
                 },

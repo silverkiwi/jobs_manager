@@ -7,7 +7,7 @@ The migration `0008_parse_existing_products.py` was supposed to populate Product
 
 ### Current State
 - **SupplierProduct count**: 5,192 records
-- **ProductParsingMapping count**: 82 records  
+- **ProductParsingMapping count**: 82 records
 - **Expected**: ~5,192 mappings (1:1 relationship)
 
 ### Investigation Results
@@ -42,7 +42,7 @@ This means if batches 2-52 failed due to rate limits, only batch 1 (82 products)
 ### Option 1: Re-run Migration Manually
 Create a management command to safely re-run the parsing process with better error handling and progress tracking.
 
-### Option 2: Incremental Processing  
+### Option 2: Incremental Processing
 Process remaining products in smaller batches with delays to avoid rate limiting.
 
 ### Option 3: Resume from Checkpoint
@@ -62,7 +62,7 @@ Create a management command `python manage.py populate_product_mappings` that:
 
 1. Create `apps/quoting/management/commands/populate_product_mappings.py`
 2. Add logic to find unprocessed SupplierProduct records
-3. Implement batch processing with rate limiting protection  
+3. Implement batch processing with rate limiting protection
 4. Add progress tracking and resume capability
 5. Test with small batch first, then scale up
 6. Monitor API usage and adjust batch sizes as needed
@@ -85,20 +85,20 @@ The original migration failed due to **duplicate key errors** when multiple prod
 **Fix Applied**: Updated `ProductParser._save_mapping()` to use `get_or_create()` which handles duplicate hashes gracefully.
 
 ### Test Results:
-- **Command successfully tested** with 3 product batch  
+- **Command successfully tested** with 3 product batch
 - **Success rate: 100%** (3/3 products processed)
 - **Duplicate handling working** - existing mappings detected and reused
 - **Database integrity maintained** - mappings count increased from 82 → 84 (only 2 new unique mappings)
 
 ### Current Status:
 - **Total SupplierProduct records**: 5,192
-- **Current ProductParsingMapping records**: 84 
+- **Current ProductParsingMapping records**: 84
 - **Remaining to process**: ~5,108 products
 - **Command ready** for full population run
 
 ### Usage:
 ```bash
-# Process all remaining products (recommended)  
+# Process all remaining products (recommended)
 python manage.py populate_product_mappings --batch-size 10 --delay 2
 
 # Test run with limited products

@@ -10,18 +10,19 @@ Provides functionality to:
 """
 
 import logging
-from pathlib import Path
-from tempfile import NamedTemporaryFile
+import tempfile
 
 import pandas as pd
 
 from apps.job.importers.google_sheets import (
     copy_file,
     create_folder,
+    export_sheet_as_xlsx,
     extract_file_id,
     fetch_sheet_df,
     populate_sheet_from_costset,
 )
+from apps.job.importers.quote_spreadsheet import parse_xlsx_with_validation
 
 # Excel import functionality removed - no longer supported
 from apps.job.models import Job
@@ -143,13 +144,11 @@ def link_quote_sheet(job: Job, template_url: str | None = None) -> QuoteSpreadsh
 
 def _fetch_drafts(job: Job):
     """
-    Download the linked sheet data and return DraftLine[] via DataFrame processing.
-    Raise RuntimeError if missing link.
+    Download the linked sheet as xlsx, parse using the same Excel parser, and return DraftLine[].
     """
     logger.info(f"Fetching drafts for job {job.job_number}")
 
     try:
-        # Check if job has linked quote sheet
         if not hasattr(job, "quote_sheet") or not job.quote_sheet:
             raise RuntimeError(f"Job {job.job_number} has no linked quote sheet")
 
@@ -157,77 +156,18 @@ def _fetch_drafts(job: Job):
         sheet_id = quote_sheet.sheet_id
         tab = quote_sheet.tab or "Primary Details"
 
-        # Download sheet data as DataFrame
-        logger.info(f"🔍 About to fetch sheet data for job {job.job_number}")
-        df = fetch_sheet_df(str(sheet_id), tab)
-
-        logger.info(f"📊 Received DataFrame with shape: {df.shape}")
-        logger.info(f"📋 DataFrame columns: {list(df.columns)}")
-
-        if df.empty:
-            logger.warning(f"⚠️ Empty data from sheet {sheet_id}")
-            return []
-
-        # Log sample of data
-        logger.info("📝 Sample DataFrame data (first 3 rows):")
-        for i, row in df.head(3).iterrows():
-            logger.info(f"    Row {i}: {row.to_dict()}")
-
-        # Process DataFrame directly to create DraftLine objects
-        logger.info("🔧 Processing DataFrame to create draft lines...")
-
-        # Import DraftLine here to avoid circular imports
-        from apps.job.importers.draft import DraftLine, Kind
-
-        draft_lines = []
-
-        # Process each row in the DataFrame
-        for idx, row in df.iterrows():
-            try:
-                # Skip rows that don't have required data
-                if pd.isna(row.get("desc", "")) or row.get("desc", "").strip() == "":
-                    continue
-
-                # Extract values from row (adjust column names as needed)
-                desc = str(row.get("desc", "")).strip()
-                quantity = (
-                    float(row.get("quantity", 0))
-                    if pd.notna(row.get("quantity"))
-                    else 0
-                )
-                unit_cost = (
-                    float(row.get("unit_cost", 0))
-                    if pd.notna(row.get("unit_cost"))
-                    else 0
-                )
-
-                # Determine kind (labor vs material) - adjust logic as needed
-                kind_str = str(row.get("kind", "")).strip().lower()
-                if kind_str in ["labor", "labour"]:
-                    kind = Kind.LABOR
-                else:
-                    kind = Kind.MATERIAL
-
-                # Create DraftLine
-                draft_line = DraftLine(
-                    kind=kind, desc=desc, quantity=quantity, unit_cost=unit_cost
-                )
-
-                draft_lines.append(draft_line)
-
-            except (ValueError, TypeError) as e:
-                logger.warning(f"⚠️ Skipping invalid row {idx}: {e}")
-                continue
-
-        logger.info(
-            f"✅ Created {len(draft_lines)} draft lines from Google Sheets data"
-        )
-
-        # Log sample of parsed lines
-        for i, line in enumerate(draft_lines[:3]):
-            logger.info(f"    Draft line {i}: {line}")
-
-        return draft_lines
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=True) as tmp:
+            export_sheet_as_xlsx(sheet_id, tmp.name)
+            logger.info(f"Downloaded Google Sheet as xlsx: {tmp.name}")
+            result = parse_xlsx_with_validation(tmp.name)
+            if not result["success"]:
+                logger.warning(f"Parsing failed: {result['validation_report']}")
+                return []
+            draft_lines = result["draft_lines"]
+            logger.info(
+                f"✅ Parsed {len(draft_lines)} draft lines from Google Sheets xlsx"
+            )
+            return draft_lines
 
     except Exception as e:
         logger.error(f"Error fetching drafts for job {job.job_number}: {str(e)}")

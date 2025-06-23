@@ -5,15 +5,14 @@ from django.db import migrations
 
 # Meant to be faked in existing DBs
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('job', '0023_add_new_job_statuses'),
+        ("job", "0023_add_new_job_statuses"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='jobpricing',
-            old_name='pricing_methodology',
-            new_name='pricing_stage',
+            model_name="jobpricing",
+            old_name="pricing_methodology",
+            new_name="pricing_stage",
         )
     ]

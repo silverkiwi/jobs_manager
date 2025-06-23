@@ -75,25 +75,25 @@ from .models import Conversation, Message
 
 class ConversationQueryTool(ModelQueryToolset):
     model = Conversation
-    
+
     def get_queryset(self):
         """Filter conversations for the current user"""
         return super().get_queryset().filter(user=self.request.user)
 
 class ChatbotTool(MCPToolset):
     """Custom tools for chatbot operations"""
-    
+
     def get_conversation_history(self, conversation_id: str) -> str:
         """Retrieve conversation history"""
         messages = Message.objects.filter(
             conversation_id=conversation_id
         ).order_by('created_at')
-        
+
         return "\n".join([
-            f"{msg.sender}: {msg.content}" 
+            f"{msg.sender}: {msg.content}"
             for msg in messages
         ])
-    
+
     def analyze_sentiment(self, text: str) -> str:
         """Analyze sentiment of user message"""
         # Your sentiment analysis logic here
@@ -114,41 +114,41 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'chat_{self.room_name}'
-        
+
         # Join room group
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
-        
+
         await self.accept()
-        
+
         # Initialize MCP session
         self.mcp_session = await self.create_mcp_session()
-    
+
     async def disconnect(self, close_code):
         # Leave room group
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
-        
+
         if hasattr(self, 'mcp_session'):
             await self.mcp_session.close()
-    
+
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
-        
+
         # Save user message
         await self.save_message(self.scope['user'], message, 'user')
-        
+
         # Process with MCP
         response = await self.process_with_mcp(message)
-        
+
         # Save bot response
         await self.save_message(self.scope['user'], response, 'bot')
-        
+
         # Send message to room group
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -158,31 +158,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'sender': 'bot'
             }
         )
-    
+
     async def chat_message(self, event):
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
             'message': event['message'],
             'sender': event['sender']
         }))
-    
+
     async def create_mcp_session(self):
         # Initialize MCP client session
         # This would connect to your MCP server
         pass
-    
+
     async def process_with_mcp(self, message):
         # Process message using MCP tools
         # Return bot response
         return "Bot response based on MCP processing"
-    
+
     @database_sync_to_async
     def save_message(self, user, content, sender):
         conversation = Conversation.objects.get_or_create(
             user=user,
             room_name=self.room_name
         )[0]
-        
+
         Message.objects.create(
             conversation=conversation,
             content=content,
@@ -248,11 +248,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 <h1 class="text-2xl font-bold">AI Assistant</h1>
                 <p class="text-sm opacity-90">Powered by MCP</p>
             </div>
-            
+
             <div id="messages" class="messages bg-gray-50">
                 <!-- Messages will appear here -->
             </div>
-            
+
             <div class="typing-indicator p-4" id="typing-indicator">
                 <div class="flex items-center space-x-2">
                     <div class="dot"></div>
@@ -260,13 +260,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     <div class="dot"></div>
                 </div>
             </div>
-            
-            <form id="chat-form" class="p-4 border-t" 
+
+            <form id="chat-form" class="p-4 border-t"
                   ws-send
                   hx-ext="ws"
                   ws-connect="/ws/chat/{{ room_name }}/">
                 <div class="flex space-x-2">
-                    <input type="text" 
+                    <input type="text"
                            id="message-input"
                            name="message"
                            class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -292,10 +292,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             typingIndicator.classList.remove('active');
-            
+
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
-            
+
             if (data.sender === 'bot') {
                 messageDiv.innerHTML = `
                     <div class="flex items-start space-x-2">
@@ -323,7 +323,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     </div>
                 `;
             }
-            
+
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         };
@@ -335,7 +335,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 chatSocket.send(JSON.stringify({
                     'message': message
                 }));
-                
+
                 // Show user message immediately
                 const userMessageDiv = document.createElement('div');
                 userMessageDiv.className = 'message';
@@ -352,7 +352,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     </div>
                 `;
                 messagesDiv.appendChild(userMessageDiv);
-                
+
                 messageInput.value = '';
                 typingIndicator.classList.add('active');
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;

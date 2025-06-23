@@ -33,10 +33,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                         and user.password_needs_reset
                     ):
                         response.data["password_needs_reset"] = True
-                        response.data["password_reset_url"] = (
-                            request.build_absolute_uri(
-                                reverse("accounts:password_change")
-                            )
+                        response.data[
+                            "password_reset_url"
+                        ] = request.build_absolute_uri(
+                            reverse("accounts:password_change")
                         )
 
                     # Set JWT tokens as httpOnly cookies if enabled

@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("client", "0002_clientcontact"),
         ("quoting", "0003_alter_supplierpricelist_supplier_and_more"),

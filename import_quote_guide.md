@@ -275,8 +275,8 @@ export class QuoteImportService {
   }
 
   async importQuote(
-    jobId: string, 
-    file: File, 
+    jobId: string,
+    file: File,
     skipValidation: boolean = false
   ): Promise<QuoteImportResponse> {
     const formData = new FormData();
@@ -330,7 +330,7 @@ export function useQuoteImport() {
   async function previewImport(jobId: string, file: File) {
     isLoading.value = true;
     error.value = null;
-    
+
     try {
       const service = new QuoteImportService();
       previewData.value = await service.previewQuoteImport(jobId, file);
@@ -345,7 +345,7 @@ export function useQuoteImport() {
   async function executeImport(jobId: string, file: File, skipValidation = false) {
     isLoading.value = true;
     error.value = null;
-    
+
     try {
       const service = new QuoteImportService();
       importResult.value = await service.importQuote(jobId, file, skipValidation);
@@ -370,12 +370,12 @@ export function useQuoteImport() {
     previewData,
     importResult,
     error,
-    
+
     // Computed
     canProceed,
     hasValidationIssues,
     totalChanges,
-    
+
     // Actions
     previewImport,
     executeImport,
@@ -391,15 +391,15 @@ export function useQuoteImport() {
 <template>
   <div class="quote-import-dialog">
     <div class="upload-section">
-      <input 
+      <input
         ref="fileInput"
-        type="file" 
+        type="file"
         accept=".xlsx,.xls"
         @change="handleFileSelect"
         class="file-input"
       />
-      
-      <button 
+
+      <button
         @click="handlePreview"
         :disabled="!selectedFile || isLoading"
         class="btn-preview"
@@ -409,12 +409,12 @@ export function useQuoteImport() {
     </div>    <!-- Preview Results -->
     <div v-if="previewData" class="preview-section">
       <h3>Import Preview</h3>
-      
+
       <!-- Validation Issues -->
       <div v-if="hasValidationIssues" class="validation-issues">
         <h4>Validation Issues</h4>
-        <div 
-          v-for="issue in previewData.preview.validation_report.issues" 
+        <div
+          v-for="issue in previewData.preview.validation_report.issues"
           :key="issue.message"
           :class="['issue', issue.severity]"
         >
@@ -451,15 +451,15 @@ export function useQuoteImport() {
 
       <!-- Import Actions -->
       <div class="import-actions">
-        <button 
+        <button
           @click="handleImport"
           :disabled="!canProceed || isLoading"
           class="btn-import"
         >
           {{ isLoading ? 'Importing...' : 'Execute Import' }}
         </button>
-        
-        <button 
+
+        <button
           v-if="hasValidationIssues"
           @click="handleForceImport"
           :disabled="isLoading"
@@ -476,8 +476,8 @@ export function useQuoteImport() {
         <div class="result-details">
           <p>Created CostSet: Rev {{ importResult.cost_set?.rev }}</p>
           <p>Total Cost: ${{ importResult.cost_set?.summary.cost }}</p>
-          <p>Changes: +{{ importResult.changes?.additions || 0 }} 
-             ~{{ importResult.changes?.updates || 0 }} 
+          <p>Changes: +{{ importResult.changes?.additions || 0 }}
+             ~{{ importResult.changes?.updates || 0 }}
              -{{ importResult.changes?.deletions || 0 }}</p>
         </div>
       </div>
@@ -543,7 +543,7 @@ async function handleImport() {
 async function handleForceImport() {
   if (!selectedFile.value) return;
   await executeImport(props.jobId, selectedFile.value, true);
-  
+
   if (importResult.value?.success) {
     emit('success', importResult.value);
   }
@@ -663,21 +663,21 @@ python manage.py test_quote_import                  # Full import
 <template>
   <div class="job-detail">
     <h1>{{ job.name }}</h1>
-    
+
     <!-- Current Quote Status -->
     <div v-if="currentQuote" class="current-quote">
       <h3>Current Quote (Rev {{ currentQuote.rev }})</h3>
       <p>Cost: ${{ currentQuote.summary.cost }}</p>
       <p>Created: {{ formatDate(currentQuote.created) }}</p>
     </div>
-    
+
     <!-- Import Button -->
     <button @click="showImportDialog = true" class="btn-import">
       Import New Quote
     </button>
-    
+
     <!-- Import Dialog -->
-    <QuoteImportDialog 
+    <QuoteImportDialog
       v-if="showImportDialog"
       :job-id="job.id"
       @success="handleImportSuccess"
@@ -715,7 +715,7 @@ function handleImportSuccess(result: any) {
   // Refresh quote data
   currentQuote.value = result.cost_set;
   showImportDialog.value = false;
-  
+
   // Show success message
   console.log('Quote imported successfully!', result);
 }

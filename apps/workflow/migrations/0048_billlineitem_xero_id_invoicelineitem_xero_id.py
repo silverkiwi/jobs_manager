@@ -5,7 +5,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0047_rename_last_modified_bill_xero_last_modified_and_more"),
     ]
