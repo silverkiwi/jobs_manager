@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 from xero_python.identity import IdentityApi
@@ -296,6 +297,7 @@ def _handle_creator_response(
         )
 
 
+@csrf_exempt
 def create_xero_invoice(request, job_id):
     """Creates an Invoice in Xero for a given job."""
     tenant_id = ensure_xero_authentication()
@@ -380,6 +382,7 @@ def create_xero_purchase_order(request, purchase_order_id):
         )
 
 
+@csrf_exempt
 def create_xero_quote(request: HttpRequest, job_id) -> HttpResponse:
     """Creates a quote in Xero for a given job."""
     tenant_id = ensure_xero_authentication()
