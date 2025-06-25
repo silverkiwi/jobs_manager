@@ -4,6 +4,8 @@ from rest_framework import serializers
 
 from apps.client.models import Client, ClientContact
 from apps.job.models import Job, JobFile
+from apps.accounting.models.invoice import Invoice
+from apps.accounting.models.quote import Quote
 
 from .costing_serializer import CostSetSerializer
 from .job_file_serializer import JobFileSerializer
@@ -12,6 +14,37 @@ from .quote_spreadsheet_serializer import QuoteSpreadsheetSerializer
 
 logger = logging.getLogger(__name__)
 DEBUG_SERIALIZER = False
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Invoice
+        fields = [
+            "id",
+            "xero_id",
+            "number",
+            "status",
+            "date",
+            "due_date",
+            "total_excl_tax",
+            "total_incl_tax",
+            "amount_due",
+            "online_url",
+        ]
+
+
+class QuoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quote
+        fields = [
+            "id",
+            "xero_id",
+            "status",
+            "date",
+            "total_excl_tax",
+            "total_incl_tax",
+            "online_url",
+        ]
 
 
 class JobSerializer(serializers.ModelSerializer):
@@ -43,8 +76,12 @@ class JobSerializer(serializers.ModelSerializer):
     job_status = serializers.CharField(source="status")
     job_files = JobFileSerializer(
         source="files", many=True, required=False
-    )  # To prevent conflicts with PUTTING only one file    # Quote spreadsheet relationship
+    )  # To prevent conflicts with PUTTING only one file    
+    
+    # Quote spreadsheet relationship
     quote_sheet = QuoteSpreadsheetSerializer(read_only=True, required=False)
+    invoice = InvoiceSerializer(read_only=True, source="invoice")
+    quote = QuoteSerializer(read_only=True, source="quote")
 
     def get_latest_estimate(self, obj):
         """Get the latest estimate CostSet"""
@@ -97,6 +134,10 @@ class JobSerializer(serializers.ModelSerializer):
             "charge_out_rate",
             "pricing_methodology",
             "quote_sheet",
+            "quoted",
+            "invoiced",
+            "quote",
+            "invoice"
         ]
 
     def validate(self, attrs):

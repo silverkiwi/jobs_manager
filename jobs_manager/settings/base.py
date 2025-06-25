@@ -123,6 +123,10 @@ LOGIN_EXEMPT_URLS = [
     "rest/",  # Include all REST endpoints
     "timesheets/api/",  # Include timesheet API endpoints
     "xero_webhook",
+    "api/xero/create_invoice/",
+    "api/xero/create_quote/",
+    "api/xero/delete_invoice/",
+    "api/xero/delete_quote/",
 ]
 
 LOGGING = {

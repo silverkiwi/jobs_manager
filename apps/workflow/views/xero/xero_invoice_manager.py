@@ -20,6 +20,7 @@ from apps.accounting.models import Invoice
 from apps.client.models import Client
 from apps.job.enums import JobPricingMethodology
 from apps.job.models import Job
+from apps.job.models.costing import CostSet
 
 # Import base class and helpers
 from .xero_base_manager import XeroDocumentManager
@@ -75,91 +76,42 @@ class XeroInvoiceManager(XeroDocumentManager):
 
     def get_line_items(self):
         """
-        Generates invoice-specific LineItems based on job pricing type.
+        Generate invoice LineItems using only CostSet/CostLine.
+        Uses the latest CostSet of kind 'actual'.
         """
         if not self.job:
             raise ValueError("Job is required to generate invoice line items.")
 
-        pricing_methodology: JobPricingMethodology = self.job.pricing_methodology
-
-        match pricing_methodology:
-            case JobPricingMethodology.TIME_AND_MATERIALS:
-                return self._get_time_and_materials_line_items()
-            case JobPricingMethodology.FIXED_PRICE:
-                return self._get_fixed_price_line_items()
-            case _:
-                raise ValueError(
-                    f"Unknown pricing type for job {self.job.id}: {pricing_methodology}"
-                )
-
-    def _get_time_and_materials_line_items(self):
-        """
-        Generates LineItems for time and materials pricing.
-        """
-        if (
-            not self.job
-            or not hasattr(self.job, "latest_reality_pricing")
-            or not self.job.latest_reality_pricing
-        ):
-            raise ValueError(
-                (
-                    f"Job {self.job.id if self.job else 'Unknown'} is missing "
-                    "reality pricing information for T&M invoice."
-                )
-            )
-
-        xero_line_items = []
-        xero_line_items.append(
-            LineItem(
-                description=(
-                    f"Job: {self.job.job_number}"
-                    f"{(' - ' + self.job.description) if self.job.description else ''}"
-                ),
-                quantity=1,  # Typically T&M is invoiced as a single line item sum
-                unit_amount=float(self.job.latest_reality_pricing.total_revenue)
-                or 0.00,
-                account_code=self._get_account_code(),
-            ),
+        latest_actual = (
+            CostSet.objects.filter(job=self.job, kind="actual")
+            .order_by("-rev", "-created")
+            .first()
         )
-        return xero_line_items
+        if not latest_actual:
+            raise ValueError(f"Job {self.job.id} does not have an 'actual' CostSet for invoicing.")
 
-    def _get_fixed_price_line_items(self):
-        """
-        Generates LineItems for fixed price pricing based on the quote.
-        """
-        if (
-            not self.job
-            or not hasattr(self.job, "latest_quote_pricing")
-            or not self.job.latest_quote_pricing
-        ):
-            raise ValueError(
-                (
-                    f"Job {self.job.id if self.job else 'Unknown'} is missing "
-                    "quote pricing information for Fixed Price invoice."
-                )
-            )
+        # Try to get total revenue from summary, otherwise sum unit_rev from cost lines
+        total_revenue = None
+        if latest_actual.summary and isinstance(latest_actual.summary, dict):
+            total_revenue = latest_actual.summary.get("rev")
+        if total_revenue is None:
+            total_revenue = sum(cl.unit_rev for cl in latest_actual.cost_lines.all())
+        total_revenue = float(total_revenue or 0.0)
 
-        xero_line_items: list[LineItem] = []
-        # It seems the original code added an empty description line first
-        # - keeping for consistency?
-        # xero_line_items.append(LineItem(description="Price as quoted"))
-        # Consider if this is needed
-        job_suffix = (
-            f" - {self.job.description} (Fixed Price)"
-            if self.job.description
-            else " (Fixed Price)"
-        )
-        xero_line_items.append(
+        description = f"Job: {self.job.job_number}"
+        if self.job.description:
+            description += f" - {self.job.description} (Invoice)"
+        else:
+            description += " (Invoice)"
+
+        return [
             LineItem(
-                description=f"Job: {self.job.job_number}{job_suffix}",
+                description=description,
                 quantity=1,
-                unit_amount=(
-                    float(self.job.latest_quote_pricing.total_revenue) or 0.00
-                ),
+                unit_amount=total_revenue,
                 account_code=self._get_account_code(),
             )
-        )
-        return xero_line_items
+        ]
 
     def get_xero_document(self, type):
         """

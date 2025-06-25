@@ -15,7 +15,15 @@ class LoginRequiredMiddleware:
 
         if hasattr(settings, "LOGIN_EXEMPT_URLS"):
             for url_name in settings.LOGIN_EXEMPT_URLS:
-                # Using URL prefixes instead of doing reverse
+                # Add support for Xero endpoints with dynamic UUIDs
+                if (
+                    url_name.startswith("api/xero/create_invoice/")
+                    or url_name.startswith("api/xero/create_quote/")
+                    or url_name.startswith("api/xero/delete_invoice/")
+                    or url_name.startswith("api/xero/delete_quote/")
+                ):
+                    self.exempt_url_prefixes.append(url_name)
+                    continue
                 try:
                     # Try to resolve the URL name to an actual path
                     self.exempt_urls.append(reverse(url_name))
