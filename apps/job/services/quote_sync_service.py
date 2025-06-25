@@ -102,7 +102,28 @@ def link_quote_sheet(job: Job, template_url: str | None = None) -> QuoteSpreadsh
                 f"https://docs.google.com/spreadsheets/d/{quote_file_id}/edit"
             )
             quote_sheet.save()
-        # Pre-populate sheet with estimate data if available AND copy to quote costset
+
+        # Pre-populate sheet with existing quote data if available
+        quote_cost_set = getattr(job, "latest_quote", None)
+        if quote_cost_set and hasattr(quote_cost_set, "cost_lines"):
+            quote_lines_count = quote_cost_set.cost_lines.count()
+            if quote_lines_count > 0:
+                logger.info(
+                    f"Pre-populating quote sheet with {quote_lines_count} quote lines (priority)"
+                )
+                try:
+                    populate_sheet_from_costset(quote_file_id, quote_cost_set)
+                    logger.info(
+                        "Successfully pre-populated quote sheet with quote data"
+                    )
+                    return quote_sheet
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to pre-populate quote sheet from quote: {str(e)} - Sheet created but empty"
+                    )
+                    return quote_sheet
+
+        # Fallback: if there's no quote cost set, try to pre-populate from estimate
         estimate_cost_set = getattr(job, "latest_estimate", None)
         if estimate_cost_set and hasattr(estimate_cost_set, "cost_lines"):
             cost_lines_count = estimate_cost_set.cost_lines.count()
@@ -117,8 +138,7 @@ def link_quote_sheet(job: Job, template_url: str | None = None) -> QuoteSpreadsh
                         "Successfully pre-populated quote sheet with estimate data"
                     )
 
-                    # 2. Copy estimate data to quote costset in database
-                    quote_cost_set = getattr(job, "latest_quote", None)
+                    # 2. Also copy to the quote cost set, if it exists
                     if quote_cost_set:
                         _copy_estimate_to_quote_costset(
                             estimate_cost_set, quote_cost_set
@@ -126,10 +146,9 @@ def link_quote_sheet(job: Job, template_url: str | None = None) -> QuoteSpreadsh
                         logger.info(
                             "Successfully copied estimate data to quote costset"
                         )
-
                 except Exception as e:
                     logger.warning(
-                        f"Failed to pre-populate quote sheet: {str(e)} - Sheet created but empty"
+                        f"Failed to pre-populate quote sheet from estimate: {str(e)} - Sheet created but empty"
                     )
 
         logger.info(
