@@ -509,7 +509,9 @@ def populate_sheet_from_costset(sheet_id: str, costset) -> None:
             if cost_line.kind == "time":
                 # Column D (index 3): Labour minutes
                 labour_minutes = (
-                    cost_line.meta.get("labour_minutes", 0) if cost_line.meta else 0
+                    cost_line.meta.get("labour_minutes", 0)
+                    if cost_line.meta
+                    else cost_line.quantity * 60
                 )
                 row_data[3] = str(labour_minutes) if labour_minutes else ""
             elif cost_line.kind == "material":
