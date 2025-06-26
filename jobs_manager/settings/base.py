@@ -63,21 +63,11 @@ ENABLE_JWT_AUTH = True
 ENABLE_DUAL_AUTHENTICATION = False
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_AUTHENTICATION_CLASSES": ["jobs_manager.authentication.JWTAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
-
-if ENABLE_JWT_AUTH:
-    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
-        "jobs_manager.authentication.JWTAuthentication"
-    )
-
-if not ENABLE_JWT_AUTH or ENABLE_DUAL_AUTHENTICATION:
-    REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"].append(
-        "rest_framework.authentication.SessionAuthentication"
-    )
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
@@ -97,11 +87,11 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
-LOGIN_URL = "accounts:login"
+FRONT_END_URL = os.getenv("FRONT_END_URL", "")
+LOGIN_URL = FRONT_END_URL.rstrip("/") + "/login"
 LOGOUT_URL = "accounts:logout"
-LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = FRONT_END_URL
 LOGIN_EXEMPT_URLS = [
-    "accounts:login",
     "accounts:logout",
     "accounts:api_logout",
     "accounts:password_reset",
@@ -112,21 +102,6 @@ LOGIN_EXEMPT_URLS = [
     "accounts:token_obtain_pair",
     "accounts:token_refresh",
     "accounts:token_verify",
-    "api/",  # Exempt all API endpoints from session authentication
-    "accounts/api/",  # Include accounts API endpoints
-    "accounts/me/",  # Include user info endpoint
-    "accounts/logout/",  # Include logout API endpoint explicitly
-    "clients/rest/",  # Include client REST endpoints
-    "clients/api/",  # Include client API endpoints
-    "job/rest/",  # Include job REST endpoints
-    "job/api/",  # Include job API endpoints
-    "rest/",  # Include all REST endpoints
-    "timesheets/api/",  # Include timesheet API endpoints
-    "xero_webhook",
-    "api/xero/create_invoice/",
-    "api/xero/create_quote/",
-    "api/xero/delete_invoice/",
-    "api/xero/delete_quote/",
 ]
 
 LOGGING = {

@@ -5,6 +5,7 @@ import time
 import uuid
 
 # from abc import ABC, abstractmethod # No longer needed here
+from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
@@ -61,7 +62,6 @@ def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
             request, "xero/error_xero_auth.html", {"error_message": result["error"]}
         )
 
-    # Log available tenant IDs after successful authentication
     try:
         identity_api = IdentityApi(api_client)
         connections = identity_api.get_connections()
@@ -76,7 +76,22 @@ def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
             f"Failed to log available tenant IDs after authentication: {str(e)}"
         )
 
-    redirect_url = request.session.pop("post_login_redirect", "/")
+    redirect_path = request.session.pop("post_login_redirect", "/")
+    if not redirect_path:
+        redirect_path = "/"
+
+    frontend_url = getattr(settings, "FRONT_END_URL", None)
+
+    if not isinstance(frontend_url, str) or not frontend_url:
+        logger.info(f"Redirecting user to frontend: {redirect_path}")
+        return redirect(redirect_path)
+
+    if not redirect_path.startswith("/"):
+        logger.info(f"Redirecting user to frontend: {frontend_url.rstrip('/')}/")
+        return redirect(frontend_url.rstrip("/") + "/")
+
+    redirect_url = frontend_url.rstrip("/") + redirect_path
+    logger.info(f"Redirecting user to frontend: {redirect_url}")
     return redirect(redirect_url)
 
 
