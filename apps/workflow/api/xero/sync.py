@@ -140,11 +140,20 @@ def transform_invoice(xero_invoice, xero_id):
     client = get_or_fetch_client(
         xero_invoice.contact.contact_id, xero_invoice.invoice_number
     )
+    if not client:
+        logger.error(f"Could not fetch client for Invoice {xero_id}")
+        return None
 
-    invoice, _ = Invoice.objects.get_or_create(xero_id=xero_id)
-    invoice.client = client
+    invoice, created = Invoice.objects.get_or_create(
+        xero_id=xero_id,
+        defaults={"client": client}
+    )
+    if not created and invoice.client != client:
+        invoice.client = client
+
     invoice.raw_json = process_xero_data(xero_invoice)
     set_invoice_or_bill_fields(invoice, "INVOICE")
+    invoice.save()
     return invoice
 
 
@@ -158,11 +167,20 @@ def transform_bill(xero_bill, xero_id):
         return None
 
     client = get_or_fetch_client(xero_bill.contact.contact_id, bill_number)
+    if not client:
+        logger.error(f"Could not fetch client for Bill {xero_id}")
+        return None
 
-    bill, _ = Bill.objects.get_or_create(xero_id=xero_id)
-    bill.client = client
+    bill, created = Bill.objects.get_or_create(
+        xero_id=xero_id,
+        defaults={"client": client}
+    )
+    if not created and bill.client != client:
+        bill.client = client
+
     bill.raw_json = raw_json
     set_invoice_or_bill_fields(bill, "BILL")
+    bill.save()
     return bill
 
 
@@ -171,11 +189,20 @@ def transform_credit_note(xero_note, xero_id):
     client = get_or_fetch_client(
         xero_note.contact.contact_id, xero_note.credit_note_number
     )
+    if not client:
+        logger.error(f"Could not fetch client for CreditNote {xero_id}")
+        return None
 
-    note, _ = CreditNote.objects.get_or_create(xero_id=xero_id)
-    note.client = client
+    note, created = CreditNote.objects.get_or_create(
+        xero_id=xero_id,
+        defaults={"client": client}
+    )
+    if not created and note.client != client:
+        note.client = client
+
     note.raw_json = process_xero_data(xero_note)
     set_invoice_or_bill_fields(note, "CREDIT_NOTE")
+    note.save()
     return note
 
 
