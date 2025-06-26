@@ -257,25 +257,28 @@ def transform_journal(xero_journal, xero_id):
 
 def transform_stock(xero_item, xero_id):
     """Transform Xero item to our Stock model"""
-    stock, _ = Stock.objects.get_or_create(xero_id=xero_id)
-
-    stock.item_code = xero_item.code or ""
-    stock.description = xero_item.name or ""
-    stock.notes = xero_item.description or ""
-    stock.quantity = Decimal("0.00")
-
+    defaults = {
+        "item_code": xero_item.code or "",
+        "description": xero_item.name or "",
+        "notes": xero_item.description or "",
+        "quantity": Decimal("0.00"),
+        "raw_json": process_xero_data(xero_item),
+        "xero_last_modified": xero_item.updated_date_utc,
+    }
     if xero_item.purchase_details:
-        stock.unit_cost = Decimal(str(xero_item.purchase_details.unit_price or 0))
+        defaults["unit_cost"] = Decimal(str(xero_item.purchase_details.unit_price or 0))
     if xero_item.sales_details:
-        stock.retail_rate = Decimal(str(xero_item.sales_details.unit_price or 0))
-
-    stock.raw_json = process_xero_data(xero_item)
-    stock.xero_last_modified = xero_item.updated_date_utc
-
+        defaults["retail_rate"] = Decimal(str(xero_item.sales_details.unit_price or 0))
+    stock, created = Stock.objects.get_or_create(xero_id=xero_id, defaults=defaults)
+    updated = False
+    for key, value in defaults.items():
+        if getattr(stock, key, None) != value:
+            setattr(stock, key, value)
+            updated = True
+    if updated:
+        stock.save()
     if not stock.xero_last_modified:
         raise ValueError(f"Xero Item {xero_id} missing updated_date_utc")
-
-    stock.save()
     return stock
 
 
