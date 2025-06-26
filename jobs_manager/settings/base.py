@@ -53,8 +53,9 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
-    "apps.workflow.middleware.LoginRequiredMiddleware",
-    "apps.workflow.middleware.PasswordStrengthMiddleware",
+    # Not needed anymore, since we're already using Simple JWT
+    # "apps.workflow.middleware.LoginRequiredMiddleware",
+    # "apps.workflow.middleware.PasswordStrengthMiddleware",
 ]
 
 # JWT/general authentication settings
