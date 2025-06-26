@@ -183,10 +183,7 @@ def transform_invoice(xero_invoice, xero_id):
     fields = _extract_required_fields_xero("invoice", xero_invoice, xero_id)
     if not fields:
         return None
-    invoice, created = Invoice.objects.get_or_create(
-        xero_id=xero_id,
-        defaults=fields
-    )
+    invoice, created = Invoice.objects.get_or_create(xero_id=xero_id, defaults=fields)
     if not created:
         updated = False
         for key, value in fields.items():
@@ -206,10 +203,7 @@ def transform_bill(xero_bill, xero_id):
     fields = _extract_required_fields_xero("bill", xero_bill, xero_id)
     if not fields:
         return None
-    bill, created = Bill.objects.get_or_create(
-        xero_id=xero_id,
-        defaults=fields
-    )
+    bill, created = Bill.objects.get_or_create(xero_id=xero_id, defaults=fields)
     if not created:
         updated = False
         for key, value in fields.items():
@@ -229,10 +223,7 @@ def transform_credit_note(xero_note, xero_id):
     fields = _extract_required_fields_xero("credit_note", xero_note, xero_id)
     if not fields:
         return None
-    note, created = CreditNote.objects.get_or_create(
-        xero_id=xero_id,
-        defaults=fields
-    )
+    note, created = CreditNote.objects.get_or_create(xero_id=xero_id, defaults=fields)
     if not created:
         updated = False
         for key, value in fields.items():
@@ -248,10 +239,21 @@ def transform_credit_note(xero_note, xero_id):
 
 
 def transform_journal(xero_journal, xero_id):
-    """Transform Xero journal to our XeroJournal model"""
-    journal, _ = XeroJournal.objects.get_or_create(xero_id=xero_id)
-    journal.raw_json = process_xero_data(xero_journal)
+    journal_date = getattr(xero_journal, "journal_date", None)
+    raw_json = process_xero_data(xero_journal)
+    if not journal_date:
+        logger.error(f"Could not fetch journal_date for XeroJournal {xero_id}")
+        return None
+    journal, created = XeroJournal.objects.get_or_create(
+        xero_id=xero_id,
+        defaults={
+            "journal_date": journal_date,
+            "raw_json": raw_json,
+        },
+    )
     set_journal_fields(journal)
+    if created:
+        journal.save()
     return journal
 
 
@@ -315,38 +317,50 @@ def transform_purchase_order(xero_po, xero_id):
         xero_po.contact.contact_id, xero_po.purchase_order_number
     )
 
-    po, _ = PurchaseOrder.objects.get_or_create(
-        xero_id=xero_id, defaults={"supplier": supplier}
+    po_number = getattr(xero_po, "purchase_order_number", None)
+    order_date = getattr(xero_po, "date", None)
+    status = getattr(xero_po, "status", None)
+    xero_last_modified = getattr(xero_po, "updated_date_utc", None)
+    raw_json = process_xero_data(xero_po)
+    if not po_number or not order_date or not status:
+        logger.error(f"Missing required field for PurchaseOrder {xero_id}")
+        return None
+    po, created = PurchaseOrder.objects.get_or_create(
+        xero_id=xero_id,
+        defaults={
+            "supplier": supplier,
+            "po_number": po_number,
+            "order_date": order_date,
+            "status": status_map.get(status, "draft"),
+            "xero_last_modified": xero_last_modified,
+            "raw_json": raw_json,
+        },
     )
-
-    po.po_number = xero_po.purchase_order_number
-    po.order_date = xero_po.date
-    po.expected_delivery = xero_po.delivery_date
-    po.xero_last_modified = xero_po.updated_date_utc
+    po.po_number = po_number
+    po.order_date = order_date
+    po.expected_delivery = getattr(xero_po, "delivery_date", None)
+    po.xero_last_modified = xero_last_modified
     po.xero_last_synced = timezone.now()
-
-    status_map = {
-        "DRAFT": "draft",
-        "SUBMITTED": "submitted",
-        "AUTHORISED": "submitted",
-        "BILLED": "fully_received",
-        "DELETED": "void",
-    }
-    po.status = status_map.get(xero_po.status, "draft")
+    po.status = status_map.get(status, "draft")
     po.save()
-
     if xero_po.line_items:
         for line in xero_po.line_items:
+            description = getattr(line, "description", None)
+            quantity = getattr(line, "quantity", None)
+            if not description or quantity is None:
+                logger.error(
+                    f"Missing required field for PurchaseOrderLine in PO {xero_id}"
+                )
+                continue
             PurchaseOrderLine.objects.update_or_create(
                 purchase_order=po,
                 supplier_item_code=line.item_code or "",
-                description=line.description,
+                description=description,
                 defaults={
-                    "quantity": line.quantity,
-                    "unit_cost": line.unit_amount,
+                    "quantity": quantity,
+                    "unit_cost": getattr(line, "unit_amount", None),
                 },
             )
-
     return po
 
 
