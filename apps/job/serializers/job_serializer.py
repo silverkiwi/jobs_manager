@@ -2,10 +2,10 @@ import logging
 
 from rest_framework import serializers
 
-from apps.client.models import Client, ClientContact
-from apps.job.models import Job, JobFile
 from apps.accounting.models.invoice import Invoice
 from apps.accounting.models.quote import Quote
+from apps.client.models import Client, ClientContact
+from apps.job.models import Job, JobFile
 
 from .costing_serializer import CostSetSerializer
 from .job_file_serializer import JobFileSerializer
@@ -76,12 +76,12 @@ class JobSerializer(serializers.ModelSerializer):
     job_status = serializers.CharField(source="status")
     job_files = JobFileSerializer(
         source="files", many=True, required=False
-    )  # To prevent conflicts with PUTTING only one file    
-    
+    )  # To prevent conflicts with PUTTING only one file
+
     # Quote spreadsheet relationship
     quote_sheet = QuoteSpreadsheetSerializer(read_only=True, required=False)
-    invoice = InvoiceSerializer(read_only=True, source="invoice")
-    quote = QuoteSerializer(read_only=True, source="quote")
+    invoice = InvoiceSerializer(read_only=True)
+    quote = QuoteSerializer(read_only=True)
 
     def get_latest_estimate(self, obj):
         """Get the latest estimate CostSet"""
@@ -108,7 +108,7 @@ class JobSerializer(serializers.ModelSerializer):
             "contact_id",
             "contact_name",
             "contact_person",
-            "contact_email",  # Added contact_email
+            "contact_email",
             "contact_phone",
             "job_number",
             "notes",
@@ -137,7 +137,7 @@ class JobSerializer(serializers.ModelSerializer):
             "quoted",
             "invoiced",
             "quote",
-            "invoice"
+            "invoice",
         ]
 
     def validate(self, attrs):
