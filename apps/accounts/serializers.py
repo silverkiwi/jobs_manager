@@ -74,6 +74,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     username = serializers.CharField(source="email", read_only=True)
     fullName = serializers.SerializerMethodField()
+    preferred_name = serializers.CharField(read_only=True)
 
     def get_fullName(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()
@@ -86,6 +87,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
+            "preferred_name",
             "fullName",
             "is_active",
             "is_staff",
@@ -96,6 +98,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
+            "preferred_name",
             "fullName",
             "is_active",
             "is_staff",

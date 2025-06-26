@@ -313,6 +313,13 @@ def transform_quote(xero_quote, xero_id):
 
 def transform_purchase_order(xero_po, xero_id):
     """Transform Xero purchase order to our PurchaseOrder model"""
+    status_map = {
+        "DRAFT": "draft",
+        "SUBMITTED": "submitted",
+        "AUTHORISED": "authorised",
+        "BILLED": "billed",
+        "VOIDED": "voided",
+    }
     supplier = get_or_fetch_client(
         xero_po.contact.contact_id, xero_po.purchase_order_number
     )
