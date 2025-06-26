@@ -135,74 +135,115 @@ def sync_entities(items, model_class, xero_id_attr, transform_func):
 
 
 # Transform functions
+def _extract_required_fields_xero(doc_type, xero_obj, xero_id):
+    """
+    Extracts and validates all required fields for Invoice, Bill, or CreditNote from a Xero object.
+    Returns a dict with the required fields or None if any required field is missing (with logging).
+    """
+    # Map doc_type to field names
+    match doc_type:
+        case "invoice":
+            number = getattr(xero_obj, "invoice_number", None)
+        case "bill":
+            number = getattr(xero_obj, "invoice_number", None)
+        case "credit_note":
+            number = getattr(xero_obj, "credit_note_number", None)
+        case _:
+            logger.error(f"Unknown document type for Xero sync: {doc_type}")
+            return None
+    client = get_or_fetch_client(xero_obj.contact.contact_id, number)
+    date = getattr(xero_obj, "date", None)
+    total_excl_tax = getattr(xero_obj, "sub_total", None)
+    tax = getattr(xero_obj, "total_tax", None)
+    total_incl_tax = getattr(xero_obj, "total", None)
+    amount_due = getattr(xero_obj, "amount_due", None)
+    xero_last_modified = getattr(xero_obj, "updated_date_utc", None)
+    raw_json = process_xero_data(xero_obj)
+
+    required_fields = {
+        "client": client,
+        "date": date,
+        "number": number,
+        "total_excl_tax": total_excl_tax,
+        "tax": tax,
+        "total_incl_tax": total_incl_tax,
+        "amount_due": amount_due,
+        "xero_last_modified": xero_last_modified,
+        "raw_json": raw_json,
+    }
+    for field, value in required_fields.items():
+        if value is None:
+            logger.error(f"Could not fetch {field} for {doc_type.title()} {xero_id}")
+            return None
+    return required_fields
+
+
 def transform_invoice(xero_invoice, xero_id):
     """Transform Xero invoice to our Invoice model"""
-    client = get_or_fetch_client(
-        xero_invoice.contact.contact_id, xero_invoice.invoice_number
-    )
-    if not client:
-        logger.error(f"Could not fetch client for Invoice {xero_id}")
+    fields = _extract_required_fields_xero("invoice", xero_invoice, xero_id)
+    if not fields:
         return None
-
     invoice, created = Invoice.objects.get_or_create(
         xero_id=xero_id,
-        defaults={"client": client}
+        defaults=fields
     )
-    if not created and invoice.client != client:
-        invoice.client = client
-
-    invoice.raw_json = process_xero_data(xero_invoice)
+    if not created:
+        updated = False
+        for key, value in fields.items():
+            if getattr(invoice, key) != value:
+                setattr(invoice, key, value)
+                updated = True
+        if updated:
+            invoice.save()
     set_invoice_or_bill_fields(invoice, "INVOICE")
-    invoice.save()
+    if created:
+        invoice.save()
     return invoice
 
 
 def transform_bill(xero_bill, xero_id):
     """Transform Xero bill to our Bill model"""
-    raw_json = process_xero_data(xero_bill)
-    bill_number = raw_json.get("_invoice_number")
-
-    if not bill_number:
-        logger.warning(f"Skipping bill {xero_id}: missing invoice_number")
+    fields = _extract_required_fields_xero("bill", xero_bill, xero_id)
+    if not fields:
         return None
-
-    client = get_or_fetch_client(xero_bill.contact.contact_id, bill_number)
-    if not client:
-        logger.error(f"Could not fetch client for Bill {xero_id}")
-        return None
-
     bill, created = Bill.objects.get_or_create(
         xero_id=xero_id,
-        defaults={"client": client}
+        defaults=fields
     )
-    if not created and bill.client != client:
-        bill.client = client
-
-    bill.raw_json = raw_json
+    if not created:
+        updated = False
+        for key, value in fields.items():
+            if getattr(bill, key) != value:
+                setattr(bill, key, value)
+                updated = True
+        if updated:
+            bill.save()
     set_invoice_or_bill_fields(bill, "BILL")
-    bill.save()
+    if created:
+        bill.save()
     return bill
 
 
 def transform_credit_note(xero_note, xero_id):
     """Transform Xero credit note to our CreditNote model"""
-    client = get_or_fetch_client(
-        xero_note.contact.contact_id, xero_note.credit_note_number
-    )
-    if not client:
-        logger.error(f"Could not fetch client for CreditNote {xero_id}")
+    fields = _extract_required_fields_xero("credit_note", xero_note, xero_id)
+    if not fields:
         return None
-
     note, created = CreditNote.objects.get_or_create(
         xero_id=xero_id,
-        defaults={"client": client}
+        defaults=fields
     )
-    if not created and note.client != client:
-        note.client = client
-
-    note.raw_json = process_xero_data(xero_note)
+    if not created:
+        updated = False
+        for key, value in fields.items():
+            if getattr(note, key) != value:
+                setattr(note, key, value)
+                updated = True
+        if updated:
+            note.save()
     set_invoice_or_bill_fields(note, "CREDIT_NOTE")
-    note.save()
+    if created:
+        note.save()
     return note
 
 
