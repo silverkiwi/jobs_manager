@@ -711,3 +711,19 @@ def trigger_xero_sync(request):
         )
 
     return JsonResponse({"success": True, "task_id": task_id, "started": started})
+
+
+def xero_ping(request: HttpRequest) -> JsonResponse:
+    """
+    Simple endpoint to check if the user is authenticated with Xero.
+    Returns {"connected": true} or {"connected": false}.
+    Always returns HTTP 200 for frontend simplicity.
+    """
+    try:
+        token = get_valid_token()
+        is_connected = bool(token)
+        logger.info(f"Xero ping: connected={is_connected}")
+        return JsonResponse({"connected": is_connected})
+    except Exception as e:
+        logger.error(f"Error in xero_ping: {str(e)}")
+        return JsonResponse({"connected": False})

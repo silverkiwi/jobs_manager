@@ -108,6 +108,11 @@ urlpatterns = [
         XeroWebhookView.as_view(),
         name="xero_webhook",
     ),
+    path(
+        "api/xero/ping/",
+        xero_view.xero_ping,
+        name="xero_ping",
+    ),
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
     path(
         "xero/sync-progress/",
