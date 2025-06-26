@@ -316,9 +316,9 @@ def transform_purchase_order(xero_po, xero_id):
     status_map = {
         "DRAFT": "draft",
         "SUBMITTED": "submitted",
-        "AUTHORISED": "authorised",
-        "BILLED": "billed",
-        "VOIDED": "voided",
+        "AUTHORISED": "submitted",
+        "BILLED": "fully_received",
+        "VOIDED": "deleted",
     }
     supplier = get_or_fetch_client(
         xero_po.contact.contact_id, xero_po.purchase_order_number
