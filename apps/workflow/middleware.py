@@ -50,6 +50,12 @@ class LoginRequiredMiddleware:
             return self.get_response(request)
 
         if not request.user.is_authenticated:
+            # Para qualquer endpoint de API, nunca redirecione, sempre retorne 401 JSON
+            if request.path_info.startswith("/api/"):
+                return JsonResponse(
+                    {"detail": "Authentication credentials were not provided."},
+                    status=401,
+                )
             accepts_json = (
                 request.headers.get("Accept", "").lower().startswith("application/json")
             )
