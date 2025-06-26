@@ -4,7 +4,6 @@ import logging
 import time
 import uuid
 
-# from abc import ABC, abstractmethod # No longer needed here
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
@@ -12,7 +11,7 @@ from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpRe
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import TemplateView
 from xero_python.identity import IdentityApi
 
@@ -42,6 +41,7 @@ logger = logging.getLogger("xero")
 
 
 # Xero Authentication (Step 1: Redirect user to Xero OAuth2 login)
+@csrf_exempt
 def xero_authenticate(request: HttpRequest) -> HttpResponse:
     state = str(uuid.uuid4())
     request.session["oauth_state"] = state
@@ -52,6 +52,7 @@ def xero_authenticate(request: HttpRequest) -> HttpResponse:
 
 
 # OAuth callback
+@csrf_exempt
 def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
     code = request.GET.get("code")
     state = request.GET.get("state")
@@ -96,6 +97,7 @@ def xero_oauth_callback(request: HttpRequest) -> HttpResponse:
 
 
 # Refresh OAuth token and handle redirects
+@csrf_exempt
 def refresh_xero_token(request: HttpRequest) -> HttpResponse:
     refreshed_token = refresh_token()
     if not refreshed_token:
@@ -104,10 +106,12 @@ def refresh_xero_token(request: HttpRequest) -> HttpResponse:
 
 
 # Xero connection success view
+@csrf_exempt
 def success_xero_connection(request: HttpRequest) -> HttpResponse:
     return render(request, "xero/success_xero_connection.html")
 
 
+@csrf_exempt
 def refresh_xero_data(request):
     """Refresh Xero data, handling authentication properly."""
     try:
@@ -217,6 +221,7 @@ def generate_xero_sync_events():
         yield f"data: {json.dumps(final_payload)}\n\n"
 
 
+@csrf_exempt
 @require_GET
 def stream_xero_sync(request: HttpRequest) -> StreamingHttpResponse:
     """
@@ -349,6 +354,7 @@ def create_xero_invoice(request, job_id):
         )
 
 
+@csrf_exempt
 def create_xero_purchase_order(request, purchase_order_id):
     """Creates a Purchase Order in Xero for a given purchase order."""
     tenant_id = ensure_xero_authentication()
@@ -432,6 +438,7 @@ def create_xero_quote(request: HttpRequest, job_id) -> HttpResponse:
         )
 
 
+@csrf_exempt
 def delete_xero_invoice(request: HttpRequest, job_id) -> HttpResponse:
     """Deletes an invoice in Xero for a given job."""
     tenant_id = ensure_xero_authentication()
@@ -468,6 +475,7 @@ def delete_xero_invoice(request: HttpRequest, job_id) -> HttpResponse:
         )
 
 
+@csrf_exempt
 def delete_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
     """Deletes a quote in Xero for a given job."""
     tenant_id = ensure_xero_authentication()
@@ -502,6 +510,7 @@ def delete_xero_quote(request: HttpRequest, job_id: uuid) -> HttpResponse:
         )
 
 
+@csrf_exempt
 def delete_xero_purchase_order(
     request: HttpRequest, purchase_order_id: uuid.UUID
 ) -> HttpResponse:
@@ -546,6 +555,7 @@ def delete_xero_purchase_order(
         )
 
 
+@csrf_exempt
 def xero_disconnect(request):
     """Disconnects from Xero by clearing the token from cache and database."""
     try:  # Corrected indentation
@@ -565,6 +575,7 @@ class XeroIndexView(TemplateView):
     template_name = "xero_index.html"
 
 
+@csrf_exempt
 def xero_sync_progress_page(request):
     """Render the Xero sync progress page."""
     try:
@@ -585,6 +596,7 @@ def xero_sync_progress_page(request):
         return render(request, "general/generic_error.html", {"error_message": str(e)})
 
 
+@csrf_exempt
 def get_xero_sync_info(request):
     """Get current sync status and last sync times."""
     try:
@@ -661,6 +673,7 @@ def get_xero_sync_info(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+@csrf_exempt
 def start_xero_sync(request):
     """
     View function to start a Xero sync as a background task.
@@ -693,6 +706,7 @@ def start_xero_sync(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+@csrf_exempt
 @require_POST
 def trigger_xero_sync(request):
     """
@@ -713,6 +727,7 @@ def trigger_xero_sync(request):
     return JsonResponse({"success": True, "task_id": task_id, "started": started})
 
 
+@csrf_exempt
 def xero_ping(request: HttpRequest) -> JsonResponse:
     """
     Simple endpoint to check if the user is authenticated with Xero.
