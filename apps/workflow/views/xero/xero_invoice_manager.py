@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from django.http import JsonResponse
 from django.utils import timezone
+from xero_python.accounting.models import Contact as XeroContact
 from xero_python.accounting.models import Invoice as XeroInvoice
 from xero_python.accounting.models import LineItem
 from xero_python.exceptions import (  # If specific exceptions handled
@@ -305,41 +306,30 @@ class XeroInvoiceManager(XeroDocumentManager):
 
             if response and response.invoices:
                 # Check if the response indicates successful deletion
-                # (e.g., status is DELETED)
                 xero_invoice_data = response.invoices[0]
-                if str(getattr(xero_invoice_data, "status", "")).upper() == "DELETED":
-                    # Delete local record only after confirming Xero deletion/update
-                    if hasattr(self.job, "invoice") and self.job.invoice:
-                        local_invoice_id = self.job.invoice.id
-                        self.job.invoice.delete()
-                        logger.info(
-                            f"""
-                            Invoice {local_invoice_id} deleted successfully
-                            for job {self.job.id}
-                            """.strip()
-                        )
-                    else:
-                        logger.warning(
-                            f"No local invoice found for job {self.job.id} to delete."
-                        )
+                status = str(getattr(xero_invoice_data, "status", "")).upper()
+                xero_invoice_id = getattr(xero_invoice_data, "invoice_id", None)
+                if status == "DELETED" and xero_invoice_id:
+                    # Remove local Invoice if exists
+                    deleted_count = Invoice.objects.filter(
+                        xero_id=xero_invoice_id
+                    ).delete()[0]
+                    logger.info(
+                        f"Invoice {xero_invoice_id} deleted in Xero and {deleted_count} local record(s) removed."
+                    )
                     return JsonResponse(
                         {
                             "success": True,
-                            "messages": [
-                                {
-                                    "level": "success",
-                                    "message": "Invoice deleted successfully.",
-                                }
-                            ],
+                            "xero_id": str(xero_invoice_id),
+                            "message": "Invoice deleted successfully in Xero and locally.",
                         }
                     )
                 else:
-                    error_msg = "Xero response did not confirm invoice deletion."
-                    status = getattr(xero_invoice_data, "status", "Unknown")
-                    logger.error(f"{error_msg} Status: {status}")
+                    error_msg = f"Invoice deletion failed or status not DELETED. Status: {status}, Xero ID: {xero_invoice_id}"
+                    logger.error(error_msg)
                     return JsonResponse(
                         {"success": False, "message": error_msg}, status=400
-                    )  # Changed "error" to "message"
+                    )
             else:
                 error_msg = """
                 No invoices found in the Xero response or failed to delete invoice.
@@ -347,7 +337,7 @@ class XeroInvoiceManager(XeroDocumentManager):
                 logger.error(error_msg)
                 return JsonResponse(
                     {"success": False, "message": error_msg}, status=400
-                )  # Changed "error" to "message"
+                )
         except AccountingBadRequestException as e:
             job_id = self.job.id if self.job else "Unknown"
             logger.error(
@@ -395,3 +385,66 @@ class XeroInvoiceManager(XeroDocumentManager):
                 },
                 status=500,
             )
+
+    def get_or_create_xero_contact(self):
+        """
+        Searches for an existing Xero contact by client name. If found, returns the Contact object with ContactID.
+        If not found, creates a new contact and returns the created Contact object.
+        """
+        client_name = (
+            self.client.name.strip() if self.client and self.client.name else None
+        )
+        if not client_name:
+            raise ValueError("Client name is required to sync with Xero.")
+
+        try:
+            # Search for existing contacts in Xero by name (case-insensitive)
+            contacts_response = self.xero_api.get_contacts(
+                self.xero_tenant_id, where=f'Name=="{client_name}"'
+            )
+            contacts = getattr(contacts_response, "contacts", [])
+            if contacts:
+                logger.info(
+                    f"Found existing Xero contact for '{client_name}' (ContactID: {contacts[0].contact_id})"
+                )
+                return contacts[0]  # Return the first found contact
+        except Exception as e:
+            logger.warning(f"Error searching for existing Xero contact: {str(e)}")
+            # Do not interrupt the flow, try to create contact below
+
+        # If not found, create new contact
+        logger.info(
+            f"No existing Xero contact found for '{client_name}', creating new contact."
+        )
+        contact_data = {
+            "name": client_name,
+            "email_address": getattr(self.client, "email", None),
+            "first_name": getattr(self.client, "first_name", None),
+            "last_name": getattr(self.client, "last_name", None),
+            # Add other relevant fields if necessary
+        }
+        # Remove None fields
+        contact_data = {k: v for k, v in contact_data.items() if v}
+        new_contact = XeroContact(**contact_data)
+        try:
+            create_response = self.xero_api.create_contacts(
+                self.xero_tenant_id, contacts=[new_contact]
+            )
+            created_contacts = getattr(create_response, "contacts", [])
+            if created_contacts:
+                logger.info(
+                    f"Created new Xero contact for '{client_name}' (ContactID: {created_contacts[0].contact_id})"
+                )
+                return created_contacts[0]
+        except Exception as e:
+            logger.error(f"Failed to create Xero contact for '{client_name}': {str(e)}")
+            raise ValueError(
+                f"Could not create or find Xero contact for '{client_name}'. {str(e)}"
+            )
+        raise ValueError(f"Could not create or find Xero contact for '{client_name}'.")
+
+    def get_xero_contact(self):
+        """
+        Returns the Xero contact (with ContactID if already exists, or new if not).
+        """
+        return self.get_or_create_xero_contact()

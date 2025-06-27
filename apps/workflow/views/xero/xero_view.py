@@ -18,7 +18,7 @@ from xero_python.identity import IdentityApi
 from apps.accounting.models import Bill, CreditNote, Invoice, Quote
 from apps.client.models import Client
 from apps.job.models import Job
-from apps.purchasing.models import PurchaseOrder
+from apps.purchasing.models import PurchaseOrder, Stock
 from apps.workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
@@ -181,13 +181,25 @@ def generate_xero_sync_events():
 
             # 4a) If sync lock released and no pending messages → end
             if not cache.get("xero_sync_lock", False) and not messages:
+                # Verifica se houve algum erro durante o sync
+                error_found = False
+                error_messages = []
+                all_msgs = XeroSyncService.get_messages(task_id, 0)
+                for m in all_msgs:
+                    if m.get("severity") == "error":
+                        error_found = True
+                        error_messages.append(m.get("message"))
                 end_payload = {
                     "datetime": timezone.now().isoformat(),
                     "entity": "sync",
                     "severity": "info",
                     "message": "Sync stream ended",
                     "progress": 1.0,
+                    "syncStatus": "error" if error_found else "success",
                 }
+                if error_found:
+                    end_payload["errorMessages"] = error_messages
+                logger.info(f"[SSE END PAYLOAD] {json.dumps(end_payload)}")
                 yield f"data: {json.dumps(end_payload)}\n\n"
                 break
 
@@ -598,7 +610,7 @@ def xero_sync_progress_page(request):
 
 @csrf_exempt
 def get_xero_sync_info(request):
-    """Get current sync status and last sync times."""
+    """Get current sync status and last sync times, including Xero Items/Stock."""
     try:
         token = get_valid_token()
         if not token:
@@ -656,6 +668,11 @@ def get_xero_sync_info(request):
                 .first()
                 .xero_last_synced
                 if XeroJournal.objects.exists()
+                else None
+            ),
+            "stock": (
+                Stock.objects.order_by("-xero_last_modified").first().xero_last_modified
+                if Stock.objects.exists()
                 else None
             ),
         }

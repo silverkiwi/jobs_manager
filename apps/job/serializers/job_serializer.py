@@ -17,6 +17,11 @@ DEBUG_SERIALIZER = False
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
+    total_excl_tax = serializers.FloatField()
+    total_incl_tax = serializers.FloatField()
+    amount_due = serializers.FloatField()
+    tax = serializers.FloatField(required=False)
+
     class Meta:
         model = Invoice
         fields = [
@@ -29,11 +34,15 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "total_excl_tax",
             "total_incl_tax",
             "amount_due",
+            "tax",
             "online_url",
         ]
 
 
 class QuoteSerializer(serializers.ModelSerializer):
+    total_excl_tax = serializers.FloatField()
+    total_incl_tax = serializers.FloatField()
+
     class Meta:
         model = Quote
         fields = [
@@ -56,6 +65,10 @@ class JobSerializer(serializers.ModelSerializer):
     latest_estimate = serializers.SerializerMethodField()
     latest_quote = serializers.SerializerMethodField()
     latest_actual = serializers.SerializerMethodField()
+    quoted = serializers.BooleanField(read_only=True)
+    invoiced = serializers.BooleanField(read_only=True)
+    quote = serializers.SerializerMethodField()
+    invoice = serializers.SerializerMethodField()
 
     client_id = serializers.PrimaryKeyRelatedField(
         queryset=Client.objects.all(),
@@ -80,8 +93,6 @@ class JobSerializer(serializers.ModelSerializer):
 
     # Quote spreadsheet relationship
     quote_sheet = QuoteSpreadsheetSerializer(read_only=True, required=False)
-    invoice = InvoiceSerializer(read_only=True)
-    quote = QuoteSerializer(read_only=True)
 
     def get_latest_estimate(self, obj):
         """Get the latest estimate CostSet"""
@@ -97,6 +108,28 @@ class JobSerializer(serializers.ModelSerializer):
         """Get the latest actual CostSet"""
         cost_set = obj.get_latest("actual")
         return CostSetSerializer(cost_set).data if cost_set else None
+
+    def get_quote(self, obj):
+        raw_quote = getattr(obj, "quote", None)
+        logger.debug(f"Getting quote for job {obj.id}: {raw_quote} | {type(raw_quote)}")
+
+        if raw_quote is not None:
+            serialized = QuoteSerializer(raw_quote, context=self.context).data
+            logger.debug(f"Serialized quote data: {serialized}")
+            return serialized
+        return None
+
+    def get_invoice(self, obj):
+        raw_invoice = getattr(obj, "invoice", None)
+        logger.debug(
+            f"Getting invoice for job {obj.id}: {raw_invoice} | {type(raw_invoice)}"
+        )
+
+        if raw_invoice is not None:
+            serialized = InvoiceSerializer(raw_invoice, context=self.context).data
+            logger.debug(f"Serialized invoice data: {serialized}")
+            return serialized
+        return None
 
     class Meta:
         model = Job
@@ -175,6 +208,10 @@ class JobSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         logger.debug(f"JobSerializer update called for instance {instance.id}")
         logger.debug(f"Validated data received: {validated_data}")
+
+        # Remove read-only/computed fields to avoid AttributeError
+        validated_data.pop("quoted", None)
+        validated_data.pop("invoiced", None)
 
         # Handle job files data first
         files_data = validated_data.pop("files", None)

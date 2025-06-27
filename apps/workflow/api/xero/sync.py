@@ -239,18 +239,51 @@ def transform_credit_note(xero_note, xero_id):
 
 
 def transform_journal(xero_journal, xero_id):
-    journal_date = getattr(xero_journal, "journal_date", None)
-    raw_json = process_xero_data(xero_journal)
-    if not journal_date:
-        logger.error(f"Could not fetch journal_date for XeroJournal {xero_id}")
-        return None
+    """
+    Transform Xero journal to our XeroJournal model.
+    Validates all required fields before creating/updating.
+    """
+    # Required fields as per XeroJournal model
+    required_fields = {
+        "journal_date": getattr(xero_journal, "journal_date", None),
+        "created_date_utc": getattr(xero_journal, "created_date_utc", None),
+        "journal_number": getattr(xero_journal, "journal_number", None),
+        "xero_last_modified": getattr(xero_journal, "updated_date_utc", None),
+        "raw_json": process_xero_data(xero_journal),
+    }
+
+    # Optional fields
+    optional_fields = {
+        "reference": getattr(xero_journal, "reference", None),
+        "source_id": getattr(xero_journal, "source_id", None),
+        "source_type": getattr(xero_journal, "source_type", None),
+        "xero_tenant_id": getattr(xero_journal, "xero_tenant_id", None),
+    }
+
+    # Validate required fields
+    for field, value in required_fields.items():
+        if value is None:
+            logger.error(f"Could not fetch {field} for XeroJournal {xero_id}")
+            return None
+
+    # Prepare defaults for get_or_create/update_or_create
+    defaults = {**required_fields, **optional_fields}
+
     journal, created = XeroJournal.objects.get_or_create(
         xero_id=xero_id,
-        defaults={
-            "journal_date": journal_date,
-            "raw_json": raw_json,
-        },
+        defaults=defaults,
     )
+
+    # Update fields if not created
+    if not created:
+        updated = False
+        for key, value in defaults.items():
+            if getattr(journal, key, None) != value:
+                setattr(journal, key, value)
+                updated = True
+        if updated:
+            journal.save()
+
     set_journal_fields(journal)
     if created:
         journal.save()
@@ -518,17 +551,20 @@ def sync_xero_data(
         if not items:
             break
 
-        # Process items
-        sync_function(items)
-        total_processed += len(items)
-
-        yield {
-            "datetime": timezone.now().isoformat(),
-            "entity": our_entity_type,
-            "severity": "info",
-            "message": f"Processed {len(items)} {our_entity_type}",
-            "progress": None,
-        }
+        # Process items individual e envia progresso
+        total_items = len(items)
+        for idx, item in enumerate(items, start=1):
+            sync_function([item])
+            progress = idx / total_items if total_items else 1.0
+            yield {
+                "datetime": timezone.now().isoformat(),
+                "entity": our_entity_type,
+                "severity": "info",
+                "message": f"Processed {idx} of {total_items} {our_entity_type}",
+                "progress": progress,
+                "recordsUpdated": idx,
+            }
+        total_processed += total_items
 
         # Check if done
         if len(items) < page_size or pagination_mode == "single":
@@ -654,6 +690,8 @@ def sync_all_xero_data(use_latest_timestamps=True, days_back=30, entities=None):
         timestamps = {entity: older_time for entity in ENTITY_CONFIGS}
 
     # Sync each entity
+    total_entities = len(entities)
+    completed_entities = 0
     for entity in entities:
         if entity not in ENTITY_CONFIGS:
             logger.error(f"Unknown entity type: {entity}")
@@ -675,7 +713,7 @@ def sync_all_xero_data(use_latest_timestamps=True, days_back=30, entities=None):
         else:
             api_func = getattr(AccountingApi(api_client), api_method)
 
-        yield from sync_xero_data(
+        for msg in sync_xero_data(
             xero_entity_type=xero_type,
             our_entity_type=our_type,
             xero_api_fetch_function=api_func,
@@ -683,7 +721,16 @@ def sync_all_xero_data(use_latest_timestamps=True, days_back=30, entities=None):
             last_modified_time=timestamps[entity],
             additional_params=params,
             pagination_mode=pagination,
-        )
+        ):
+            entity_progress = msg.get("progress", 0) or 0
+            overall_progress = (
+                (completed_entities + entity_progress) / total_entities
+                if total_entities
+                else 1.0
+            )
+            msg["overallProgress"] = overall_progress
+            yield msg
+        completed_entities += 1
 
 
 def one_way_sync_all_xero_data(entities=None):
