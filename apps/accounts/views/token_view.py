@@ -1,4 +1,5 @@
 import logging
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -10,6 +11,7 @@ from apps.accounts.serializers import CustomTokenObtainPairSerializer
 
 logger = logging.getLogger(__name__)
 
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
     Customized token obtain view that handles password reset requirement
@@ -19,7 +21,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        logger.info("CustomTokenObtainPairView POST called with username: %s", request.data.get("username"))
+        logger.info(
+            "CustomTokenObtainPairView POST called with username: %s",
+            request.data.get("username"),
+        )
         response = super().post(request, *args, **kwargs)
 
         if response.status_code == status.HTTP_200_OK:
@@ -51,7 +56,9 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 logger.warning("User %s does not exist", username)
 
         else:
-            logger.warning("Token obtain failed with status code: %s", response.status_code)
+            logger.warning(
+                "Token obtain failed with status code: %s", response.status_code
+            )
 
         return response
 
