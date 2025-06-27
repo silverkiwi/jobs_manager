@@ -36,7 +36,7 @@ urlpatterns = [
     path("job/", include("apps.job.urls", namespace="jobs")),
     path("accounts/", include("apps.accounts.urls")),
     path("timesheets/", include("apps.timesheet.urls")),
-    path("quoting/", include("apps.quoting.urls")),
+    path("quoting/", include(("apps.quoting.urls", "quoting"), namespace="quoting")),
     path("clients/", include("apps.client.urls", namespace="clients")),
     path("purchasing/", include("apps.purchasing.urls", namespace="purchasing")),
     path("accounting/", include("apps.accounting.urls", namespace="accounting")),
