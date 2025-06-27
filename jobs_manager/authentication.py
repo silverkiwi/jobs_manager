@@ -1,10 +1,11 @@
+import logging
+
 from django.conf import settings
 from rest_framework import exceptions
 from rest_framework_simplejwt.authentication import (
     JWTAuthentication as BaseJWTAuthentication,
 )
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-import logging
 
 logger = logging.getLogger(__name__)
 

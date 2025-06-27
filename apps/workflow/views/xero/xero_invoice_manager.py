@@ -88,7 +88,9 @@ class XeroInvoiceManager(XeroDocumentManager):
             .first()
         )
         if not latest_actual:
-            raise ValueError(f"Job {self.job.id} does not have an 'actual' CostSet for invoicing.")
+            raise ValueError(
+                f"Job {self.job.id} does not have an 'actual' CostSet for invoicing."
+            )
 
         # Try to get total revenue from summary, otherwise sum unit_rev from cost lines
         total_revenue = None

@@ -45,9 +45,32 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class StaffSerializer(serializers.ModelSerializer):
+    def to_internal_value(self, data):
+        # Corrige groups e user_permissions enviados como [''] para lista vazia
+        data = data.copy()  # QueryDict pode ser imutável
+        for field in ["groups", "user_permissions"]:
+            value = data.getlist(field) if hasattr(data, "getlist") else data.get(field)
+            if value == [""]:
+                data.setlist(field, []) if hasattr(data, "setlist") else data.update(
+                    {field: []}
+                )
+        return super().to_internal_value(data)
+
+    def validate(self, attrs):
+        return super().validate(attrs)
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        if password:
+            instance.set_password(password)
+        return super().update(instance, validated_data)
+
     class Meta:
         model = Staff
         fields = "__all__"
+        extra_kwargs = {
+            "password": {"required": False},
+        }
 
 
 class KanbanStaffSerializer(serializers.ModelSerializer):

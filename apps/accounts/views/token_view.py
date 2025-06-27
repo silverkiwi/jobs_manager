@@ -44,13 +44,25 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                         self._set_jwt_cookies(response, response.data)
 
             except User.DoesNotExist:
-                pass
+                pass  # User does not exist, do not modify response
 
         return response
 
     def _set_jwt_cookies(self, response: Response, data: dict) -> None:
         """Set JWT tokens as httpOnly cookies"""
+        import os
+
         simple_jwt_settings = getattr(settings, "SIMPLE_JWT", {})
+        env_samesite = os.getenv("COOKIE_SAMESITE")
+        settings_samesite = simple_jwt_settings.get("AUTH_COOKIE_SAMESITE", "Lax")
+
+        if env_samesite:
+            env_samesite = env_samesite.capitalize()
+
+        if env_samesite and env_samesite != settings_samesite:
+            samesite_value = env_samesite
+        else:
+            samesite_value = settings_samesite
 
         # Set access token cookie
         if "access" in data:
@@ -62,7 +74,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 ).total_seconds(),
                 httponly=simple_jwt_settings.get("AUTH_COOKIE_HTTP_ONLY", True),
                 secure=simple_jwt_settings.get("AUTH_COOKIE_SECURE", True),
-                samesite=simple_jwt_settings.get("AUTH_COOKIE_SAMESITE", "Lax"),
+                samesite=samesite_value,
                 domain=simple_jwt_settings.get("AUTH_COOKIE_DOMAIN"),
             )
             # Remove access token from response data for security
@@ -78,7 +90,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 ).total_seconds(),
                 httponly=simple_jwt_settings.get("REFRESH_COOKIE_HTTP_ONLY", True),
                 secure=simple_jwt_settings.get("REFRESH_COOKIE_SECURE", True),
-                samesite=simple_jwt_settings.get("REFRESH_COOKIE_SAMESITE", "Lax"),
+                samesite=samesite_value,
                 domain=simple_jwt_settings.get("AUTH_COOKIE_DOMAIN"),
             )
             # Remove refresh token from response data for security

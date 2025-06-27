@@ -19,10 +19,13 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from xero_python.accounting import AccountingApi
 
 from apps.client.forms import ClientForm
 from apps.client.models import Client, ClientContact
 from apps.client.serializers import ClientNameOnlySerializer
+from apps.workflow.api.xero.sync import sync_clients
+from apps.workflow.api.xero.xero import api_client, get_tenant_id, get_valid_token
 
 logger = logging.getLogger(__name__)
 
@@ -272,34 +275,104 @@ class ClientCreateRestView(BaseClientRestView):
     """
     REST view for creating new clients.
     Follows clean code principles and delegates to Django forms for validation.
+    Now creates client in Xero first, then syncs locally.
     """
 
     def post(self, request) -> JsonResponse:
         """
-        Create a new client following early return pattern.
+        Create a new client, first in Xero, then sync locally.
         """
         try:
-            # Parse JSON data with early return on error
             data = self._parse_json_data(request)
+            form = ClientForm(data)
+            if not form.is_valid():
+                error_messages = []
+                for field, errors in form.errors.items():
+                    error_messages.extend([f"{field}: {error}" for error in errors])
+                return JsonResponse(
+                    {"success": False, "error": "; ".join(error_messages)}, status=400
+                )
 
-            # Create client with validation
-            client = self._create_client(data)
+            # Xero token check
+            token = get_valid_token()
+            if not token:
+                return JsonResponse(
+                    {"success": False, "error": "Xero authentication required"},
+                    status=401,
+                )
 
-            # Format successful response
+            accounting_api = AccountingApi(api_client)
+            xero_tenant_id = get_tenant_id()
+            name = form.cleaned_data["name"]
+
+            # Check for duplicates in Xero
+            existing_contacts = accounting_api.get_contacts(
+                xero_tenant_id, where=f'Name="{name}"'
+            )
+            if existing_contacts and existing_contacts.contacts:
+                xero_client = existing_contacts.contacts[0]
+                xero_contact_id = getattr(xero_client, "contact_id", "")
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": f"Client '{name}' already exists in Xero",
+                        "existing_client": {
+                            "name": name,
+                            "xero_contact_id": xero_contact_id,
+                        },
+                    },
+                    status=409,
+                )
+
+            # Create new contact in Xero
+            contact_data = {
+                "name": name,
+                "emailAddress": form.cleaned_data["email"] or "",
+                "phones": [
+                    {
+                        "phoneType": "DEFAULT",
+                        "phoneNumber": form.cleaned_data["phone"] or "",
+                    }
+                ],
+                "addresses": [
+                    {
+                        "addressType": "STREET",
+                        "addressLine1": form.cleaned_data["address"] or "",
+                    }
+                ],
+                "isCustomer": form.cleaned_data["is_account_customer"],
+            }
+            response = accounting_api.create_contacts(
+                xero_tenant_id, contacts={"contacts": [contact_data]}
+            )
+            if (
+                not response
+                or not hasattr(response, "contacts")
+                or not response.contacts
+            ):
+                raise ValueError("No contact data in Xero response")
+            if len(response.contacts) != 1:
+                raise ValueError(
+                    f"Expected 1 contact in response, got {len(response.contacts)}"
+                )
+
+            # Sync locally
+            client_instances = sync_clients(response.contacts)
+            if not client_instances:
+                raise ValueError("Failed to sync client from Xero")
+            created_client = client_instances[0]
+
             return JsonResponse(
                 {
                     "success": True,
-                    "client": self._format_client_data(client),
-                    "message": f'Client "{client.name}" created successfully',
+                    "client": self._format_client_data(created_client),
+                    "message": f'Client "{created_client.name}" created successfully',
                 },
                 status=201,
             )
 
-        except ValueError as e:
-            return JsonResponse({"success": False, "error": str(e)}, status=400)
-
         except Exception as e:
-            return self.handle_error(e, "Error creating client")
+            return self.handle_error(e, "Error creating client (Xero sync)")
 
     def _parse_json_data(self, request) -> Dict[str, Any]:
         """

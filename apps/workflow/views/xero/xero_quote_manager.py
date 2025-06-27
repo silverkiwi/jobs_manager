@@ -14,10 +14,10 @@ from xero_python.exceptions import (  # If specific exceptions handled
 )
 
 from apps.accounting.enums import QuoteStatus
-from apps.job.models.costing import CostSet
 
 # Import models
 from apps.accounting.models import Quote
+from apps.job.models.costing import CostSet
 
 # Import base class and helpers
 from .xero_base_manager import XeroDocumentManager
@@ -98,7 +98,9 @@ class XeroQuoteManager(XeroDocumentManager):
             .first()
         )
         if not latest_quote:
-            raise ValueError(f"Job {self.job.id} does not have a 'quote' CostSet for quoting.")
+            raise ValueError(
+                f"Job {self.job.id} does not have a 'quote' CostSet for quoting."
+            )
         line_items = []
         for cl in latest_quote.cost_lines.all():
             line_items.append(
@@ -110,7 +112,9 @@ class XeroQuoteManager(XeroDocumentManager):
                 )
             )
         if not line_items:
-            raise ValueError(f"'quote' CostSet for job {self.job.id} has no cost lines.")
+            raise ValueError(
+                f"'quote' CostSet for job {self.job.id} has no cost lines."
+            )
         return line_items
 
     def get_xero_document(self, type: str) -> XeroQuote:

@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
+load_dotenv(BASE_DIR / ".env")
+
 AUTH_USER_MODEL = "accounts.Staff"
 
 # Application definition
@@ -85,7 +87,7 @@ SIMPLE_JWT = {
     "AUTH_COOKIE": "access_token",
     "AUTH_COOKIE_SECURE": True,
     "AUTH_COOKIE_HTTP_ONLY": True,
-    "AUTH_COOKIE_SAMESITE": "Lax",
+    "AUTH_COOKIE_SAMESITE": str(os.getenv("COOKIE_SAMESITE", "Lax")),
 }
 
 FRONT_END_URL = os.getenv("FRONT_END_URL", "")
@@ -285,8 +287,6 @@ CHANNEL_LAYERS = {
 DJANGO_MCP_AUTHENTICATION_CLASSES = [
     "rest_framework.authentication.SessionAuthentication",
 ]
-
-load_dotenv(BASE_DIR / ".env")
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
