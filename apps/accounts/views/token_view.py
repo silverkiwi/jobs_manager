@@ -1,3 +1,4 @@
+import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -7,6 +8,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.accounts.serializers import CustomTokenObtainPairSerializer
 
+logger = logging.getLogger(__name__)
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
@@ -17,21 +19,23 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
+        logger.info("CustomTokenObtainPairView POST called with username: %s", request.data.get("username"))
         response = super().post(request, *args, **kwargs)
 
         if response.status_code == status.HTTP_200_OK:
             User = get_user_model()
 
             try:
-                # Try to get user by username (which is email in our case)
                 username = request.data.get("username")
                 if username:
                     user = User.objects.get(email=username)
+                    logger.debug("User %s found", username)
 
                     if (
                         hasattr(user, "password_needs_reset")
                         and user.password_needs_reset
                     ):
+                        logger.info("User %s needs password reset", username)
                         response.data["password_needs_reset"] = True
                         response.data[
                             "password_reset_url"
@@ -39,12 +43,15 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                             reverse("accounts:password_change")
                         )
 
-                    # Set JWT tokens as httpOnly cookies if enabled
                     if getattr(settings, "ENABLE_JWT_AUTH", False):
+                        logger.info("Setting JWT cookies for user %s", username)
                         self._set_jwt_cookies(response, response.data)
 
             except User.DoesNotExist:
-                pass  # User does not exist, do not modify response
+                logger.warning("User %s does not exist", username)
+
+        else:
+            logger.warning("Token obtain failed with status code: %s", response.status_code)
 
         return response
 
@@ -66,6 +73,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         # Set access token cookie
         if "access" in data:
+            logger.debug("Setting access token cookie")
             response.set_cookie(
                 simple_jwt_settings.get("AUTH_COOKIE", "access_token"),
                 data["access"],
@@ -77,11 +85,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 samesite=samesite_value,
                 domain=simple_jwt_settings.get("AUTH_COOKIE_DOMAIN"),
             )
-            # Remove access token from response data for security
             del data["access"]
 
         # Set refresh token cookie
         if "refresh" in data:
+            logger.debug("Setting refresh token cookie")
             response.set_cookie(
                 simple_jwt_settings.get("REFRESH_COOKIE", "refresh_token"),
                 data["refresh"],
@@ -93,7 +101,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 samesite=samesite_value,
                 domain=simple_jwt_settings.get("AUTH_COOKIE_DOMAIN"),
             )
-            # Remove refresh token from response data for security
             del data["refresh"]
 
 
