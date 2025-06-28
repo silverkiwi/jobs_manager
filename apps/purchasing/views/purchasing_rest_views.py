@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.job.models import Job
-from apps.purchasing.models import Stock
+from apps.purchasing.models import PurchaseOrder, Stock
 from apps.purchasing.services.delivery_receipt_service import process_delivery_receipt
 from apps.purchasing.services.purchasing_rest_service import PurchasingRestService
 from apps.purchasing.services.stock_service import consume_stock
@@ -32,7 +32,11 @@ class XeroItemList(APIView):
 
 class PurchaseOrderListCreateRestView(APIView):
     def get(self, request):
-        return Response(PurchasingRestService.list_purchase_orders())
+        status_filter = request.query_params.get("status", None)
+        data = PurchasingRestService.list_purchase_orders()
+        if status_filter:
+            data = [po for po in data if po["status"] == status_filter]
+        return Response(data)
 
     def post(self, request):
         po = PurchasingRestService.create_purchase_order(request.data)
@@ -48,6 +52,36 @@ class PurchaseOrderPatchRestView(APIView):
         return Response({"id": str(po.id), "status": po.status})
 
 
+class PurchaseOrderDetailRestView(APIView):
+    """Returns a full PO (including lines)"""
+
+    def get(self, request, pk):
+        po = get_object_or_404(PurchaseOrder, id=pk)
+        return Response(
+            {
+                "id": str(po.id),
+                "reference": po.reference,
+                "supplier": po.supplier.name if po.supplier else "",
+                "status": po.status,
+                "order_date": po.order_date,
+                "expected_delivery": po.expected_delivery,
+                "lines": [
+                    {
+                        "id": str(l.id),
+                        "item_code": l.item_code,
+                        "description": l.description,
+                        "quantity": float(l.quantity),
+                        "unit_cost": float(l.unit_cost)
+                        if l.unit_cost is not None
+                        else None,
+                        "price_tbc": l.price_tbc,
+                    }
+                    for l in po.lines.all()
+                ],
+            }
+        )
+
+
 class DeliveryReceiptRestView(APIView):
     def post(self, request):
         purchase_order_id = request.data.get("purchase_order_id")
@@ -60,6 +94,25 @@ class DeliveryReceiptRestView(APIView):
 class StockListRestView(APIView):
     def get(self, request):
         return Response(PurchasingRestService.list_stock())
+
+    def post(self, request):
+        try:
+            item = PurchasingRestService.create_stock(request.data)
+            return Response({"id": str(item.id)}, status=status.HTTP_201_CREATED)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StockDeactivateRestView(APIView):
+    def delete(self, request, stock_id):
+        item = get_object_or_404(Stock, id=stock_id)
+        if item.is_active:
+            item.is_active = False
+            item.save()
+            return Response({"success": True})
+        return Response(
+            {"error": "Item is already inactive"}, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class StockConsumeRestView(APIView):

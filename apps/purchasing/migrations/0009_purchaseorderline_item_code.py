@@ -3,7 +3,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("purchasing", "0007_stock_unique_xero_id"),
+        ("purchasing", "0008_stock_parsed_at_stock_parser_confidence_and_more"),
     ]
 
     operations = [

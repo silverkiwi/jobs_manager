@@ -104,3 +104,23 @@ class PurchasingRestService:
             }
             for s in items
         ]
+
+    @staticmethod
+    def create_stock(data: dict) -> Stock:
+        required = ["description", "quantity", "unit_cost", "source"]
+        if not all(k in data for k in required):
+            raise ValueError(f"Missing required fields")
+
+        return Stock.objects.create(
+            job=Stock.get_stock_holding_job(),
+            description=data["description"],
+            quantity=Decimal(str(data["quantity"])),
+            unit_cost=Decimal(str(data["unit_cost"])),
+            source=data["source"],
+            notes=data.get("notes", ""),
+            metal_type=data.get("metal_type", ""),
+            alloy=data.get("alloy", ""),
+            specifics=data.get("specifics", ""),
+            location=data.get("location", ""),
+            is_active=True,
+        )
