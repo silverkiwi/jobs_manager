@@ -20,7 +20,7 @@ from apps.workflow.models import XeroAccount, XeroJournal, XeroJournalLineItem
 logger = logging.getLogger("xero")
 
 
-def set_invoice_or_bill_fields(document, document_type):
+def set_invoice_or_bill_fields(document, document_type, new_from_xero=False):
     """
     Process either an invoice or bill from Xero.
 
@@ -33,6 +33,12 @@ def set_invoice_or_bill_fields(document, document_type):
         raise ValueError(
             f"{document_type.title()} raw_json is empty. "
             "We better not try to process it"
+        )
+
+    if new_from_xero:
+        logger.info(
+            f"[XERO-WEBHOOK] Setting fields for new {document_type.lower()} from Xero data: {document.number}"
+            f"[XERO-WEBHOOK] Document ID: {document.xero_id}"
         )
 
     is_invoice = document.raw_json.get("_type") == "ACCREC"
@@ -251,7 +257,9 @@ def set_client_fields(client, new_from_xero=False):
     client.save()
 
     if new_from_xero:
-        logger.info(f"Client {client.name} (ID: {client.id}) created from Xero data.")
+        logger.info(
+            f"[XERO-WEBHOOK] Client {client.name} (ID: {client.id}) created from Xero data."
+        )
     else:
         logger.info(f"Client {client.name} (ID: {client.id}) updated from Xero data.")
 

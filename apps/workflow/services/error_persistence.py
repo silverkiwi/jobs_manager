@@ -1,7 +1,7 @@
 import traceback
 
-from apps.workflow.models import AppError, XeroError
 from apps.workflow.exceptions import XeroValidationError
+from apps.workflow.models import AppError, XeroError
 
 
 def persist_xero_error(exc: XeroValidationError):

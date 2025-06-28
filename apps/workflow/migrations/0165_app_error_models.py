@@ -1,5 +1,6 @@
-from django.db import migrations, models
 import uuid
+
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
@@ -11,7 +12,12 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="AppError",
             fields=[
-                ("id", models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        primary_key=True, default=uuid.uuid4, editable=False
+                    ),
+                ),
                 ("timestamp", models.DateTimeField(auto_now_add=True)),
                 ("message", models.TextField()),
                 ("data", models.JSONField(blank=True, null=True)),
@@ -24,7 +30,17 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="XeroError",
             fields=[
-                ("apperror_ptr", models.OneToOneField(auto_created=True, on_delete=models.CASCADE, parent_link=True, primary_key=True, serialize=False, to="workflow.apperror")),
+                (
+                    "apperror_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=models.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        serialize=False,
+                        to="workflow.apperror",
+                    ),
+                ),
                 ("entity", models.CharField(max_length=100)),
                 ("reference_id", models.CharField(max_length=255)),
                 ("kind", models.CharField(max_length=50)),

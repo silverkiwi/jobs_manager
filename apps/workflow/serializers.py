@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
 from apps.workflow.models.ai_provider import AIProvider
-from apps.workflow.models.company_defaults import CompanyDefaults
 from apps.workflow.models.app_error import AppError, XeroError
+from apps.workflow.models.company_defaults import CompanyDefaults
 
 
 class AIProviderSerializer(serializers.ModelSerializer):
@@ -95,6 +95,7 @@ class CompanyDefaultsSerializer(serializers.ModelSerializer):
                 provider.save()
             else:
                 AIProvider.objects.create(company=company_defaults, **provider_data)
+
 
 class AppErrorSerializer(serializers.ModelSerializer):
     class Meta:
