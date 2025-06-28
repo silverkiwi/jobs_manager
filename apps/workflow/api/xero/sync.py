@@ -128,7 +128,18 @@ def get_or_fetch_client(contact_id, reference=None):
 
 
 def sync_entities(items, model_class, xero_id_attr, transform_func):
-    """Generic sync function for all entity types."""
+    """Persist a batch of Xero objects.
+
+    Args:
+        items: Iterable of objects from Xero.
+        model_class: Django model used for storage.
+        xero_id_attr: Attribute name of the Xero ID on each item.
+        transform_func: Callable converting an item to a model instance.
+
+    Returns:
+        int: Number of items successfully synced.
+    """
+    synced = 0
     for item in items:
         xero_id = getattr(item, xero_id_attr)
 
@@ -145,7 +156,8 @@ def sync_entities(items, model_class, xero_id_attr, transform_func):
             logger.info(
                 f"Synced {model_class.__name__}: {getattr(instance, 'number', getattr(instance, 'name', xero_id))}"
             )
-
+            synced += 1
+    return synced
 
 # Transform functions
 def _extract_required_fields_xero(doc_type, xero_obj, xero_id):
@@ -838,7 +850,15 @@ def one_way_sync_all_xero_data(entities=None):
 
 
 def deep_sync_xero_data(days_back=30, entities=None):
-    """Deep sync looking back N days"""
+    """Perform a deep synchronisation over a time window.
+
+    Args:
+        days_back: Number of days of history to retrieve.
+        entities: Optional list of entity keys to sync.
+
+    Yields:
+        Progress or error events as dictionaries.
+    """
     yield from sync_all_xero_data(
         use_latest_timestamps=False, days_back=days_back, entities=entities
     )
