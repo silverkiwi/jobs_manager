@@ -409,6 +409,9 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
                 "unit_amount": float(line.unit_cost) if line.unit_cost else 0.0,
             }
 
+            if line.item_code:
+                line_item_data["ItemCode"] = line.item_code
+
             # Add account code only if found
             if account_code:
                 line_item_data["account_code"] = account_code
