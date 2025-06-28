@@ -115,4 +115,3 @@ Consumes stock for a job.
 ```json
 {"success": true}
 ```
-

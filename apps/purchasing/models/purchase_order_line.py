@@ -42,6 +42,7 @@ class PurchaseOrderLine(models.Model):
         max_length=50,
         null=True,
         blank=True,
+        db_index=True,
         help_text="Internal item code for Xero integration",
     )
     received_quantity = models.DecimalField(

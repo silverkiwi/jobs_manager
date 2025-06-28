@@ -1,10 +1,12 @@
 import logging
 from decimal import Decimal
 from typing import Any, Dict, List
-from django.utils import timezone
-from django.shortcuts import get_object_or_404
-from django.db import transaction
 
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+
+from apps.client.models import Supplier
 from apps.purchasing.models import PurchaseOrder, PurchaseOrderLine, Stock
 
 logger = logging.getLogger(__name__)
@@ -31,21 +33,32 @@ class PurchasingRestService:
         if not data.get("supplier_id"):
             raise ValueError("supplier_id is required")
 
+        supplier = get_object_or_404(Supplier, id=data["supplier_id"])
+
         po = PurchaseOrder.objects.create(
-            supplier_id=data["supplier_id"],
+            supplier=supplier,
             reference=data.get("reference", ""),
             order_date=data.get("order_date", timezone.now().date()),
             expected_delivery=data.get("expected_delivery"),
         )
 
         for line in data.get("lines", []):
+            price_tbc = bool(line.get("price_tbc", False))
+            unit_cost = line.get("unit_cost")
+            if price_tbc:
+                unit_cost = None
+            elif unit_cost is not None:
+                unit_cost = Decimal(str(unit_cost))
+
             PurchaseOrderLine.objects.create(
                 purchase_order=po,
                 job_id=line.get("job_id"),
                 description=line.get("description", ""),
-                quantity=Decimal(str(line.get("quantity", 0))),
-                unit_cost=Decimal(str(line.get("unit_cost", 0))) if line.get("unit_cost") is not None else None,
-                price_tbc=line.get("price_tbc", False),
+                quantity=Decimal(str(line.get("quantity", 0)))
+                if line.get("quantity") is not None
+                else Decimal("0"),
+                unit_cost=unit_cost,
+                price_tbc=price_tbc,
                 item_code=line.get("item_code"),
             )
         return po
@@ -59,11 +72,23 @@ class PurchasingRestService:
         po.save()
 
         for line_data in data.get("lines", []):
-            if not line_data.get("id"):
+            line_id = line_data.get("id")
+            if not line_id:
                 continue
-            line = get_object_or_404(PurchaseOrderLine, id=line_data["id"], purchase_order=po)
+            line = get_object_or_404(PurchaseOrderLine, id=line_id, purchase_order=po)
+
+            if "description" in line_data:
+                line.description = line_data["description"]
             if "item_code" in line_data:
                 line.item_code = line_data["item_code"]
+            if "quantity" in line_data:
+                line.quantity = Decimal(str(line_data["quantity"]))
+            if "unit_cost" in line_data:
+                value = line_data["unit_cost"]
+                line.unit_cost = Decimal(str(value)) if value is not None else None
+            if "price_tbc" in line_data:
+                line.price_tbc = bool(line_data["price_tbc"])
+
             line.save()
         return po
 
@@ -79,4 +104,3 @@ class PurchasingRestService:
             }
             for s in items
         ]
-

@@ -279,10 +279,6 @@ def search_available_stock_api(request):
     return JsonResponse({"results": results})
 
 
-# Note: Broad exception handling removed to strictly match ClientSearch style.
-# Consider adding it back if more robustness is needed.
-
-
 @require_http_methods(["POST"])
 @transaction.atomic
 def deactivate_stock_api_view(request, stock_id):
