@@ -3,7 +3,7 @@ RESTful URLs for the purchasing app.
 Following REST conventions with clear resource-based naming.
 """
 
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 app_name = "purchasing"
@@ -83,3 +83,5 @@ urlpatterns = [
         "api/stock/search/", views.search_available_stock_api, name="stock_search_api"
     ),
 ]
+
+urlpatterns += [path("rest/", include("apps.purchasing.urls_rest"))]
