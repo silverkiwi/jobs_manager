@@ -44,10 +44,6 @@ from apps.workflow.api.enums import get_enum_choices
 from apps.workflow.views.company_defaults_api import CompanyDefaultsAPIView
 from apps.workflow.views.xero import xero_view
 from apps.workflow.xero_webhooks import XeroWebhookView
-from apps.workflow.xero_views import (
-    XeroErrorDetailAPIView,
-    XeroErrorListAPIView,
-)
 
 urlpatterns = [
     # Redirect to Kanban board
@@ -120,12 +116,12 @@ urlpatterns = [
     ),
     path(
         "xero-errors/",
-        XeroErrorListAPIView.as_view(),
+        xero_view.XeroErrorListAPIView.as_view(),
         name="xero-error-list",
     ),
     path(
         "xero-errors/<uuid:pk>/",
-        XeroErrorDetailAPIView.as_view(),
+        xero_view.XeroErrorDetailAPIView.as_view(),
         name="xero-error-detail",
     ),
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
