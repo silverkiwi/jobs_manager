@@ -1,5 +1,6 @@
 import logging
 import time
+import traceback
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
@@ -24,7 +25,19 @@ from apps.workflow.api.xero.xero import (
     get_token,
     get_xero_items,
 )
-from apps.workflow.models import CompanyDefaults, XeroAccount, XeroJournal
+from apps.workflow.exceptions import XeroValidationError
+from apps.workflow.models import (
+    AppError,
+    CompanyDefaults,
+    XeroAccount,
+    XeroError,
+    XeroJournal,
+)
+from apps.workflow.services.error_persistence import (
+    persist_app_error,
+    persist_xero_error,
+)
+from apps.workflow.services.validation import validate_required_fields
 from apps.workflow.utils import get_machine_id
 
 logger = logging.getLogger("xero")
@@ -115,7 +128,18 @@ def get_or_fetch_client(contact_id, reference=None):
 
 
 def sync_entities(items, model_class, xero_id_attr, transform_func):
-    """Generic sync function for all entity types."""
+    """Persist a batch of Xero objects.
+
+    Args:
+        items: Iterable of objects from Xero.
+        model_class: Django model used for storage.
+        xero_id_attr: Attribute name of the Xero ID on each item.
+        transform_func: Callable converting an item to a model instance.
+
+    Returns:
+        int: Number of items successfully synced.
+    """
+    synced = 0
     for item in items:
         xero_id = getattr(item, xero_id_attr)
 
@@ -132,13 +156,21 @@ def sync_entities(items, model_class, xero_id_attr, transform_func):
             logger.info(
                 f"Synced {model_class.__name__}: {getattr(instance, 'number', getattr(instance, 'name', xero_id))}"
             )
+            synced += 1
+    return synced
 
 
 # Transform functions
 def _extract_required_fields_xero(doc_type, xero_obj, xero_id):
-    """
-    Extracts and validates all required fields for Invoice, Bill, or CreditNote from a Xero object.
-    Returns a dict with the required fields or None if any required field is missing (with logging).
+    """Gather required values from a Xero document.
+
+    Args:
+        doc_type: Name of the document type.
+        xero_obj: Object returned from Xero.
+        xero_id: Identifier of the Xero object.
+
+    Returns:
+        Mapping of required field names to values.
     """
     # Map doc_type to field names
     match doc_type:
@@ -171,15 +203,20 @@ def _extract_required_fields_xero(doc_type, xero_obj, xero_id):
         "xero_last_modified": xero_last_modified,
         "raw_json": raw_json,
     }
-    for field, value in required_fields.items():
-        if value is None:
-            logger.error(f"Could not fetch {field} for {doc_type.title()} {xero_id}")
-            return None
+    validate_required_fields(required_fields, doc_type, xero_id)
     return required_fields
 
 
 def transform_invoice(xero_invoice, xero_id):
-    """Transform Xero invoice to our Invoice model"""
+    """Convert a Xero invoice into an Invoice instance.
+
+    Args:
+        xero_invoice: Invoice object from Xero.
+        xero_id: Identifier of the invoice in Xero.
+
+    Returns:
+        The saved Invoice model.
+    """
     fields = _extract_required_fields_xero("invoice", xero_invoice, xero_id)
     if not fields:
         return None
@@ -199,7 +236,15 @@ def transform_invoice(xero_invoice, xero_id):
 
 
 def transform_bill(xero_bill, xero_id):
-    """Transform Xero bill to our Bill model"""
+    """Convert a Xero bill into a Bill instance.
+
+    Args:
+        xero_bill: Bill object from Xero.
+        xero_id: Identifier of the bill in Xero.
+
+    Returns:
+        The saved Bill model.
+    """
     fields = _extract_required_fields_xero("bill", xero_bill, xero_id)
     if not fields:
         return None
@@ -219,7 +264,15 @@ def transform_bill(xero_bill, xero_id):
 
 
 def transform_credit_note(xero_note, xero_id):
-    """Transform Xero credit note to our CreditNote model"""
+    """Convert a Xero credit note into a CreditNote instance.
+
+    Args:
+        xero_note: Credit note object from Xero.
+        xero_id: Identifier of the credit note in Xero.
+
+    Returns:
+        The saved CreditNote model.
+    """
     fields = _extract_required_fields_xero("credit_note", xero_note, xero_id)
     if not fields:
         return None
@@ -239,11 +292,18 @@ def transform_credit_note(xero_note, xero_id):
 
 
 def transform_journal(xero_journal, xero_id):
+    """Convert a Xero journal into a XeroJournal instance.
+
+    Args:
+        xero_journal: Journal object from Xero.
+        xero_id: Identifier of the journal in Xero.
+
+    Returns:
+        The saved XeroJournal model.
+    """
     journal_date = getattr(xero_journal, "journal_date", None)
     raw_json = process_xero_data(xero_journal)
-    if not journal_date:
-        logger.error(f"Could not fetch journal_date for XeroJournal {xero_id}")
-        return None
+    validate_required_fields({"journal_date": journal_date}, "journal", xero_id)
     journal, created = XeroJournal.objects.get_or_create(
         xero_id=xero_id,
         defaults={
@@ -258,19 +318,45 @@ def transform_journal(xero_journal, xero_id):
 
 
 def transform_stock(xero_item, xero_id):
-    """Transform Xero item to our Stock model"""
+    """Convert a Xero item into a Stock instance.
+
+    Args:
+        xero_item: Item object from Xero.
+        xero_id: Identifier of the item in Xero.
+
+    Returns:
+        The saved Stock model.
+    """
+    item_code = getattr(xero_item, "code", None)
+    description = getattr(xero_item, "name", None)
+    notes = getattr(xero_item, "description", None)
+    quantity = getattr(xero_item, "quantity_on_hand", None)
+    xero_last_modified = getattr(xero_item, "updated_date_utc", None)
+    raw_json = process_xero_data(xero_item)
+
+    validate_required_fields(
+        {
+            "code": item_code,
+            "name": description,
+            "quantity_on_hand": quantity,
+            "updated_date_utc": xero_last_modified,
+        },
+        "item",
+        xero_id,
+    )
+
     defaults = {
-        "item_code": xero_item.code or "",
-        "description": xero_item.name or "",
-        "notes": xero_item.description or "",
-        "quantity": Decimal("0.00"),
-        "raw_json": process_xero_data(xero_item),
-        "xero_last_modified": xero_item.updated_date_utc,
+        "item_code": item_code,
+        "description": description,
+        "notes": notes,
+        "quantity": Decimal(str(quantity)),
+        "raw_json": raw_json,
+        "xero_last_modified": xero_last_modified,
     }
-    if xero_item.purchase_details:
-        defaults["unit_cost"] = Decimal(str(xero_item.purchase_details.unit_price or 0))
-    if xero_item.sales_details:
-        defaults["retail_rate"] = Decimal(str(xero_item.sales_details.unit_price or 0))
+    if xero_item.purchase_details and xero_item.purchase_details.unit_price is not None:
+        defaults["unit_cost"] = Decimal(str(xero_item.purchase_details.unit_price))
+    if xero_item.sales_details and xero_item.sales_details.unit_price is not None:
+        defaults["retail_rate"] = Decimal(str(xero_item.sales_details.unit_price))
     stock, created = Stock.objects.get_or_create(xero_id=xero_id, defaults=defaults)
     updated = False
     for key, value in defaults.items():
@@ -279,20 +365,25 @@ def transform_stock(xero_item, xero_id):
             updated = True
     if updated:
         stock.save()
-    if not stock.xero_last_modified:
-        raise ValueError(f"Xero Item {xero_id} missing updated_date_utc")
     return stock
 
 
 def transform_quote(xero_quote, xero_id):
-    """Transform Xero quote to our Quote model"""
+    """Convert a Xero quote into a Quote instance.
+
+    Args:
+        xero_quote: Quote object from Xero.
+        xero_id: Identifier of the quote in Xero.
+
+    Returns:
+        The saved Quote model.
+    """
     client = get_or_fetch_client(xero_quote.contact.contact_id, f"quote {xero_id}")
     raw_json = process_xero_data(xero_quote)
 
     status_data = raw_json.get("_status", {})
     status = status_data.get("_value_") if isinstance(status_data, dict) else None
-    if not status:
-        raise ValueError(f"Quote {xero_id} has invalid status structure")
+    validate_required_fields({"status": status}, "quote", xero_id)
 
     quote, _ = Quote.objects.update_or_create(
         xero_id=xero_id,
@@ -312,7 +403,15 @@ def transform_quote(xero_quote, xero_id):
 
 
 def transform_purchase_order(xero_po, xero_id):
-    """Transform Xero purchase order to our PurchaseOrder model"""
+    """Convert a Xero purchase order into a PurchaseOrder instance.
+
+    Args:
+        xero_po: Purchase order object from Xero.
+        xero_id: Identifier of the purchase order in Xero.
+
+    Returns:
+        The saved PurchaseOrder model.
+    """
     status_map = {
         "DRAFT": "draft",
         "SUBMITTED": "submitted",
@@ -329,9 +428,15 @@ def transform_purchase_order(xero_po, xero_id):
     status = getattr(xero_po, "status", None)
     xero_last_modified = getattr(xero_po, "updated_date_utc", None)
     raw_json = process_xero_data(xero_po)
-    if not po_number or not order_date or not status:
-        logger.error(f"Missing required field for PurchaseOrder {xero_id}")
-        return None
+    validate_required_fields(
+        {
+            "purchase_order_number": po_number,
+            "date": order_date,
+            "status": status,
+        },
+        "purchase_order",
+        xero_id,
+    )
     po, created = PurchaseOrder.objects.get_or_create(
         xero_id=xero_id,
         defaults={
@@ -439,6 +544,44 @@ def get_last_modified_time(model):
     return "2000-01-01T00:00:00Z"
 
 
+def process_xero_item(item, sync_function, entity_type):
+    """Process one Xero item and return an event.
+
+    Args:
+        item: Xero object to sync.
+        sync_function: Callable that saves the item.
+        entity_type: Name of the entity for event messages.
+
+    Returns:
+        Tuple of success flag and event dictionary.
+    """
+    try:
+        sync_function([item])
+    except XeroValidationError as exc:
+        persist_xero_error(exc)
+        return False, {
+            "datetime": timezone.now().isoformat(),
+            "severity": "error",
+            "message": str(exc),
+            "progress": None,
+        }
+    except Exception as exc:
+        persist_app_error(exc)
+        return False, {
+            "datetime": timezone.now().isoformat(),
+            "severity": "error",
+            "message": "Unexpected: " + str(exc),
+            "progress": None,
+        }
+    return True, {
+        "datetime": timezone.now().isoformat(),
+        "entity": entity_type,
+        "severity": "info",
+        "message": f"Synced {entity_type}",
+        "progress": None,
+    }
+
+
 def sync_xero_data(
     xero_entity_type,
     our_entity_type,
@@ -449,7 +592,21 @@ def sync_xero_data(
     pagination_mode="single",
     xero_tenant_id=None,
 ):
-    """Sync data from Xero with pagination support."""
+    """Sync data from Xero with pagination support.
+
+    Args:
+        xero_entity_type: Name of the Xero collection.
+        our_entity_type: Local entity name for messages.
+        xero_api_fetch_function: API call used to fetch data.
+        sync_function: Function that persists items.
+        last_modified_time: Timestamp for incremental fetches.
+        additional_params: Extra parameters for the API call.
+        pagination_mode: Offset or page pagination style.
+        xero_tenant_id: Optional tenant identifier.
+
+    Yields:
+        Progress or error events as dictionaries.
+    """
 
     if xero_tenant_id is None:
         xero_tenant_id = get_tenant_id()
@@ -518,9 +675,11 @@ def sync_xero_data(
         if not items:
             break
 
-        # Process items
-        sync_function(items)
-        total_processed += len(items)
+        for item in items:
+            success, event = process_xero_item(item, sync_function, our_entity_type)
+            if success:
+                total_processed += 1
+            yield event
 
         yield {
             "datetime": timezone.now().isoformat(),
@@ -692,14 +851,22 @@ def one_way_sync_all_xero_data(entities=None):
 
 
 def deep_sync_xero_data(days_back=30, entities=None):
-    """Deep sync looking back N days"""
+    """Perform a deep synchronisation over a time window.
+
+    Args:
+        days_back: Number of days of history to retrieve.
+        entities: Optional list of entity keys to sync.
+
+    Yields:
+        Progress or error events as dictionaries.
+    """
     yield from sync_all_xero_data(
         use_latest_timestamps=False, days_back=days_back, entities=entities
     )
 
 
 def synchronise_xero_data(delay_between_requests=1):
-    """Main entry point for bidirectional sync"""
+    """Yield progress events while performing a full Xero synchronisation."""
     if not cache.add("xero_sync_lock", True, timeout=60 * 60 * 4):
         logger.info("Skipping sync - another sync is running")
         yield {

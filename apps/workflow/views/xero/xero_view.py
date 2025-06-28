@@ -7,12 +7,18 @@ import uuid
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
-from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    JsonResponse,
+    StreamingHttpResponse,
+)
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import TemplateView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from xero_python.identity import IdentityApi
 
 from apps.accounting.models import Bill, CreditNote, Invoice, Quote
@@ -27,7 +33,9 @@ from apps.workflow.api.xero.xero import (
     get_valid_token,
     refresh_token,
 )
-from apps.workflow.models import XeroAccount, XeroJournal, XeroToken
+from apps.workflow.models import XeroAccount, XeroJournal, XeroToken, XeroError
+from apps.workflow.api.pagination import FiftyPerPagePagination
+from apps.workflow.serializers import XeroErrorSerializer
 from apps.workflow.services.xero_sync_service import XeroSyncService
 from apps.workflow.utils import extract_messages
 
@@ -742,3 +750,14 @@ def xero_ping(request: HttpRequest) -> JsonResponse:
     except Exception as e:
         logger.error(f"Error in xero_ping: {str(e)}")
         return JsonResponse({"connected": False})
+
+
+class XeroErrorListAPIView(ListAPIView):
+    queryset = XeroError.objects.all().order_by("-timestamp")
+    serializer_class = XeroErrorSerializer
+    pagination_class = FiftyPerPagePagination
+
+
+class XeroErrorDetailAPIView(RetrieveAPIView):
+    queryset = XeroError.objects.all()
+    serializer_class = XeroErrorSerializer
