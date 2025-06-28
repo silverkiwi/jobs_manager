@@ -8,7 +8,11 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from apps.workflow.api.xero.sync import ENTITY_CONFIGS, synchronise_xero_data
-from apps.workflow.api.xero.xero import get_valid_token
+from apps.workflow.api.xero.xero import (
+    api_client,
+    get_tenant_id_from_connections,
+    get_valid_token,
+)
 
 logger = logging.getLogger("xero")
 
@@ -18,10 +22,19 @@ class XeroSyncService:
 
     def __init__(self, tenant_id: str | None = None):
         """Only used by webhooks. For full sync routine, we keep the static methods."""
-        if tenant_id is None:
-            tenant_id = cache.get("xero_tenant_id")
-        self.tenant_id = tenant_id
-        self.token = get_valid_token()
+        self.tenant_id = (
+            tenant_id or cache.get("xero_tenant_id") or get_tenant_id_from_connections()
+        )
+        if not self.tenant_id:
+            raise ValueError("No Xero tenant ID found in cache or connections")
+        cache.set("xero_tenant_id", self.tenant_id, timeout=1800)
+
+        token = get_valid_token()
+        if not token:
+            raise ValueError("No valid Xero token found for tenant")
+
+        api_client.oauth2_token.update_token(**token)
+        self.token = token
 
     LOCK_TIMEOUT = 60 * 60 * 4  # 4 hours
     SYNC_STATUS_KEY = "xero_sync_status"
