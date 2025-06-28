@@ -38,6 +38,12 @@ class PurchaseOrderLine(models.Model):
     supplier_item_code = models.CharField(
         max_length=50, blank=True, null=True, help_text="Supplier's own item code/SKU"
     )
+    item_code = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Internal item code for Xero integration",
+    )
     received_quantity = models.DecimalField(
         max_digits=10,
         decimal_places=2,
