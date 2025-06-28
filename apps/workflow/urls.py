@@ -114,6 +114,16 @@ urlpatterns = [
         xero_view.xero_ping,
         name="xero_ping",
     ),
+    path(
+        "xero-errors/",
+        xero_view.XeroErrorListAPIView.as_view(),
+        name="xero-error-list",
+    ),
+    path(
+        "xero-errors/<uuid:pk>/",
+        xero_view.XeroErrorDetailAPIView.as_view(),
+        name="xero-error-detail",
+    ),
     path("xero/", xero_view.XeroIndexView.as_view(), name="xero_index"),
     path(
         "xero/sync-progress/",

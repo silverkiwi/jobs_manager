@@ -13,12 +13,14 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from django.views.generic import TemplateView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from xero_python.identity import IdentityApi
 
 from apps.accounting.models import Bill, CreditNote, Invoice, Quote
 from apps.client.models import Client
 from apps.job.models import Job
 from apps.purchasing.models import PurchaseOrder, Stock
+from apps.workflow.api.pagination import FiftyPerPagePagination
 from apps.workflow.api.xero.xero import (
     api_client,
     exchange_code_for_token,
@@ -27,7 +29,8 @@ from apps.workflow.api.xero.xero import (
     get_valid_token,
     refresh_token,
 )
-from apps.workflow.models import XeroAccount, XeroJournal, XeroToken
+from apps.workflow.models import XeroAccount, XeroError, XeroJournal, XeroToken
+from apps.workflow.serializers import XeroErrorSerializer
 from apps.workflow.services.xero_sync_service import XeroSyncService
 from apps.workflow.utils import extract_messages
 
@@ -181,7 +184,7 @@ def generate_xero_sync_events():
 
             # 4a) If sync lock released and no pending messages → end
             if not cache.get("xero_sync_lock", False) and not messages:
-                # Verifica se houve algum erro durante o sync
+                # Check if there's an error in the sync messages
                 error_found = False
                 error_messages = []
                 all_msgs = XeroSyncService.get_messages(task_id, 0)
@@ -759,3 +762,14 @@ def xero_ping(request: HttpRequest) -> JsonResponse:
     except Exception as e:
         logger.error(f"Error in xero_ping: {str(e)}")
         return JsonResponse({"connected": False})
+
+
+class XeroErrorListAPIView(ListAPIView):
+    queryset = XeroError.objects.all().order_by("-timestamp")
+    serializer_class = XeroErrorSerializer
+    pagination_class = FiftyPerPagePagination
+
+
+class XeroErrorDetailAPIView(RetrieveAPIView):
+    queryset = XeroError.objects.all()
+    serializer_class = XeroErrorSerializer
