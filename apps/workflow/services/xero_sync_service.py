@@ -33,7 +33,7 @@ class XeroSyncService:
         if not token:
             raise ValueError("No valid Xero token found for tenant")
 
-        api_client.oauth2_token.update_token(**token)
+        api_client.configuration.oauth2_token.update_token(**token)
         self.token = token
 
     LOCK_TIMEOUT = 60 * 60 * 4  # 4 hours
