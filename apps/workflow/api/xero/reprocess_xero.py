@@ -14,7 +14,7 @@ from apps.accounting.models import (
     Invoice,
     InvoiceLineItem,
 )
-from apps.client.models import Client
+from apps.client.models import Client, ClientContact
 from apps.workflow.models import XeroAccount, XeroJournal, XeroJournalLineItem
 
 logger = logging.getLogger("xero")
@@ -264,12 +264,24 @@ def set_client_fields(client, new_from_xero=False):
     if len(additional_persons) > 0:
         client.additional_contact_persons = [
             {
-                "name": person.get("_first_name") + " " + person.get("_last_name"),
+                "name": (person.get("_first_name") or "")
+                + (" " + person.get("_last_name") if person.get("_last_name") else ""),
                 "email": person.get("_email_address"),
             }
             for person in additional_persons
             if isinstance(person, dict)
         ]
+        for person in additional_persons:
+            if isinstance(person, dict):
+                first_name = person.get("_first_name") or ""
+                last_name = person.get("_last_name") or ""
+                name = first_name + (" " + last_name if last_name else "")
+                email = person.get("_email_address", "")
+                ClientContact.objects.create(
+                    client=client,
+                    name=name,
+                    email=email,
+                )
 
     phones = raw_json.get("_phones", [])
     if phones:
