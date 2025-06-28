@@ -264,9 +264,8 @@ def set_client_fields(client, new_from_xero=False):
     if len(additional_persons) > 0:
         client.additional_contact_persons = [
             {
-                "name": person.get("_name"),
+                "name": person.get("_first_name") + " " + person.get("_last_name"),
                 "email": person.get("_email_address"),
-                "phone": person.get("_phone_number"),
             }
             for person in additional_persons
             if isinstance(person, dict)
@@ -274,7 +273,7 @@ def set_client_fields(client, new_from_xero=False):
 
     phones = raw_json.get("_phones", [])
     if phones:
-        client.phones = [
+        client.all_phones = [
             {
                 "type": phone.get("_phone_type"),
                 "number": phone.get("_phone_number"),
