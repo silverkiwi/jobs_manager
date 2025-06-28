@@ -1009,7 +1009,7 @@ def sync_single_invoice(sync_service, invoice_id):
                 "xero_last_synced": timezone.now(),
             },
         )
-        set_invoice_or_bill_fields(bill, new_from_xero=created)
+        set_invoice_or_bill_fields(bill, "BILL", new_from_xero=created)
         logger.info(f"Synced bill {invoice_id} from webhook")
 
     elif xero_invoice.type == "ACCREC":
@@ -1023,7 +1023,7 @@ def sync_single_invoice(sync_service, invoice_id):
                 "xero_last_synced": timezone.now(),
             },
         )
-        set_invoice_or_bill_fields(invoice, new_from_xero=created)
+        set_invoice_or_bill_fields(invoice, "INVOICE", new_from_xero=created)
         logger.info(f"Synced invoice {invoice_id} from webhook")
     else:
         raise ValueError(f"Unknown invoice type {xero_invoice.type} for {invoice_id}")
