@@ -6,6 +6,7 @@ from .service_api_key import ServiceAPIKey
 from .xero_account import XeroAccount
 from .xero_journal import XeroJournal, XeroJournalLineItem
 from .xero_token import XeroToken
+from .app_error import AppError, XeroError
 
 __all__ = [
     "AIProvider",
@@ -15,4 +16,6 @@ __all__ = [
     "XeroJournal",
     "XeroJournalLineItem",
     "XeroToken",
+    "AppError",
+    "XeroError",
 ]

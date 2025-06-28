@@ -1,5 +1,6 @@
 import logging
 import time
+import traceback
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
@@ -24,8 +25,15 @@ from apps.workflow.api.xero.xero import (
     get_token,
     get_xero_items,
 )
-from apps.workflow.models import CompanyDefaults, XeroAccount, XeroJournal
+from apps.workflow.models import (
+    CompanyDefaults,
+    XeroAccount,
+    XeroJournal,
+    AppError,
+    XeroError,
+)
 from apps.workflow.utils import get_machine_id
+from apps.workflow.exceptions import XeroValidationError, XeroProcessingError
 
 logger = logging.getLogger("xero")
 SLEEP_TIME = 1  # Sleep after every API call to avoid hitting rate limits
@@ -171,10 +179,9 @@ def _extract_required_fields_xero(doc_type, xero_obj, xero_id):
         "xero_last_modified": xero_last_modified,
         "raw_json": raw_json,
     }
-    for field, value in required_fields.items():
-        if value is None:
-            logger.error(f"Could not fetch {field} for {doc_type.title()} {xero_id}")
-            return None
+    missing = [f for f, v in required_fields.items() if v is None]
+    if missing:
+        raise XeroValidationError(missing, doc_type, xero_id)
     return required_fields
 
 
@@ -242,8 +249,7 @@ def transform_journal(xero_journal, xero_id):
     journal_date = getattr(xero_journal, "journal_date", None)
     raw_json = process_xero_data(xero_journal)
     if not journal_date:
-        logger.error(f"Could not fetch journal_date for XeroJournal {xero_id}")
-        return None
+        raise XeroValidationError(["journal_date"], "journal", xero_id)
     journal, created = XeroJournal.objects.get_or_create(
         xero_id=xero_id,
         defaults={
@@ -259,18 +265,37 @@ def transform_journal(xero_journal, xero_id):
 
 def transform_stock(xero_item, xero_id):
     """Transform Xero item to our Stock model"""
+    item_code = getattr(xero_item, "code", None)
+    description = getattr(xero_item, "name", None)
+    notes = getattr(xero_item, "description", None)
+    quantity = getattr(xero_item, "quantity_on_hand", None)
+    xero_last_modified = getattr(xero_item, "updated_date_utc", None)
+    raw_json = process_xero_data(xero_item)
+
+    missing = []
+    if not item_code:
+        missing.append("code")
+    if not description:
+        missing.append("name")
+    if quantity is None:
+        missing.append("quantity_on_hand")
+    if not xero_last_modified:
+        missing.append("updated_date_utc")
+    if missing:
+        raise XeroValidationError(missing, "item", xero_id)
+
     defaults = {
-        "item_code": xero_item.code or "",
-        "description": xero_item.name or "",
-        "notes": xero_item.description or "",
-        "quantity": Decimal("0.00"),
-        "raw_json": process_xero_data(xero_item),
-        "xero_last_modified": xero_item.updated_date_utc,
+        "item_code": item_code,
+        "description": description,
+        "notes": notes,
+        "quantity": Decimal(str(quantity)),
+        "raw_json": raw_json,
+        "xero_last_modified": xero_last_modified,
     }
-    if xero_item.purchase_details:
-        defaults["unit_cost"] = Decimal(str(xero_item.purchase_details.unit_price or 0))
-    if xero_item.sales_details:
-        defaults["retail_rate"] = Decimal(str(xero_item.sales_details.unit_price or 0))
+    if xero_item.purchase_details and xero_item.purchase_details.unit_price is not None:
+        defaults["unit_cost"] = Decimal(str(xero_item.purchase_details.unit_price))
+    if xero_item.sales_details and xero_item.sales_details.unit_price is not None:
+        defaults["retail_rate"] = Decimal(str(xero_item.sales_details.unit_price))
     stock, created = Stock.objects.get_or_create(xero_id=xero_id, defaults=defaults)
     updated = False
     for key, value in defaults.items():
@@ -279,8 +304,6 @@ def transform_stock(xero_item, xero_id):
             updated = True
     if updated:
         stock.save()
-    if not stock.xero_last_modified:
-        raise ValueError(f"Xero Item {xero_id} missing updated_date_utc")
     return stock
 
 
@@ -292,7 +315,7 @@ def transform_quote(xero_quote, xero_id):
     status_data = raw_json.get("_status", {})
     status = status_data.get("_value_") if isinstance(status_data, dict) else None
     if not status:
-        raise ValueError(f"Quote {xero_id} has invalid status structure")
+        raise XeroValidationError(["status"], "quote", xero_id)
 
     quote, _ = Quote.objects.update_or_create(
         xero_id=xero_id,
@@ -329,9 +352,15 @@ def transform_purchase_order(xero_po, xero_id):
     status = getattr(xero_po, "status", None)
     xero_last_modified = getattr(xero_po, "updated_date_utc", None)
     raw_json = process_xero_data(xero_po)
-    if not po_number or not order_date or not status:
-        logger.error(f"Missing required field for PurchaseOrder {xero_id}")
-        return None
+    missing = []
+    if not po_number:
+        missing.append("purchase_order_number")
+    if not order_date:
+        missing.append("date")
+    if not status:
+        missing.append("status")
+    if missing:
+        raise XeroValidationError(missing, "purchase_order", xero_id)
     po, created = PurchaseOrder.objects.get_or_create(
         xero_id=xero_id,
         defaults={
@@ -518,9 +547,36 @@ def sync_xero_data(
         if not items:
             break
 
-        # Process items
-        sync_function(items)
-        total_processed += len(items)
+        for item in items:
+            try:
+                sync_function([item])
+            except XeroValidationError as e:
+                XeroError.objects.create(
+                    message=str(e),
+                    data={"missing_fields": e.missing_fields},
+                    entity=e.entity,
+                    reference_id=e.xero_id,
+                    kind="Xero",
+                )
+                yield {
+                    "datetime": timezone.now().isoformat(),
+                    "severity": "error",
+                    "message": str(e),
+                    "progress": None,
+                }
+                continue
+            except Exception as e:
+                AppError.objects.create(
+                    message=str(e), data={"trace": traceback.format_exc()}
+                )
+                yield {
+                    "datetime": timezone.now().isoformat(),
+                    "severity": "error",
+                    "message": "Unexpected: " + str(e),
+                    "progress": None,
+                }
+                continue
+            total_processed += 1
 
         yield {
             "datetime": timezone.now().isoformat(),
