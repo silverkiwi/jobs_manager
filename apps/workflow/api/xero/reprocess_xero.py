@@ -205,7 +205,10 @@ def set_client_fields(client, new_from_xero=False):
                 isinstance(phone_entry, dict)
                 and phone_entry.get("_phone_type") == "DEFAULT"
             ):
-                default_phone = phone_entry.get("_phone_number", "")
+                number = phone_entry.get("_phone_number", "")
+                area_code = phone_entry.get("_phone_area_code", "")
+                country_code = phone_entry.get("_phone_country_code", "")
+                default_phone = f"{country_code} {area_code} {number}".strip()
                 break  # Found default, no need to check further
     client.phone = (
         default_phone or client.phone
@@ -239,6 +242,48 @@ def set_client_fields(client, new_from_xero=False):
     client.is_account_customer = raw_json.get(
         "_is_customer", client.is_account_customer
     )
+
+    contact_first_name = raw_json.get("_first_name", None)
+    contact_last_name = raw_json.get("_last_name", None)
+
+    match (contact_first_name, contact_last_name):
+        case (str() as first, str() as last) if first and last:
+            client.primary_contact_name = f"{first} {last}"
+        case (str() as first, None) if first:
+            client.primary_contact_name = first
+        case (None, str() as last) if last:
+            client.primary_contact_name = last
+        case _:
+            client.primary_contact_name = "Unnamed Contact"
+
+    contact_email = raw_json.get("_email_address", None)
+    if contact_email:
+        client.primary_contact_email = contact_email
+
+    additional_persons = raw_json.get("_contact_persons", [])
+    if len(additional_persons) > 0:
+        client.additional_contact_persons = [
+            {
+                "name": person.get("_name"),
+                "email": person.get("_email_address"),
+                "phone": person.get("_phone_number"),
+            }
+            for person in additional_persons
+            if isinstance(person, dict)
+        ]
+
+    phones = raw_json.get("_phones", [])
+    if phones:
+        client.phones = [
+            {
+                "type": phone.get("_phone_type"),
+                "number": phone.get("_phone_number"),
+                "_phone_area_code": phone.get("_phone_area_code"),
+                "_phone_country_code": phone.get("_phone_country_code"),
+            }
+            for phone in phones
+            if isinstance(phone, dict) and phone.get("_phone_number")
+        ]
 
     # Handle xero_last_modified
     updated_date_utc_str = raw_json.get("_updated_date_utc")
