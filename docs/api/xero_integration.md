@@ -2,7 +2,7 @@
 
 ## SSE Stream
 
-**Endpoint**: `GET /rest/xero/sync-stream/?task_id=<uuid>`
+**Endpoint**: `GET /api/xero/sync-stream/?task_id=<uuid>`
 
 **Headers**: `Accept: text/event-stream`
 
@@ -19,7 +19,7 @@ Example event payload:
 
 ## Errors API
 
-**List**: `GET /rest/errors/`
+**List**: `GET /xero-errors/`
 
 Response:
 
@@ -37,4 +37,4 @@ Response:
 ]
 ```
 
-**Detail**: `GET /rest/errors/<uuid>/`
+**Detail**: `GET /xero-errors/<uuid>/`
