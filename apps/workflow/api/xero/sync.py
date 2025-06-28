@@ -25,20 +25,20 @@ from apps.workflow.api.xero.xero import (
     get_token,
     get_xero_items,
 )
+from apps.workflow.exceptions import XeroValidationError
 from apps.workflow.models import (
+    AppError,
     CompanyDefaults,
     XeroAccount,
-    XeroJournal,
-    AppError,
     XeroError,
+    XeroJournal,
 )
-from apps.workflow.utils import get_machine_id
-from apps.workflow.exceptions import XeroValidationError, XeroProcessingError
-from apps.workflow.services.validation import validate_required_fields
 from apps.workflow.services.error_persistence import (
     persist_app_error,
     persist_xero_error,
 )
+from apps.workflow.services.validation import validate_required_fields
+from apps.workflow.utils import get_machine_id
 
 logger = logging.getLogger("xero")
 SLEEP_TIME = 1  # Sleep after every API call to avoid hitting rate limits
@@ -158,6 +158,7 @@ def sync_entities(items, model_class, xero_id_attr, transform_func):
             )
             synced += 1
     return synced
+
 
 # Transform functions
 def _extract_required_fields_xero(doc_type, xero_obj, xero_id):

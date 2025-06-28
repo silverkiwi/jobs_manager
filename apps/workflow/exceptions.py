@@ -13,7 +13,3 @@ class XeroValidationError(Exception):
         self.xero_id = xero_id
         message = f"Missing fields {missing_fields} for {entity} {xero_id}"
         super().__init__(message)
-
-
-class XeroProcessingError(Exception):
-    """Exception raised for other Xero processing failures."""
