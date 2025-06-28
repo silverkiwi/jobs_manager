@@ -680,6 +680,7 @@ def sync_xero_data(
             "severity": "info",
             "message": f"Processed {len(items)} {our_entity_type}",
             "progress": None,
+            "recordsUpdated": len(items),
         }
 
         # Check if done
