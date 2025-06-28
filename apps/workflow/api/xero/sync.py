@@ -692,6 +692,15 @@ def sync_xero_data(
         elif pagination_mode == "offset":
             offset = max(item.journal_number for item in items) + 1
 
+    yield {
+        "datetime": timezone.now().isoformat(),
+        "entity": our_entity_type,
+        "severity": "info",
+        "message": f"Completed sync of {our_entity_type}",
+        "status": "Completed",
+        "progress": 1.0,
+    }
+
 
 # Entity configurations
 ENTITY_CONFIGS = {

@@ -198,10 +198,10 @@ def generate_xero_sync_events():
                     "severity": "info",
                     "message": "Sync stream ended",
                     "progress": 1.0,
-                    "syncStatus": "error" if error_found else "success",
+                    "sync_status": "error" if error_found else "success",
                 }
                 if error_found:
-                    end_payload["errorMessages"] = error_messages
+                    end_payload["error_messages"] = error_messages
                 logger.info(f"[SSE END PAYLOAD] {json.dumps(end_payload)}")
                 yield f"data: {json.dumps(end_payload)}\n\n"
                 break

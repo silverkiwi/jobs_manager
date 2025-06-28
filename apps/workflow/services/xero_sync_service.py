@@ -7,7 +7,7 @@ import uuid
 from django.core.cache import cache
 from django.utils import timezone
 
-from apps.workflow.api.xero.sync import synchronise_xero_data
+from apps.workflow.api.xero.sync import ENTITY_CONFIGS, synchronise_xero_data
 from apps.workflow.api.xero.xero import get_valid_token
 
 logger = logging.getLogger("xero")
@@ -69,18 +69,37 @@ class XeroSyncService:
         messages_key = f"xero_sync_messages_{task_id}"
         current_key = f"xero_sync_current_entity_{task_id}"
         progress_key = f"xero_sync_entity_progress_{task_id}"
+        overall_key = f"xero_sync_overall_progress_{task_id}"
 
         try:
             msgs = cache.get(messages_key, [])
+            processed = 0
+            total_entities = len(ENTITY_CONFIGS)
+
             for message in synchronise_xero_data():
                 message["task_id"] = task_id
+
+                # Always propagate 'entity_progress' if there is 'progress'
+                if "progress" in message and message["progress"] is not None:
+                    message["entity_progress"] = message.pop("progress")
 
                 # Track entity/progress
                 entity = message.get("entity")
                 if entity and entity != "sync":
                     cache.set(current_key, entity, timeout=86400)
-                    if message.get("progress") is not None:
-                        cache.set(progress_key, message["progress"], timeout=86400)
+                    if "entity_progress" in message:
+                        cache.set(
+                            progress_key, message["entity_progress"], timeout=86400
+                        )
+                    if message.get("status") == "Completed":
+                        processed += 1
+
+                overall = processed / total_entities if total_entities > 0 else 0.0
+                message["overall_progress"] = round(overall, 3)
+                cache.set(overall_key, overall, timeout=86400)
+
+                if "recordsUpdated" in message:
+                    message["records_updated"] = message["recordsUpdated"]
 
                 msgs.append(message)
                 cache.set(messages_key, msgs, timeout=86400)
@@ -92,7 +111,9 @@ class XeroSyncService:
                     "entity": "sync",
                     "severity": "info",
                     "message": "Sync stream ended",
-                    "progress": 1.0,
+                    "overall_progress": 1.0,
+                    "entity_progress": 1.0,
+                    "sync_status": "success",
                     "task_id": task_id,
                 }
             )
