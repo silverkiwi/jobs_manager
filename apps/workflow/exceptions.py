@@ -1,4 +1,12 @@
 class XeroValidationError(Exception):
+    """Exception raised when a Xero object is missing required fields.
+
+    Args:
+        missing_fields: Names of the missing attributes.
+        entity: The entity type, such as "invoice".
+        xero_id: Identifier for the record in Xero.
+    """
+
     def __init__(self, missing_fields, entity, xero_id):
         self.missing_fields = missing_fields
         self.entity = entity
@@ -8,4 +16,4 @@ class XeroValidationError(Exception):
 
 
 class XeroProcessingError(Exception):
-    pass
+    """Exception raised for other Xero processing failures."""

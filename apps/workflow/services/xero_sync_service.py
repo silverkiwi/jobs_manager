@@ -14,21 +14,17 @@ logger = logging.getLogger("xero")
 
 
 class XeroSyncService:
-    """
-    Service to handle Xero synchronization as a background process.
-    Ensures only one sync runs at a time via a cache-based lock.
-    """
+    """Background service that manages Xero synchronisation threads."""
 
     LOCK_TIMEOUT = 60 * 60 * 4  # 4 hours
     SYNC_STATUS_KEY = "xero_sync_status"
 
     @staticmethod
     def start_sync():
-        """
-        Start a new Xero sync directly.
-        Returns a tuple of (task_id, is_new) where:
-        - task_id: The ID of the sync task or None if failed to start
-        - is_new: True if a new sync was started, False if one was already running
+        """Launch a sync thread if none is running.
+
+        Returns:
+            tuple[str | None, bool]: (task_id, started)
         """
         task_id = str(uuid.uuid4())
         # Atomic lock acquire and store task ID
@@ -69,10 +65,7 @@ class XeroSyncService:
 
     @staticmethod
     def run_sync(task_id):
-        """
-        Execute the Xero sync process and store progress messages.
-        Releases lock on completion.
-        """
+        """Execute the sync and record messages under ``task_id``."""
         messages_key = f"xero_sync_messages_{task_id}"
         current_key = f"xero_sync_current_entity_{task_id}"
         progress_key = f"xero_sync_entity_progress_{task_id}"
@@ -148,19 +141,21 @@ class XeroSyncService:
 
     @staticmethod
     def get_messages(task_id, since_index=0):
+        """Return sync messages for ``task_id`` starting from ``since_index``."""
         msgs = cache.get(f"xero_sync_messages_{task_id}", [])
         return msgs[since_index:] if since_index < len(msgs) else []
 
     @staticmethod
     def get_current_entity(task_id):
+        """Get the entity currently being processed for ``task_id``."""
         return cache.get(f"xero_sync_current_entity_{task_id}")
 
     @staticmethod
     def get_entity_progress(task_id):
+        """Retrieve progress (0.0-1.0) for ``task_id``."""
         return cache.get(f"xero_sync_entity_progress_{task_id}", 0.0)
 
     @staticmethod
     def get_active_task_id():
-        return cache.get(
-            XeroSyncService.SYNC_STATUS_KEY
-        )  # Retrieve active task ID directly from the status key
+        """Return the task ID of the running sync if any."""
+        return cache.get(XeroSyncService.SYNC_STATUS_KEY)

@@ -4,6 +4,8 @@ from django.db import models
 
 
 class AppError(models.Model):
+    """Persistent record of an application error."""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     timestamp = models.DateTimeField(auto_now_add=True)
     message = models.TextField()
@@ -17,6 +19,8 @@ class AppError(models.Model):
 
 
 class XeroError(AppError):
+    """Specialised error raised during Xero synchronisation."""
+
     entity = models.CharField(max_length=100)
     reference_id = models.CharField(max_length=255)
     kind = models.CharField(max_length=50)

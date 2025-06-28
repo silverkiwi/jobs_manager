@@ -34,6 +34,11 @@ from apps.workflow.models import (
 )
 from apps.workflow.utils import get_machine_id
 from apps.workflow.exceptions import XeroValidationError, XeroProcessingError
+from apps.workflow.services.validation import validate_required_fields
+from apps.workflow.services.error_persistence import (
+    persist_app_error,
+    persist_xero_error,
+)
 
 logger = logging.getLogger("xero")
 SLEEP_TIME = 1  # Sleep after every API call to avoid hitting rate limits
@@ -144,10 +149,7 @@ def sync_entities(items, model_class, xero_id_attr, transform_func):
 
 # Transform functions
 def _extract_required_fields_xero(doc_type, xero_obj, xero_id):
-    """
-    Extracts and validates all required fields for Invoice, Bill, or CreditNote from a Xero object.
-    Returns a dict with the required fields or None if any required field is missing (with logging).
-    """
+    """Return mandatory fields for an invoice-like Xero object."""
     # Map doc_type to field names
     match doc_type:
         case "invoice":
@@ -179,9 +181,7 @@ def _extract_required_fields_xero(doc_type, xero_obj, xero_id):
         "xero_last_modified": xero_last_modified,
         "raw_json": raw_json,
     }
-    missing = [f for f, v in required_fields.items() if v is None]
-    if missing:
-        raise XeroValidationError(missing, doc_type, xero_id)
+    validate_required_fields(required_fields, doc_type, xero_id)
     return required_fields
 
 
@@ -246,10 +246,10 @@ def transform_credit_note(xero_note, xero_id):
 
 
 def transform_journal(xero_journal, xero_id):
+    """Transform Xero journal to ``XeroJournal`` model."""
     journal_date = getattr(xero_journal, "journal_date", None)
     raw_json = process_xero_data(xero_journal)
-    if not journal_date:
-        raise XeroValidationError(["journal_date"], "journal", xero_id)
+    validate_required_fields({"journal_date": journal_date}, "journal", xero_id)
     journal, created = XeroJournal.objects.get_or_create(
         xero_id=xero_id,
         defaults={
@@ -272,17 +272,16 @@ def transform_stock(xero_item, xero_id):
     xero_last_modified = getattr(xero_item, "updated_date_utc", None)
     raw_json = process_xero_data(xero_item)
 
-    missing = []
-    if not item_code:
-        missing.append("code")
-    if not description:
-        missing.append("name")
-    if quantity is None:
-        missing.append("quantity_on_hand")
-    if not xero_last_modified:
-        missing.append("updated_date_utc")
-    if missing:
-        raise XeroValidationError(missing, "item", xero_id)
+    validate_required_fields(
+        {
+            "code": item_code,
+            "name": description,
+            "quantity_on_hand": quantity,
+            "updated_date_utc": xero_last_modified,
+        },
+        "item",
+        xero_id,
+    )
 
     defaults = {
         "item_code": item_code,
@@ -314,8 +313,7 @@ def transform_quote(xero_quote, xero_id):
 
     status_data = raw_json.get("_status", {})
     status = status_data.get("_value_") if isinstance(status_data, dict) else None
-    if not status:
-        raise XeroValidationError(["status"], "quote", xero_id)
+    validate_required_fields({"status": status}, "quote", xero_id)
 
     quote, _ = Quote.objects.update_or_create(
         xero_id=xero_id,
@@ -352,15 +350,15 @@ def transform_purchase_order(xero_po, xero_id):
     status = getattr(xero_po, "status", None)
     xero_last_modified = getattr(xero_po, "updated_date_utc", None)
     raw_json = process_xero_data(xero_po)
-    missing = []
-    if not po_number:
-        missing.append("purchase_order_number")
-    if not order_date:
-        missing.append("date")
-    if not status:
-        missing.append("status")
-    if missing:
-        raise XeroValidationError(missing, "purchase_order", xero_id)
+    validate_required_fields(
+        {
+            "purchase_order_number": po_number,
+            "date": order_date,
+            "status": status,
+        },
+        "purchase_order",
+        xero_id,
+    )
     po, created = PurchaseOrder.objects.get_or_create(
         xero_id=xero_id,
         defaults={
@@ -551,13 +549,7 @@ def sync_xero_data(
             try:
                 sync_function([item])
             except XeroValidationError as e:
-                XeroError.objects.create(
-                    message=str(e),
-                    data={"missing_fields": e.missing_fields},
-                    entity=e.entity,
-                    reference_id=e.xero_id,
-                    kind="Xero",
-                )
+                persist_xero_error(e)
                 yield {
                     "datetime": timezone.now().isoformat(),
                     "severity": "error",
@@ -566,9 +558,7 @@ def sync_xero_data(
                 }
                 continue
             except Exception as e:
-                AppError.objects.create(
-                    message=str(e), data={"trace": traceback.format_exc()}
-                )
+                persist_app_error(e)
                 yield {
                     "datetime": timezone.now().isoformat(),
                     "severity": "error",
@@ -755,7 +745,7 @@ def deep_sync_xero_data(days_back=30, entities=None):
 
 
 def synchronise_xero_data(delay_between_requests=1):
-    """Main entry point for bidirectional sync"""
+    """Yield progress events while performing a full Xero synchronisation."""
     if not cache.add("xero_sync_lock", True, timeout=60 * 60 * 4):
         logger.info("Skipping sync - another sync is running")
         yield {
