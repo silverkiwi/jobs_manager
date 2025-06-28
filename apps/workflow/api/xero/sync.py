@@ -149,7 +149,16 @@ def sync_entities(items, model_class, xero_id_attr, transform_func):
 
 # Transform functions
 def _extract_required_fields_xero(doc_type, xero_obj, xero_id):
-    """Return mandatory fields for an invoice-like Xero object."""
+    """Gather required values from a Xero document.
+
+    Args:
+        doc_type: Name of the document type.
+        xero_obj: Object returned from Xero.
+        xero_id: Identifier of the Xero object.
+
+    Returns:
+        Mapping of required field names to values.
+    """
     # Map doc_type to field names
     match doc_type:
         case "invoice":
@@ -186,7 +195,15 @@ def _extract_required_fields_xero(doc_type, xero_obj, xero_id):
 
 
 def transform_invoice(xero_invoice, xero_id):
-    """Transform Xero invoice to our Invoice model"""
+    """Convert a Xero invoice into an Invoice instance.
+
+    Args:
+        xero_invoice: Invoice object from Xero.
+        xero_id: Identifier of the invoice in Xero.
+
+    Returns:
+        The saved Invoice model.
+    """
     fields = _extract_required_fields_xero("invoice", xero_invoice, xero_id)
     if not fields:
         return None
@@ -206,7 +223,15 @@ def transform_invoice(xero_invoice, xero_id):
 
 
 def transform_bill(xero_bill, xero_id):
-    """Transform Xero bill to our Bill model"""
+    """Convert a Xero bill into a Bill instance.
+
+    Args:
+        xero_bill: Bill object from Xero.
+        xero_id: Identifier of the bill in Xero.
+
+    Returns:
+        The saved Bill model.
+    """
     fields = _extract_required_fields_xero("bill", xero_bill, xero_id)
     if not fields:
         return None
@@ -226,7 +251,15 @@ def transform_bill(xero_bill, xero_id):
 
 
 def transform_credit_note(xero_note, xero_id):
-    """Transform Xero credit note to our CreditNote model"""
+    """Convert a Xero credit note into a CreditNote instance.
+
+    Args:
+        xero_note: Credit note object from Xero.
+        xero_id: Identifier of the credit note in Xero.
+
+    Returns:
+        The saved CreditNote model.
+    """
     fields = _extract_required_fields_xero("credit_note", xero_note, xero_id)
     if not fields:
         return None
@@ -246,7 +279,15 @@ def transform_credit_note(xero_note, xero_id):
 
 
 def transform_journal(xero_journal, xero_id):
-    """Transform Xero journal to ``XeroJournal`` model."""
+    """Convert a Xero journal into a XeroJournal instance.
+
+    Args:
+        xero_journal: Journal object from Xero.
+        xero_id: Identifier of the journal in Xero.
+
+    Returns:
+        The saved XeroJournal model.
+    """
     journal_date = getattr(xero_journal, "journal_date", None)
     raw_json = process_xero_data(xero_journal)
     validate_required_fields({"journal_date": journal_date}, "journal", xero_id)
@@ -264,7 +305,15 @@ def transform_journal(xero_journal, xero_id):
 
 
 def transform_stock(xero_item, xero_id):
-    """Transform Xero item to our Stock model"""
+    """Convert a Xero item into a Stock instance.
+
+    Args:
+        xero_item: Item object from Xero.
+        xero_id: Identifier of the item in Xero.
+
+    Returns:
+        The saved Stock model.
+    """
     item_code = getattr(xero_item, "code", None)
     description = getattr(xero_item, "name", None)
     notes = getattr(xero_item, "description", None)
@@ -307,7 +356,15 @@ def transform_stock(xero_item, xero_id):
 
 
 def transform_quote(xero_quote, xero_id):
-    """Transform Xero quote to our Quote model"""
+    """Convert a Xero quote into a Quote instance.
+
+    Args:
+        xero_quote: Quote object from Xero.
+        xero_id: Identifier of the quote in Xero.
+
+    Returns:
+        The saved Quote model.
+    """
     client = get_or_fetch_client(xero_quote.contact.contact_id, f"quote {xero_id}")
     raw_json = process_xero_data(xero_quote)
 
@@ -333,7 +390,15 @@ def transform_quote(xero_quote, xero_id):
 
 
 def transform_purchase_order(xero_po, xero_id):
-    """Transform Xero purchase order to our PurchaseOrder model"""
+    """Convert a Xero purchase order into a PurchaseOrder instance.
+
+    Args:
+        xero_po: Purchase order object from Xero.
+        xero_id: Identifier of the purchase order in Xero.
+
+    Returns:
+        The saved PurchaseOrder model.
+    """
     status_map = {
         "DRAFT": "draft",
         "SUBMITTED": "submitted",
@@ -466,6 +531,44 @@ def get_last_modified_time(model):
     return "2000-01-01T00:00:00Z"
 
 
+def process_xero_item(item, sync_function, entity_type):
+    """Process one Xero item and return an event.
+
+    Args:
+        item: Xero object to sync.
+        sync_function: Callable that saves the item.
+        entity_type: Name of the entity for event messages.
+
+    Returns:
+        Tuple of success flag and event dictionary.
+    """
+    try:
+        sync_function([item])
+    except XeroValidationError as exc:
+        persist_xero_error(exc)
+        return False, {
+            "datetime": timezone.now().isoformat(),
+            "severity": "error",
+            "message": str(exc),
+            "progress": None,
+        }
+    except Exception as exc:
+        persist_app_error(exc)
+        return False, {
+            "datetime": timezone.now().isoformat(),
+            "severity": "error",
+            "message": "Unexpected: " + str(exc),
+            "progress": None,
+        }
+    return True, {
+        "datetime": timezone.now().isoformat(),
+        "entity": entity_type,
+        "severity": "info",
+        "message": f"Synced {entity_type}",
+        "progress": None,
+    }
+
+
 def sync_xero_data(
     xero_entity_type,
     our_entity_type,
@@ -476,7 +579,21 @@ def sync_xero_data(
     pagination_mode="single",
     xero_tenant_id=None,
 ):
-    """Sync data from Xero with pagination support."""
+    """Sync data from Xero with pagination support.
+
+    Args:
+        xero_entity_type: Name of the Xero collection.
+        our_entity_type: Local entity name for messages.
+        xero_api_fetch_function: API call used to fetch data.
+        sync_function: Function that persists items.
+        last_modified_time: Timestamp for incremental fetches.
+        additional_params: Extra parameters for the API call.
+        pagination_mode: Offset or page pagination style.
+        xero_tenant_id: Optional tenant identifier.
+
+    Yields:
+        Progress or error events as dictionaries.
+    """
 
     if xero_tenant_id is None:
         xero_tenant_id = get_tenant_id()
@@ -546,27 +663,10 @@ def sync_xero_data(
             break
 
         for item in items:
-            try:
-                sync_function([item])
-            except XeroValidationError as e:
-                persist_xero_error(e)
-                yield {
-                    "datetime": timezone.now().isoformat(),
-                    "severity": "error",
-                    "message": str(e),
-                    "progress": None,
-                }
-                continue
-            except Exception as e:
-                persist_app_error(e)
-                yield {
-                    "datetime": timezone.now().isoformat(),
-                    "severity": "error",
-                    "message": "Unexpected: " + str(e),
-                    "progress": None,
-                }
-                continue
-            total_processed += 1
+            success, event = process_xero_item(item, sync_function, our_entity_type)
+            if success:
+                total_processed += 1
+            yield event
 
         yield {
             "datetime": timezone.now().isoformat(),
