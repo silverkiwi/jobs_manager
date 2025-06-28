@@ -16,6 +16,13 @@ logger = logging.getLogger("xero")
 class XeroSyncService:
     """Background service that manages Xero synchronisation threads."""
 
+    def __init__(self, tenant_id: str | None = None):
+        """Only used by webhooks. For full sync routine, we keep the static methods."""
+        if tenant_id is None:
+            tenant_id = cache.get("xero_tenant_id")
+        self.tenant_id = tenant_id
+        self.token = get_valid_token()
+
     LOCK_TIMEOUT = 60 * 60 * 4  # 4 hours
     SYNC_STATUS_KEY = "xero_sync_status"
 
