@@ -46,6 +46,8 @@ def serialize_validation_report(
     Returns:
         Dictionary representation or None
     """
+
+    # ValidationReport is optional in several functions and returning it as None simply means that we didn't have any problems.
     if validation_report is None:
         return None
 

@@ -46,14 +46,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class StaffSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
-        # Corrige groups e user_permissions enviados como [''] para lista vazia
-        data = data.copy()  # QueryDict pode ser imutável
+        data = data.copy()  # QueryDict can be immutable, so we copy it
         for field in ["groups", "user_permissions"]:
-            value = data.getlist(field) if hasattr(data, "getlist") else data.get(field)
+            # Usually it comes as a QueryDict so we can use getlist directly without hasattr
+            value = data.getlist(field)
             if value == [""]:
-                data.setlist(field, []) if hasattr(data, "setlist") else data.update(
-                    {field: []}
-                )
+                data.setlist(field, [])
         return super().to_internal_value(data)
 
     def validate(self, attrs):
