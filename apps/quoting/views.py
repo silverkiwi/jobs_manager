@@ -413,9 +413,9 @@ def search_supplier_prices_api(request):
                 {
                     "product_name": product.product_name,
                     "supplier_name": product.supplier.name,
-                    "price": (
-                        float(product.variant_price) if product.variant_price else None
-                    ),
+                    "price": float(product.variant_price)
+                    if product.variant_price
+                    else None,
                     "available_stock": product.variant_available_stock,
                     "price_unit": product.price_unit or "each",
                     "metal_type": product.parsed_metal_type or "",
@@ -506,15 +506,15 @@ def job_context_api(request, job_id):
                 existing_materials.append(
                     {
                         "description": cost_line.desc,
-                        "quantity": (
-                            float(cost_line.quantity) if cost_line.quantity else 0.0
-                        ),
-                        "unit_cost": (
-                            float(cost_line.unit_cost) if cost_line.unit_cost else 0.0
-                        ),
-                        "notes": (
-                            cost_line.meta.get("notes", "") if cost_line.meta else ""
-                        ),
+                        "quantity": float(cost_line.quantity)
+                        if cost_line.quantity
+                        else 0.0,
+                        "unit_cost": float(cost_line.unit_cost)
+                        if cost_line.unit_cost
+                        else 0.0,
+                        "notes": cost_line.meta.get("notes", "")
+                        if cost_line.meta
+                        else "",
                     }
                 )
 
