@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
     statusFilter.addEventListener('change', filterMappings);
     metalTypeFilter.addEventListener('change', filterMappings);
     xeroStatusFilter.addEventListener('change', filterMappings);
-    
+
     clearFilters.addEventListener('click', function() {
         searchInput.value = '';
         statusFilter.value = '';
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const mappingId = this.dataset.mappingId;
             const form = document.querySelector(`.mapping-form[data-mapping-id="${mappingId}"]`);
             const formData = new FormData(form);
-            
+
             // Add CSRF token
             formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
 
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Focus search input on page load
     searchInput.focus();
-    
+
     // Initial filter application
     filterMappings();
 });

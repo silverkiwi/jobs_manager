@@ -12,18 +12,18 @@ def migrate_contact_data(apps, schema_editor):
     Migrate existing contact data from Job model to ClientContact model.
     Creates ClientContact records for all jobs that have contact information.
     """
-    Job = apps.get_model('job', 'Job')
-    ClientContact = apps.get_model('client', 'ClientContact')
+    Job = apps.get_model("job", "Job")
+    ClientContact = apps.get_model("client", "ClientContact")
 
-    jobs_with_contacts = Job.objects.filter(
-        models.Q(contact_person__isnull=False) |
-        models.Q(contact_phone__isnull=False) |
-        models.Q(contact_email__isnull=False)
-    ).exclude(
-        contact_person='',
-        contact_phone='',
-        contact_email=''
-    ).select_related('client')
+    jobs_with_contacts = (
+        Job.objects.filter(
+            models.Q(contact_person__isnull=False)
+            | models.Q(contact_phone__isnull=False)
+            | models.Q(contact_email__isnull=False)
+        )
+        .exclude(contact_person="", contact_phone="", contact_email="")
+        .select_related("client")
+    )
 
     created_contacts = {}  # Cache to avoid duplicates
     migrated_count = 0
@@ -31,15 +31,16 @@ def migrate_contact_data(apps, schema_editor):
     for job in jobs_with_contacts:
         if not job.client:
             logger.warning(
-                f"Job {job.job_number} has contact info but no client - skipping")
+                f"Job {job.job_number} has contact info but no client - skipping"
+            )
             continue
 
         # Create a key for caching based on client and contact details
         cache_key = (
             job.client_id,
-            job.contact_person or '',
-            job.contact_phone or '',
-            job.contact_email or ''
+            job.contact_person or "",
+            job.contact_phone or "",
+            job.contact_email or "",
         )
 
         if cache_key in created_contacts:
@@ -49,9 +50,9 @@ def migrate_contact_data(apps, schema_editor):
             # Check if a similar contact already exists
             existing_contact = ClientContact.objects.filter(
                 client=job.client,
-                name=job.contact_person or '',
-                phone=job.contact_phone or '',
-                email=job.contact_email or ''
+                name=job.contact_person or "",
+                phone=job.contact_phone or "",
+                email=job.contact_email or "",
             ).first()
 
             if existing_contact:
@@ -60,43 +61,50 @@ def migrate_contact_data(apps, schema_editor):
                 # Create new contact
                 contact = ClientContact.objects.create(
                     client=job.client,
-                    name=job.contact_person or '',
-                    phone=job.contact_phone or '',
-                    email=job.contact_email or '',
-                    is_primary=False  # We'll set primary contacts in a separate step
+                    name=job.contact_person or "",
+                    phone=job.contact_phone or "",
+                    email=job.contact_email or "",
+                    is_primary=False,  # We'll set primary contacts in a separate step
                 )
                 logger.info(
-                    f"Created contact '{contact.name}' for client '{job.client.name}'")
+                    f"Created contact '{contact.name}' for client '{job.client.name}'"
+                )
 
             created_contacts[cache_key] = contact
 
         # Link the job to the contact
         job.contact = contact
-        job.save(update_fields=['contact'])
+        job.save(update_fields=["contact"])
         migrated_count += 1
 
     logger.info(f"Migrated contact data for {migrated_count} jobs")
 
     # Set primary contacts for each client (the most recently used contact)
     from django.db.models import Count, Max
-    clients_with_contacts = ClientContact.objects.values('client').annotate(
-        contact_count=Count('id')
-    ).filter(contact_count__gt=0)
+
+    clients_with_contacts = (
+        ClientContact.objects.values("client")
+        .annotate(contact_count=Count("id"))
+        .filter(contact_count__gt=0)
+    )
 
     for client_data in clients_with_contacts:
         # Get the contact that was most recently used on a job
-        latest_contact = ClientContact.objects.filter(
-            client_id=client_data['client']
-        ).annotate(
-            latest_job_date=Max('jobs__created_at')
-        ).order_by('-latest_job_date').first()
+        latest_contact = (
+            ClientContact.objects.filter(client_id=client_data["client"])
+            .annotate(latest_job_date=Max("jobs__created_at"))
+            .order_by("-latest_job_date")
+            .first()
+        )
 
-        if latest_contact and not ClientContact.objects.filter(
-            client_id=client_data['client'],
-            is_primary=True
-        ).exists():
+        if (
+            latest_contact
+            and not ClientContact.objects.filter(
+                client_id=client_data["client"], is_primary=True
+            ).exists()
+        ):
             latest_contact.is_primary = True
-            latest_contact.save(update_fields=['is_primary'])
+            latest_contact.save(update_fields=["is_primary"])
             logger.info(f"Set '{latest_contact.name}' as primary contact for client")
 
 
@@ -104,25 +112,25 @@ def reverse_migration(apps, schema_editor):
     """
     Reverse the migration by copying data back from ClientContact to Job fields.
     """
-    Job = apps.get_model('job', 'Job')
+    Job = apps.get_model("job", "Job")
 
-    jobs_with_contacts = Job.objects.filter(
-        contact__isnull=False).select_related('contact')
+    jobs_with_contacts = Job.objects.filter(contact__isnull=False).select_related(
+        "contact"
+    )
 
     for job in jobs_with_contacts:
         job.contact_person = job.contact.name
         job.contact_phone = job.contact.phone
         job.contact_email = job.contact.email
-        job.save(update_fields=['contact_person', 'contact_phone', 'contact_email'])
+        job.save(update_fields=["contact_person", "contact_phone", "contact_email"])
 
     logger.info(f"Reversed contact data for {jobs_with_contacts.count()} jobs")
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('job', '0016_add_contact_foreignkey'),
-        ('client', '0002_clientcontact'),
+        ("job", "0016_add_contact_foreignkey"),
+        ("client", "0002_clientcontact"),
     ]
 
     operations = [

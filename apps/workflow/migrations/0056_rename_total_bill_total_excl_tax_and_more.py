@@ -4,10 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0055_alter_historicaljob_description_and_more"),
     ]
 
-    operations = [
-    ]
+    operations = []

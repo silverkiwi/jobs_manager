@@ -12,11 +12,11 @@
 
 **In Stock:**
 - We have 45m available at $12.50/m (cost $8.30/m) - Location: Rack A3
-- 23m at $11.80/m (cost $7.90/m) - Location: Yard 
+- 23m at $11.80/m (cost $7.90/m) - Location: Yard
 
 **Supplier Pricing:**
 - Steel Solutions: 50m available at $7.20/m (6m lengths)
-- Metro Steel: 100m+ available at $6.95/m (12m lengths) 
+- Metro Steel: 100m+ available at $6.95/m (12m lengths)
 - Aussie Steel: Out of stock, ETA 2 weeks
 
 You need 50m total. Options:
@@ -29,10 +29,10 @@ You need 50m total. Options:
 **Assistant**: "For 25x25x3mm 304 stainless angle:
 
 **In Stock:**
-- 12m available at $45.20/m (cost $32.80/m) - Location: SS Rack 
+- 12m available at $45.20/m (cost $32.80/m) - Location: SS Rack
 
 **Supplier Pricing:**
-- Stainless Supplies: 25m available at $28.50/m 
+- Stainless Supplies: 25m available at $28.50/m
 - AllSteel: 50m+ available at $31.20/m
 - Steel Solutions: Don't stock stainless angle
 
@@ -90,7 +90,7 @@ jlh0vGbiAcpP0w1zabvvbcVLdalN0ojKNAs_E05Xl7nVRrkEnDcFFARwIFIIKRKw
   "supplier_prices": [
     {
       "product_name": "25x25x3mm Steel Angle 6m lengths",
-      "supplier_name": "Steel Solutions", 
+      "supplier_name": "Steel Solutions",
       "price": 7.20,
       "available_stock": 50,
       "price_unit": "per metre",
@@ -128,7 +128,7 @@ jlh0vGbiAcpP0w1zabvvbcVLdalN0ojKNAs_E05Xl7nVRrkEnDcFFARwIFIIKRKw
 {
   "similar_quotes": [
     {
-      "job_name": "Johnson Warehouse Extension", 
+      "job_name": "Johnson Warehouse Extension",
       "client_name": "Johnson Construction",
       "quote_date": "2024-03-15",
       "materials_summary": "Steel angle framing, 60m @ $12.80/m",

@@ -8,10 +8,9 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('client', '0001_initial'),
-        ('job', '0010_populate_priority_for_existing_jobs'),
+        ("client", "0001_initial"),
+        ("job", "0010_populate_priority_for_existing_jobs"),
     ]
 
     operations = [
@@ -109,7 +108,7 @@ class Migration(migrations.Migration):
                         ),
                     ],
                     options={
-                        'db_table': 'workflow_purchaseorder',
+                        "db_table": "workflow_purchaseorder",
                     },
                 ),
                 migrations.CreateModel(
@@ -229,7 +228,7 @@ class Migration(migrations.Migration):
                         ),
                     ],
                     options={
-                        'db_table': 'workflow_purchaseorderline',
+                        "db_table": "workflow_purchaseorderline",
                     },
                 ),
                 migrations.CreateModel(
@@ -274,10 +273,10 @@ class Migration(migrations.Migration):
                         ),
                     ],
                     options={
-                        'db_table': 'workflow_purchaseordersupplierquote',
+                        "db_table": "workflow_purchaseordersupplierquote",
                     },
                 ),
             ],
-            database_operations=[]  # No database operations - tables already exist
+            database_operations=[],  # No database operations - tables already exist
         )
     ]

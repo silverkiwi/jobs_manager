@@ -28,7 +28,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label for="searchInput" class="form-label">Search Descriptions</label>
-                            <input type="text" id="searchInput" class="form-control" 
+                            <input type="text" id="searchInput" class="form-control"
                                    placeholder="🔍 Type to search descriptions instantly..." autocomplete="off">
                         </div>
                         <div class="col-md-2">
@@ -73,12 +73,12 @@
             <!-- Mappings List -->
             <div id="mappings-container">
                 {% for mapping in all_mappings %}
-                <div class="mapping-card" 
-                     data-validated="{{ mapping.is_validated|yesno:'true,false' }}" 
+                <div class="mapping-card"
+                     data-validated="{{ mapping.is_validated|yesno:'true,false' }}"
                      data-metal-type="{{ mapping.mapped_metal_type|default:'' }}"
                      data-xero-status="{{ mapping.item_code_is_in_xero|yesno:'in_xero,new_item' }}"
                      data-search-text="{{ mapping.mapped_description|default:'' }} {{ mapping.input_data.product_name|default:'' }} {{ mapping.input_data.description|default:'' }} {{ mapping.mapped_item_code|default:'' }} {{ mapping.input_data.supplier_name|default:'' }}">
-                    
+
                     <div class="mapping-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
@@ -139,7 +139,7 @@
                                         <div class="mb-2">
                                             <label class="form-label">Item Code</label>
                                             <div class="input-group">
-                                                <input type="text" name="mapped_item_code" class="form-control form-control-sm" 
+                                                <input type="text" name="mapped_item_code" class="form-control form-control-sm"
                                                        value="{{ mapping.mapped_item_code|default:'' }}">
                                                 <span class="input-group-text">
                                                     {% if mapping.item_code_is_in_xero %}
@@ -156,7 +156,7 @@
                                         </div>
                                         <div class="mb-2">
                                             <label class="form-label">Description</label>
-                                            <input type="text" name="mapped_description" class="form-control form-control-sm" 
+                                            <input type="text" name="mapped_description" class="form-control form-control-sm"
                                                    value="{{ mapping.mapped_description|default:'' }}">
                                         </div>
                                         <div class="row">
@@ -176,13 +176,13 @@
                                             </div>
                                             <div class="col-6">
                                                 <label class="form-label">Alloy</label>
-                                                <input type="text" name="mapped_alloy" class="form-control form-control-sm" 
+                                                <input type="text" name="mapped_alloy" class="form-control form-control-sm"
                                                        value="{{ mapping.mapped_alloy|default:'' }}">
                                             </div>
                                         </div>
                                         <div class="mb-2">
                                             <label class="form-label">Specifics</label>
-                                            <input type="text" name="mapped_specifics" class="form-control form-control-sm" 
+                                            <input type="text" name="mapped_specifics" class="form-control form-control-sm"
                                                    value="{{ mapping.mapped_specifics|default:'' }}">
                                         </div>
                                         <div class="mb-3">
@@ -199,11 +199,11 @@
                                         </button>
                                     {% else %}
                                         <span class="text-success">
-                                            <i class="bi bi-check-circle-fill"></i> 
+                                            <i class="bi bi-check-circle-fill"></i>
                                             Validated by {{ mapping.validated_by.get_full_name|default:mapping.validated_by.email }}
                                         </span>
                                     {% endif %}
-                                    <button class="btn btn-outline-secondary btn-sm ms-2" type="button" 
+                                    <button class="btn btn-outline-secondary btn-sm ms-2" type="button"
                                             data-bs-toggle="collapse" data-bs-target="#llm-response-{{ mapping.id }}">
                                         View LLM Response
                                     </button>

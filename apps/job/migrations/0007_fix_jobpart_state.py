@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("job", "0007_add_materialentry_add_adjustmententry"),
     ]

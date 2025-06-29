@@ -133,13 +133,13 @@ npm install
     ```bash
     # Load essential company configuration
     python manage.py loaddata apps/workflow/fixtures/company_defaults.json
-    
+
     # EITHER
     # Load demo data for development (optional - skip if restoring production data)
     python manage.py loaddata apps/workflow/fixtures/initial_data.json
     # OR...  restore from prod
     python manage.py backport_data_restore
-    
+
     ```
     **Default Admin Credentials (from initial_data.json):**
     *   **Username:** `defaultadmin@example.com`
@@ -190,7 +190,7 @@ npm install
 **Before proceeding with the development setup, you must create a specific contact in Xero:**
 
 1. **Log into Xero Demo Company:** After authorization, log into your Xero Demo Company account at [https://go.xero.com/](https://go.xero.com/).
-2. **Create Shop Contact:** 
+2. **Create Shop Contact:**
    - Navigate to Contacts → Add Contact
    - Name: `Demo Company Shop` (exactly this name - case sensitive)
    - This contact represents internal shop work/maintenance jobs

@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0162_alter_companydefaults_gdrive_quotes_folder_id_and_more"),
     ]

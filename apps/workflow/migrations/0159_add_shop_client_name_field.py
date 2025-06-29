@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0158_delete_bill_delete_billlineitem_delete_creditnote_and_more"),
     ]

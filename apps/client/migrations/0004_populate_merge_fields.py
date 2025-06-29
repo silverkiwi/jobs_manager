@@ -11,7 +11,7 @@ def populate_merge_fields(apps, schema_editor):
     Process all existing clients to populate the new merge tracking fields
     from their raw_json data.
     """
-    Client = apps.get_model('client', 'Client')
+    Client = apps.get_model("client", "Client")
 
     updated_count = 0
     archived_count = 0
@@ -50,7 +50,9 @@ def populate_merge_fields(apps, schema_editor):
     # Second pass: resolve merge references
     resolved_count = 0
 
-    for client in Client.objects.filter(xero_merged_into_id__isnull=False, merged_into__isnull=True):
+    for client in Client.objects.filter(
+        xero_merged_into_id__isnull=False, merged_into__isnull=True
+    ):
         # Find the client this was merged into
         merged_into_client = Client.objects.filter(
             xero_contact_id=client.xero_merged_into_id
@@ -69,20 +71,17 @@ def reverse_populate_merge_fields(apps, schema_editor):
     """
     Clear the merge fields (reverse migration).
     """
-    Client = apps.get_model('client', 'Client')
+    Client = apps.get_model("client", "Client")
 
     # Clear all merge-related fields
     Client.objects.update(
-        xero_archived=False,
-        xero_merged_into_id=None,
-        merged_into=None
+        xero_archived=False, xero_merged_into_id=None, merged_into=None
     )
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('client', '0003_add_xero_merge_tracking'),
+        ("client", "0003_add_xero_merge_tracking"),
     ]
 
     operations = [

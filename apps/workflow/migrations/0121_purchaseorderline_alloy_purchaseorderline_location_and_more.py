@@ -4,10 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0120_add_purchase_order_deleted_status"),
     ]
 
-    operations = [
-    ]
+    operations = []

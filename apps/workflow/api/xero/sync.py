@@ -567,9 +567,15 @@ def sync_all_xero_data(use_latest_timestamps=True, days_back=30, entities=None):
             logger.error(f"Unknown entity type: {entity}")
             continue
 
-        xero_type, our_type, model, api_method, sync_func, params, pagination = (
-            ENTITY_CONFIGS[entity]
-        )
+        (
+            xero_type,
+            our_type,
+            model,
+            api_method,
+            sync_func,
+            params,
+            pagination,
+        ) = ENTITY_CONFIGS[entity]
 
         # Get API function
         if api_method == "get_xero_items":

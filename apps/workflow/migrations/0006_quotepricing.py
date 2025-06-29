@@ -4,11 +4,9 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0005_remove_companydefaults_id_and_more"),
         ("job", "0001_initial"),
     ]
 
-    operations = [
-    ]
+    operations = []

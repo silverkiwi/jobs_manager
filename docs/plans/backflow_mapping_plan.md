@@ -30,10 +30,10 @@ Modify the `validate_mapping` view to update all related SupplierProduct records
 ```python
 def validate_mapping(request):
     # ... existing validation logic ...
-    
+
     # After saving validated mapping
     mapping.save()
-    
+
     # Update all SupplierProducts using this mapping
     SupplierProduct.objects.filter(mapping_hash=mapping.input_hash).update(
         parsed_item_code=mapping.mapped_item_code,

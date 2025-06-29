@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("quoting", "0001_initial"),
         ("workflow", "0151_remove_purchaseline_purchase_and_more"),
