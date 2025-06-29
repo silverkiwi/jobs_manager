@@ -4,10 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0112_remove_purchaseline_purchase_and_more"),
     ]
 
-    operations = [
-    ]
+    operations = []

@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0098_alter_historicalstaff_ims_payroll_id_and_more"),
     ]

@@ -4,10 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0018_rename_cost_adjustmententry_cost_adjustment_and_more"),
     ]
 
-    operations = [
-    ]
+    operations = []

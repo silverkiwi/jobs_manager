@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0153_delete_client_client"),
         ("purchasing", "0002_move_purchase_models_database"),
@@ -64,7 +63,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            database_operations=[
-            ],
+            database_operations=[],
         ),
     ]

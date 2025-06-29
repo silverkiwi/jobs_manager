@@ -54,7 +54,7 @@ export function createXeroDocument(jobId, type, buttonEl) {
 
       console.log(`${type} created successfully with Xero ID: ${data.xero_id}`);
       handleDocumentButtons(type, data.invoice_url || data.quote_url, "POST");
-      
+
       // Add quote adjustment for invoices
       if (type === "invoice") {
         addQuoteAdjustment();
@@ -175,7 +175,7 @@ export function deleteXeroDocument(jobId, type, buttonEl) {
       if (!data || !data.success) {
         console.error("Document deletion failed:", data?.message || data?.messages);
         renderMessages(
-          data?.messages || 
+          data?.messages ||
           [{ level: "error", message: data?.message || "Failed to delete document. Please check logs." }],
            "toast-container"
         );
@@ -234,7 +234,7 @@ function addQuoteAdjustment() {
 
     // Calculate adjustment needed
     const adjustmentAmount = quoteRevenue - realityRevenue;
-    
+
     // Only add if there's a difference
     if (Math.abs(adjustmentAmount) < 0.01) {
       console.log("No adjustment needed - quote and reality revenue match");
@@ -251,14 +251,14 @@ function addQuoteAdjustment() {
     };
 
     adjustmentsGrid.api.applyTransaction({ add: [newRow] });
-    
+
     console.log(`Added quote adjustment of $${adjustmentAmount.toFixed(2)}`);
-    
+
     // Trigger autosave to persist the change
     if (window.debouncedAutosave) {
       window.debouncedAutosave();
     }
-    
+
   } catch (error) {
     console.error("Error adding quote adjustment:", error);
   }

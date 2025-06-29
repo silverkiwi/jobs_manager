@@ -4,10 +4,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0017_materialentry_comments"),
     ]
 
-    operations = [
-    ]
+    operations = []
