@@ -34,16 +34,14 @@ class StaffRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         logger = logging.getLogger("workflow")
         staff_id = kwargs.get("pk")
-        logger.info(f"[StaffUpdate] Método: {request.method} | Staff ID: {staff_id}")
-        logger.info(f"[StaffUpdate] Dados recebidos: {request.data}")
+        logger.info(f"[StaffUpdate] Method: {request.method} | Staff ID: {staff_id}")
+        logger.info(f"[StaffUpdate] Received data: {request.data}")
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         if not serializer.is_valid():
-            logger.error(f"[StaffUpdate] Erros de validação: {serializer.errors}")
+            logger.error(f"[StaffUpdate] Validation errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         self.perform_update(serializer)
-        logger.info(
-            f"[StaffUpdate] Atualização realizada com sucesso para Staff ID: {staff_id}"
-        )
+        logger.info(f"[StaffUpdate] Successfully updated Staff ID: {staff_id}")
         return Response(serializer.data)
