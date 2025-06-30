@@ -116,7 +116,7 @@ class PurchaseOrderLine(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     purchase_order = models.ForeignKey(
-        PurchaseOrder, on_delete=models.CASCADE, related_name="po_lines"
+        "purchasing.PurchaseOrder", on_delete=models.CASCADE, related_name="po_lines"
     )
     job = models.ForeignKey(
         "job.Job",
@@ -143,6 +143,13 @@ class PurchaseOrderLine(models.Model):
     )
     supplier_item_code = models.CharField(
         max_length=50, blank=True, null=True, help_text="Supplier's own item code/SKU"
+    )
+    item_code = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Internal item code for Xero integration",
     )
     received_quantity = models.DecimalField(
         max_digits=10,

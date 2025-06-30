@@ -3,7 +3,7 @@ RESTful URLs for the purchasing app.
 Following REST conventions with clear resource-based naming.
 """
 
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
@@ -95,3 +95,5 @@ urlpatterns = [
         name="validate_mapping",
     ),
 ]
+
+urlpatterns += [path("rest/", include("apps.purchasing.urls_rest"))]
