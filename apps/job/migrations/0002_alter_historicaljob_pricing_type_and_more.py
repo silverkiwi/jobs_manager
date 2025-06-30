@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("job", "0001_initial"),
         ("workflow", "0143_alter_stock_job"),

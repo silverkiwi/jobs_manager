@@ -7,7 +7,6 @@ from django.db import migrations
 # !!!!!!!
 # WARNING: This migration is designed to move purchase models from the workflow app to the purchasing app. It should be faked in existing databases.
 class Migration(migrations.Migration):
-
     dependencies = [
         ("purchasing", "0001_move_purchase_models_state"),
         ("workflow", "0067_supplier_purchase_purchaseline_and_more"),

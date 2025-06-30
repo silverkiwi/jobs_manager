@@ -34,7 +34,7 @@ class Command(BaseCommand):
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT * FROM django_migrations 
+                SELECT * FROM django_migrations
                 WHERE app='accounts' AND name='0001_initial'
                 """
             )
@@ -49,7 +49,7 @@ class Command(BaseCommand):
             # Get the date of admin.0001_initial migration
             cursor.execute(
                 """
-                SELECT applied FROM django_migrations 
+                SELECT applied FROM django_migrations
                 WHERE app='auth' AND name='0001_initial'
                 """
             )
@@ -94,13 +94,13 @@ class Command(BaseCommand):
                 try:
                     cursor.execute(
                         f"""
-                        INSERT INTO django_migrations (app, name, applied) 
+                        INSERT INTO django_migrations (app, name, applied)
                         VALUES ('accounts', '0001_initial', '{accounts_applied_date}')
                         """
                     )
                     cursor.execute(
                         f"""
-                        INSERT INTO django_migrations (app, name, applied) 
+                        INSERT INTO django_migrations (app, name, applied)
                         VALUES ('accounts', '0002_initial', '{accounts_0002_date}')
                         """
                     )

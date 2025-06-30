@@ -74,8 +74,8 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
             ]:
                 logger.warning(
                     f"""
-                    Processing delivery receipt for PO {purchase_order.po_number} 
-                    with unexpected status: {purchase_order.status}. 
+                    Processing delivery receipt for PO {purchase_order.po_number}
+                    with unexpected status: {purchase_order.status}.
                     This might indicate an issue elsewhere.
                     """.strip()
                 )
@@ -175,9 +175,9 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                 if allocation_diff > Decimal("0.001"):
                     raise DeliveryReceiptValidationError(
                         f"""
-                        Allocation quantity mismatch for line '{line.description}' 
-                        (Line ID: {line.id}). 
-                        Total Received: {total_received}, 
+                        Allocation quantity mismatch for line '{line.description}'
+                        (Line ID: {line.id}).
+                        Total Received: {total_received},
                         Sum of Allocations: {calculated_allocation_sum}.
                         """.strip()
                     )
@@ -237,7 +237,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
                         )
                         logger.info(
                             f"""
-                            Created Stock entry {stock_item.id} for line {line.id}, 
+                            Created Stock entry {stock_item.id} for line {line.id},
                             allocated to Job {target_job.id}, qty {alloc_qty}.
                             """.strip()
                         )
@@ -269,7 +269,7 @@ def process_delivery_receipt(purchase_order_id: str, line_allocations: dict) -> 
 
             logger.debug(
                 f"""
-                Updating PO status - Current Total Received: {current_total_received}, 
+                Updating PO status - Current Total Received: {current_total_received},
                 Current Total Ordered: {current_total_ordered}
                 """.strip()
             )

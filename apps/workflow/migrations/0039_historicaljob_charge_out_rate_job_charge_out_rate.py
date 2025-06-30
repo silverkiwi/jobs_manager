@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("workflow", "0038_historicaljob_shop_job_job_shop_job"),
     ]

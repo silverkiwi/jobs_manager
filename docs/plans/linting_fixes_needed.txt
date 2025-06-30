@@ -428,12 +428,12 @@ jobs_manager/urls.py:39:9: error: Missing type parameters for generic type
             Iterable, static(settings.STATIC_URL, document_root=settings.S...
             ^
 apps/workflow/middleware.py: note: In member "__init__" of class "PasswordStrengthMiddleware":
-apps/workflow/middleware.py:57:5: error: Function is missing a type annotation 
+apps/workflow/middleware.py:57:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __init__(self, get_response):
         ^
 apps/workflow/middleware.py: note: In member "__call__" of class "PasswordStrengthMiddleware":
-apps/workflow/middleware.py:60:5: error: Function is missing a type annotation 
+apps/workflow/middleware.py:60:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __call__(self, request):
         ^
@@ -641,7 +641,7 @@ subclass "Migration" (has type "Any")  [misc]
     class Migration(migrations.Migration):
                     ^
 apps/job/migrations/0022_merge_20250615_1511.py:13:5: error: Need type
-annotation for "operations" (hint: "operations: list[<type>] = ...") 
+annotation for "operations" (hint: "operations: list[<type>] = ...")
 [var-annotated]
         operations = []
         ^~~~~~~~~~
@@ -696,7 +696,7 @@ subclass "Migration" (has type "Any")  [misc]
     class Migration(migrations.Migration):
                     ^
 apps/job/migrations/0014_alter_jobpart_table.py:12:5: error: Need type
-annotation for "operations" (hint: "operations: list[<type>] = ...") 
+annotation for "operations" (hint: "operations: list[<type>] = ...")
 [var-annotated]
         operations = [
         ^~~~~~~~~~
@@ -706,7 +706,7 @@ subclass "Migration" (has type "Any")  [misc]
     class Migration(migrations.Migration):
                     ^
 apps/job/migrations/0013_merge_20250605_0811.py:13:5: error: Need type
-annotation for "operations" (hint: "operations: list[<type>] = ...") 
+annotation for "operations" (hint: "operations: list[<type>] = ...")
 [var-annotated]
         operations = []
         ^~~~~~~~~~
@@ -716,7 +716,7 @@ subclass "Migration" (has type "Any")  [misc]
     class Migration(migrations.Migration):
                     ^
 apps/job/migrations/0012_merge_20250604_2123.py:16:5: error: Need type
-annotation for "operations" (hint: "operations: list[<type>] = ...") 
+annotation for "operations" (hint: "operations: list[<type>] = ...")
 [var-annotated]
         operations = []
         ^~~~~~~~~~
@@ -770,7 +770,7 @@ Class cannot subclass "Migration" (has type "Any")  [misc]
     class Migration(migrations.Migration):
                     ^
 apps/job/migrations/0005_remove_materialentry_source_stock_and_more.py:13:5: error:
-Need type annotation for "operations" (hint: "operations: list[<type>] = ...") 
+Need type annotation for "operations" (hint: "operations: list[<type>] = ...")
 [var-annotated]
         operations = [
         ^~~~~~~~~~
@@ -1107,58 +1107,58 @@ jobs_manager/authentication.py:55:5: error: Function is missing a type
 annotation  [no-untyped-def]
         def get_raw_token_from_cookie(self, request):
         ^
-jobs_manager/settings/local.py:4:9: error: Name "os" is not defined 
+jobs_manager/settings/local.py:4:9: error: Name "os" is not defined
 [name-defined]
     DEBUG = os.getenv("DEBUG", "False").lower() == "true"
             ^
-jobs_manager/settings/local.py:7:21: error: Name "os" is not defined 
+jobs_manager/settings/local.py:7:21: error: Name "os" is not defined
 [name-defined]
     allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "")
                         ^
-jobs_manager/settings/local.py:26:20: error: Name "os" is not defined 
+jobs_manager/settings/local.py:26:20: error: Name "os" is not defined
 [name-defined]
     csrf_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
                        ^
-jobs_manager/settings/local.py:41:16: error: Name "os" is not defined 
+jobs_manager/settings/local.py:41:16: error: Name "os" is not defined
 [name-defined]
     ngrok_domain = os.getenv("NGROK_DOMAIN")
                    ^
-jobs_manager/settings/local.py:59:20: error: Name "os" is not defined 
+jobs_manager/settings/local.py:59:20: error: Name "os" is not defined
 [name-defined]
     cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
                        ^
-jobs_manager/settings/local.py:76:16: error: Name "os" is not defined 
+jobs_manager/settings/local.py:76:16: error: Name "os" is not defined
 [name-defined]
     ngrok_domain = os.getenv("NGROK_DOMAIN")
                    ^
-jobs_manager/settings/local.py:80:26: error: Name "os" is not defined 
+jobs_manager/settings/local.py:80:26: error: Name "os" is not defined
 [name-defined]
     CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "True").l...
                              ^
-jobs_manager/settings/local.py:83:20: error: Name "os" is not defined 
+jobs_manager/settings/local.py:83:20: error: Name "os" is not defined
 [name-defined]
     cors_headers_env = os.getenv("CORS_ALLOWED_HEADERS", "")
                        ^
-jobs_manager/settings/local.py:123:19: error: Name "os" is not defined 
+jobs_manager/settings/local.py:123:19: error: Name "os" is not defined
 [name-defined]
     ENABLE_JWT_AUTH = os.getenv("ENABLE_JWT_AUTH", "True").lower() == "tru...
                       ^
-jobs_manager/settings/local.py:125:5: error: Name "os" is not defined 
+jobs_manager/settings/local.py:125:5: error: Name "os" is not defined
 [name-defined]
         os.getenv("ENABLE_DUAL_AUTHENTICATION", "False").lower() == "true"
         ^
 apps/workflow/utils.py: note: In function "extract_messages":
-apps/workflow/utils.py:9:1: error: Function is missing a type annotation 
+apps/workflow/utils.py:9:1: error: Function is missing a type annotation
 [no-untyped-def]
     def extract_messages(request):
     ^
 apps/workflow/utils.py: note: In function "get_machine_id":
-apps/workflow/utils.py:39:1: error: Function is missing a type annotation 
+apps/workflow/utils.py:39:1: error: Function is missing a type annotation
 [no-untyped-def]
     def get_machine_id(path="/etc/machine-id"):
     ^
 apps/workflow/api/enums.py: note: In function "get_enum_choices":
-apps/workflow/api/enums.py:12:1: error: Function is missing a type annotation 
+apps/workflow/api/enums.py:12:1: error: Function is missing a type annotation
 [no-untyped-def]
     def get_enum_choices(request, enum_name):
     ^
@@ -1331,11 +1331,11 @@ in typed context  [no-untyped-call]
                 if not is_valid_uuid(str(ims_payroll_id)):
                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/accounts/utils.py: note: In function "is_valid_uuid":
-apps/accounts/utils.py:40:1: error: Function is missing a type annotation 
+apps/accounts/utils.py:40:1: error: Function is missing a type annotation
 [no-untyped-def]
     def is_valid_uuid(val):
     ^
-apps/accounting/utils.py:18:1: error: Library stubs not installed for "pytz" 
+apps/accounting/utils.py:18:1: error: Library stubs not installed for "pytz"
 [import-untyped]
             import pytz
     ^
@@ -1408,7 +1408,7 @@ type "Any")  [misc]
     class JobPart(models.Model):
                   ^
 apps/job/models/job_part.py: note: In member "__str__" of class "JobPart":
-apps/job/models/job_part.py:34:5: error: Function is missing a type annotation 
+apps/job/models/job_part.py:34:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
@@ -1459,7 +1459,7 @@ type annotation  [no-untyped-def]
         def total_amount(self):
         ^
 apps/accounting/models/invoice.py:52:58: error: Call to untyped function
-"get_line_items" of "BaseXeroInvoiceDocument" in typed context 
+"get_line_items" of "BaseXeroInvoiceDocument" in typed context
 [no-untyped-call]
     ...return sum(item.line_amount_excl_tax for item in self.get_line_items()...
                                                         ^~~~~~~~~~~~~~~~~~~~~
@@ -1527,7 +1527,7 @@ apps/accounts/models.py:14:31: error: Class cannot subclass "PermissionsMixin"
     class Staff(AbstractBaseUser, PermissionsMixin):
                                   ^
 apps/accounts/models.py: note: In member "save" of class "Staff":
-apps/accounts/models.py:96:5: error: Function is missing a type annotation 
+apps/accounts/models.py:96:5: error: Function is missing a type annotation
 [no-untyped-def]
         def save(self, *args, **kwargs):
         ^
@@ -1546,22 +1546,22 @@ of "CompanyDefaults" in typed context  [no-untyped-call]
         return CompanyDefaults.get_instance()
                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/workflow/helpers.py: note: In member "default" of class "DecimalEncoder":
-apps/workflow/helpers.py:14:5: error: Function is missing a type annotation 
+apps/workflow/helpers.py:14:5: error: Function is missing a type annotation
 [no-untyped-def]
         def default(self, obj):
         ^
 apps/workflow/helpers.py: note: In function "decimal_to_float":
-apps/workflow/helpers.py:20:1: error: Function is missing a type annotation 
+apps/workflow/helpers.py:20:1: error: Function is missing a type annotation
 [no-untyped-def]
     def decimal_to_float(value):
     ^
 apps/job/helpers.py: note: In function "get_job_folder_path":
-apps/job/helpers.py:11:1: error: Function is missing a type annotation 
+apps/job/helpers.py:11:1: error: Function is missing a type annotation
 [no-untyped-def]
     def get_job_folder_path(job_number):
     ^
 apps/job/helpers.py: note: In function "get_company_defaults":
-apps/job/helpers.py:16:1: error: Function is missing a return type annotation 
+apps/job/helpers.py:16:1: error: Function is missing a return type annotation
 [no-untyped-def]
     def get_company_defaults():
     ^
@@ -1570,12 +1570,12 @@ apps/job/helpers.py:18:12: error: Call to untyped function "get_instance" of
         return CompanyDefaults.get_instance()
                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/job/helpers.py: note: In member "default" of class "DecimalEncoder":
-apps/job/helpers.py:22:5: error: Function is missing a type annotation 
+apps/job/helpers.py:22:5: error: Function is missing a type annotation
 [no-untyped-def]
         def default(self, obj):
         ^
 apps/job/helpers.py: note: In function "decimal_to_float":
-apps/job/helpers.py:28:1: error: Function is missing a type annotation 
+apps/job/helpers.py:28:1: error: Function is missing a type annotation
 [no-untyped-def]
     def decimal_to_float(value):
     ^
@@ -1595,7 +1595,7 @@ apps/client/models.py:10:14: error: Class cannot subclass "Model" (has type
     class Client(models.Model):
                  ^
 apps/client/models.py: note: In member "__str__" of class "Client":
-apps/client/models.py:73:5: error: Function is missing a type annotation 
+apps/client/models.py:73:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
@@ -1630,12 +1630,12 @@ apps/client/models.py:222:21: error: Class cannot subclass "Model" (has type
     class ClientContact(models.Model):
                         ^
 apps/client/models.py: note: In member "__str__" of class "ClientContact":
-apps/client/models.py:265:5: error: Function is missing a type annotation 
+apps/client/models.py:265:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
 apps/client/models.py: note: In member "save" of class "ClientContact":
-apps/client/models.py:268:5: error: Function is missing a type annotation 
+apps/client/models.py:268:5: error: Function is missing a type annotation
 [no-untyped-def]
         def save(self, *args, **kwargs):
         ^
@@ -1803,39 +1803,39 @@ apps/job/models/job.py:25:11: error: Class cannot subclass "Model" (has type
     class Job(models.Model):
               ^
 apps/job/models/job.py: note: At top level:
-apps/job/models/job.py:98: error: Unused "type: ignore" comment 
+apps/job/models/job.py:98: error: Unused "type: ignore" comment
 [unused-ignore]
         )  # type: ignore
         ^~~~~~~~~~~~~~~~
-apps/job/models/job.py:100: error: Unused "type: ignore" comment 
+apps/job/models/job.py:100: error: Unused "type: ignore" comment
 [unused-ignore]
         quote_acceptance_date: datetime = models.DateTimeField(  # type: i...
         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
-apps/job/models/job.py:104: error: Unused "type: ignore" comment 
+apps/job/models/job.py:104: error: Unused "type: ignore" comment
 [unused-ignore]
         delivery_date = models.DateField(null=True, blank=True)  # type: i...
         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
-apps/job/models/job.py:107: error: Unused "type: ignore" comment 
+apps/job/models/job.py:107: error: Unused "type: ignore" comment
 [unused-ignore]
         )  # type: ignore
         ^~~~~~~~~~~~~~~~
-apps/job/models/job.py:121: error: Unused "type: ignore" comment 
+apps/job/models/job.py:121: error: Unused "type: ignore" comment
 [unused-ignore]
         job_is_valid = models.BooleanField(default=False)  # type: ignore
         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-apps/job/models/job.py:122: error: Unused "type: ignore" comment 
+apps/job/models/job.py:122: error: Unused "type: ignore" comment
 [unused-ignore]
         collected: bool = models.BooleanField(default=False)  # type: igno...
         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-apps/job/models/job.py:123: error: Unused "type: ignore" comment 
+apps/job/models/job.py:123: error: Unused "type: ignore" comment
 [unused-ignore]
         paid: bool = models.BooleanField(default=False)  # type: ignore
         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-apps/job/models/job.py:175: error: Unused "type: ignore" comment 
+apps/job/models/job.py:175: error: Unused "type: ignore" comment
 [unused-ignore]
         complex_job = models.BooleanField(default=False)  # type: ignore
         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-apps/job/models/job.py:220: error: Unused "type: ignore" comment 
+apps/job/models/job.py:220: error: Unused "type: ignore" comment
 [unused-ignore]
         )  # type: ignore
         ^~~~~~~~~~~~~~~~
@@ -1865,7 +1865,7 @@ apps/job/models/job.py:338:45: error: Call to untyped function
             company_defaults: CompanyDefaults = get_company_defaults()
                                                 ^~~~~~~~~~~~~~~~~~~~~~
 apps/job/models/job.py: note: In member "save" of class "Job":
-apps/job/models/job.py:346:5: error: Function is missing a type annotation 
+apps/job/models/job.py:346:5: error: Function is missing a type annotation
 [no-untyped-def]
         def save(self, *args, **kwargs):
         ^
@@ -1879,7 +1879,7 @@ apps/job/models/costing.py:9:15: error: Class cannot subclass "Model" (has type
     class CostSet(models.Model):
                   ^
 apps/job/models/costing.py: note: In member "__str__" of class "CostSet":
-apps/job/models/costing.py:35:5: error: Function is missing a type annotation 
+apps/job/models/costing.py:35:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
@@ -1895,7 +1895,7 @@ type "Any")  [misc]
     class CostLine(models.Model):
                    ^
 apps/job/models/costing.py: note: In member "__str__" of class "CostLine":
-apps/job/models/costing.py:81:5: error: Function is missing a type annotation 
+apps/job/models/costing.py:81:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
@@ -1921,7 +1921,7 @@ apps/timesheet/models.py:13:17: error: Class cannot subclass "Model" (has type
     class TimeEntry(models.Model):
                     ^
 apps/timesheet/models.py: note: In member "save" of class "TimeEntry":
-apps/timesheet/models.py:76:5: error: Function is missing a type annotation 
+apps/timesheet/models.py:76:5: error: Function is missing a type annotation
 [no-untyped-def]
         def save(self, *args, **kwargs):
         ^
@@ -1941,7 +1941,7 @@ return "Decimal"  [no-any-return]
             return self.hours * self.charge_out_rate
             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/timesheet/models.py: note: In member "__str__" of class "TimeEntry":
-apps/timesheet/models.py:105:5: error: Function is missing a type annotation 
+apps/timesheet/models.py:105:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
@@ -1960,7 +1960,7 @@ apps/purchasing/models.py:69:20: error: Call to untyped function
             defaults = get_company_defaults()
                        ^~~~~~~~~~~~~~~~~~~~~~
 apps/purchasing/models.py: note: In member "save" of class "PurchaseOrder":
-apps/purchasing/models.py:88:5: error: Function is missing a type annotation 
+apps/purchasing/models.py:88:5: error: Function is missing a type annotation
 [no-untyped-def]
         def save(self, *args, **kwargs):
         ^
@@ -2008,12 +2008,12 @@ type "Any")  [misc]
     class Stock(models.Model):
                 ^
 apps/purchasing/models.py: note: In member "__str__" of class "Stock":
-apps/purchasing/models.py:371:5: error: Function is missing a type annotation 
+apps/purchasing/models.py:371:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
 apps/purchasing/models.py: note: In member "save" of class "Stock":
-apps/purchasing/models.py:374:5: error: Function is missing a type annotation 
+apps/purchasing/models.py:374:5: error: Function is missing a type annotation
 [no-untyped-def]
         def save(self, *args, **kwargs):
         ^
@@ -2028,7 +2028,7 @@ apps/quoting/models.py:10:23: error: Class cannot subclass "Model" (has type
     class SupplierProduct(models.Model):
                           ^
 apps/quoting/models.py: note: In member "__str__" of class "SupplierProduct":
-apps/quoting/models.py:134:5: error: Function is missing a type annotation 
+apps/quoting/models.py:134:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
@@ -2038,7 +2038,7 @@ apps/quoting/models.py:138:25: error: Class cannot subclass "Model" (has type
     class SupplierPriceList(models.Model):
                             ^
 apps/quoting/models.py: note: In member "__str__" of class "SupplierPriceList":
-apps/quoting/models.py:157:5: error: Function is missing a type annotation 
+apps/quoting/models.py:157:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
@@ -2048,7 +2048,7 @@ apps/quoting/models.py:161:17: error: Class cannot subclass "Model" (has type
     class ScrapeJob(models.Model):
                     ^
 apps/quoting/models.py: note: In member "__str__" of class "ScrapeJob":
-apps/quoting/models.py:188:5: error: Function is missing a type annotation 
+apps/quoting/models.py:188:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
@@ -2064,7 +2064,7 @@ annotation  [no-untyped-def]
         ^
 apps/quoting/models.py:277:5: note: Use "-> None" if function does not return a value
 apps/quoting/models.py: note: In member "__str__" of class "ProductParsingMapping":
-apps/quoting/models.py:294:5: error: Function is missing a type annotation 
+apps/quoting/models.py:294:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __str__(self):
         ^
@@ -2165,7 +2165,7 @@ type "Any")  [misc]
     class AIProviderInline(admin.TabularInline):
                            ^
 apps/workflow/admin.py: note: In member "save_model" of class "AIProviderInline":
-apps/workflow/admin.py:15:5: error: Function is missing a type annotation 
+apps/workflow/admin.py:15:5: error: Function is missing a type annotation
 [no-untyped-def]
         def save_model(self, request, obj, form, change):
         ^
@@ -2175,7 +2175,7 @@ type "Any")  [misc]
     class CompanyDefaultsAdmin(admin.ModelAdmin):
                                ^
 apps/workflow/admin.py: note: In member "edit_link" of class "CompanyDefaultsAdmin":
-apps/workflow/admin.py:26:5: error: Function is missing a type annotation 
+apps/workflow/admin.py:26:5: error: Function is missing a type annotation
 [no-untyped-def]
         def edit_link(self, obj):
         ^
@@ -2186,7 +2186,7 @@ apps/workflow/admin.py:31:5: error:
         edit_link.short_description = "Actions"
         ^~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/workflow/admin.py:32:5: error:
-"Callable[[CompanyDefaultsAdmin, Any], Any]" has no attribute "allow_tags" 
+"Callable[[CompanyDefaultsAdmin, Any], Any]" has no attribute "allow_tags"
 [attr-defined]
         edit_link.allow_tags = True
         ^~~~~~~~~~~~~~~~~~~~
@@ -2320,7 +2320,7 @@ annotation  [no-untyped-def]
         def rollup_line_items(self, period_start, period_end):
         ^
 apps/workflow/api/reports/pnl.py:56:9: error: Need type annotation for
-"consolidated_rollup" (hint: "consolidated_rollup: dict[<type>, <type>] = ...") 
+"consolidated_rollup" (hint: "consolidated_rollup: dict[<type>, <type>] = ...")
 [var-annotated]
             consolidated_rollup = {}
             ^~~~~~~~~~~~~~~~~~~
@@ -2356,7 +2356,7 @@ apps/timesheet/forms.py:8:23: error: Class cannot subclass "Form" (has type
     class PaidAbsenceForm(forms.Form):
                           ^
 apps/timesheet/forms.py: note: In member "__init__" of class "PaidAbsenceForm":
-apps/timesheet/forms.py:39:5: error: Function is missing a type annotation 
+apps/timesheet/forms.py:39:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __init__(self, *args, **kwargs):
         ^
@@ -2652,7 +2652,7 @@ apps/quoting/mcp.py:12:32: error: Class cannot subclass "ModelQueryToolset"
     class SupplierProductQueryTool(ModelQueryToolset):
                                    ^
 apps/quoting/mcp.py: note: In member "get_queryset" of class "SupplierProductQueryTool":
-apps/quoting/mcp.py:17:5: error: Function is missing a return type annotation 
+apps/quoting/mcp.py:17:5: error: Function is missing a return type annotation
 [no-untyped-def]
         def get_queryset(self):
         ^
@@ -3011,7 +3011,7 @@ parameters for generic type "dict"  [type-arg]
     ...ivery_receipt(purchase_order_id: str, line_allocations: dict) -> bool:
                                                                ^
 apps/job/utils.py: note: In function "get_jobs_data":
-apps/job/utils.py:8:1: error: Function is missing a type annotation 
+apps/job/utils.py:8:1: error: Function is missing a type annotation
 [no-untyped-def]
     def get_jobs_data(related_jobs):
     ^
@@ -3060,7 +3060,7 @@ apps/job/admin.py:28:21: error: Class cannot subclass "ModelAdmin" (has type
     class CostLineAdmin(admin.ModelAdmin):
                         ^
 apps/job/admin.py: note: In member "get_queryset" of class "CostLineAdmin":
-apps/job/admin.py:49:5: error: Function is missing a type annotation 
+apps/job/admin.py:49:5: error: Function is missing a type annotation
 [no-untyped-def]
         def get_queryset(self, request):
         ^
@@ -3524,12 +3524,12 @@ Function is missing a type annotation  [no-untyped-def]
         def handle(self, **options):
         ^
 apps/job/management/commands/backfill_quote_adjustments.py:105:32: error: Call
-to untyped function "get_accounting_date_for_job" in typed context 
+to untyped function "get_accounting_date_for_job" in typed context
 [no-untyped-call]
                     correct_date = get_accounting_date_for_job(job)
                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/job/management/commands/backfill_quote_adjustments.py:195:31: error: Call
-to untyped function "get_accounting_date_for_job" in typed context 
+to untyped function "get_accounting_date_for_job" in typed context
 [no-untyped-call]
                 accounting_date = get_accounting_date_for_job(job)
                                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -3549,7 +3549,7 @@ apps/job/importers/google_sheets.py:83:23: error: Call to untyped function
                           ^~~~~~~~~~~~~~~~~~
 apps/job/importers/google_sheets.py: note: In function "create_folder":
 apps/job/importers/google_sheets.py:153:42: error: Incompatible types in
-assignment (expression has type "list[str]", target has type "str") 
+assignment (expression has type "list[str]", target has type "str")
 [assignment]
                 folder_metadata["parents"] = [parent_id]
                                              ^~~~~~~~~~~
@@ -3559,7 +3559,7 @@ declared to return "str"  [no-any-return]
             ^~~~~~~~~~~~~~~~
 apps/job/importers/google_sheets.py: note: In function "copy_file":
 apps/job/importers/google_sheets.py:201:40: error: Incompatible types in
-assignment (expression has type "list[str]", target has type "str") 
+assignment (expression has type "list[str]", target has type "str")
 [assignment]
                 copy_metadata["parents"] = [parent_id]
                                            ^~~~~~~~~~~
@@ -3606,12 +3606,12 @@ apps/client/forms.py:11:18: error: Class cannot subclass "ModelForm" (has type
     class ClientForm(forms.ModelForm):
                      ^
 apps/client/forms.py: note: In member "__init__" of class "ClientForm":
-apps/client/forms.py:28:5: error: Function is missing a type annotation 
+apps/client/forms.py:28:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __init__(self, *args, **kwargs):
         ^
 apps/client/forms.py: note: In member "clean" of class "ClientForm":
-apps/client/forms.py:59:5: error: Function is missing a return type annotation 
+apps/client/forms.py:59:5: error: Function is missing a return type annotation
 [no-untyped-def]
         def clean(self):
         ^
@@ -3681,7 +3681,7 @@ apps/accounts/forms.py:6:25: error: Class cannot subclass "UserCreationForm"
     class StaffCreationForm(UserCreationForm):
                             ^
 apps/accounts/forms.py: note: In member "__init__" of class "StaffCreationForm":
-apps/accounts/forms.py:33:5: error: Function is missing a type annotation 
+apps/accounts/forms.py:33:5: error: Function is missing a type annotation
 [no-untyped-def]
         def __init__(self, *args, **kwargs):
         ^
@@ -3715,7 +3715,7 @@ type "Dict"  [type-arg]
         ) -> Dict[datetime.date, Dict]:
                                  ^
 apps/accounting/services.py: note: In member "_get_holidays" of class "KPIService":
-apps/accounting/services.py:84:5: error: Function is missing a type annotation 
+apps/accounting/services.py:84:5: error: Function is missing a type annotation
 [no-untyped-def]
         def _get_holidays(cls, year, month=None):
         ^
@@ -3853,7 +3853,7 @@ Function is missing a type annotation  [no-untyped-def]
         def _generate_mock_data(self, year, month, good_days, medium_days,...
         ^
 apps/accounting/management/commands/generate_kpi_test_data.py:168:13: error:
-Call to untyped function "_ensure_job_data_exists" in typed context 
+Call to untyped function "_ensure_job_data_exists" in typed context
 [no-untyped-call]
                 self._ensure_job_data_exists()
                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -3862,12 +3862,12 @@ Call to untyped function "_get_job_pricings" in typed context  [no-untyped-call]
                 job_pricings = self._get_job_pricings(relaxed=True)
                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/accounting/management/commands/generate_kpi_test_data.py:193:37: error:
-Call to untyped function "_create_shop_job_pricings" in typed context 
+Call to untyped function "_create_shop_job_pricings" in typed context
 [no-untyped-call]
                     shop_job_pricings = self._create_shop_job_pricings()
                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/accounting/management/commands/generate_kpi_test_data.py:201:40: error:
-Call to untyped function "_create_regular_job_pricings" in typed context 
+Call to untyped function "_create_regular_job_pricings" in typed context
 [no-untyped-call]
                     regular_job_pricings = self._create_regular_job_pricin...
                                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
@@ -3880,7 +3880,7 @@ Call to untyped function "_categorize_days" in typed context  [no-untyped-call]
                 day_categories = self._categorize_days(
                                  ^
 apps/accounting/management/commands/generate_kpi_test_data.py:233:39: error:
-Call to untyped function "_create_day_entries" in typed context 
+Call to untyped function "_create_day_entries" in typed context
 [no-untyped-call]
                         entries_created = self._create_day_entries(
                                           ^
@@ -3957,7 +3957,7 @@ apps/accounting/management/commands/generate_kpi_test_data.py:552:40: error:
                     markup_lo, markup_hi = cat_cfg["mark"]
                                            ^~~~~~~~~~~~~~~
 apps/accounting/management/commands/generate_kpi_test_data.py:553:29: error:
-Call to untyped function "_rand_decimal" of "Command" in typed context 
+Call to untyped function "_rand_decimal" of "Command" in typed context
 [no-untyped-call]
                     unit_cost = self._rand_decimal(*cat_cfg["cost"])
                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -3983,7 +3983,7 @@ Unsupported operand types for > ("float" and "object")  [operator]
             num_adjustments = 1 if random.random() > cat_cfg["prob"] else ...
                                                      ^~~~~~~~~~~~~~~
 apps/accounting/management/commands/generate_kpi_test_data.py:622:29: error:
-Call to untyped function "_rand_decimal" of "Command" in typed context 
+Call to untyped function "_rand_decimal" of "Command" in typed context
 [no-untyped-call]
                     price_adj = self._rand_decimal(*cat_cfg["price"])
                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -3992,7 +3992,7 @@ Expected iterable as variadic argument  [misc]
                     price_adj = self._rand_decimal(*cat_cfg["price"])
                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/accounting/management/commands/generate_kpi_test_data.py:624:21: error:
-Call to untyped function "_rand_decimal" of "Command" in typed context 
+Call to untyped function "_rand_decimal" of "Command" in typed context
 [no-untyped-call]
                         self._rand_decimal(*cat_cfg["cost"])
                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -4001,7 +4001,7 @@ Expected iterable as variadic argument  [misc]
                         self._rand_decimal(*cat_cfg["cost"])
                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/accounting/management/commands/generate_kpi_test_data.py:646:34: error:
-Call to untyped function "_rand_decimal" of "Command" in typed context 
+Call to untyped function "_rand_decimal" of "Command" in typed context
 [no-untyped-call]
                     price_adjustment=self._rand_decimal(*cat_cfg["price"])...
                                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -4010,7 +4010,7 @@ Expected iterable as variadic argument  [misc]
                     price_adjustment=self._rand_decimal(*cat_cfg["price"])...
                                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/accounting/management/commands/generate_kpi_test_data.py:648:21: error:
-Call to untyped function "_rand_decimal" of "Command" in typed context 
+Call to untyped function "_rand_decimal" of "Command" in typed context
 [no-untyped-call]
                         self._rand_decimal(*cat_cfg["cost"])
                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -4024,12 +4024,12 @@ Function is missing a type annotation  [no-untyped-def]
         def _create_day_entries(
         ^
 apps/accounting/management/commands/generate_kpi_test_data.py:782:36: error:
-Call to untyped function "_create_material_entries" in typed context 
+Call to untyped function "_create_material_entries" in typed context
 [no-untyped-call]
             material_entries_created = self._create_material_entries(
                                        ^
 apps/accounting/management/commands/generate_kpi_test_data.py:787:38: error:
-Call to untyped function "_create_adjustment_entries" in typed context 
+Call to untyped function "_create_adjustment_entries" in typed context
 [no-untyped-call]
             adjustment_entries_created = self._create_adjustment_entries(
                                          ^
@@ -4462,7 +4462,7 @@ assignment (expression has type "float", variable has type "int")  [assignment]
                 total_expected_hours += scheduled_hours
                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 apps/quoting/views.py: note: In function "index":
-apps/quoting/views.py:26:1: error: Function is missing a type annotation 
+apps/quoting/views.py:26:1: error: Function is missing a type annotation
 [no-untyped-def]
     def index(request):
     ^
@@ -4476,12 +4476,12 @@ type "Any")  [misc]
     class UploadSupplierPricingView(LoginRequiredMixin, TemplateView):
                                                         ^
 apps/quoting/views.py: note: In member "get_context_data" of class "UploadSupplierPricingView":
-apps/quoting/views.py:33:5: error: Function is missing a type annotation 
+apps/quoting/views.py:33:5: error: Function is missing a type annotation
 [no-untyped-def]
         def get_context_data(self, **kwargs):
         ^
 apps/quoting/views.py: note: In member "post" of class "UploadSupplierPricingView":
-apps/quoting/views.py:43:5: error: Function is missing a type annotation 
+apps/quoting/views.py:43:5: error: Function is missing a type annotation
 [no-untyped-def]
         def post(self, request, *args, **kwargs):
         ^
@@ -4519,17 +4519,17 @@ type "Any")  [misc]
     class UploadPriceListView(LoginRequiredMixin, TemplateView):
                                                   ^
 apps/quoting/views.py: note: In member "get_context_data" of class "UploadPriceListView":
-apps/quoting/views.py:228:5: error: Function is missing a type annotation 
+apps/quoting/views.py:228:5: error: Function is missing a type annotation
 [no-untyped-def]
         def get_context_data(self, **kwargs):
         ^
 apps/quoting/views.py: note: In function "extract_supplier_price_list_data_view":
-apps/quoting/views.py:235:1: error: Function is missing a type annotation 
+apps/quoting/views.py:235:1: error: Function is missing a type annotation
 [no-untyped-def]
     def extract_supplier_price_list_data_view(request):
     ^
 apps/quoting/signals.py: note: In function "auto_parse_stock_item":
-apps/quoting/signals.py:14:1: error: Function is missing a type annotation 
+apps/quoting/signals.py:14:1: error: Function is missing a type annotation
 [no-untyped-def]
     def auto_parse_stock_item(sender, instance, created, **kwargs):
     ^
@@ -5398,12 +5398,12 @@ apps/accounting/views/kpi_view.py:46:34: error: Unsupported operand types for
                 if not 1 <= month <= 12 or not 2000 <= year <= 2100:
                                      ^~
 apps/accounting/views/kpi_view.py:55:58: error: Argument 1 to
-"get_calendar_data" of "KPIService" has incompatible type "str"; expected "int" 
+"get_calendar_data" of "KPIService" has incompatible type "str"; expected "int"
 [arg-type]
                 calendar_data = KPIService.get_calendar_data(year, month)
                                                              ^~~~
 apps/accounting/views/kpi_view.py:55:64: error: Argument 2 to
-"get_calendar_data" of "KPIService" has incompatible type "str"; expected "int" 
+"get_calendar_data" of "KPIService" has incompatible type "str"; expected "int"
 [arg-type]
                 calendar_data = KPIService.get_calendar_data(year, month)
                                                                    ^~~~~
@@ -5653,7 +5653,7 @@ missing a return type annotation  [no-untyped-def]
         def get_line_items(self):
         ^
 apps/workflow/views/xero/xero_invoice_manager.py:87:24: error: Call to untyped
-function "_get_time_and_materials_line_items" in typed context 
+function "_get_time_and_materials_line_items" in typed context
 [no-untyped-call]
                     return self._get_time_and_materials_line_items()
                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -6235,7 +6235,7 @@ type "Any")  [misc]
     class StaffListAPIView(APIView):
                            ^
 apps/timesheet/views/api.py: note: In member "get" of class "StaffListAPIView":
-apps/timesheet/views/api.py:37:5: error: Function is missing a type annotation 
+apps/timesheet/views/api.py:37:5: error: Function is missing a type annotation
 [no-untyped-def]
         def get(self, request):
         ^
@@ -6245,7 +6245,7 @@ type "Any")  [misc]
     class TimeEntriesAPIView(APIView):
                              ^
 apps/timesheet/views/api.py: note: In member "get" of class "TimeEntriesAPIView":
-apps/timesheet/views/api.py:73:5: error: Function is missing a type annotation 
+apps/timesheet/views/api.py:73:5: error: Function is missing a type annotation
 [no-untyped-def]
         def get(self, request):
         ^
@@ -6348,7 +6348,7 @@ type annotation for one or more arguments  [no-untyped-def]
     def daily_timesheet_summary(request, target_date: str = None):
     ^
 apps/timesheet/api/daily_timesheet_views.py:21:57: error: Incompatible default
-for argument "target_date" (default has type "None", argument has type "str") 
+for argument "target_date" (default has type "None", argument has type "str")
 [assignment]
     def daily_timesheet_summary(request, target_date: str = None):
                                                             ^~~~
@@ -6369,7 +6369,7 @@ type annotation for one or more arguments  [no-untyped-def]
     def staff_daily_detail(request, staff_id: str, target_date: str = None...
     ^
 apps/timesheet/api/daily_timesheet_views.py:63:67: error: Incompatible default
-for argument "target_date" (default has type "None", argument has type "str") 
+for argument "target_date" (default has type "None", argument has type "str")
 [assignment]
     ...f staff_daily_detail(request, staff_id: str, target_date: str = None):
                                                                        ^~~~
@@ -6381,7 +6381,7 @@ apps/quoting/apps.py:11:21: error: Class cannot subclass "AppConfig" (has type
     class QuotingConfig(AppConfig):
                         ^
 apps/quoting/apps.py: note: In member "ready" of class "QuotingConfig":
-apps/quoting/apps.py:15:5: error: Function is missing a return type annotation 
+apps/quoting/apps.py:15:5: error: Function is missing a return type annotation
 [no-untyped-def]
         def ready(self):
         ^
@@ -6649,7 +6649,7 @@ apps/job/management/commands/test_quote_import.py:12:1: error: Module
     ^
 apps/job/management/commands/test_quote_import.py:12:1: error: Module
 "apps.job.services.import_quote_service" has no attribute
-"preview_quote_import"; maybe "preview_quote_import_from_drafts"? 
+"preview_quote_import"; maybe "preview_quote_import_from_drafts"?
 [attr-defined]
     from apps.job.services.import_quote_service import (
     ^
@@ -6741,7 +6741,7 @@ untyped function "deep_sync_xero_data" in typed context  [no-untyped-call]
                         sync_generator = deep_sync_xero_data(
                                          ^
 apps/workflow/management/commands/start_xero_sync.py:75:38: error: Call to
-untyped function "one_way_sync_all_xero_data" in typed context 
+untyped function "one_way_sync_all_xero_data" in typed context
 [no-untyped-call]
                         sync_generator = one_way_sync_all_xero_data(entiti...
                                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
@@ -7059,12 +7059,12 @@ type "Any")  [misc]
     class SerializerFieldSyncTest(APITestCase):
                                   ^
 apps/workflow/tests.py: note: In member "get_model_fields" of class "SerializerFieldSyncTest":
-apps/workflow/tests.py:23:5: error: Function is missing a type annotation 
+apps/workflow/tests.py:23:5: error: Function is missing a type annotation
 [no-untyped-def]
         def get_model_fields(self, model_class):
         ^
 apps/workflow/tests.py: note: In member "get_serializer_fields" of class "SerializerFieldSyncTest":
-apps/workflow/tests.py:37:5: error: Function is missing a type annotation 
+apps/workflow/tests.py:37:5: error: Function is missing a type annotation
 [no-untyped-def]
         def get_serializer_fields(self, serializer_class):
         ^

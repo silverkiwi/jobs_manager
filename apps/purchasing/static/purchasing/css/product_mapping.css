@@ -108,11 +108,11 @@ pre {
     .mapping-body .row {
         flex-direction: column;
     }
-    
+
     .mapping-body .col-md-6 {
         margin-bottom: 20px;
     }
-    
+
     .confidence-bar {
         width: 80px;
     }

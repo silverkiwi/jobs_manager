@@ -107,12 +107,12 @@ export function createCommonGridOptions() {
       const currentField = column.getColId();
       const rowNode = params.api.getDisplayedRowAtIndex(rowIndex);
       const currentData = rowNode ? rowNode.data : null;
-      
+
       // Add explicit check for cost to retail transitions
       let isMovingFromCostToRetail = false;
       let costField = null;
       let retailField = null;
-      
+
       // Complex grid transitions
       if (currentField === "unit_cost" && currentData) {
         isMovingFromCostToRetail = true;
@@ -123,7 +123,7 @@ export function createCommonGridOptions() {
         costField = "cost_adjustment";
         retailField = "price_adjustment";
       }
-      
+
       // Simple grid transitions
       else if (currentField === "material_cost" && currentData) {
         isMovingFromCostToRetail = true;
@@ -177,37 +177,37 @@ export function createCommonGridOptions() {
       // Apply auto-calculation of retail price IMMEDIATELY if we're moving from cost to retail field
       if (isMovingFromCostToRetail && costField && retailField && currentData) {
         console.log(`Calculating markup from ${costField} to ${retailField}`);
-        
+
         // Directly use numeric values
         const costValue = parseFloat(currentData[costField]) || 0;
-        
+
         // Immediately apply a default markup while waiting for the real one
         const defaultMarkup = 0.2; // 20% default markup
         currentData[retailField] = costValue + (costValue * defaultMarkup);
         currentData.isManualOverride = false;
-        
+
         // Force refresh the retail cell
         params.api.refreshCells({
           rowNodes: [rowNode],
           columns: [retailField],
           force: true
         });
-        
+
         // Then get the actual markup rate async and update again
         fetchMaterialsMarkup(currentData).then(markupRate => {
           // Calculate with actual markup
           currentData[retailField] = calculateRetailRate(costValue, markupRate);
-          
+
           // Force refresh the retail cell again
           params.api.refreshCells({
             rowNodes: [rowNode],
             columns: [retailField],
             force: true
           });
-          
+
           // Recalculate all totals
           // calculateSimpleTotals will call calculateTotalRevenue and calculateTotalCost
-          calculateSimpleTotals(); 
+          calculateSimpleTotals();
         });
       }
 
@@ -259,7 +259,7 @@ export function createCommonGridOptions() {
       const colId = event.column.colId;
       let costField = null;
       let retailField = null;
-      
+
       // Determine fields based on grid type and column
       if (gridType === "MaterialsTable" && colId === "unit_cost") {
         costField = "unit_cost";
@@ -274,28 +274,28 @@ export function createCommonGridOptions() {
         costField = "cost_adjustment";
         retailField = "price_adjustment";
       }
-      
+
       // If this is a cost field that should update a retail field, do it now
       if (costField && retailField && data && !data.isManualOverride) {
         const costValue = parseFloat(data[costField]) || 0;
         console.log(`Auto-calculating ${retailField} from ${costField} = ${costValue}`);
-        
+
         // First set a default markup immediately (don't wait for async)
         const defaultMarkup = 0.2; // 20% default markup
         data[retailField] = costValue + (costValue * defaultMarkup);
-        
+
         // Refresh immediately with default value
         event.api.refreshCells({
           rowNodes: [event.node],
           columns: [retailField],
           force: true
         });
-        
+
         // Then fetch actual markup and update
         fetchMaterialsMarkup(data).then(markupRate => {
           console.log(`Fetched markup rate: ${markupRate}, applying to ${costValue}`);
           data[retailField] = calculateRetailRate(costValue, markupRate);
-          
+
           // If we're in complex MaterialsTable, also update revenue
           if (gridType === "MaterialsTable") {
             data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
@@ -311,7 +311,7 @@ export function createCommonGridOptions() {
               force: true
             });
           }
-          
+
           // Update totals
           // calculateSimpleTotals will call calculateTotalRevenue and calculateTotalCost
           calculateSimpleTotals();
@@ -319,8 +319,8 @@ export function createCommonGridOptions() {
       }
 
       // Continue with the rest of the switch statement logic
-      switch (gridType) {        
-        
+      switch (gridType) {
+
         case "TimeTable":
           if (["mins_per_item", "items"].includes(event.column.colId)) {
             const totalMinutes = event.data.items * event.data.mins_per_item;
@@ -345,10 +345,10 @@ export function createCommonGridOptions() {
                   data.unit_cost,
                   markupRate,
                 );
-                
+
                 // Update revenue based on new unit_revenue
                 data.revenue = (data.quantity || 0) * (data.unit_revenue || 0);
-                
+
                 // Force refresh both unit_revenue and revenue cells
                 event.api.refreshCells({
                   rowNodes: [event.node],
@@ -384,7 +384,7 @@ export function createCommonGridOptions() {
                   data.cost_adjustment,
                   markupRate
                 );
-                
+
                 // Force refresh price_adjustment cell
                 event.api.refreshCells({
                   rowNodes: [event.node],
@@ -398,7 +398,7 @@ export function createCommonGridOptions() {
             data.isManualOverride = true;
           }
           break;
-          
+
         case "SimpleTimeTable":
           recalcSimpleTimeRow(event.data);
           event.api.refreshCells({
@@ -477,14 +477,14 @@ export function createCommonGridOptions() {
 
       // Ensure all dependent cells are refreshed
       const columnsToRefresh = ["revenue", "total_minutes"];
-      
+
       // Add specific columns based on grid type
       if (gridType === "MaterialsTable") {
         columnsToRefresh.push("unit_revenue");
       } else if (gridType === "AdjustmentTable") {
         columnsToRefresh.push("price_adjustment");
       }
-      
+
       event.api.refreshCells({
         rowNodes: [event.node],
         columns: columnsToRefresh,
@@ -493,7 +493,7 @@ export function createCommonGridOptions() {
 
       adjustGridHeight(event.api, `${gridKey}`);
       debouncedAutosave(event);
-      
+
       calculateSimpleTotals();
     },
   };

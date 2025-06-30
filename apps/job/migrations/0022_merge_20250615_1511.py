@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("job", "0019_job_latest_sets"),
         ("job", "0021_add_is_quote_adjustment_field"),

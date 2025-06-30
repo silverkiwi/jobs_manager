@@ -9,7 +9,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -85,7 +84,7 @@ class Migration(migrations.Migration):
                 "verbose_name": "Bill",
                 "verbose_name_plural": "Bills",
                 "ordering": ["-date", "number"],
-                "db_table": "workflow_bill"
+                "db_table": "workflow_bill",
             },
         ),
         migrations.CreateModel(
@@ -157,7 +156,7 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "Bill Line Item",
                 "verbose_name_plural": "Bill Line Items",
-                "db_table": "workflow_billlineitem"
+                "db_table": "workflow_billlineitem",
             },
         ),
         migrations.CreateModel(
@@ -226,7 +225,7 @@ class Migration(migrations.Migration):
                 "verbose_name": "Credit Note",
                 "verbose_name_plural": "Credit Notes",
                 "ordering": ["-date"],
-                "db_table": "workflow_creditnote"
+                "db_table": "workflow_creditnote",
             },
         ),
         migrations.CreateModel(
@@ -298,7 +297,7 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "Credit Note Line Item",
                 "verbose_name_plural": "Credit Note Line Items",
-                "db_table": "workflow_creditnotelineitem"
+                "db_table": "workflow_creditnotelineitem",
             },
         ),
         migrations.CreateModel(
@@ -378,7 +377,7 @@ class Migration(migrations.Migration):
                 "verbose_name": "Invoice",
                 "verbose_name_plural": "Invoices",
                 "ordering": ["-date", "number"],
-                "db_table": "workflow_invoice"
+                "db_table": "workflow_invoice",
             },
         ),
         migrations.CreateModel(
@@ -450,7 +449,7 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "Invoice Line Item",
                 "verbose_name_plural": "Invoice Line Items",
-                "db_table": "workflow_invoicelineitem"
+                "db_table": "workflow_invoicelineitem",
             },
         ),
         migrations.CreateModel(
@@ -518,15 +517,12 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={
-                "db_table": "workflow_quote"
-            },
+            options={"db_table": "workflow_quote"},
         ),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            state_operations=state_operations,
-            database_operations=[]
+            state_operations=state_operations, database_operations=[]
         )
     ]

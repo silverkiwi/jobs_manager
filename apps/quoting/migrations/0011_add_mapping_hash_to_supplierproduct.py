@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("quoting", "0010_productparsingmapping_item_code_is_in_xero"),
     ]
