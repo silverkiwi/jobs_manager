@@ -379,13 +379,8 @@ def create_xero_purchase_order(request, purchase_order_id):
         purchase_order = PurchaseOrder.objects.get(id=purchase_order_id)
         manager = XeroPurchaseOrderManager(purchase_order=purchase_order)
         # logger.info(f"Manager object type: {type(manager)}") # Keep for debugging if needed
-        response_data = manager.create_document()
-        return _handle_creator_response(
-            request,
-            response_data,
-            "Purchase order submitted to Xero successfully",
-            "Failed to create purchase order",
-        )
+        response_data = manager.sync_to_xero()
+        return response_data
     except PurchaseOrder.DoesNotExist:
         messages.error(
             request, f"Purchase Order with ID {purchase_order_id} not found."

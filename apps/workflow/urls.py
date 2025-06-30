@@ -95,6 +95,11 @@ urlpatterns = [
         name="xero_sync_info",
     ),
     path(
+        "api/xero/create_purchase_order/<uuid:purchase_order_id>",
+        xero_view.create_xero_purchase_order,
+        name="create_xero_purchase_order",
+    ),
+    path(
         "api/xero/delete_purchase_order/<uuid:purchase_order_id>",
         xero_view.delete_xero_purchase_order,
         name="delete_xero_purchase_order",
