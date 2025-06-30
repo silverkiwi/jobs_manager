@@ -410,7 +410,9 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
             }
 
             if line.item_code:
-                line_item_data["ItemCode"] = line.item_code
+                line_item_data[
+                    "item_code"
+                ] = line.item_code  # Corrigido para snake_case
 
             # Add account code only if found
             if account_code:
@@ -457,19 +459,23 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
             return XeroPurchaseOrder(purchase_order_id=xero_id, status="DELETED")
         elif type in ["create", "update"]:
             # Build the common document data dictionary using snake_case keys
+            order_date = self.purchase_order.order_date
+            if isinstance(order_date, str):
+                order_date = date.fromisoformat(order_date)
             document_data = {
                 "purchase_order_number": self.purchase_order.po_number,
                 "contact": self.get_xero_contact(),  # Uses base class method
-                "date": format_date(date.fromisoformat(self.purchase_order.order_date)),
+                "date": format_date(order_date),
                 "line_items": self.get_line_items(),
                 "status": status_map.get(self.purchase_order.status, "DRAFT"),
             }
 
             # Add optional fields if they exist
             if self.purchase_order.expected_delivery:
-                document_data["delivery_date"] = format_date(
-                    date.fromisoformat(self.purchase_order.expected_delivery)
-                )
+                expected_delivery = self.purchase_order.expected_delivery
+                if isinstance(expected_delivery, str):
+                    expected_delivery = date.fromisoformat(expected_delivery)
+                document_data["delivery_date"] = format_date(expected_delivery)
             if self.purchase_order.reference:
                 document_data["reference"] = self.purchase_order.reference
 

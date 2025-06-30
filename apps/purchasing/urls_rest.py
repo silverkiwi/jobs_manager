@@ -4,7 +4,6 @@ from apps.purchasing.views.purchasing_rest_views import (
     DeliveryReceiptRestView,
     PurchaseOrderDetailRestView,
     PurchaseOrderListCreateRestView,
-    PurchaseOrderPatchRestView,
     StockConsumeRestView,
     StockDeactivateRestView,
     StockListRestView,
@@ -17,11 +16,6 @@ urlpatterns = [
         "purchase-orders/",
         PurchaseOrderListCreateRestView.as_view(),
         name="purchase_orders_rest",
-    ),
-    path(
-        "purchase-orders/<uuid:pk>/",
-        PurchaseOrderPatchRestView.as_view(),
-        name="purchase_order_patch_rest",
     ),
     path(
         "delivery-receipts/",

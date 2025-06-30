@@ -22,12 +22,15 @@ class XeroItemList(APIView):
     """Return list of items from Xero."""
 
     def get(self, request):
-        cached = cache.get("xero_items")
-        if cached is None:
-            raw = get_xero_items()
-            cached = [{"id": i.item_id, "code": i.code, "name": i.name} for i in raw]
-            cache.set("xero_items", cached, 300)
-        return Response(cached)
+        try:
+            items = PurchasingRestService.list_xero_items()
+            return Response(items)
+        except Exception as e:
+            logger.error("Error fetching Xero items: %s", e)
+            return Response(
+                {"error": "Failed to fetch Xero items"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class PurchaseOrderListCreateRestView(APIView):
@@ -46,12 +49,6 @@ class PurchaseOrderListCreateRestView(APIView):
         )
 
 
-class PurchaseOrderPatchRestView(APIView):
-    def patch(self, request, pk):
-        po = PurchasingRestService.update_purchase_order(pk, request.data)
-        return Response({"id": str(po.id), "status": po.status})
-
-
 class PurchaseOrderDetailRestView(APIView):
     """Returns a full PO (including lines)"""
 
@@ -60,8 +57,12 @@ class PurchaseOrderDetailRestView(APIView):
         return Response(
             {
                 "id": str(po.id),
+                "po_number": po.po_number,
                 "reference": po.reference,
                 "supplier": po.supplier.name if po.supplier else "",
+                "supplier_has_xero_id": po.supplier.xero_contact_id is not None
+                if po.supplier
+                else False,
                 "status": po.status,
                 "order_date": po.order_date,
                 "expected_delivery": po.expected_delivery,
@@ -76,10 +77,16 @@ class PurchaseOrderDetailRestView(APIView):
                         else None,
                         "price_tbc": l.price_tbc,
                     }
-                    for l in po.lines.all()
+                    for l in po.po_lines.all()
                 ],
+                "online_url": po.online_url if po.online_url else None,
+                "xero_id": po.xero_id if po.xero_id else None,
             }
         )
+
+    def patch(self, request, pk):
+        po = PurchasingRestService.update_purchase_order(pk, request.data)
+        return Response({"id": str(po.id), "status": po.status})
 
 
 class DeliveryReceiptRestView(APIView):

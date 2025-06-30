@@ -343,13 +343,27 @@ def get_xero_items(if_modified_since: Optional[datetime] = None) -> Any:
     Handles rate limiting and other API errors.
     """
     logger.info(f"Fetching Xero Items. If modified since: {if_modified_since}")
+
     tenant_id = get_tenant_id()
     accounting_api = AccountingApi(api_client)
+    logger.info(f"Using tenant ID: {tenant_id}")
 
     try:
-        items = accounting_api.get_items(
-            xero_tenant_id=tenant_id, if_modified_since=if_modified_since
-        )
+        match if_modified_since:
+            case None:
+                logger.info("No 'if_modified_since' provided, fetching all items.")
+                items = accounting_api.get_items(xero_tenant_id=tenant_id)
+            case datetime():
+                logger.info(
+                    f"'if_modified_since' provided: {if_modified_since.isoformat()}"
+                )
+                items = accounting_api.get_items(
+                    xero_tenant_id=tenant_id, if_modified_since=if_modified_since
+                )
+            case _:
+                raise ValueError(
+                    f"Invalid type for 'if_modified_since': {type(if_modified_since)}. Expected datetime or None."
+                )
         logger.info(f"Successfully fetched {len(items.items)} Xero Items.")
         return items.items
     except Exception as e:
