@@ -57,10 +57,6 @@ class QuoteSerializer(serializers.ModelSerializer):
 
 
 class JobSerializer(serializers.ModelSerializer):
-    # Legacy JobPricing fields (deprecated but kept for backward compatibility)
-    latest_estimate_pricing = JobPricingSerializer(required=False)
-    latest_quote_pricing = JobPricingSerializer(required=False)
-    latest_reality_pricing = JobPricingSerializer(required=False)
     # New CostSet fields (current system)
     latest_estimate = serializers.SerializerMethodField()
     latest_quote = serializers.SerializerMethodField()

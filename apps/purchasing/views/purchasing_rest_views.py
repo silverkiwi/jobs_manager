@@ -1,4 +1,5 @@
 """REST views for purchasing module."""
+
 import logging
 from decimal import Decimal
 
@@ -60,9 +61,9 @@ class PurchaseOrderDetailRestView(APIView):
                 "po_number": po.po_number,
                 "reference": po.reference,
                 "supplier": po.supplier.name if po.supplier else "",
-                "supplier_has_xero_id": po.supplier.xero_contact_id is not None
-                if po.supplier
-                else False,
+                "supplier_has_xero_id": (
+                    po.supplier.xero_contact_id is not None if po.supplier else False
+                ),
                 "status": po.status,
                 "order_date": po.order_date,
                 "expected_delivery": po.expected_delivery,
@@ -72,9 +73,9 @@ class PurchaseOrderDetailRestView(APIView):
                         "item_code": l.item_code,
                         "description": l.description,
                         "quantity": float(l.quantity),
-                        "unit_cost": float(l.unit_cost)
-                        if l.unit_cost is not None
-                        else None,
+                        "unit_cost": (
+                            float(l.unit_cost) if l.unit_cost is not None else None
+                        ),
                         "price_tbc": l.price_tbc,
                     }
                     for l in po.po_lines.all()

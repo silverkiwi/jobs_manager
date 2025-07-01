@@ -348,6 +348,14 @@ def get_xero_items(if_modified_since: Optional[datetime] = None) -> Any:
     accounting_api = AccountingApi(api_client)
     logger.info(f"Using tenant ID: {tenant_id}")
 
+    # Convert string to datetime if needed
+    # Hack because some items don't go through the coorrect code path
+    # which has the conversion logic
+    if isinstance(if_modified_since, str):
+        if_modified_since = datetime.fromisoformat(
+            if_modified_since.replace("Z", "+00:00")
+        )
+
     try:
         match if_modified_since:
             case None:
