@@ -79,9 +79,11 @@ class PurchasingRestService:
                 purchase_order=po,
                 job_id=line.get("job_id"),
                 description=line.get("description", ""),
-                quantity=Decimal(str(line.get("quantity", 0)))
-                if line.get("quantity") is not None
-                else Decimal("0"),
+                quantity=(
+                    Decimal(str(line.get("quantity", 0)))
+                    if line.get("quantity") is not None
+                    else Decimal("0")
+                ),
                 unit_cost=unit_cost,
                 price_tbc=price_tbc,
                 item_code=line.get("item_code"),
@@ -136,12 +138,16 @@ class PurchasingRestService:
                         purchase_order=po,
                         job_id=line_data.get("job_id"),
                         description=line_data.get("description", ""),
-                        quantity=Decimal(str(line_data.get("quantity", 0)))
-                        if line_data.get("quantity") is not None
-                        else Decimal("0"),
-                        unit_cost=Decimal(str(line_data["unit_cost"]))
-                        if line_data.get("unit_cost") is not None
-                        else None,
+                        quantity=(
+                            Decimal(str(line_data.get("quantity", 0)))
+                            if line_data.get("quantity") is not None
+                            else Decimal("0")
+                        ),
+                        unit_cost=(
+                            Decimal(str(line_data["unit_cost"]))
+                            if line_data.get("unit_cost") is not None
+                            else None
+                        ),
                         price_tbc=bool(line_data.get("price_tbc", False)),
                         item_code=line_data.get("item_code"),
                     )
@@ -197,9 +203,11 @@ class PurchasingRestService:
                         "id": i.item_id if i.item_id else None,
                         "code": i.code if i.code else None,
                         "name": i.name if i.name else None,
-                        "unit_cost": i.purchase_details.unit_price
-                        if i.purchase_details and i.purchase_details.unit_price
-                        else None,
+                        "unit_cost": (
+                            i.purchase_details.unit_price
+                            if i.purchase_details and i.purchase_details.unit_price
+                            else None
+                        ),
                     }
                 )
             return items

@@ -355,8 +355,7 @@ class Stock(models.Model):
         null=True, blank=True, help_text="Raw JSON data from Xero for this item"
     )
     xero_inventory_tracked = models.BooleanField(
-        default=False,
-        help_text="Whether this item is inventory-tracked in Xero"
+        default=False, help_text="Whether this item is inventory-tracked in Xero"
     )
 
     # Parser tracking fields

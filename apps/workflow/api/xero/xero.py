@@ -352,7 +352,9 @@ def get_xero_items(if_modified_since: Optional[datetime] = None) -> Any:
     # Hack because some items don't go through the coorrect code path
     # which has the conversion logic
     if isinstance(if_modified_since, str):
-        if_modified_since = datetime.fromisoformat(if_modified_since.replace('Z', '+00:00'))
+        if_modified_since = datetime.fromisoformat(
+            if_modified_since.replace("Z", "+00:00")
+        )
 
     try:
         match if_modified_since:

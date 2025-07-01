@@ -14,8 +14,8 @@ class Command(BaseCommand):
         django_port = os.environ.get("DJANGO_PORT", "8000")
 
         # Extract subdomain from full domain
-        subdomain = app_domain.split('.')[0] if '.' in app_domain else app_domain
-        
+        subdomain = app_domain.split(".")[0] if "." in app_domain else app_domain
+
         # Create localtunnel command with the custom subdomain
         lt_command = f"lt --port {django_port} --subdomain {subdomain}"
 

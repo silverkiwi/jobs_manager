@@ -410,9 +410,9 @@ class XeroPurchaseOrderManager(XeroDocumentManager):
             }
 
             if line.item_code:
-                line_item_data[
-                    "item_code"
-                ] = line.item_code  # Corrigido para snake_case
+                line_item_data["item_code"] = (
+                    line.item_code
+                )  # Corrigido para snake_case
 
             # Add account code only if found
             if account_code:

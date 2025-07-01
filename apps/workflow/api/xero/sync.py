@@ -327,7 +327,7 @@ def transform_stock(xero_item, xero_id):
     is_tracked = getattr(xero_item, "is_tracked_as_inventory", None)
     xero_last_modified = getattr(xero_item, "updated_date_utc", None)
     raw_json = process_xero_data(xero_item)
-    
+
     # Base validation requirements (always required)
     required_fields = {
         "code": item_code,
@@ -335,7 +335,7 @@ def transform_stock(xero_item, xero_id):
         "is_tracked_as_inventory": is_tracked,
         "updated_date_utc": xero_last_modified,
     }
-    
+
     # Only access and validate quantity_on_hand for tracked items
     if is_tracked:
         quantity = getattr(xero_item, "quantity_on_hand", None)
@@ -344,7 +344,7 @@ def transform_stock(xero_item, xero_id):
     else:
         # For untracked items, don't access quantity_on_hand at all
         quantity_value = Decimal("0")
-    
+
     validate_required_fields(required_fields, "item", xero_id)
 
     defaults = {
