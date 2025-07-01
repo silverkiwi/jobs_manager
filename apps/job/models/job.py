@@ -65,17 +65,6 @@ class Job(models.Model):
     )
     order_number = models.CharField(max_length=100, null=True, blank=True)
 
-    # Legacy contact fields - to be migrated to ClientContact
-    contact_person = models.CharField(
-        max_length=100, null=True, blank=True
-    )  # DEPRECATED: DO NOT USE
-    contact_email = models.EmailField(null=True, blank=True)  # # DEPRECATED: DO NOT USE
-    contact_phone = models.CharField(
-        max_length=150,
-        null=True,
-        blank=True,
-    )  # DEPRECATED: DO NOT USE
-
     # New relationship to ClientContact
     contact = models.ForeignKey(
         "client.ClientContact",
@@ -86,11 +75,6 @@ class Job(models.Model):
         help_text="The contact person for this job",
     )
     job_number = models.IntegerField(unique=True)  # Job 1234
-    material_gauge_quantity = models.TextField(
-        blank=True,
-        null=True,
-        help_text="DEPRECATED - Use notes field instead. Content will be automatically migrated.",
-    )
     description = models.TextField(
         blank=True,
         null=True,
@@ -396,21 +380,6 @@ class Job(models.Model):
                 self.latest_actual = actual_cost_set
 
                 logger.debug("Initial CostSets created successfully.")
-
-                # Create legacy JobPricing instances for backward compatibility (deprecated)
-                logger.debug(
-                    "Creating legacy JobPricing entries for backward compatibility."
-                )
-                self.latest_estimate_pricing = JobPricing.objects.create(
-                    pricing_stage="estimate", job=self
-                )
-                self.latest_quote_pricing = JobPricing.objects.create(
-                    pricing_stage="quote", job=self
-                )
-                self.latest_reality_pricing = JobPricing.objects.create(
-                    pricing_stage="reality", job=self
-                )
-                logger.debug("Legacy pricings created successfully.")
 
                 # Save the references back to the DB
                 super(Job, self).save(

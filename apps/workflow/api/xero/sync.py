@@ -320,31 +320,41 @@ def transform_stock(xero_item, xero_id):
     Returns:
         The saved Stock model.
     """
+    # Get basic required fields - NO FALLBACKS, fail early if missing
     item_code = getattr(xero_item, "code", None)
     description = getattr(xero_item, "name", None)
     notes = getattr(xero_item, "description", None)
-    quantity = getattr(xero_item, "quantity_on_hand", None)
+    is_tracked = getattr(xero_item, "is_tracked_as_inventory", None)
     xero_last_modified = getattr(xero_item, "updated_date_utc", None)
     raw_json = process_xero_data(xero_item)
-
-    validate_required_fields(
-        {
-            "code": item_code,
-            "name": description,
-            "quantity_on_hand": quantity,
-            "updated_date_utc": xero_last_modified,
-        },
-        "item",
-        xero_id,
-    )
+    
+    # Base validation requirements (always required)
+    required_fields = {
+        "code": item_code,
+        "name": description,
+        "is_tracked_as_inventory": is_tracked,
+        "updated_date_utc": xero_last_modified,
+    }
+    
+    # Only access and validate quantity_on_hand for tracked items
+    if is_tracked:
+        quantity = getattr(xero_item, "quantity_on_hand", None)
+        required_fields["quantity_on_hand"] = quantity
+        quantity_value = Decimal(str(quantity))
+    else:
+        # For untracked items, don't access quantity_on_hand at all
+        quantity_value = Decimal("0")
+    
+    validate_required_fields(required_fields, "item", xero_id)
 
     defaults = {
         "item_code": item_code,
         "description": description,
         "notes": notes,
-        "quantity": Decimal(str(quantity)),
+        "quantity": quantity_value,
         "raw_json": raw_json,
         "xero_last_modified": xero_last_modified,
+        "xero_inventory_tracked": is_tracked,
     }
     if xero_item.purchase_details and xero_item.purchase_details.unit_price is not None:
         defaults["unit_cost"] = Decimal(str(xero_item.purchase_details.unit_price))
@@ -488,7 +498,6 @@ def sync_clients(xero_contacts):
 
         set_client_fields(client, new_from_xero=created)
         clients.append(client)
-        time.sleep(SLEEP_TIME)  # Rate limit
 
     # Resolve merges
     for client in clients:
@@ -668,11 +677,32 @@ def sync_xero_data(
         if not items:
             break
 
-        for item in items:
-            success, event = process_xero_item(item, sync_function, our_entity_type)
-            if success:
-                total_processed += 1
-            yield event
+        try:
+            sync_function(items)
+            total_processed += len(items)
+            yield {
+                "datetime": timezone.now().isoformat(),
+                "entity": our_entity_type,
+                "severity": "info",
+                "message": f"Synced {len(items)} {our_entity_type}",
+                "progress": None,
+            }
+        except XeroValidationError as exc:
+            persist_xero_error(exc)
+            yield {
+                "datetime": timezone.now().isoformat(),
+                "severity": "error",
+                "message": str(exc),
+                "progress": None,
+            }
+        except Exception as exc:
+            persist_app_error(exc)
+            yield {
+                "datetime": timezone.now().isoformat(),
+                "severity": "error",
+                "message": "Unexpected: " + str(exc),
+                "progress": None,
+            }
 
         yield {
             "datetime": timezone.now().isoformat(),

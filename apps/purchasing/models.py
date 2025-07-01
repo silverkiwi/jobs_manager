@@ -63,6 +63,11 @@ class PurchaseOrder(models.Model):
     xero_last_modified = models.DateTimeField(null=True, blank=True)
     xero_last_synced = models.DateTimeField(null=True, blank=True, default=timezone.now)
     online_url = models.URLField(max_length=500, null=True, blank=True)
+    raw_json = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Raw JSON data from Xero for this purchase order",
+    )
 
     def generate_po_number(self):
         """Generate the next sequential PO number based on the configured prefix."""
@@ -348,6 +353,10 @@ class Stock(models.Model):
     )
     raw_json = models.JSONField(
         null=True, blank=True, help_text="Raw JSON data from Xero for this item"
+    )
+    xero_inventory_tracked = models.BooleanField(
+        default=False,
+        help_text="Whether this item is inventory-tracked in Xero"
     )
 
     # Parser tracking fields
